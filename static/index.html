@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quran Insight | بصائر القرآن</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cairo:wght@300;400;700&display=swap"
+        rel="stylesheet">
+    <link rel="icon" type="image/png" href="/favicon.ico">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="stylesheet" href="style.css?v=47">
+</head>
+
+<body>
+    <div class="container">
+        <div class="top-shell">
+            <button id="themeToggle" class="theme-toggle-btn" onclick="toggleTheme()" title="تبديل النمط">☀️</button>
+
+            <header>
+                <div id="brandReset" class="brand-reset" role="button" tabindex="0" aria-label="العودة إلى البداية ومسح البحث">
+                    <h1>بصائر القرآن</h1>
+                    <p class="brand-subtitle">أداة بحث قرآنية للباحث</p>
+                </div>
+            </header>
+
+            <div id="searchShell" class="search-shell">
+                <div class="search-shell-top">
+                    <button id="toolsDrawerToggle" class="tools-drawer-toggle" type="button" aria-expanded="false"
+                        aria-controls="toolsDrawer">
+                        <span class="tools-drawer-toggle-label">الأدوات</span>
+                        <span id="toolsDrawerValue" class="tools-drawer-toggle-value">الرواية</span>
+                    </button>
+
+                    <div id="toolsDrawer" class="tools-drawer" aria-label="خيارات البحث">
+                        <div class="tools-drawer-header">
+                            <div class="tools-drawer-title">
+                                <span>خيارات البحث</span>
+                                <small>مساحة قابلة للتوسعة للميزات القادمة</small>
+                            </div>
+                            <button id="toolsDrawerClose" class="tools-drawer-close" type="button"
+                                aria-label="إغلاق الأدوات">&times;</button>
+                        </div>
+
+                        <div class="mushaf-selector drawer-mushaf-selector">
+                            <label for="mushafSelect">الرواية:</label>
+                            <select id="mushafSelect" onchange="changeMushaf()">
+                                <option value="1">جاري التحميل...</option>
+                            </select>
+                        </div>
+
+                        <div class="tools-drawer-note">
+                            <span class="tools-note-label">قريبًا</span>
+                            <p>هذه المساحة مهيأة لاستقبال المرشحات النحوية وأدوات التنقل والوظائف البحثية المتقدمة.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="search-box">
+                    <div class="input-wrapper">
+                        <span id="searchPrefix" class="search-prefix">جذر</span>
+                        <input type="text" id="searchInput" placeholder="أدخل كلمة أو عبارة للبحث..." autocomplete="off">
+                        <div id="suggestions" class="suggestions-box"></div>
+                    </div>
+                    <div class="toggles-wrapper">
+                        <button id="modeToggle" class="mode-toggle" onclick="toggleSearchMode()" title="تبديل وضع البحث">
+                            <span id="modeLabel">جذر</span>
+                        </button>
+                        <button id="chaklToggle" class="mode-toggle chakl-toggle" onclick="toggleChaklMode()"
+                            title="تبديل التشكيل" style="display: none;">
+                            <span id="chaklLabel">إزالة التشكيل</span>
+                        </button>
+                    </div>
+                    <button id="searchSubmitBtn" class="search-submit-btn" type="button" onclick="performSearch()">بحث</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="hidden">
+            <div class="spinner"></div>
+            <p>جاري البحث...</p>
+        </div>
+
+        <div id="errorArea" class="hidden"></div>
+
+        <div id="readerViewSwitch" class="reader-view-switch hidden" role="group" aria-label="تبديل عرض النتائج والمصحف">
+            <button id="showResultsView" class="reader-switch-btn active" type="button">النتائج</button>
+            <button id="showReaderView" class="reader-switch-btn" type="button">المصحف</button>
+        </div>
+
+        <div id="searchWorkspace" class="search-workspace hidden" data-view="results">
+            <section id="resultsPane" class="results-pane" aria-label="نتائج البحث">
+                <div class="pane-header">
+                    <div class="pane-title">
+                        <span class="pane-label">مساحة البحث</span>
+                        <h2 id="resultsPaneTitle">نتائج البحث</h2>
+                        <p id="resultsPaneStats" class="pane-subtitle hidden"></p>
+                    </div>
+                </div>
+                <div id="resultsArea" class="hidden"></div>
+            </section>
+
+            <section id="readerPane" class="reader-pane" aria-label="المصحف">
+                <div class="pane-header reader-header">
+                    <div class="pane-title reader-title">
+                        <span class="pane-label reader-label">المصحف</span>
+                        <h2 id="readerSurahName">اختر آية من النتائج</h2>
+                    </div>
+                    <div class="reader-page-controls" aria-label="التنقل بين صفحات المصحف">
+                        <button id="readerPrevPage" class="reader-page-btn" type="button">→</button>
+                        <div class="reader-page-jump">
+                            <span id="readerPageLabel">صفحة -</span>
+                            <input id="readerPageInput" type="number" min="1" inputmode="numeric" aria-label="رقم الصفحة">
+                        </div>
+                        <button id="readerNextPage" class="reader-page-btn" type="button">←</button>
+                    </div>
+                </div>
+
+                <div id="readerEmptyState" class="reader-empty">
+                    اختر نتيجة من اليسار لفتح صفحتها في المصحف مع تمييز الآية المختارة.
+                </div>
+                <div id="readerBody" class="reader-body"></div>
+            </section>
+        </div>
+
+    </div>
+
+    <script type="text/javascript" src="https://api.yamli.com/js/yamli_api.js"></script>
+    <script type="text/javascript">
+        if (typeof (Yamli) == "object" && Yamli.init({ uiLanguage: "ar", startMode: "onOrUserDefault" })) {
+            Yamli.yamlify("searchInput", { settingsPlacement: "inside" });
+        }
+    </script>
+    <script src="script.js?v=77"></script>
+</body>
+
+</html>

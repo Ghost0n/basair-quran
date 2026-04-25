@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+src/__pycache__/
+data/quran.db
+data/quran.db-shm
+data/quran.db-wal
