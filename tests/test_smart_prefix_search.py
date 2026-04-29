@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+import scripts.build_db as build_db
 from src import main
 
 
@@ -40,6 +41,15 @@ def insert_ayah(cursor, ayah_id, number_in_surah, text, words, global_index):
             ) VALUES (?, ?, ?, ?, ?)
             """,
             (root_id, ayah_id, word_position, word_text, word_simple),
+        )
+        cursor.execute(
+            """
+            INSERT INTO ayah_words (
+                ayah_id, mushaf_id, surah_id, number_in_surah, global_index,
+                word_position, word_text, word_simple
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (ayah_id, 1, 1, number_in_surah, global_index, word_position, word_text, word_simple),
         )
 
 
@@ -90,6 +100,27 @@ def create_arabic_test_db(db_path: Path):
             word_position INTEGER,
             word_text TEXT,
             word_simple TEXT
+        );
+
+        CREATE TABLE ayah_words (
+            ayah_id INTEGER NOT NULL,
+            mushaf_id INTEGER NOT NULL,
+            surah_id INTEGER NOT NULL,
+            number_in_surah INTEGER NOT NULL,
+            global_index INTEGER NOT NULL,
+            word_position INTEGER NOT NULL,
+            word_text TEXT NOT NULL,
+            word_simple TEXT NOT NULL,
+            PRIMARY KEY (ayah_id, word_position)
+        );
+
+        CREATE TABLE morphology_search_variants (
+            surface_simple TEXT NOT NULL,
+            search_simple TEXT NOT NULL,
+            search_text TEXT NOT NULL,
+            stripped_prefix_count INTEGER NOT NULL DEFAULT 0,
+            stripped_article_count INTEGER NOT NULL DEFAULT 0,
+            scope TEXT NOT NULL
         );
         """
     )
@@ -211,6 +242,28 @@ def create_arabic_morphology_file(path: Path):
     )
 
 
+def populate_arabic_morphology_variants(db_path: Path, morphology_path: Path):
+    """Insert offline morphology search variants into the fixture DB."""
+    connection = sqlite3.connect(db_path)
+    cursor = connection.cursor()
+    variant_rows = build_db.build_morphology_variant_rows(morphology_path.read_text(encoding="utf-8"))
+    cursor.executemany(
+        """
+        INSERT INTO morphology_search_variants (
+            surface_simple,
+            search_simple,
+            search_text,
+            stripped_prefix_count,
+            stripped_article_count,
+            scope
+        ) VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        variant_rows,
+    )
+    connection.commit()
+    connection.close()
+
+
 @pytest.fixture()
 def arabic_api_client(tmp_path):
     """Provide a TestClient with Arabic fixture data and morphology."""
@@ -218,6 +271,7 @@ def arabic_api_client(tmp_path):
     morphology_path = tmp_path / "arabic_morphology.txt"
     create_arabic_test_db(db_path)
     create_arabic_morphology_file(morphology_path)
+    populate_arabic_morphology_variants(db_path, morphology_path)
 
     original_db_path = main.get_db_path()
     original_morphology_path = main.get_morphology_path()

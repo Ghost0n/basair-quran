@@ -55,6 +55,27 @@ def create_test_db(db_path: Path):
             word_text TEXT,
             word_simple TEXT
         );
+
+        CREATE TABLE ayah_words (
+            ayah_id INTEGER NOT NULL,
+            mushaf_id INTEGER NOT NULL,
+            surah_id INTEGER NOT NULL,
+            number_in_surah INTEGER NOT NULL,
+            global_index INTEGER NOT NULL,
+            word_position INTEGER NOT NULL,
+            word_text TEXT NOT NULL,
+            word_simple TEXT NOT NULL,
+            PRIMARY KEY (ayah_id, word_position)
+        );
+
+        CREATE TABLE morphology_search_variants (
+            surface_simple TEXT NOT NULL,
+            search_simple TEXT NOT NULL,
+            search_text TEXT NOT NULL,
+            stripped_prefix_count INTEGER NOT NULL DEFAULT 0,
+            stripped_article_count INTEGER NOT NULL DEFAULT 0,
+            scope TEXT NOT NULL
+        );
         """
     )
 
@@ -102,6 +123,15 @@ def create_test_db(db_path: Path):
             """,
             (101, ayah_id, 1, "shared", "shared"),
         )
+        cursor.execute(
+            """
+            INSERT INTO ayah_words (
+                ayah_id, mushaf_id, surah_id, number_in_surah, global_index,
+                word_position, word_text, word_simple
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (ayah_id, 1, 1, number_in_surah, global_index, 1, "shared", "shared"),
+        )
         ayah_id += 1
         global_index += 1
 
@@ -137,6 +167,15 @@ def create_test_db(db_path: Path):
             """,
             (102, ayah_id, 1, "shared", "shared"),
         )
+        cursor.execute(
+            """
+            INSERT INTO ayah_words (
+                ayah_id, mushaf_id, surah_id, number_in_surah, global_index,
+                word_position, word_text, word_simple
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (ayah_id, 1, 1, number_in_surah, global_index, 1, "shared", "shared"),
+        )
         ayah_id += 1
         global_index += 1
 
@@ -169,6 +208,15 @@ def create_test_db(db_path: Path):
         ) VALUES (?, ?, ?, ?, ?)
         """,
         (None, ayah_id, 1, "shadow", "shadow"),
+    )
+    cursor.execute(
+        """
+        INSERT INTO ayah_words (
+            ayah_id, mushaf_id, surah_id, number_in_surah, global_index,
+            word_position, word_text, word_simple
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (ayah_id, 1, 1, 15, global_index, 1, "shadow", "shadow"),
     )
 
     connection.commit()

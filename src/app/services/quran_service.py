@@ -16,9 +16,6 @@ logger = logging.getLogger(__name__)
 
 # Connection pool (reuse connections)
 _db_connection = None
-_morphology_search_index = None
-_mushaf_ayah_tokens_cache = OrderedDict()
-_mushaf_phrase_metadata_cache = OrderedDict()
 _mushaf_page_index_cache = OrderedDict()
 _mushaf_latin_word_index_cache = OrderedDict()
 _mushaf_latin_root_index_cache = OrderedDict()
@@ -52,14 +49,12 @@ def put_cache_entry(cache, key, value, limit=None):
 
 def close_db_connection():
     """Close the cached SQLite connection."""
-    global _db_connection, _mushaf_ayah_tokens_cache, _mushaf_phrase_metadata_cache, _mushaf_page_index_cache
+    global _db_connection, _mushaf_page_index_cache
     global _mushaf_latin_word_index_cache, _mushaf_latin_root_index_cache, _mushaf_word_suggestion_candidates_cache
     global _phrase_did_you_mean_cache, _word_did_you_mean_cache
     if _db_connection is not None:
         _db_connection.close()
         _db_connection = None
-    _mushaf_ayah_tokens_cache = OrderedDict()
-    _mushaf_phrase_metadata_cache = OrderedDict()
     _mushaf_page_index_cache = OrderedDict()
     _mushaf_latin_word_index_cache = OrderedDict()
     _mushaf_latin_root_index_cache = OrderedDict()
@@ -69,9 +64,8 @@ def close_db_connection():
 
 
 def reset_morphology_search_index():
-    """Reset the cached morphology search index."""
-    global _morphology_search_index
-    _morphology_search_index = None
+    """Retained for compatibility with tests and external callers."""
+    return None
 
 
 def get_db():
@@ -483,101 +477,61 @@ def build_morphology_search_records(parts):
     return full_simple, deduplicate_morphology_records(word_records), deduplicate_morphology_records(phrase_records)
 
 
-def get_morphology_search_index():
-    """Load the morphology-backed search index lazily."""
-    global _morphology_search_index
-    if _morphology_search_index is not None:
-        return _morphology_search_index
-
-    morphology_path = config.get_morphology_path()
-    if not os.path.exists(morphology_path):
-        logger.warning("Morphology file not found at %s; smart prefix search disabled.", morphology_path)
-        _morphology_search_index = build_empty_morphology_search_index()
-        return _morphology_search_index
-
-    groups = defaultdict(list)
-    with open(morphology_path, "r", encoding="utf-8") as handle:
-        for raw_line in handle:
-            line = raw_line.rstrip("\n")
-            if not line:
-                continue
-            ref, form, pos, features = line.split("\t")
-            word_key = ":".join(ref.split(":")[:3])
-            groups[word_key].append((form, pos, features))
-
-    form_to_surfaces = defaultdict(set)
-    surface_to_forms = defaultdict(dict)
-    phrase_surface_to_forms = defaultdict(dict)
-
-    for parts in groups.values():
-        full_simple, records, phrase_records = build_morphology_search_records(parts)
-        if not full_simple:
-            continue
-
-        for record in records:
-            form_to_surfaces[record["search_simple"]].add(full_simple)
-            surface_to_forms[full_simple][(record["search_simple"], record["search_text"])] = record
-        for record in phrase_records:
-            phrase_surface_to_forms[full_simple][(record["search_simple"], record["search_text"])] = record
-
-    _morphology_search_index = {
-        "form_to_surfaces": {search_simple: sorted(surfaces) for search_simple, surfaces in form_to_surfaces.items()},
-        "surface_to_forms": {
-            surface_simple: list(record_map.values()) for surface_simple, record_map in surface_to_forms.items()
-        },
-        "search_forms": sorted(form_to_surfaces),
-        "phrase_surface_to_forms": {
-            surface_simple: list(record_map.values()) for surface_simple, record_map in phrase_surface_to_forms.items()
-        },
-    }
-    logger.info(
-        "Loaded morphology search index with %s searchable forms from %s",
-        len(_morphology_search_index["form_to_surfaces"]),
-        morphology_path,
+def fetch_morphology_variant_records(cursor, surface_simple, scope):
+    """Fetch offline morphology variants for one normalized token surface."""
+    cursor.execute(
+        """
+        SELECT search_simple, search_text, stripped_prefix_count, stripped_article_count
+        FROM morphology_search_variants
+        WHERE surface_simple = ? AND scope = ?
+        ORDER BY stripped_prefix_count DESC, stripped_article_count ASC, LENGTH(search_simple), search_text
+        """,
+        (surface_simple, scope),
     )
-    return _morphology_search_index
+    return [dict(row) for row in cursor.fetchall()]
 
 
-def resolve_exact_word_surfaces(q_simple):
+def resolve_exact_word_surfaces(cursor, q_simple):
     """Resolve the concrete surface forms that should match this exact query."""
     if not q_simple:
         return []
 
-    morphology_index = get_morphology_search_index()
-    surfaces = list(morphology_index["form_to_surfaces"].get(q_simple, []))
+    cursor.execute(
+        """
+        SELECT DISTINCT surface_simple
+        FROM morphology_search_variants
+        WHERE scope = 'word' AND search_simple = ?
+        ORDER BY surface_simple
+        """,
+        (q_simple,),
+    )
+    surfaces = [row["surface_simple"] for row in cursor.fetchall()]
     ordered_surfaces = [q_simple]
     ordered_surfaces.extend(surface for surface in surfaces if surface != q_simple)
     return ordered_surfaces
 
 
-def resolve_prefix_word_surfaces(q_simple, limit):
+def resolve_prefix_word_surfaces(cursor, q_simple, limit):
     """Resolve surface forms whose smart-search variants share the given prefix."""
     if not q_simple or limit <= 0:
         return []
 
-    morphology_index = get_morphology_search_index()
-    ordered_surfaces = []
-    seen_surfaces = set()
-
-    for search_simple in morphology_index["search_forms"]:
-        if not search_simple.startswith(q_simple):
-            continue
-
-        for surface_simple in morphology_index["form_to_surfaces"].get(search_simple, []):
-            if surface_simple in seen_surfaces:
-                continue
-            seen_surfaces.add(surface_simple)
-            ordered_surfaces.append(surface_simple)
-            if len(ordered_surfaces) >= limit:
-                return ordered_surfaces
-
-    return ordered_surfaces
+    cursor.execute(
+        """
+        SELECT DISTINCT surface_simple
+        FROM morphology_search_variants
+        WHERE scope = 'word' AND search_simple LIKE ?
+        ORDER BY search_simple, surface_simple
+        LIMIT ?
+        """,
+        (f"{q_simple}%", limit),
+    )
+    return [row["surface_simple"] for row in cursor.fetchall()]
 
 
-def get_phrase_surface_records(surface_simple, surface_text):
+def get_phrase_surface_records(cursor, surface_simple, surface_text):
     """Return phrase-aware searchable records for one Quran token."""
-    morphology_index = get_morphology_search_index()
-    records = morphology_index["phrase_surface_to_forms"].get(surface_simple, [])
+    records = fetch_morphology_variant_records(cursor, surface_simple, "phrase")
     if records:
         return records
     return [
@@ -590,20 +544,21 @@ def get_phrase_surface_records(surface_simple, surface_text):
     ]
 
 
-def get_candidate_phrase_records(candidate_token):
+def get_candidate_phrase_records(cursor, candidate_token):
     """Return cached phrase records for a token when available."""
     return candidate_token.get("phrase_records") or get_phrase_surface_records(
+        cursor,
         candidate_token["word_simple"],
         candidate_token["word_text"],
     )
 
 
-def collect_mushaf_phrase_forms(ayahs):
+def collect_mushaf_phrase_forms(cursor, ayahs):
     """Collect searchable phrase forms present in one mushaf token cache."""
     forms = set()
     for ayah in ayahs:
         for token in ayah["tokens"]:
-            for record in get_candidate_phrase_records(token):
+            for record in get_candidate_phrase_records(cursor, token):
                 forms.add(record["search_simple"])
     return forms
 
@@ -642,14 +597,14 @@ def build_phrase_similarity_score_maps(query_tokens, phrase_forms):
     return score_maps
 
 
-def select_best_phrase_candidate_record(query_token, candidate_token, score_map=None):
+def select_best_phrase_candidate_record(cursor, query_token, candidate_token, score_map=None):
     """Return the closest phrase-aware morphology record for one Quran token."""
     best_record = None
     best_score = -1.0
     best_diacritic_match = -1
     best_penalty = math.inf
 
-    for record in get_candidate_phrase_records(candidate_token):
+    for record in get_candidate_phrase_records(cursor, candidate_token):
         if score_map is not None and record["search_simple"] not in score_map:
             continue
 
@@ -681,9 +636,9 @@ def select_best_phrase_candidate_record(query_token, candidate_token, score_map=
     return best_record, max(best_score, 0.0)
 
 
-def phrase_query_token_matches_candidate(query_token, candidate_token):
+def phrase_query_token_matches_candidate(cursor, query_token, candidate_token):
     """Return True when one query token matches one Quran token directly."""
-    candidate_records = get_candidate_phrase_records(candidate_token)
+    candidate_records = get_candidate_phrase_records(cursor, candidate_token)
     if query_token["has_diacritics"]:
         if (
             candidate_token["word_simple"] == query_token["simple"]
@@ -701,12 +656,12 @@ def phrase_query_token_matches_candidate(query_token, candidate_token):
     return any(record["search_simple"] == query_token["simple"] for record in candidate_records)
 
 
-def phrase_query_token_similarity(query_token, candidate_token):
+def phrase_query_token_similarity(cursor, query_token, candidate_token):
     """Return the best fuzzy similarity between a query token and Quran token."""
     if not query_token["simple"]:
         return 0.0
 
-    _best_record, best_score = select_best_phrase_candidate_record(query_token, candidate_token)
+    _best_record, best_score = select_best_phrase_candidate_record(cursor, query_token, candidate_token)
     return best_score
 
 
@@ -717,10 +672,9 @@ def format_suggestion_text(text, with_chakl):
     return plain_arabic_display_text(text)
 
 
-def get_preferred_suggestion_text(surface_simple, q_simple, with_chakl=False, surface_text=None):
+def get_preferred_suggestion_text(cursor, surface_simple, q_simple, with_chakl=False, surface_text=None):
     """Return the best display form for a smart suggestion."""
-    morphology_index = get_morphology_search_index()
-    records = morphology_index["surface_to_forms"].get(surface_simple, [])
+    records = fetch_morphology_variant_records(cursor, surface_simple, "word")
     matching_records = [
         record
         for record in records
@@ -754,10 +708,9 @@ def fetch_word_suggestions_by_surface_simples(cursor, surface_simples, q_simple,
     placeholders = ",".join("?" for _ in surface_simples)
     cursor.execute(
         f"""
-        SELECT DISTINCT wo.word_text, wo.word_simple
-        FROM word_occurrences wo
-        JOIN ayahs a ON wo.ayah_id = a.id
-        WHERE wo.word_simple IN ({placeholders}) AND a.mushaf_id = ?
+        SELECT DISTINCT aw.word_text, aw.word_simple
+        FROM ayah_words aw
+        WHERE aw.word_simple IN ({placeholders}) AND aw.mushaf_id = ?
         LIMIT ?
         """,
         [*surface_simples, mushaf, limit],
@@ -768,16 +721,17 @@ def fetch_word_suggestions_by_surface_simples(cursor, surface_simples, q_simple,
     suggestions = []
     for row in rows:
         display_text = get_preferred_suggestion_text(
+            cursor,
             row["word_simple"],
             q_simple,
             with_chakl,
             row["word_text"],
         ) or format_suggestion_text(row["word_text"], with_chakl)
         display_simple = normalize_text_search(display_text)
-        if not exact_candidate_matches_query(row, display_text, display_simple):
+        if not exact_candidate_matches_query(cursor, row, display_text, display_simple):
             display_text = format_suggestion_text(row["word_text"], with_chakl)
             display_simple = row["word_simple"]
-        if not exact_candidate_matches_query(row, display_text, display_simple):
+        if not exact_candidate_matches_query(cursor, row, display_text, display_simple):
             continue
         suggestions.append({"type": "word", "text": display_text, "label": display_text})
     return suggestions
@@ -857,20 +811,22 @@ def get_mushaf_latin_word_index(cursor, mushaf):
 
     cursor.execute(
         """
-        SELECT DISTINCT wo.word_text, wo.word_simple
-        FROM word_occurrences wo
-        JOIN ayahs a ON wo.ayah_id = a.id
-        WHERE a.mushaf_id = ?
-        ORDER BY wo.word_simple, wo.word_text
+        SELECT DISTINCT word_text, word_simple
+        FROM ayah_words
+        WHERE mushaf_id = ?
+        ORDER BY word_simple, word_text
         """,
         (mushaf,),
     )
 
     indexed_items = {}
-    morphology_index = get_morphology_search_index()
+    record_cache = {}
 
     for row in cursor.fetchall():
-        records = morphology_index["surface_to_forms"].get(row["word_simple"], [])
+        records = record_cache.setdefault(
+            row["word_simple"],
+            fetch_morphology_variant_records(cursor, row["word_simple"], "word"),
+        )
         candidate_surfaces = {(format_suggestion_text(row["word_text"], False), format_suggestion_text(row["word_text"], True))}
 
         for record in records:
@@ -951,10 +907,9 @@ def build_word_suggestions(cursor, q_simple, mushaf, limit, with_chakl=False):
     like_q = f"{q_simple}%"
     cursor.execute(
         """
-        SELECT DISTINCT wo.word_text, wo.word_simple
-        FROM word_occurrences wo
-        JOIN ayahs a ON wo.ayah_id = a.id
-        WHERE wo.word_simple LIKE ? AND a.mushaf_id = ?
+        SELECT DISTINCT word_text, word_simple
+        FROM ayah_words
+        WHERE word_simple LIKE ? AND mushaf_id = ?
         LIMIT ?
         """,
         (like_q, mushaf, limit),
@@ -964,6 +919,7 @@ def build_word_suggestions(cursor, q_simple, mushaf, limit, with_chakl=False):
     seen_texts = set()
     for row in cursor.fetchall():
         display_text = get_preferred_suggestion_text(
+            cursor,
             row["word_simple"],
             q_simple,
             with_chakl,
@@ -978,7 +934,7 @@ def build_word_suggestions(cursor, q_simple, mushaf, limit, with_chakl=False):
 
     smart_surfaces = [
         surface_simple
-        for surface_simple in resolve_prefix_word_surfaces(q_simple, limit * 5)
+        for surface_simple in resolve_prefix_word_surfaces(cursor, q_simple, limit * 5)
         if not surface_simple.startswith(q_simple)
     ]
     for item in fetch_word_suggestions_by_surface_simples(
@@ -999,18 +955,18 @@ def build_word_suggestions(cursor, q_simple, mushaf, limit, with_chakl=False):
     return suggestions
 
 
-def phrase_query_token_prefix_matches_candidate(query_token, candidate_token):
+def phrase_query_token_prefix_matches_candidate(cursor, query_token, candidate_token):
     """Return True when a Quran token can complete the current phrase token prefix."""
-    return select_phrase_suggestion_record(query_token, candidate_token, allow_prefix=True) is not None
+    return select_phrase_suggestion_record(cursor, query_token, candidate_token, allow_prefix=True) is not None
 
 
-def select_phrase_suggestion_record(query_token, candidate_token, allow_prefix=False):
+def select_phrase_suggestion_record(cursor, query_token, candidate_token, allow_prefix=False):
     """Return the morphology record that made a phrase suggestion token match."""
     if not query_token["simple"]:
         return None
 
     matching_records = []
-    for record in get_candidate_phrase_records(candidate_token):
+    for record in get_candidate_phrase_records(cursor, candidate_token):
         record_simple = record["search_simple"]
         if allow_prefix:
             matched = record_simple.startswith(query_token["simple"])
@@ -1050,11 +1006,12 @@ def build_phrase_suggestion_token_text(token, record, with_chakl=False):
     return format_suggestion_text(token_text, with_chakl)
 
 
-def build_phrase_suggestion_text(window, query_tokens, with_chakl=False):
+def build_phrase_suggestion_text(cursor, window, query_tokens, with_chakl=False):
     """Build a display suggestion for a matched Quran phrase window."""
     text_parts = []
     for index, (query_token, candidate_token) in enumerate(zip(query_tokens, window)):
         record = select_phrase_suggestion_record(
+            cursor,
             query_token,
             candidate_token,
             allow_prefix=index == len(query_tokens) - 1,
@@ -1085,14 +1042,14 @@ def build_phrase_suggestions(cursor, q, mushaf, limit, with_chakl=False):
         if not has_consecutive_word_positions(window):
             continue
         if not all(
-            phrase_query_token_matches_candidate(query_token, candidate_token)
+            phrase_query_token_matches_candidate(cursor, query_token, candidate_token)
             for query_token, candidate_token in zip(query_tokens[:-1], window[:-1])
         ):
             continue
-        if not phrase_query_token_prefix_matches_candidate(query_tokens[-1], window[-1]):
+        if not phrase_query_token_prefix_matches_candidate(cursor, query_tokens[-1], window[-1]):
             continue
 
-        phrase_text = build_phrase_suggestion_text(window, query_tokens, with_chakl)
+        phrase_text = build_phrase_suggestion_text(cursor, window, query_tokens, with_chakl)
         if phrase_text in seen_phrases:
             continue
         seen_phrases.add(phrase_text)
@@ -1106,7 +1063,7 @@ def build_phrase_suggestions(cursor, q, mushaf, limit, with_chakl=False):
 def get_root_ids(cursor, q_simple, mushaf):
     """Resolve all roots linked to the query for the selected mushaf."""
     root_ids = set()
-    surface_simples = resolve_exact_word_surfaces(q_simple)
+    surface_simples = resolve_exact_word_surfaces(cursor, q_simple)
     if not surface_simples:
         surface_simples = [q_simple]
 
@@ -1129,29 +1086,24 @@ def get_root_ids(cursor, q_simple, mushaf):
 
 def fetch_mushaf_ayah_tokens(cursor, mushaf):
     """Fetch all Quran tokens for one mushaf grouped by ayah."""
-    cache_key = (config.get_db_path(), mushaf)
-    cached_ayahs = get_cache_entry(_mushaf_ayah_tokens_cache, cache_key)
-    if cached_ayahs is not None:
-        return cached_ayahs
-
     cursor.execute(
         """
         SELECT
-            a.id AS ayah_id,
-            a.mushaf_id,
+            aw.ayah_id,
+            aw.mushaf_id,
             s.name_arabic AS surah_name,
-            a.surah_id,
-            a.number_in_surah,
+            aw.surah_id,
+            aw.number_in_surah,
             a.text_uthmani,
-            a.global_index,
-            wo.word_position,
-            wo.word_text,
-            wo.word_simple
-        FROM word_occurrences wo
-        JOIN ayahs a ON wo.ayah_id = a.id
-        JOIN surahs s ON a.surah_id = s.id
-        WHERE a.mushaf_id = ?
-        ORDER BY a.surah_id, a.number_in_surah, wo.word_position
+            aw.global_index,
+            aw.word_position,
+            aw.word_text,
+            aw.word_simple
+        FROM ayah_words aw
+        JOIN ayahs a ON aw.ayah_id = a.id
+        JOIN surahs s ON aw.surah_id = s.id
+        WHERE aw.mushaf_id = ?
+        ORDER BY aw.surah_id, aw.number_in_surah, aw.word_position
         """,
         (mushaf,),
     )
@@ -1175,7 +1127,7 @@ def fetch_mushaf_ayah_tokens(cursor, mushaf):
 
         record_key = (row["word_simple"], row["word_text"])
         if record_key not in phrase_record_cache:
-            phrase_record_cache[record_key] = get_phrase_surface_records(row["word_simple"], row["word_text"])
+            phrase_record_cache[record_key] = get_phrase_surface_records(cursor, row["word_simple"], row["word_text"])
 
         current_ayah["tokens"].append(
             {
@@ -1186,16 +1138,11 @@ def fetch_mushaf_ayah_tokens(cursor, mushaf):
             }
         )
 
-    return put_cache_entry(_mushaf_ayah_tokens_cache, cache_key, ayahs, config.get_runtime_mushaf_cache_limit())
+    return ayahs
 
 
 def get_mushaf_phrase_metadata(cursor, mushaf):
     """Return cached phrase-search metadata for one mushaf."""
-    cache_key = (config.get_db_path(), mushaf)
-    cached_metadata = get_cache_entry(_mushaf_phrase_metadata_cache, cache_key)
-    if cached_metadata is not None:
-        return cached_metadata
-
     ayahs = fetch_mushaf_ayah_tokens(cursor, mushaf)
     phrase_forms = set()
     positions_by_form = defaultdict(list)
@@ -1203,7 +1150,7 @@ def get_mushaf_phrase_metadata(cursor, mushaf):
 
     for ayah_index, ayah in enumerate(ayahs):
         for token_index, token in enumerate(ayah["tokens"]):
-            for record in get_candidate_phrase_records(token):
+            for record in get_candidate_phrase_records(cursor, token):
                 form = record["search_simple"]
                 phrase_forms.add(form)
                 position_key = (form, ayah_index, token_index)
@@ -1212,17 +1159,11 @@ def get_mushaf_phrase_metadata(cursor, mushaf):
                 seen_positions.add(position_key)
                 positions_by_form[form].append((ayah_index, token_index))
 
-    metadata = {
+    return {
         "ayahs": ayahs,
         "phrase_forms": phrase_forms,
         "positions_by_form": dict(positions_by_form),
     }
-    return put_cache_entry(
-        _mushaf_phrase_metadata_cache,
-        cache_key,
-        metadata,
-        config.get_runtime_mushaf_cache_limit(),
-    )
 
 
 def has_consecutive_word_positions(window):
@@ -1230,7 +1171,7 @@ def has_consecutive_word_positions(window):
     return all(window[index]["word_position"] == window[0]["word_position"] + index for index in range(len(window)))
 
 
-def find_phrase_matches(ayahs, query_tokens, metadata=None):
+def find_phrase_matches(cursor, ayahs, query_tokens, metadata=None):
     """Find direct phrase matches for a tokenized exact query."""
     token_count = len(query_tokens)
     if token_count < 2:
@@ -1261,7 +1202,7 @@ def find_phrase_matches(ayahs, query_tokens, metadata=None):
         if not has_consecutive_word_positions(window):
             continue
         if not all(
-            phrase_query_token_matches_candidate(query_token, candidate_token)
+            phrase_query_token_matches_candidate(cursor, query_token, candidate_token)
             for query_token, candidate_token in zip(query_tokens, window)
         ):
             continue
@@ -1306,13 +1247,13 @@ def phrase_matches_to_verse_list(matches):
     return verse_list
 
 
-def build_phrase_did_you_mean(query_tokens, ayahs, phrase_forms=None):
+def build_phrase_did_you_mean(cursor, query_tokens, ayahs, phrase_forms=None):
     """Return one high-confidence same-order Quran phrase suggestion."""
     token_count = len(query_tokens)
     if token_count < 2:
         return None
 
-    phrase_forms = phrase_forms if phrase_forms is not None else collect_mushaf_phrase_forms(ayahs)
+    phrase_forms = phrase_forms if phrase_forms is not None else collect_mushaf_phrase_forms(cursor, ayahs)
     score_maps = build_phrase_similarity_score_maps(query_tokens, phrase_forms)
     if score_maps is None:
         return None
@@ -1330,10 +1271,10 @@ def build_phrase_did_you_mean(query_tokens, ayahs, phrase_forms=None):
 
             selections = []
             for query_token, candidate_token, score_map in zip(query_tokens, window, score_maps):
-                if not any(record["search_simple"] in score_map for record in get_candidate_phrase_records(candidate_token)):
+                if not any(record["search_simple"] in score_map for record in get_candidate_phrase_records(cursor, candidate_token)):
                     selections = []
                     break
-                selections.append(select_best_phrase_candidate_record(query_token, candidate_token, score_map))
+                selections.append(select_best_phrase_candidate_record(cursor, query_token, candidate_token, score_map))
             if not selections:
                 continue
 
@@ -1402,17 +1343,16 @@ def collect_word_suggestion_candidates(cursor, mushaf):
 
     cursor.execute(
         """
-        SELECT DISTINCT wo.word_text, wo.word_simple
-        FROM word_occurrences wo
-        JOIN ayahs a ON wo.ayah_id = a.id
-        WHERE a.mushaf_id = ?
-        ORDER BY wo.word_simple, wo.word_text
+        SELECT DISTINCT word_text, word_simple
+        FROM ayah_words
+        WHERE mushaf_id = ?
+        ORDER BY word_simple, word_text
         """,
         (mushaf,),
     )
 
     candidates = {}
-    morphology_index = get_morphology_search_index()
+    record_cache = {}
     for row in cursor.fetchall():
         default_display = plain_arabic_display_text(row["word_text"])
         candidate_key = (row["word_simple"], default_display)
@@ -1422,7 +1362,11 @@ def collect_word_suggestion_candidates(cursor, mushaf):
             "penalty": 0,
         }
 
-        for record in morphology_index["surface_to_forms"].get(row["word_simple"], []):
+        records = record_cache.setdefault(
+            row["word_simple"],
+            fetch_morphology_variant_records(cursor, row["word_simple"], "word"),
+        )
+        for record in records:
             candidate_text = plain_arabic_display_text(build_candidate_surface_text(row["word_text"], record))
             if not candidate_text:
                 continue
@@ -1514,7 +1458,7 @@ def search_exact_phrase_matches(cursor, q, mushaf):
     ayahs = metadata["ayahs"]
     phrase_forms = metadata["phrase_forms"]
     has_possible_direct_match = all(token["simple"] in phrase_forms for token in query_tokens)
-    matches = find_phrase_matches(ayahs, query_tokens, metadata) if has_possible_direct_match else []
+    matches = find_phrase_matches(cursor, ayahs, query_tokens, metadata) if has_possible_direct_match else []
     if matches:
         did_you_mean = None
     else:
@@ -1528,7 +1472,7 @@ def search_exact_phrase_matches(cursor, q, mushaf):
         if cached_suggestion is not None or cache_key in _phrase_did_you_mean_cache:
             did_you_mean = cached_suggestion
         else:
-            did_you_mean = build_phrase_did_you_mean(query_tokens, ayahs, phrase_forms)
+            did_you_mean = build_phrase_did_you_mean(cursor, query_tokens, ayahs, phrase_forms)
             put_cache_entry(
                 _phrase_did_you_mean_cache,
                 cache_key,
@@ -1540,7 +1484,7 @@ def search_exact_phrase_matches(cursor, q, mushaf):
 
 def fetch_exact_candidate_rows(cursor, q_simple, mushaf):
     """Fetch exact-search candidates before diacritic filtering."""
-    surface_simples = resolve_exact_word_surfaces(q_simple)
+    surface_simples = resolve_exact_word_surfaces(cursor, q_simple)
     if not surface_simples:
         return []
 
@@ -1555,13 +1499,13 @@ def fetch_exact_candidate_rows(cursor, q_simple, mushaf):
             a.number_in_surah,
             a.text_uthmani,
             a.global_index,
-            wo.word_position,
-            wo.word_text,
-            wo.word_simple
-        FROM word_occurrences wo
-        JOIN ayahs a ON wo.ayah_id = a.id
+            aw.word_position,
+            aw.word_text,
+            aw.word_simple
+        FROM ayah_words aw
+        JOIN ayahs a ON aw.ayah_id = a.id
         JOIN surahs s ON a.surah_id = s.id
-        WHERE wo.word_simple IN ({placeholders}) AND a.mushaf_id = ?
+        WHERE aw.word_simple IN ({placeholders}) AND a.mushaf_id = ?
         ORDER BY a.surah_id, a.number_in_surah
         """,
         [*surface_simples, mushaf],
@@ -1569,14 +1513,13 @@ def fetch_exact_candidate_rows(cursor, q_simple, mushaf):
     return cursor.fetchall()
 
 
-def exact_candidate_matches_query(candidate, query, q_simple):
+def exact_candidate_matches_query(cursor, candidate, query, q_simple):
     """Return True when one candidate row can satisfy an exact query."""
     if not has_query_diacritics(query):
         return True
 
     query_standard = standardize_uthmani(query.strip())
-    morphology_index = get_morphology_search_index()
-    candidate_forms = morphology_index["surface_to_forms"].get(candidate["word_simple"], [])
+    candidate_forms = fetch_morphology_variant_records(cursor, candidate["word_simple"], "word")
     if candidate_forms:
         for record in candidate_forms:
             if record["search_simple"] != q_simple:
@@ -1592,7 +1535,7 @@ def exact_candidate_matches_query(candidate, query, q_simple):
     return uthmani_matches_query(query_standard, candidate["word_text"])
 
 
-def filter_exact_occurrences(candidate_rows, query, q_simple):
+def filter_exact_occurrences(cursor, candidate_rows, query, q_simple):
     """Filter exact-search candidates by whether diacritics were requested."""
     if not candidate_rows:
         return []
@@ -1603,7 +1546,7 @@ def filter_exact_occurrences(candidate_rows, query, q_simple):
     return [
         candidate
         for candidate in candidate_rows
-        if exact_candidate_matches_query(candidate, query, q_simple)
+        if exact_candidate_matches_query(cursor, candidate, query, q_simple)
     ]
 
 
@@ -2054,7 +1997,7 @@ def build_legacy_exact_results(cursor, q, q_simple, mushaf):
             }
         ], None
 
-    occurrences = filter_exact_occurrences(fetch_exact_candidate_rows(cursor, q_simple, mushaf), q, q_simple)
+    occurrences = filter_exact_occurrences(cursor, fetch_exact_candidate_rows(cursor, q_simple, mushaf), q, q_simple)
     if not occurrences:
         return [], build_word_did_you_mean(cursor, q_simple, mushaf)
 
@@ -2131,7 +2074,7 @@ def build_paginated_exact_result(cursor, q, q_simple, mushaf, page, page_size):
             "verses": verses,
         }
 
-    occurrences = filter_exact_occurrences(fetch_exact_candidate_rows(cursor, q_simple, mushaf), q, q_simple)
+    occurrences = filter_exact_occurrences(cursor, fetch_exact_candidate_rows(cursor, q_simple, mushaf), q, q_simple)
     if not occurrences:
         return None
 

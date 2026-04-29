@@ -29,11 +29,13 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 pip install -r requirements.txt
 ```
 
-2. Build the Quran database if `data/quran.db` is missing:
+2. Build the Quran database if `data/quran.db` is missing, or rebuild it after pulling changes that touch `scripts/build_db.py`:
 
 ```powershell
 python scripts/build_db.py
 ```
+
+The builder now precomputes phrase-token metadata and morphology search variants into SQLite so the API does not need to keep large search indexes in memory at runtime.
 
 3. Start the API on port `8001`:
 

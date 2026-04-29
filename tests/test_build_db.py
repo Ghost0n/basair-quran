@@ -15,6 +15,8 @@ def test_build_db_fails_before_mutating_existing_database(tmp_path, monkeypatch,
 
     root_dict_path = data_dir / "word_root_dictionary.json"
     write_json(root_dict_path, {"shared": ["shared-root-a"]})
+    morphology_path = data_dir / "quran-morphology.txt"
+    morphology_path.write_text("1:1:1:1\tshared\tN\tLEM:shared\n", encoding="utf-8")
 
     existing_mushaf = mushaf_dir / "existing.json"
     write_json(
