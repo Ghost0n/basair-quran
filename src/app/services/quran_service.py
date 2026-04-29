@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import OrderedDict, defaultdict
 from difflib import SequenceMatcher
 import logging
 import math
@@ -17,14 +17,37 @@ logger = logging.getLogger(__name__)
 # Connection pool (reuse connections)
 _db_connection = None
 _morphology_search_index = None
-_mushaf_ayah_tokens_cache = {}
-_mushaf_phrase_metadata_cache = {}
-_mushaf_page_index_cache = {}
-_mushaf_latin_word_index_cache = {}
-_mushaf_latin_root_index_cache = {}
-_mushaf_word_suggestion_candidates_cache = {}
-_phrase_did_you_mean_cache = {}
-_word_did_you_mean_cache = {}
+_mushaf_ayah_tokens_cache = OrderedDict()
+_mushaf_phrase_metadata_cache = OrderedDict()
+_mushaf_page_index_cache = OrderedDict()
+_mushaf_latin_word_index_cache = OrderedDict()
+_mushaf_latin_root_index_cache = OrderedDict()
+_mushaf_word_suggestion_candidates_cache = OrderedDict()
+_phrase_did_you_mean_cache = OrderedDict()
+_word_did_you_mean_cache = OrderedDict()
+
+
+def get_cache_entry(cache, key):
+    """Return one cached value and mark it as recently used."""
+    if key not in cache:
+        return None
+
+    value = cache.pop(key)
+    cache[key] = value
+    return value
+
+
+def put_cache_entry(cache, key, value, limit=None):
+    """Store one cache entry and evict the oldest item when needed."""
+    if key in cache:
+        cache.pop(key)
+    cache[key] = value
+
+    if limit is not None:
+        while len(cache) > limit:
+            cache.popitem(last=False)
+
+    return value
 
 
 def close_db_connection():
@@ -35,14 +58,14 @@ def close_db_connection():
     if _db_connection is not None:
         _db_connection.close()
         _db_connection = None
-    _mushaf_ayah_tokens_cache = {}
-    _mushaf_phrase_metadata_cache = {}
-    _mushaf_page_index_cache = {}
-    _mushaf_latin_word_index_cache = {}
-    _mushaf_latin_root_index_cache = {}
-    _mushaf_word_suggestion_candidates_cache = {}
-    _phrase_did_you_mean_cache = {}
-    _word_did_you_mean_cache = {}
+    _mushaf_ayah_tokens_cache = OrderedDict()
+    _mushaf_phrase_metadata_cache = OrderedDict()
+    _mushaf_page_index_cache = OrderedDict()
+    _mushaf_latin_word_index_cache = OrderedDict()
+    _mushaf_latin_root_index_cache = OrderedDict()
+    _mushaf_word_suggestion_candidates_cache = OrderedDict()
+    _phrase_did_you_mean_cache = OrderedDict()
+    _word_did_you_mean_cache = OrderedDict()
 
 
 def reset_morphology_search_index():
@@ -58,8 +81,10 @@ def get_db():
         _db_connection = sqlite3.connect(db_uri, uri=True, check_same_thread=False)
         _db_connection.row_factory = sqlite3.Row
         _db_connection.execute("PRAGMA query_only=ON")
-        _db_connection.execute("PRAGMA cache_size=10000")
+        _db_connection.execute(f"PRAGMA cache_size={config.get_runtime_sqlite_cache_pages()}")
         _db_connection.execute("PRAGMA temp_store=MEMORY")
+        if config.is_low_memory_mode():
+            logger.info("Low-memory runtime mode enabled; using constrained in-process caches.")
     return _db_connection
 
 
@@ -774,8 +799,9 @@ def build_root_suggestions(cursor, like_q, limit):
 def get_mushaf_latin_root_index(cursor, mushaf):
     """Return a cached Latin lookup index for mushaf roots."""
     cache_key = (config.get_db_path(), mushaf)
-    if cache_key in _mushaf_latin_root_index_cache:
-        return _mushaf_latin_root_index_cache[cache_key]
+    cached_items = get_cache_entry(_mushaf_latin_root_index_cache, cache_key)
+    if cached_items is not None:
+        return cached_items
 
     cursor.execute(
         """
@@ -796,7 +822,8 @@ def get_mushaf_latin_root_index(cursor, mushaf):
             continue
         items.append({"text": row["root_text"], "variants": variants})
 
-    _mushaf_latin_root_index_cache[cache_key] = items
+    if not config.is_low_memory_mode():
+        put_cache_entry(_mushaf_latin_root_index_cache, cache_key, items, config.get_runtime_mushaf_cache_limit())
     return items
 
 
@@ -824,8 +851,9 @@ def build_root_suggestions_by_latin(cursor, query, mushaf, limit):
 def get_mushaf_latin_word_index(cursor, mushaf):
     """Return a cached Latin lookup index for mushaf words."""
     cache_key = (config.get_db_path(), mushaf)
-    if cache_key in _mushaf_latin_word_index_cache:
-        return _mushaf_latin_word_index_cache[cache_key]
+    cached_items = get_cache_entry(_mushaf_latin_word_index_cache, cache_key)
+    if cached_items is not None:
+        return cached_items
 
     cursor.execute(
         """
@@ -885,7 +913,8 @@ def get_mushaf_latin_word_index(cursor, mushaf):
             }
         )
 
-    _mushaf_latin_word_index_cache[cache_key] = items
+    if not config.is_low_memory_mode():
+        put_cache_entry(_mushaf_latin_word_index_cache, cache_key, items, config.get_runtime_mushaf_cache_limit())
     return items
 
 
@@ -1101,8 +1130,9 @@ def get_root_ids(cursor, q_simple, mushaf):
 def fetch_mushaf_ayah_tokens(cursor, mushaf):
     """Fetch all Quran tokens for one mushaf grouped by ayah."""
     cache_key = (config.get_db_path(), mushaf)
-    if cache_key in _mushaf_ayah_tokens_cache:
-        return _mushaf_ayah_tokens_cache[cache_key]
+    cached_ayahs = get_cache_entry(_mushaf_ayah_tokens_cache, cache_key)
+    if cached_ayahs is not None:
+        return cached_ayahs
 
     cursor.execute(
         """
@@ -1156,15 +1186,15 @@ def fetch_mushaf_ayah_tokens(cursor, mushaf):
             }
         )
 
-    _mushaf_ayah_tokens_cache[cache_key] = ayahs
-    return ayahs
+    return put_cache_entry(_mushaf_ayah_tokens_cache, cache_key, ayahs, config.get_runtime_mushaf_cache_limit())
 
 
 def get_mushaf_phrase_metadata(cursor, mushaf):
     """Return cached phrase-search metadata for one mushaf."""
     cache_key = (config.get_db_path(), mushaf)
-    if cache_key in _mushaf_phrase_metadata_cache:
-        return _mushaf_phrase_metadata_cache[cache_key]
+    cached_metadata = get_cache_entry(_mushaf_phrase_metadata_cache, cache_key)
+    if cached_metadata is not None:
+        return cached_metadata
 
     ayahs = fetch_mushaf_ayah_tokens(cursor, mushaf)
     phrase_forms = set()
@@ -1187,8 +1217,12 @@ def get_mushaf_phrase_metadata(cursor, mushaf):
         "phrase_forms": phrase_forms,
         "positions_by_form": dict(positions_by_form),
     }
-    _mushaf_phrase_metadata_cache[cache_key] = metadata
-    return metadata
+    return put_cache_entry(
+        _mushaf_phrase_metadata_cache,
+        cache_key,
+        metadata,
+        config.get_runtime_mushaf_cache_limit(),
+    )
 
 
 def has_consecutive_word_positions(window):
@@ -1362,8 +1396,9 @@ def build_phrase_did_you_mean(query_tokens, ayahs, phrase_forms=None):
 def collect_word_suggestion_candidates(cursor, mushaf):
     """Collect searchable single-token candidates that are present in one mushaf."""
     cache_key = (config.get_db_path(), mushaf)
-    if cache_key in _mushaf_word_suggestion_candidates_cache:
-        return _mushaf_word_suggestion_candidates_cache[cache_key]
+    cached_candidates = get_cache_entry(_mushaf_word_suggestion_candidates_cache, cache_key)
+    if cached_candidates is not None:
+        return cached_candidates
 
     cursor.execute(
         """
@@ -1402,7 +1437,13 @@ def collect_word_suggestion_candidates(cursor, mushaf):
                 }
 
     candidate_list = list(candidates.values())
-    _mushaf_word_suggestion_candidates_cache[cache_key] = candidate_list
+    if not config.is_low_memory_mode():
+        put_cache_entry(
+            _mushaf_word_suggestion_candidates_cache,
+            cache_key,
+            candidate_list,
+            config.get_runtime_mushaf_cache_limit(),
+        )
     return candidate_list
 
 
@@ -1412,8 +1453,9 @@ def build_word_did_you_mean(cursor, q_simple, mushaf):
         return None
 
     cache_key = (config.get_db_path(), config.get_morphology_path(), mushaf, q_simple)
-    if cache_key in _word_did_you_mean_cache:
-        return _word_did_you_mean_cache[cache_key]
+    cached_suggestion = get_cache_entry(_word_did_you_mean_cache, cache_key)
+    if cached_suggestion is not None or cache_key in _word_did_you_mean_cache:
+        return cached_suggestion
 
     ranked_candidates = []
     query_length = len(q_simple)
@@ -1440,7 +1482,7 @@ def build_word_did_you_mean(cursor, q_simple, mushaf):
         )
 
     if not ranked_candidates:
-        _word_did_you_mean_cache[cache_key] = None
+        put_cache_entry(_word_did_you_mean_cache, cache_key, None, config.get_runtime_query_cache_limit())
         return None
 
     ranked_candidates.sort(
@@ -1458,12 +1500,11 @@ def build_word_did_you_mean(cursor, q_simple, mushaf):
         and best_candidate["score"] - ranked_candidates[1]["score"] < config.WORD_SUGGESTION_MIN_LEAD
         and best_candidate["text"] != ranked_candidates[1]["text"]
     ):
-        _word_did_you_mean_cache[cache_key] = None
+        put_cache_entry(_word_did_you_mean_cache, cache_key, None, config.get_runtime_query_cache_limit())
         return None
 
     suggestion = {"text": best_candidate["text"], "confidence": round(best_candidate["score"], 3)}
-    _word_did_you_mean_cache[cache_key] = suggestion
-    return suggestion
+    return put_cache_entry(_word_did_you_mean_cache, cache_key, suggestion, config.get_runtime_query_cache_limit())
 
 
 def search_exact_phrase_matches(cursor, q, mushaf):
@@ -1483,11 +1524,17 @@ def search_exact_phrase_matches(cursor, q, mushaf):
             mushaf,
             tuple(token["simple"] for token in query_tokens),
         )
-        if cache_key in _phrase_did_you_mean_cache:
-            did_you_mean = _phrase_did_you_mean_cache[cache_key]
+        cached_suggestion = get_cache_entry(_phrase_did_you_mean_cache, cache_key)
+        if cached_suggestion is not None or cache_key in _phrase_did_you_mean_cache:
+            did_you_mean = cached_suggestion
         else:
             did_you_mean = build_phrase_did_you_mean(query_tokens, ayahs, phrase_forms)
-            _phrase_did_you_mean_cache[cache_key] = did_you_mean
+            put_cache_entry(
+                _phrase_did_you_mean_cache,
+                cache_key,
+                did_you_mean,
+                config.get_runtime_query_cache_limit(),
+            )
     return query_tokens, matches, did_you_mean
 
 
@@ -1828,8 +1875,9 @@ def page_value_contains(page_value, page):
 def get_mushaf_page_index(cursor, mushaf):
     """Return a cached page->ayah index for one mushaf."""
     cache_key = (config.get_db_path(), mushaf)
-    if cache_key in _mushaf_page_index_cache:
-        return _mushaf_page_index_cache[cache_key]
+    cached_index = get_cache_entry(_mushaf_page_index_cache, cache_key)
+    if cached_index is not None:
+        return cached_index
 
     cursor.execute(
         """
@@ -1891,8 +1939,7 @@ def get_mushaf_page_index(cursor, mushaf):
             "ayah_to_primary_page": ayah_to_primary_page,
         }
 
-    _mushaf_page_index_cache[cache_key] = index
-    return index
+    return put_cache_entry(_mushaf_page_index_cache, cache_key, index, config.get_runtime_mushaf_cache_limit())
 
 
 def fetch_mushaf_page_bounds(cursor, mushaf):
