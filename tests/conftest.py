@@ -181,13 +181,13 @@ def api_client(tmp_path):
     db_path = tmp_path / "fixture.db"
     create_test_db(db_path)
 
-    original_db_path = main.DB_PATH
+    original_db_path = main.get_db_path()
     main.close_db_connection()
-    main.DB_PATH = str(db_path)
+    main.set_db_path(str(db_path))
 
     try:
         with TestClient(main.app) as client:
             yield client
     finally:
         main.close_db_connection()
-        main.DB_PATH = original_db_path
+        main.set_db_path(original_db_path)

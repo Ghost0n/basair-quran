@@ -1,0 +1,16 @@
+{
+  "name": "q-basair",
+  "private": true,
+  "packageManager": "pnpm@10.8.1",
+  "scripts": {
+    "web:dev": "pnpm --filter @q-basair/web dev",
+    "web:build": "pnpm --filter @q-basair/web build",
+    "web:start": "pnpm --filter @q-basair/web start",
+    "web:lint": "pnpm --filter @q-basair/web lint"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss": "8.5.10"
+    }
+  }
+}

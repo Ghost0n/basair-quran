@@ -1,73 +1,71 @@
-# Quran Insight (بصائر القرآن)
+# Q-Basair
 
-A Quranic Root Analysis and Search System that allows users to explore the Quran through root words and exact matches, featuring a modern, responsive interface.
+Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It combines a FastAPI backend over a local SQLite Quran database with a modern Next.js web interface.
 
-## Features
-- **Root Search**: Find all verses containing words derived from a specific Arabic root.
-- **Exact Word Search**: Precise searching with "Smart Exact" matching for diacritics.
-- **Responsive Design**: Mobile-friendly interface with Light/Dark mode support.
-- **Interactive UI**: Real-time suggestions, search mode toggles, and detail views.
+## Current Capabilities
 
-## Prerequisites
-- Python 3.8+
-- SQLite3
+- Smart exact-word search with safe handling for Arabic prefixes and Quranic orthography.
+- Root search with paginated result cards.
+- Compound phrase search within a single ayah.
+- High-confidence "did you mean" suggestions for close misses.
+- Quran page reader synchronized with the selected search result.
+- Multi-mushaf support, including Qaloun, Hafs, Warsh, Shuba, Douri, and Sousi.
 
-## Installation
-1.  **Clone/Download** the repository.
-2.  **Install Dependencies**:
-    ```bash
-    pip install -r requirements.txt
-    ```
+## Project Layout
 
-## How to Start the App
+- `src/app`: FastAPI application, routes, API models, and Quran search services.
+- `apps/web`: Next.js frontend.
+- `packages/api-client`: typed frontend API client.
+- `packages/shared`: shared TypeScript contracts.
+- `scripts`: database and frontend helper scripts.
+- `data`: source dictionaries, morphology data, mushaf JSON files, and generated SQLite database.
+- `tests`: backend API, search behavior, and database builder tests.
 
-1.  Open a terminal in the project root directory.
-2.  Run the main application script:
-    ```bash
-    python src/main.py
-    ```
-3.  The server will start at: `http://localhost:8001`
-4.  Open your web browser and navigate to that URL.
+## Running Locally
 
-> **Note**: If the database is missing, run `python scripts/build_db.py` first to generate `data/quran.db`.
+1. Install Python dependencies:
 
-## How to Stop the App
-
-1.  Go to the terminal window where the app is running.
-2.  Press **`Ctrl + C`** on your keyboard.
-3.  The server will shut down gracefully.
-
-## Accessing via Mobile / LAN
-
-You can access the application from other devices (phones, tablets) on the same Wi-Fi network.
-
-1.  **Configuration**: The app listens on `0.0.0.0` (All interfaces).
-2.  **Find IP**: Run `ipconfig` in a terminal to find your PC's IPv4 address (e.g., `192.168.1.15`).
-3.  **Browse**: Open `http://YOUR_PC_IP:8001` on your mobile device.
-
-### Firewall Configuration (PowerShell as Administrator)
-
-If you cannot connect, you probably need to allow the port through the Windows Firewall.
-
-**1. Create the Rule (First Time Only):**
 ```powershell
-New-NetFirewallRule -DisplayName "QuranAI Port 8001" -Direction Inbound -LocalPort 8001 -Protocol TCP -Action Allow
+pip install -r requirements.txt
 ```
 
-**2. Enable/Disable the Rule:**
-To disable (restrict access):
+2. Build the Quran database if `data/quran.db` is missing:
+
 ```powershell
-Set-NetFirewallRule -DisplayName "QuranAI Port 8001" -Enabled False
-```
-To enable again:
-```powershell
-Set-NetFirewallRule -DisplayName "QuranAI Port 8001" -Enabled True
+python scripts/build_db.py
 ```
 
-> **Security Note**: It is recommended to **disable this rule** (using the `False` command above) when you are done accessing the app via mobile to maintain the security of your system.
+3. Start the API on port `8001`:
 
-## Project Structure
-- `src/`: Main application logic (FastAPI backend).
-- `static/`: Frontend assets (HTML, CSS, JS).
-- `scripts/`: Utility scripts (Database builder).
-- `data/`: Database and source JSON files.
+```powershell
+python -m uvicorn src.main:app --host 127.0.0.1 --port 8001
+```
+
+By default, browser CORS is limited to `http://127.0.0.1:3000` and `http://localhost:3000`. To allow another frontend origin, set `QBASAIR_CORS_ORIGINS` to a comma-separated list before starting the API.
+
+4. Start the web app on port `3000`:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/start_web_dev.ps1
+```
+
+5. Open `http://127.0.0.1:3000`.
+
+## Verification
+
+Run the backend test suite:
+
+```powershell
+$env:PYTHONPATH='.'
+pytest -q
+```
+
+Build the frontend:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/build_web.ps1
+```
+
+## Architecture Note
+
+The FastAPI app is API-only. The old static frontend was removed during the migration cleanup; the active user interface lives in `apps/web` and calls the API through Next.js rewrites.

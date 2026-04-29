@@ -8,6 +8,25 @@ def test_page_span_parsing_supports_boundary_ranges():
     assert main.page_value_contains("85-86", 87) is False
 
 
+def test_openapi_contract_exposes_stable_search_and_reader_endpoints(api_client):
+    response = api_client.get("/openapi.json")
+    assert response.status_code == 200
+    body = response.json()
+
+    assert "/api/search-v2" in body["paths"]
+    assert "/api/search-result-page" in body["paths"]
+    assert "/api/quran-page" in body["paths"]
+    assert "BatchSuggestRequest" in body["components"]["schemas"]
+
+
+def test_search_mode_is_validated(api_client):
+    response = api_client.get(
+        "/api/search-v2",
+        params={"q": "shared", "mode": "broad", "mushaf": 1},
+    )
+    assert response.status_code == 422
+
+
 def test_exact_mode_suggestions_only_return_words(api_client):
     response = api_client.get(
         "/api/suggest",

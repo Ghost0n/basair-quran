@@ -202,8 +202,13 @@ def create_database_schema(cursor):
         CREATE INDEX idx_word_root ON word_occurrences(root_id);
         CREATE INDEX idx_wo_word_simple_ayah ON word_occurrences(word_simple, ayah_id);
         CREATE INDEX idx_ayahs_mushaf_surah ON ayahs(mushaf_id, surah_id);
+        CREATE INDEX idx_ayahs_mushaf_surah_number ON ayahs(mushaf_id, surah_id, number_in_surah);
+        CREATE INDEX idx_ayahs_mushaf_global ON ayahs(mushaf_id, global_index);
         CREATE INDEX idx_ayahs_page ON ayahs(page);
+        CREATE INDEX idx_ayahs_mushaf_page ON ayahs(mushaf_id, page);
         CREATE INDEX idx_ayahs_juz ON ayahs(juz);
+        CREATE INDEX idx_wo_root_ayah_position ON word_occurrences(root_id, ayah_id, word_position);
+        CREATE INDEX idx_wo_word_simple_ayah_position ON word_occurrences(word_simple, ayah_id, word_position);
     """
     )
 

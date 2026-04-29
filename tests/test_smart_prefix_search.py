@@ -219,12 +219,12 @@ def arabic_api_client(tmp_path):
     create_arabic_test_db(db_path)
     create_arabic_morphology_file(morphology_path)
 
-    original_db_path = main.DB_PATH
-    original_morphology_path = main.MORPHOLOGY_PATH
+    original_db_path = main.get_db_path()
+    original_morphology_path = main.get_morphology_path()
     main.close_db_connection()
     main.reset_morphology_search_index()
-    main.DB_PATH = str(db_path)
-    main.MORPHOLOGY_PATH = str(morphology_path)
+    main.set_db_path(str(db_path))
+    main.set_morphology_path(str(morphology_path))
 
     try:
         with TestClient(main.app) as client:
@@ -232,8 +232,8 @@ def arabic_api_client(tmp_path):
     finally:
         main.close_db_connection()
         main.reset_morphology_search_index()
-        main.DB_PATH = original_db_path
-        main.MORPHOLOGY_PATH = original_morphology_path
+        main.set_db_path(original_db_path)
+        main.set_morphology_path(original_morphology_path)
 
 
 def test_exact_search_matches_detached_prefix_forms(arabic_api_client):
@@ -287,6 +287,15 @@ def test_uthmani_match_allows_only_missing_initial_wasl_vowel():
     assert main.uthmani_matches_query(query, "اُ۬لرَّحِيمُۖ") is True
     assert main.uthmani_matches_query(query, "اِ۬لرَّحِيمِ") is False
     assert main.uthmani_matches_query(main.standardize_uthmani("اُ۬لرَّحِيمُ"), "اَ۬لرَّحِيمُ") is False
+
+
+def test_shadda_alone_is_not_treated_as_diacritics():
+    assert main.has_query_diacritics("الرّحم") is False
+    assert main.has_query_diacritics("الرَّحم") is True
+
+
+def test_plain_display_keeps_shadda_and_drops_dagger_alif():
+    assert main.plain_arabic_display_text("صَلَّىٰ") == "صلّى"
 
 
 def test_exact_search_does_not_strip_the_article_itself(arabic_api_client):
@@ -347,6 +356,30 @@ def test_default_suggestions_are_plain_and_chakl_is_explicit(arabic_api_client):
     assert all(item["text"] != "وَٱلْمَيْسِرِ" for item in vocalized_items)
 
 
+def test_latin_exact_suggestions_resolve_real_mushaf_words(arabic_api_client):
+    response = arabic_api_client.get(
+        "/api/suggest",
+        params={"q": "almysr", "mode": "exact", "mushaf": 1},
+    )
+    assert response.status_code == 200
+    items = response.json()
+    assert items
+    assert any(item["text"] == "\u0627\u0644\u0645\u064a\u0633\u0631" for item in items)
+    assert {item["type"] for item in items} == {"word"}
+
+
+def test_latin_root_suggestions_keep_root_word_mix(arabic_api_client):
+    response = arabic_api_client.get(
+        "/api/suggest",
+        params={"q": "ysr", "mode": "root", "mushaf": 1},
+    )
+    assert response.status_code == 200
+    items = response.json()
+    assert items
+    assert any(item["type"] == "root" and item["text"] == "\u064a\u0633\u0631" for item in items)
+    assert any(item["type"] == "word" for item in items)
+
+
 def test_phrase_suggestions_are_real_selected_mushaf_phrases(arabic_api_client):
     response = arabic_api_client.get(
         "/api/suggest",
@@ -366,6 +399,17 @@ def test_phrase_suggestions_are_real_selected_mushaf_phrases(arabic_api_client):
         )
         assert search_response.status_code == 200
         assert search_response.json()["found"] is True
+
+
+def test_phrase_suggestions_display_aligned_text_without_extra_clitic(arabic_api_client):
+    response = arabic_api_client.get(
+        "/api/suggest",
+        params={"q": "\u0627\u0644\u062d\u0642 \u0638", "mode": "exact", "mushaf": 1, "with_chakl": True},
+    )
+    assert response.status_code == 200
+    texts = [item["text"] for item in response.json()]
+    assert "\u0627\u0644\u062d\u0642 \u0638\u0627\u0647\u0631" in texts
+    assert "\u0641\u0627\u0644\u062d\u0642 \u0638\u0627\u0647\u0631" not in texts
 
 
 def test_phrase_search_matches_article_aligned_phrase(arabic_api_client):
@@ -421,6 +465,7 @@ def test_phrase_search_returns_did_you_mean_for_close_phrase(arabic_api_client):
     assert body["found"] is False
     assert body["did_you_mean"]["text"] in {"الصرط المستقيم", "صرطا مستقيما"}
     assert body["did_you_mean"]["confidence"] >= 0.88
+    assert main.has_query_diacritics(body["did_you_mean"]["text"]) is False
 
 
 def test_legacy_phrase_search_returns_same_did_you_mean(arabic_api_client):
@@ -434,10 +479,44 @@ def test_legacy_phrase_search_returns_same_did_you_mean(arabic_api_client):
     assert body["did_you_mean"]["text"] in {"الصرط المستقيم", "صرطا مستقيما"}
 
 
+def test_legacy_phrase_did_you_mean_is_plain_text(arabic_api_client):
+    response = arabic_api_client.get(
+        "/api/search",
+        params={"q": "\u0635\u0631\u0627\u0637 \u0645\u0633\u062a\u0642\u0645", "mode": "exact", "mushaf": 1},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["found"] is False
+    assert main.has_query_diacritics(body["did_you_mean"]["text"]) is False
+
+
 def test_phrase_search_skips_weak_suggestions(arabic_api_client):
     response = arabic_api_client.get(
         "/api/search-v2",
         params={"q": "بحر عظيم", "mode": "exact", "mushaf": 1, "page_size": 10},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["found"] is False
+    assert "did_you_mean" not in body
+
+
+def test_single_word_search_returns_plain_did_you_mean_for_close_word(arabic_api_client):
+    response = arabic_api_client.get(
+        "/api/search-v2",
+        params={"q": "\u0627\u0644\u0645\u0633\u062a\u0642\u0645", "mode": "exact", "mushaf": 1, "page_size": 10},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["found"] is False
+    assert body["did_you_mean"]["text"] == "\u0627\u0644\u0645\u0633\u062a\u0642\u064a\u0645"
+    assert main.has_query_diacritics(body["did_you_mean"]["text"]) is False
+
+
+def test_single_word_search_skips_weak_did_you_mean(arabic_api_client):
+    response = arabic_api_client.get(
+        "/api/search-v2",
+        params={"q": "\u0628\u062d\u0631", "mode": "exact", "mushaf": 1, "page_size": 10},
     )
     assert response.status_code == 200
     body = response.json()

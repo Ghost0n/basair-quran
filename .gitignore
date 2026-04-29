@@ -4,3 +4,9 @@ src/__pycache__/
 data/quran.db
 data/quran.db-shm
 data/quran.db-wal
+node_modules/
+.next/
+dist/
+.runtime/
+*.log
+*.tsbuildinfo
