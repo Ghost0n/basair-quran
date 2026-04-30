@@ -607,7 +607,6 @@ def build_db():
             "ayahs",
             "surahs",
             "mushafs",
-            "sqlite_sequence",
         ]
         for table in tables:
             cursor.execute(f"DROP TABLE IF EXISTS {table}")

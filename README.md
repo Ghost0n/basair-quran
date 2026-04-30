@@ -43,6 +43,18 @@ The builder now precomputes phrase-token metadata and morphology search variants
 python -m uvicorn src.main:app --host 127.0.0.1 --port 8001
 ```
 
+For deployments where you cannot run a separate pre-deploy rebuild step, you can start the API through the startup wrapper instead:
+
+```powershell
+python scripts/start_api.py
+```
+
+The wrapper checks whether `quran.db` already contains the required offline-precompute tables and rebuilds the DB only when it is missing or outdated. You can control this behavior with `QBASAIR_BUILD_DB_ON_START`:
+
+- `auto` (default): rebuild only when required tables are missing
+- `always`: always rebuild before starting the API
+- `never`: never rebuild on startup
+
 By default, browser CORS is limited to `http://127.0.0.1:3000` and `http://localhost:3000`. To allow another frontend origin, set `QBASAIR_CORS_ORIGINS` to a comma-separated list before starting the API.
 
 For constrained deployments such as Render free tier, you can enable the lower-memory runtime profile with:
