@@ -9,6 +9,11 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import sqlite3
+import sys
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 import scripts.build_db as build_db
 from src import main
