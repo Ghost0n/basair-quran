@@ -117,7 +117,6 @@ services:
 networks:
   edge:
   app:
-    internal: true
 
 volumes:
   certbot_www:
