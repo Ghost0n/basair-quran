@@ -26,9 +26,6 @@ services:
       - ./data:/app/data
     expose:
       - "8001"
-    dns:
-      - 2a01:4ff:ff00::add:1
-      - 2a01:4ff:ff00::add:2
     networks:
       - app
     healthcheck:
