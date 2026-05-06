@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type {
@@ -75,7 +75,7 @@ function getTafssirProgressSteps(depth: TafssirDepth): ProgressStep[] {
       title: "قراءة تفسيرية",
       detail:
         depth === "deep"
-          ? "القراءة العميقة تستعمل مقاطع أكثر من corpus البحث، لذلك قد تستغرق وقتًا أطول قبل صياغة الخلاصة."
+          ? "القراءة العميقة تستعمل مقاطع أكثر من المصادر البحثية، لذلك قد تستغرق وقتًا أطول قبل صياغة الخلاصة."
           : "صياغة قراءة تفسيرية موجزة مع الحد الأدنى من التوسع اللغوي.",
     },
   ];
@@ -106,17 +106,17 @@ function getStatusLabel(response: ResearchAgentResponse | null) {
 
 function getEmptyStateCopy(mode: ResearchResponseMode) {
   if (mode === "tafssir") {
-    return "اطرح سؤالك وسيربط الباحث بين الآيات وال corpus البحثي ليقترح قراءة تفسيرية تجريبية مرتبطة بسؤالك. هذا الوضع غير معتمد ويُستخدم للاستكشاف فقط.";
+    return "اطرح سؤالك وسيربط الباحث بين الآيات والمصادر البحثية ليقترح قراءة تفسيرية تجريبية مرتبطة بسؤالك. هذا الوضع غير معتمد ويُستخدم للاستكشاف فقط.";
   }
   return "اطرح سؤالًا حرًا، وسيحاول الباحث الذكي فهم المقصود ثم تحويله إلى ألفاظ قرآنية وعرض الآيات الأقرب قبل صياغة الجواب منها فقط.";
 }
 
 function getPendingMessage(mode: ResearchResponseMode, depth: TafssirDepth) {
   if (mode === "tafssir" && depth === "deep") {
-    return "يجري تحليل أعمق للآيات وربطها بالمادة البحثية؛ قد يستغرق هذا النمط وقتًا أطول قليلًا...";
+    return "يجري تحليل أعمق للآيات وربطها بالمصادر البحثية؛ قد يستغرق هذا النمط وقتًا أطول قليلًا...";
   }
   return mode === "tafssir"
-    ? "يجري تحليل الآيات وربطها بالمادة البحثية لإنتاج قراءة تفسيرية تجريبية..."
+    ? "يجري تحليل الآيات وربطها بالمصادر البحثية لإنتاج قراءة تفسيرية تجريبية..."
     : "يجري تحليل المصطلحات القرآنية والآيات المرتبطة...";
 }
 
@@ -196,7 +196,11 @@ export function ResearchPane({
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [cloudSettings, setCloudSettings] = useState<ClientResearchSettings>(DEFAULT_RESEARCH_SETTINGS);
   const [settingsInfo, setSettingsInfo] = useState<ResearchAgentSettingsResponse | null>(null);
+  const composerTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
+  const serverAuthenticated = settingsInfo?.provider.authenticated ?? false;
+  const hasOllamaAccess = serverAuthenticated || cloudSettings.apiKey.trim().length > 0;
+  const hideSettings = serverAuthenticated && !cloudSettings.apiKey.trim();
   const canSubmit = draft.trim().length > 0 && !isResearching;
   const resultLabel = useMemo(() => getStatusLabel(latestResponse), [latestResponse]);
   const activeDisclaimer = responseMode === "tafssir" ? latestResponse?.disclaimer ?? TAFSSIR_DISCLAIMER : null;
@@ -217,6 +221,16 @@ export function ResearchPane({
   }, [cloudSettings]);
 
   useEffect(() => {
+    const textarea = composerTextareaRef.current;
+    if (!textarea) {
+      return;
+    }
+    textarea.style.height = "auto";
+    const next = Math.min(textarea.scrollHeight, 200);
+    textarea.style.height = `${next}px`;
+  }, [draft]);
+
+  useEffect(() => {
     if (!isResearching) {
       setRequestStartedAt(null);
       setProgressTick(0);
@@ -232,28 +246,15 @@ export function ResearchPane({
   }, [isResearching]);
 
   useEffect(() => {
-    if (!cloudSettings.apiKey.trim()) {
-      setSettingsInfo(null);
-      setSettingsError(null);
-      return;
-    }
-
     void refreshSettings();
   }, [cloudSettings.apiKey, cloudSettings.baseUrl]);
 
   async function refreshSettings() {
-    if (!cloudSettings.apiKey.trim()) {
-      setSettingsError("أضف مفتاح Ollama API أولًا لعرض النماذج السحابية.");
-      setSettingsInfo(null);
-      return;
-    }
-
     setSettingsLoading(true);
     setSettingsError(null);
     try {
       const response = await api.getResearchAgentSettings({ headers: buildResearchHeaders(cloudSettings) });
       setSettingsInfo(response);
-
       setCloudSettings((current) => ({
         ...current,
         baseUrl: response.provider.base_url || current.baseUrl,
@@ -261,22 +262,22 @@ export function ResearchPane({
         embedModel: current.embedModel || response.provider.embed_model || current.embedModel,
       }));
     } catch (error) {
-      setSettingsError(error instanceof Error ? error.message : "تعذر تحميل إعدادات Ollama.");
+      setSettingsError(error instanceof Error ? error.message : "تعذّر تحميل إعدادات النموذج.");
       setSettingsInfo(null);
     } finally {
       setSettingsLoading(false);
     }
   }
 
-  async function submitResearch(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submitResearch(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault();
     const content = draft.trim();
     if (!content || isResearching) {
       return;
     }
 
-    if (!cloudSettings.apiKey.trim()) {
-      setErrorMessage("أضف مفتاح Ollama API في الإعدادات قبل تشغيل الباحث.");
+    if (!hasOllamaAccess) {
+      setErrorMessage("يرجى إضافة مفتاح API من إعدادات النموذج لتشغيل الباحث.");
       setSettingsOpen(true);
       return;
     }
@@ -352,13 +353,17 @@ export function ResearchPane({
             </div>
           ) : null}
 
-          <button
-            className={`research-settings-btn ${settingsOpen ? "active" : ""}`}
-            type="button"
-            onClick={() => setSettingsOpen((current) => !current)}
-          >
-            إعدادات Ollama
-          </button>
+          {hideSettings ? (
+            <span className="research-model-badge" aria-label="النموذج نشط">✦ النموذج نشط</span>
+          ) : (
+            <button
+              className={`research-settings-btn ${settingsOpen ? "active" : ""}`}
+              type="button"
+              onClick={() => setSettingsOpen((current) => !current)}
+            >
+              إعدادات النموذج
+            </button>
+          )}
 
           <div className="research-mode-toggle" aria-label="وضع الجواب">
             <button
@@ -375,7 +380,7 @@ export function ResearchPane({
               onClick={() => setResponseMode("tafssir")}
               disabled={isResearching}
             >
-              Tafssir
+              تفسير
             </button>
           </div>
 
@@ -402,23 +407,28 @@ export function ResearchPane({
         </div>
       </div>
 
-      {settingsOpen ? (
-        <section className="research-cloud-panel" aria-label="إعدادات Ollama السحابية">
+      {settingsOpen && !hideSettings ? (
+        <section className="research-cloud-panel" aria-label="إعدادات النموذج اللغوي">
+          {serverAuthenticated && !cloudSettings.apiKey.trim() ? (
+            <div className="research-server-key-banner">
+              <span>✦ الخادم مُعدَّل بمفتاح خاص به — يمكنك الاستخدام مباشرةً دون إدخال مفتاح.</span>
+            </div>
+          ) : null}
           <div className="research-cloud-grid">
             <label className="research-settings-field">
-              <span>Ollama API key</span>
+              <span>مفتاح API{serverAuthenticated ? " (اختياري)" : ""}</span>
               <input
                 type="password"
                 value={cloudSettings.apiKey}
                 onChange={(event) => setCloudSettings((current) => ({ ...current, apiKey: event.target.value }))}
-                placeholder="ضع مفتاحك هنا"
+                placeholder={serverAuthenticated ? "اتركه فارغًا لاستخدام مفتاح الخادم" : "ضع مفتاحك هنا"}
                 autoComplete="off"
               />
               <small>يُخزَّن المفتاح في هذه الجلسة داخل المتصفح فقط ولا يُحفَظ على الخادم.</small>
             </label>
 
             <label className="research-settings-field">
-              <span>قاعدة Ollama</span>
+              <span>عنوان الخادم</span>
               <input
                 type="text"
                 value={cloudSettings.baseUrl}
@@ -446,7 +456,7 @@ export function ResearchPane({
             </label>
 
             <label className="research-settings-field">
-              <span>نموذج embeddings</span>
+              <span>نموذج التضمين</span>
               <select
                 value={cloudSettings.embedModel}
                 onChange={(event) => setCloudSettings((current) => ({ ...current, embedModel: event.target.value }))}
@@ -471,7 +481,7 @@ export function ResearchPane({
               مسح المفتاح
             </button>
             <a className="research-cloud-link" href="https://ollama.com/settings/keys" target="_blank" rel="noreferrer">
-              فتح صفحة مفاتيح Ollama
+              مفاتيح Ollama ←
             </a>
           </div>
 
@@ -485,7 +495,7 @@ export function ResearchPane({
             </div>
 
             <div className="research-cloud-card">
-              <strong>قيود Ollama</strong>
+              <strong>حدود الخطة</strong>
               <p>{settingsInfo?.limits.summary ?? "تختلف القيود والاستهلاك حسب الخطة، ولا توجد واجهة عامة لإظهار الرصيد المتبقي مباشرة."}</p>
               {(settingsInfo?.limits.notes ?? []).length > 0 ? (
                 <small>{settingsInfo?.limits.notes[0]}</small>
@@ -495,7 +505,7 @@ export function ResearchPane({
             <div className="research-cloud-card">
               <strong>النماذج المتاحة</strong>
               <p>{settingsInfo?.available_models.length ?? 0} نموذجًا</p>
-              <small>يمكنك تبديل نموذج المحادثة و embeddings من هذه الصفحة.</small>
+              <small>يمكنك تبديل نموذج المحادثة ونموذج التضمين من هذه الإعدادات.</small>
             </div>
           </div>
         </section>
@@ -543,27 +553,6 @@ export function ResearchPane({
 
         {latestResponse ? (
           <div className="research-evidence">
-            {latestResponse.usage ? (
-              <div className="research-usage-panel">
-                <div className="research-usage-chip">
-                  <strong>الاستدعاءات</strong>
-                  <span>{latestResponse.usage.request_count}</span>
-                </div>
-                <div className="research-usage-chip">
-                  <strong>Prompt tokens</strong>
-                  <span>{latestResponse.usage.prompt_eval_count}</span>
-                </div>
-                <div className="research-usage-chip">
-                  <strong>Output tokens</strong>
-                  <span>{latestResponse.usage.eval_count}</span>
-                </div>
-                <div className="research-usage-chip">
-                  <strong>الزمن الكلي</strong>
-                  <span>{formatDurationNs(latestResponse.usage.total_duration_ns)}</span>
-                </div>
-              </div>
-            ) : null}
-
             {tafssirSections.length > 0 ? (
               <article className="tafssir-answer-panel" aria-label="الجواب التفسيري المنظم">
                 <div className="tafssir-answer-heading">
@@ -621,14 +610,23 @@ export function ResearchPane({
 
       <form className="research-composer" onSubmit={submitResearch}>
         <textarea
+          ref={composerTextareaRef}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey && !event.ctrlKey && !event.metaKey) {
+              event.preventDefault();
+              if (canSubmit) {
+                void submitResearch();
+              }
+            }
+          }}
           placeholder={
             responseMode === "tafssir"
-              ? "اكتب سؤالك هنا، وسيحاول الوضع التجريبي جمع الآيات مع الرؤية المستفادة من corpus البحثي"
-              : "اكتب سؤالك الحر هنا: معنى، مقصد، علاقة بين ألفاظ، أو موضوع تريد ربطه بآيات من القرآن"
+              ? "اكتب سؤالك هنا (Enter للإرسال • Ctrl+Enter لسطر جديد)"
+              : "اكتب سؤالك الحر هنا (Enter للإرسال • Ctrl+Enter لسطر جديد)"
           }
-          rows={fullPage ? 5 : 3}
+          rows={1}
         />
         <button type="submit" disabled={!canSubmit}>
           {isResearching ? "جارٍ الإرسال" : "أرسل السؤال"}

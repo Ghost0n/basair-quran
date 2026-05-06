@@ -93,6 +93,8 @@ export function ResearchPageShell() {
     }
   }
 
+  const hasReaderData = Boolean(readerData);
+
   return (
     <div className="research-page-shell">
       <div className="research-page-topbar">
@@ -101,12 +103,12 @@ export function ResearchPageShell() {
         </a>
         <div className="research-page-copy">
           <h1>الباحث الذكي</h1>
-          <p>مساحة مستقلة للأسئلة الحرة، إعدادات Ollama السحابية، وربط الآيات بالقارئ دون ضغط مساحة الواجهة الرئيسية.</p>
+          <p>مساحة مخصّصة لطرح الأسئلة الحرة وربط الإجابات بآيات القرآن.</p>
         </div>
         <LogoutButton />
       </div>
 
-      <div className="research-page-grid">
+      <div className={`research-page-grid${hasReaderData ? " has-reader" : ""}`}>
         <ResearchPane
           fullPage
           selectedMushaf={selectedMushaf}
@@ -116,15 +118,17 @@ export function ResearchPageShell() {
           onSelectAyah={(ayah) => selectAyah(ayah)}
         />
 
-        <ReaderPane
-          readerData={readerData}
-          isLoadingReader={isLoadingReader}
-          readerBodyRef={readerBodyRef}
-          readerPageDraft={readerPageDraft}
-          selectedHighlights={selectedHighlights}
-          onPageDraftChange={setReaderPageDraft}
-          onPageSubmit={loadReaderPage}
-        />
+        {hasReaderData ? (
+          <ReaderPane
+            readerData={readerData}
+            isLoadingReader={isLoadingReader}
+            readerBodyRef={readerBodyRef}
+            readerPageDraft={readerPageDraft}
+            selectedHighlights={selectedHighlights}
+            onPageDraftChange={setReaderPageDraft}
+            onPageSubmit={loadReaderPage}
+          />
+        ) : null}
       </div>
     </div>
   );
