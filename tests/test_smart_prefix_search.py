@@ -128,6 +128,7 @@ def create_arabic_test_db(db_path: Path):
     cursor.execute("INSERT INTO mushafs VALUES (1, 'Fixture Mushaf', 'Fixture description')")
     cursor.execute("INSERT INTO surahs VALUES (1, 'البقرة', 'Al-Baqarah', 'medinan')")
     cursor.execute("INSERT INTO roots VALUES (201, 'يسر', 'يسر')")
+    cursor.execute("INSERT INTO roots VALUES (202, '\u0635\u0644\u0648', '\u0635\u0644\u0648')")
 
     insert_ayah(
         cursor,
@@ -202,6 +203,17 @@ def create_arabic_test_db(db_path: Path):
         ],
         global_index=6,
     )
+    insert_ayah(
+        cursor,
+        ayah_id=8,
+        number_in_surah=226,
+        text="\u0671\u0644\u0635\u0651\u064e\u0644\u064e\u0648\u0670\u0629\u064f \u0646\u0648\u0631",
+        words=[
+            (202, "\u0671\u0644\u0635\u0651\u064e\u0644\u064e\u0648\u0670\u0629\u064f", "\u0627\u0644\u0635\u0644\u0648\u0629"),
+            (None, "\u0646\u0648\u0631", "\u0646\u0648\u0631"),
+        ],
+        global_index=7,
+    )
 
     connection.commit()
     connection.close()
@@ -236,6 +248,9 @@ def create_arabic_morphology_file(path: Path):
                 "1:224:1:2\tمستقيم\tA\tLEM:مستقيم|ADJ",
                 "1:225:1:1\tصرطا\tN\tLEM:صراط|M|ACC",
                 "1:225:2:1\tمستقيما\tA\tLEM:مستقيم|ADJ|ACC",
+                "1:226:1:1\tال\tP\tDET|PREF|LEM:ال",
+                "1:226:1:2\tصلوة\tN\tROOT:صلو|LEM:صلاة|F|NOM",
+                "1:226:2:1\tنور\tN\tLEM:نور|M|NOM",
             ]
         ),
         encoding="utf-8",
@@ -316,6 +331,31 @@ def test_root_search_uses_smart_surface_resolution(arabic_api_client):
     assert body["results"][0]["verses"][0]["text"] == "وَٱلْمَيْسِرِ رِجْسٌ"
 
 
+def test_exact_search_matches_common_spelling_to_quranic_orthography(arabic_api_client):
+    response = arabic_api_client.get(
+        "/api/search-v2",
+        params={"q": "\u0627\u0644\u0635\u0644\u0627\u0629", "mode": "exact", "mushaf": 1, "page_size": 10},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["found"] is True
+    assert body["results"][0]["match_type"] == "word"
+    assert body["results"][0]["total_verses"] == 1
+    assert body["results"][0]["verses"][0]["text"] == "\u0671\u0644\u0635\u0651\u064e\u0644\u064e\u0648\u0670\u0629\u064f \u0646\u0648\u0631"
+
+
+def test_root_search_matches_common_spelling_to_quranic_orthography(arabic_api_client):
+    response = arabic_api_client.get(
+        "/api/search-v2",
+        params={"q": "\u0627\u0644\u0635\u0644\u0627\u0629", "mode": "root", "mushaf": 1, "page_size": 10},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["found"] is True
+    assert body["results"][0]["root"] == "\u0635\u0644\u0648"
+    assert body["results"][0]["verses"][0]["text"] == "\u0671\u0644\u0635\u0651\u064e\u0644\u064e\u0648\u0670\u0629\u064f \u0646\u0648\u0631"
+
+
 def test_exact_search_matches_diacritized_suggestion(arabic_api_client):
     response = arabic_api_client.get(
         "/api/search-v2",
@@ -388,6 +428,16 @@ def test_suggestions_include_smart_prefixed_variants(arabic_api_client):
     )
     assert negative_response.status_code == 200
     assert all(item["text"] != "الميسر" for item in negative_response.json())
+
+
+def test_root_suggestions_include_surface_matched_roots(arabic_api_client):
+    response = arabic_api_client.get(
+        "/api/suggest",
+        params={"q": "\u0627\u0644\u0635\u0644\u0627\u0629", "mode": "root", "mushaf": 1},
+    )
+    assert response.status_code == 200
+    items = response.json()
+    assert any(item["type"] == "root" and item["text"] == "\u0635\u0644\u0648" for item in items)
 
 
 def test_default_suggestions_are_plain_and_chakl_is_explicit(arabic_api_client):

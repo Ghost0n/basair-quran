@@ -30,6 +30,14 @@ def set_morphology_path(path: str) -> None:
     config.set_morphology_path(path)
 
 
+def get_auth_db_path() -> str:
+    return config.get_auth_db_path()
+
+
+def set_auth_db_path(path: str) -> None:
+    config.set_auth_db_path(path)
+
+
 if __name__ == "__main__":
     import uvicorn
 

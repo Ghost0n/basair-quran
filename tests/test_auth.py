@@ -1,0 +1,113 @@
+from pathlib import Path
+from typing import Callable
+
+from fastapi.testclient import TestClient
+
+from conftest import create_test_db
+from src import main
+from src.app.factory import create_app
+from src.app.services import auth_service
+
+
+def build_auth_client(tmp_path: Path, monkeypatch) -> tuple[TestClient, Callable[[], None]]:
+    db_path = tmp_path / "fixture.db"
+    auth_db_path = tmp_path / "auth.db"
+    create_test_db(db_path)
+
+    original_db_path = main.get_db_path()
+    original_auth_db_path = main.get_auth_db_path()
+    main.close_db_connection()
+    main.set_db_path(str(db_path))
+    main.set_auth_db_path(str(auth_db_path))
+
+    monkeypatch.setenv("QBASAIR_AUTH_ENABLED", "1")
+    monkeypatch.setenv("QBASAIR_SESSION_SECRET", "test-session-secret")
+    monkeypatch.setenv("QBASAIR_SESSION_SECURE", "0")
+    monkeypatch.setenv("QBASAIR_AUTH_DB_PATH", str(auth_db_path))
+
+    auth_service.ensure_auth_db()
+    auth_service.create_user("admin@example.com", "secret123", is_admin=True)
+
+    client = TestClient(create_app())
+
+    def finalize() -> None:
+        client.close()
+        main.close_db_connection()
+        main.set_db_path(original_db_path)
+        main.set_auth_db_path(original_auth_db_path)
+
+    return client, finalize
+
+
+def test_auth_session_reports_disabled_by_default(api_client):
+    response = api_client.get("/api/auth/session")
+    assert response.status_code == 200
+    assert response.json() == {"enabled": False, "authenticated": False, "user": None}
+
+
+def test_protected_api_requires_login_when_auth_enabled(tmp_path, monkeypatch):
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        health_response = client.get("/api/health")
+        assert health_response.status_code == 200
+
+        search_response = client.get("/api/search-v2", params={"q": "shared", "mode": "root", "mushaf": 1})
+        assert search_response.status_code == 401
+        assert search_response.json()["detail"] == "Authentication required."
+    finally:
+        finalize()
+
+
+def test_login_allows_access_and_logout_revokes_it(tmp_path, monkeypatch):
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        session_before = client.get("/api/auth/session")
+        assert session_before.status_code == 200
+        assert session_before.json()["authenticated"] is False
+
+        login_response = client.post(
+            "/api/auth/login",
+            json={"email": "admin@example.com", "password": "secret123"},
+        )
+        assert login_response.status_code == 200
+        assert login_response.json()["authenticated"] is True
+        assert login_response.json()["user"]["email"] == "admin@example.com"
+
+        search_response = client.get("/api/search-v2", params={"q": "shared", "mode": "root", "mushaf": 1})
+        assert search_response.status_code == 200
+
+        logout_response = client.post("/api/auth/logout")
+        assert logout_response.status_code == 200
+        assert logout_response.json()["authenticated"] is False
+
+        search_after_logout = client.get("/api/search-v2", params={"q": "shared", "mode": "root", "mushaf": 1})
+        assert search_after_logout.status_code == 401
+    finally:
+        finalize()
+
+
+def test_wrong_password_is_rejected(tmp_path, monkeypatch):
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        login_response = client.post(
+            "/api/auth/login",
+            json={"email": "admin@example.com", "password": "wrongpass"},
+        )
+        assert login_response.status_code == 401
+        assert login_response.json()["detail"] == "Invalid email or password."
+    finally:
+        finalize()
+
+
+def test_disabled_user_cannot_authenticate(tmp_path, monkeypatch):
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        auth_service.set_user_active("admin@example.com", False)
+        login_response = client.post(
+            "/api/auth/login",
+            json={"email": "admin@example.com", "password": "secret123"},
+        )
+        assert login_response.status_code == 401
+        assert login_response.json()["detail"] == "Invalid email or password."
+    finally:
+        finalize()

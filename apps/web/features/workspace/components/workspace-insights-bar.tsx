@@ -27,6 +27,7 @@ export function WorkspaceInsightsBar({
   insightSummary,
   quickExamples,
   onRunQuickExample,
+  onOpenResearch,
 }: {
   visible: boolean;
   isSearching: boolean;
@@ -37,6 +38,7 @@ export function WorkspaceInsightsBar({
   insightSummary: { termLabel: string; term: string; totalOccurrences: number; totalVerses: number } | null;
   quickExamples: Array<{ label: string; query: string; mode: SearchMode }>;
   onRunQuickExample: (example: { query: string; mode: SearchMode }) => void;
+  onOpenResearch: () => void;
 }) {
   const isGuidanceState = !isSearching && !hasResults;
   const modeLabel = searchMode === "root" ? "جذر" : "كلمة";
@@ -45,20 +47,19 @@ export function WorkspaceInsightsBar({
     isSearching
       ? "نجهز النتائج والقارئ معًا"
       : hasResults && insightSummary
-      ? `ورد ${insightSummary.totalOccurrences} تكرار لـ ${insightSummary.termLabel}: ${insightSummary.term}`
-      : "ابحث بكلمة أو جذر أو عبارة";
+        ? `ورد ${insightSummary.totalOccurrences} تكرار لـ ${insightSummary.termLabel}: ${insightSummary.term}`
+        : "ابحث بكلمة أو جذر أو عبارة";
   const primaryDescription =
     isSearching
       ? "سيظهر ملخص البحث هنا حالما تكتمل الاستجابة."
       : hasResults && insightSummary
-      ? `في ${insightSummary.totalVerses} آية من القرآن بحسب رواية ${selectedMushafLabel}.`
-      : "اكتب كلمة مفردة للبحث المباشر، أو بدّل إلى الجذر عند البحث بالاشتقاق، أو أدخل عبارة متتابعة داخل الآية.";
+        ? `في ${insightSummary.totalVerses} آية من القرآن بحسب رواية ${selectedMushafLabel}.`
+        : "اكتب كلمة مفردة للبحث المباشر، أو بدّل إلى الجذر عند البحث بالاشتقاق، أو أدخل عبارة متتابعة داخل الآية.";
   const summaryDescription =
     hasResults && insightSummary
-      ? `${insightSummary.totalOccurrences} تكرار في ${formatAyahCount(
-          insightSummary.totalVerses,
-        )} من القرآن الكريم بحسب رواية ${selectedMushafLabel}.`
+      ? `${insightSummary.totalOccurrences} تكرار في ${formatAyahCount(insightSummary.totalVerses)} من القرآن الكريم بحسب رواية ${selectedMushafLabel}.`
       : primaryDescription;
+
   return (
     <section className={`workspace-insights${visible ? " active" : ""}`} aria-label="لوحة المساعدة البحثية">
       <div className={`workspace-insights-primary${isGuidanceState ? " guidance-state" : ""}`}>
@@ -90,19 +91,26 @@ export function WorkspaceInsightsBar({
             </div>
           </div>
         ) : (
-          <div className="quick-examples" aria-label="أمثلة بحث سريعة">
-            {quickExamples.map((example) => (
-              <button
-                key={`${example.mode}-${example.query}`}
-                type="button"
-                className="quick-example-chip"
-                onClick={() => onRunQuickExample(example)}
-              >
-                <span>{example.label}</span>
-                <small>{example.mode === "root" ? "جذر" : example.query.includes(" ") ? "عبارة" : "كلمة"}</small>
-              </button>
-            ))}
-          </div>
+          <>
+            <button type="button" className="workspace-research-launch" onClick={onOpenResearch}>
+              <strong>افتح الباحث الذكي</strong>
+              <span>للأسئلة الحرة التي تُترجم إلى ألفاظ قرآنية ثم تُعرض معها الآيات ذات الصلة</span>
+            </button>
+
+            <div className="quick-examples" aria-label="أمثلة بحث سريعة">
+              {quickExamples.map((example) => (
+                <button
+                  key={`${example.mode}-${example.query}`}
+                  type="button"
+                  className="quick-example-chip"
+                  onClick={() => onRunQuickExample(example)}
+                >
+                  <span>{example.label}</span>
+                  <small>{example.mode === "root" ? "جذر" : example.query.includes(" ") ? "عبارة" : "كلمة"}</small>
+                </button>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </section>

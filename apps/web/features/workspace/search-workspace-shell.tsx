@@ -62,6 +62,7 @@ export function SearchWorkspaceShell() {
         insightSummary={state.insightSummary}
         quickExamples={state.quickExamples}
         onRunQuickExample={actions.runQuickExample}
+        onOpenResearch={() => window.location.assign("/research")}
       />
 
       <div className={state.errorMessage ? "" : "hidden"} id="errorArea">
@@ -77,7 +78,7 @@ export function SearchWorkspaceShell() {
       </div>
 
       <WorkspaceSwitch
-        visible={state.workspaceVisible}
+        visible={state.workspaceActive}
         workspaceView={state.workspaceView}
         collapsing={state.isWorkspaceCollapsing}
         onViewChange={actions.setWorkspaceView}
@@ -85,7 +86,7 @@ export function SearchWorkspaceShell() {
 
       <div
         id="searchWorkspace"
-        className={`search-workspace${state.workspaceVisible ? "" : " hidden"}${state.isWorkspaceCollapsing ? " workspace-collapsing" : ""}`}
+        className={`search-workspace${state.workspaceActive ? "" : " hidden"}${state.isWorkspaceCollapsing ? " workspace-collapsing" : ""}`}
         data-view={state.workspaceView}
       >
         <ResultsPane

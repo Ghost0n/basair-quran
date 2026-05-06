@@ -38,6 +38,12 @@ def suggest(
         suggestions.extend(quran_service.build_phrase_suggestions(cursor, q, mushaf, 10, with_chakl))
     elif mode != "exact":
         suggestions.extend(quran_service.build_root_suggestions(cursor, f"{q_simple}%", 5))
+        existing_root_texts = {item["text"] for item in suggestions if item["type"] == "root"}
+        for item in quran_service.build_root_suggestions_by_surface_query(cursor, q_simple, mushaf, 5):
+            if item["text"] in existing_root_texts:
+                continue
+            suggestions.append(item)
+            existing_root_texts.add(item["text"])
         suggestions.extend(quran_service.build_word_suggestions(cursor, q_simple, mushaf, 10, with_chakl))
     else:
         suggestions.extend(quran_service.build_word_suggestions(cursor, q_simple, mushaf, 10, with_chakl))
@@ -86,6 +92,8 @@ def suggest_batch(req: BatchSuggestRequest) -> list[SuggestionItem]:
 
         if req.mode != "exact":
             for item in quran_service.build_root_suggestions(cursor, f"{q_simple}%", 2):
+                combined_results.setdefault(f"root:{item['text']}", item)
+            for item in quran_service.build_root_suggestions_by_surface_query(cursor, q_simple, req.mushaf, 2):
                 combined_results.setdefault(f"root:{item['text']}", item)
 
         for item in quran_service.build_word_suggestions(cursor, q_simple, req.mushaf, 5, req.with_chakl):

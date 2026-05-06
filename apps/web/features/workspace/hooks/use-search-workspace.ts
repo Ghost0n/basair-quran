@@ -124,6 +124,7 @@ export function useSearchWorkspace() {
 
   const inputValue = previewValue ?? query;
   const workspaceVisible = results.length > 0;
+  const workspaceActive = workspaceVisible;
   const isExactPhrase = searchMode === "exact" && isPhraseInputValue(inputValue);
   const searchPrefix = inputValue.trim() && searchModeInitialized ? (searchMode === "root" ? "جذر" : isExactPhrase ? "عبارة" : "كلمة") : "";
   const modeToggleLabel = searchMode === "root" ? "كلمة" : "جذر";
@@ -1016,6 +1017,7 @@ export function useSearchWorkspace() {
       didYouMean,
       workspaceView,
       workspaceVisible,
+      workspaceActive,
       results,
       readerData,
       readerPageDraft,

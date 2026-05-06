@@ -1,0 +1,121 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    environment:
+      PORT: "8001"
+      QBASAIR_DB_PATH: /app/data/quran.db
+      QBASAIR_AUTH_DB_PATH: /app/data/auth.db
+      QBASAIR_RESEARCH_INDEX_PATH: /app/data/research_agent.db
+      QBASAIR_RESEARCH_SOURCES_PATH: /app/data/research_sources
+      QBASAIR_AUTH_ENABLED: ${QBASAIR_AUTH_ENABLED:-0}
+      QBASAIR_BUILD_DB_ON_START: ${QBASAIR_BUILD_DB_ON_START:-auto}
+      QBASAIR_CORS_ORIGINS: ${QBASAIR_CORS_ORIGINS:-http://localhost}
+      QBASAIR_LOW_MEMORY_MODE: ${QBASAIR_LOW_MEMORY_MODE:-0}
+      QBASAIR_LLM_PROVIDER: ${QBASAIR_LLM_PROVIDER:-ollama}
+      QBASAIR_OLLAMA_BASE_URL: ${QBASAIR_OLLAMA_BASE_URL:-https://ollama.com}
+      QBASAIR_LLM_CHAT_MODEL: ${QBASAIR_LLM_CHAT_MODEL:-gemma4:31b-cloud}
+      QBASAIR_LLM_EMBED_MODEL: ${QBASAIR_LLM_EMBED_MODEL:-nomic-embed-text}
+      QBASAIR_LLM_TIMEOUT_SECONDS: ${QBASAIR_LLM_TIMEOUT_SECONDS:-120}
+      QBASAIR_SESSION_COOKIE_NAME: ${QBASAIR_SESSION_COOKIE_NAME:-qbasair_session}
+      QBASAIR_SESSION_SECRET: ${QBASAIR_SESSION_SECRET:-qbasair-dev-session-secret}
+      QBASAIR_SESSION_SECURE: ${QBASAIR_SESSION_SECURE:-0}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
+    volumes:
+      - ./data:/app/data
+    expose:
+      - "8001"
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/health', timeout=5).read()"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api}
+        NEXT_PUBLIC_ENABLE_YAMLI: ${NEXT_PUBLIC_ENABLE_YAMLI:-0}
+        NEXT_PUBLIC_AUTH_ENABLED: ${NEXT_PUBLIC_AUTH_ENABLED:-0}
+        QBASAIR_API_ORIGIN: ${QBASAIR_API_ORIGIN:-http://api:8001}
+        QBASAIR_SESSION_COOKIE_NAME: ${QBASAIR_SESSION_COOKIE_NAME:-qbasair_session}
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+      NEXT_TELEMETRY_DISABLED: "1"
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api}
+      NEXT_PUBLIC_AUTH_ENABLED: ${NEXT_PUBLIC_AUTH_ENABLED:-0}
+      QBASAIR_API_ORIGIN: ${QBASAIR_API_ORIGIN:-http://api:8001}
+      QBASAIR_SESSION_COOKIE_NAME: ${QBASAIR_SESSION_COOKIE_NAME:-qbasair_session}
+      NEXT_PUBLIC_ENABLE_YAMLI: ${NEXT_PUBLIC_ENABLE_YAMLI:-0}
+    expose:
+      - "3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then((res)=>process.exit(res.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      QBASAIR_ENABLE_TLS: ${QBASAIR_ENABLE_TLS:-0}
+      QBASAIR_PUBLIC_DOMAIN: ${QBASAIR_PUBLIC_DOMAIN:-}
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx/http.conf.template:/opt/qbasair/http.conf.template:ro
+      - ./deploy/nginx/tls.conf.template:/opt/qbasair/tls.conf.template:ro
+      - ./deploy/nginx/start-nginx.sh:/opt/qbasair/start-nginx.sh:ro
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+    command: ["/bin/sh", "/opt/qbasair/start-nginx.sh"]
+    networks:
+      - edge
+      - app
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  certbot:
+    image: certbot/certbot:latest
+    profiles:
+      - tls
+    volumes:
+      - certbot_www:/var/www/certbot
+      - certbot_certs:/etc/letsencrypt
+
+networks:
+  edge:
+  app:
+    internal: true
+
+volumes:
+  certbot_www:
+  certbot_certs:

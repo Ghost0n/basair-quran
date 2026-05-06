@@ -6,6 +6,23 @@ export interface MushafItem {
   description?: string | null;
 }
 
+export interface AuthLoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface AuthUserInfo {
+  id: number;
+  email: string;
+  is_admin: boolean;
+}
+
+export interface AuthSessionResponse {
+  enabled: boolean;
+  authenticated: boolean;
+  user?: AuthUserInfo | null;
+}
+
 export interface SuggestionItem {
   type: "word" | "root" | "phrase";
   text: string;
@@ -54,6 +71,110 @@ export interface PaginatedSearchResponse {
 export interface SearchResultPageResponse {
   found: boolean;
   result: PaginatedSearchResult;
+}
+
+export interface ResearchAgentMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface ResearchRelatedTerm {
+  type: "root" | "word" | "phrase";
+  text: string;
+  root_id?: number | null;
+  reason?: string | null;
+}
+
+export interface ResearchSearchItem {
+  mode: SearchMode;
+  query: string;
+  reason?: string | null;
+  result_count: number;
+}
+
+export interface ResearchAgentAyah extends SearchVerse {
+  matched_terms: string[];
+}
+
+export type TafssirDepth = "fast" | "balanced" | "deep";
+
+export interface TafssirStructuredAnswer {
+  summary?: string | null;
+  linguistic_analysis?: string | null;
+  ayah_connections?: string | null;
+  corpus_insight?: string | null;
+  limits_and_cautions?: string | null;
+}
+
+export interface ResearchProviderInfo {
+  provider: "ollama";
+  transport: "cloud_api" | "local_api";
+  base_url: string;
+  chat_model: string;
+  embed_model?: string | null;
+  authenticated: boolean;
+}
+
+export interface ResearchUsageStep {
+  stage: string;
+  model: string;
+  total_duration_ns: number;
+  load_duration_ns: number;
+  prompt_eval_count: number;
+  eval_count: number;
+}
+
+export interface ResearchUsageSummary {
+  request_count: number;
+  total_duration_ns: number;
+  load_duration_ns: number;
+  prompt_eval_count: number;
+  eval_count: number;
+  steps: ResearchUsageStep[];
+}
+
+export interface ResearchLimitsInfo {
+  summary: string;
+  plan_reference_url?: string | null;
+  notes: string[];
+}
+
+export interface OllamaModelItem {
+  name: string;
+  size?: number | null;
+  modified_at?: string | null;
+  digest?: string | null;
+  is_cloud: boolean;
+  capabilities: string[];
+}
+
+export interface ResearchAgentSettingsResponse {
+  provider: ResearchProviderInfo;
+  available_models: OllamaModelItem[];
+  limits: ResearchLimitsInfo;
+}
+
+export interface ResearchAgentRequest {
+  messages: ResearchAgentMessage[];
+  mushaf: number;
+  max_results?: number;
+  answer_language?: string;
+  response_mode?: "strict" | "tafssir";
+  tafssir_depth?: TafssirDepth;
+}
+
+export interface ResearchAgentResponse {
+  status: "needs_clarification" | "answered" | "no_results";
+  mode: "strict" | "tafssir";
+  answer?: string | null;
+  clarifying_question?: string | null;
+  disclaimer?: string | null;
+  tafssir?: TafssirStructuredAnswer | null;
+  provider?: ResearchProviderInfo | null;
+  usage?: ResearchUsageSummary | null;
+  related_terms: ResearchRelatedTerm[];
+  searches: ResearchSearchItem[];
+  ayahs: ResearchAgentAyah[];
 }
 
 export interface QuranPageAyah {

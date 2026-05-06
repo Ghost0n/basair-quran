@@ -16,7 +16,11 @@ def test_openapi_contract_exposes_stable_search_and_reader_endpoints(api_client)
     assert "/api/search-v2" in body["paths"]
     assert "/api/search-result-page" in body["paths"]
     assert "/api/quran-page" in body["paths"]
+    assert "/api/auth/login" in body["paths"]
+    assert "/api/auth/session" in body["paths"]
+    assert "/api/research-agent" in body["paths"]
     assert "BatchSuggestRequest" in body["components"]["schemas"]
+    assert "ResearchAgentRequest" in body["components"]["schemas"]
 
 
 def test_search_mode_is_validated(api_client):

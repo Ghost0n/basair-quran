@@ -95,6 +95,29 @@ def normalize_query_search(text):
     return " ".join(normalize_text_search(text).split())
 
 
+def fetch_morphology_variant_records_any_scope(cursor, surface_simple, scopes):
+    """Fetch offline morphology variants for one token across multiple scopes."""
+    if not surface_simple or not scopes:
+        return []
+
+    placeholders = ",".join("?" for _ in scopes)
+    cursor.execute(
+        f"""
+        SELECT search_simple, search_text, stripped_prefix_count, stripped_article_count, scope
+        FROM morphology_search_variants
+        WHERE surface_simple = ? AND scope IN ({placeholders})
+        ORDER BY
+            CASE scope WHEN 'word' THEN 0 ELSE 1 END,
+            stripped_prefix_count DESC,
+            stripped_article_count ASC,
+            LENGTH(search_simple),
+            search_text
+        """,
+        (surface_simple, *scopes),
+    )
+    return [dict(row) for row in cursor.fetchall()]
+
+
 def contains_latin_text(text):
     """Return True when the query uses Latin transliteration characters."""
     return bool(re.search(r"[A-Za-z0-9]", text or ""))
@@ -498,16 +521,21 @@ def resolve_exact_word_surfaces(cursor, q_simple):
 
     cursor.execute(
         """
-        SELECT DISTINCT surface_simple
+        SELECT surface_simple, scope
         FROM morphology_search_variants
-        WHERE scope = 'word' AND search_simple = ?
-        ORDER BY surface_simple
+        WHERE scope IN ('word', 'phrase') AND search_simple = ? AND stripped_article_count = 0
+        ORDER BY CASE scope WHEN 'word' THEN 0 ELSE 1 END, surface_simple
         """,
         (q_simple,),
     )
-    surfaces = [row["surface_simple"] for row in cursor.fetchall()]
     ordered_surfaces = [q_simple]
-    ordered_surfaces.extend(surface for surface in surfaces if surface != q_simple)
+    seen_surfaces = {q_simple}
+    for row in cursor.fetchall():
+        surface = row["surface_simple"]
+        if surface in seen_surfaces:
+            continue
+        ordered_surfaces.append(surface)
+        seen_surfaces.add(surface)
     return ordered_surfaces
 
 
@@ -518,15 +546,23 @@ def resolve_prefix_word_surfaces(cursor, q_simple, limit):
 
     cursor.execute(
         """
-        SELECT DISTINCT surface_simple
+        SELECT surface_simple, scope
         FROM morphology_search_variants
-        WHERE scope = 'word' AND search_simple LIKE ?
-        ORDER BY search_simple, surface_simple
+        WHERE scope IN ('word', 'phrase') AND search_simple LIKE ? AND stripped_article_count = 0
+        ORDER BY CASE scope WHEN 'word' THEN 0 ELSE 1 END, search_simple, surface_simple
         LIMIT ?
         """,
         (f"{q_simple}%", limit),
     )
-    return [row["surface_simple"] for row in cursor.fetchall()]
+    surfaces = []
+    seen_surfaces = set()
+    for row in cursor.fetchall():
+        surface = row["surface_simple"]
+        if surface in seen_surfaces:
+            continue
+        surfaces.append(surface)
+        seen_surfaces.add(surface)
+    return surfaces
 
 
 def get_phrase_surface_records(cursor, surface_simple, surface_text):
@@ -674,11 +710,11 @@ def format_suggestion_text(text, with_chakl):
 
 def get_preferred_suggestion_text(cursor, surface_simple, q_simple, with_chakl=False, surface_text=None):
     """Return the best display form for a smart suggestion."""
-    records = fetch_morphology_variant_records(cursor, surface_simple, "word")
+    records = fetch_morphology_variant_records_any_scope(cursor, surface_simple, ("word", "phrase"))
     matching_records = [
         record
         for record in records
-        if record["search_simple"].startswith(q_simple)
+        if record["search_simple"].startswith(q_simple) and record["stripped_article_count"] == 0
     ]
     if not matching_records:
         return None
@@ -740,6 +776,38 @@ def fetch_word_suggestions_by_surface_simples(cursor, surface_simples, q_simple,
 def build_root_suggestions(cursor, like_q, limit):
     """Fetch root suggestions for a query prefix."""
     cursor.execute("SELECT root_text FROM roots WHERE root_simple LIKE ? LIMIT ?", (like_q, limit))
+    return [
+        {
+            "type": "root",
+            "text": row["root_text"],
+            "label": f"\u062c\u0630\u0631 {row['root_text']}",
+        }
+        for row in cursor.fetchall()
+    ]
+
+
+def build_root_suggestions_by_surface_query(cursor, q_simple, mushaf, limit):
+    """Fetch roots implied by smart surface resolution for a user-facing word query."""
+    if not q_simple or limit <= 0:
+        return []
+
+    surface_simples = resolve_exact_word_surfaces(cursor, q_simple)
+    if not surface_simples:
+        return []
+
+    placeholders = ",".join("?" for _ in surface_simples)
+    cursor.execute(
+        f"""
+        SELECT DISTINCT r.root_text, r.root_simple
+        FROM roots r
+        JOIN word_occurrences wo ON wo.root_id = r.id
+        JOIN ayahs a ON a.id = wo.ayah_id
+        WHERE wo.word_simple IN ({placeholders}) AND a.mushaf_id = ?
+        ORDER BY LENGTH(r.root_simple), r.root_text
+        LIMIT ?
+        """,
+        [*surface_simples, mushaf, limit],
+    )
     return [
         {
             "type": "root",
@@ -925,6 +993,8 @@ def build_word_suggestions(cursor, q_simple, mushaf, limit, with_chakl=False):
             with_chakl,
             row["word_text"],
         ) or format_suggestion_text(row["word_text"], with_chakl)
+        if display_text in seen_texts:
+            continue
         suggestions.append({"type": "word", "text": display_text, "label": display_text})
         seen_texts.add(display_text)
 
@@ -1519,7 +1589,7 @@ def exact_candidate_matches_query(cursor, candidate, query, q_simple):
         return True
 
     query_standard = standardize_uthmani(query.strip())
-    candidate_forms = fetch_morphology_variant_records(cursor, candidate["word_simple"], "word")
+    candidate_forms = fetch_morphology_variant_records_any_scope(cursor, candidate["word_simple"], ("word", "phrase"))
     if candidate_forms:
         for record in candidate_forms:
             if record["search_simple"] != q_simple:

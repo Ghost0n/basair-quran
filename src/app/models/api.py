@@ -8,6 +8,23 @@ class HealthResponse(BaseModel):
     timestamp: float
 
 
+class AuthLoginRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=320)
+    password: str = Field(..., min_length=8, max_length=256)
+
+
+class AuthUserInfo(BaseModel):
+    id: int
+    email: str
+    is_admin: bool = False
+
+
+class AuthSessionResponse(BaseModel):
+    enabled: bool = False
+    authenticated: bool = False
+    user: Optional[AuthUserInfo] = None
+
+
 class MushafItem(BaseModel):
     id: int
     name: str
@@ -148,3 +165,105 @@ class QuranPageResponse(BaseModel):
     selected_ayah_id: Optional[int] = None
     surahs: List[QuranPageSurah] = Field(default_factory=list)
     ayahs: List[QuranPageAyah]
+
+
+class ResearchAgentMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(..., min_length=1, max_length=4000)
+
+
+class ResearchAgentRequest(BaseModel):
+    messages: List[ResearchAgentMessage] = Field(..., min_length=1, max_length=12)
+    mushaf: int = 1
+    max_results: int = Field(8, ge=1, le=20)
+    answer_language: str = Field("auto", max_length=32)
+    response_mode: Literal["strict", "tafssir"] = "strict"
+    tafssir_depth: Literal["fast", "balanced", "deep"] = "balanced"
+
+
+class ResearchRelatedTerm(BaseModel):
+    type: Literal["root", "word", "phrase"]
+    text: str
+    root_id: Optional[int] = None
+    reason: Optional[str] = None
+
+
+class ResearchSearchItem(BaseModel):
+    mode: Literal["root", "exact"]
+    query: str
+    reason: Optional[str] = None
+    result_count: int = 0
+
+
+class ResearchAgentAyah(SearchVerse):
+    matched_terms: List[str] = Field(default_factory=list)
+
+
+class TafssirStructuredAnswer(BaseModel):
+    summary: Optional[str] = None
+    linguistic_analysis: Optional[str] = None
+    ayah_connections: Optional[str] = None
+    corpus_insight: Optional[str] = None
+    limits_and_cautions: Optional[str] = None
+
+
+class ResearchProviderInfo(BaseModel):
+    provider: Literal["ollama"]
+    transport: Literal["cloud_api", "local_api"]
+    base_url: str
+    chat_model: str
+    embed_model: Optional[str] = None
+    authenticated: bool = False
+
+
+class ResearchUsageStep(BaseModel):
+    stage: str
+    model: str
+    total_duration_ns: int = 0
+    load_duration_ns: int = 0
+    prompt_eval_count: int = 0
+    eval_count: int = 0
+
+
+class ResearchUsageSummary(BaseModel):
+    request_count: int = 0
+    total_duration_ns: int = 0
+    load_duration_ns: int = 0
+    prompt_eval_count: int = 0
+    eval_count: int = 0
+    steps: List[ResearchUsageStep] = Field(default_factory=list)
+
+
+class ResearchLimitsInfo(BaseModel):
+    summary: str
+    plan_reference_url: Optional[str] = None
+    notes: List[str] = Field(default_factory=list)
+
+
+class OllamaModelItem(BaseModel):
+    name: str
+    size: Optional[int] = None
+    modified_at: Optional[str] = None
+    digest: Optional[str] = None
+    is_cloud: bool = False
+    capabilities: List[str] = Field(default_factory=list)
+
+
+class ResearchAgentSettingsResponse(BaseModel):
+    provider: ResearchProviderInfo
+    available_models: List[OllamaModelItem] = Field(default_factory=list)
+    limits: ResearchLimitsInfo
+
+
+class ResearchAgentResponse(BaseModel):
+    status: Literal["needs_clarification", "answered", "no_results"]
+    mode: Literal["strict", "tafssir"] = "strict"
+    answer: Optional[str] = None
+    clarifying_question: Optional[str] = None
+    disclaimer: Optional[str] = None
+    tafssir: Optional[TafssirStructuredAnswer] = None
+    provider: Optional[ResearchProviderInfo] = None
+    usage: Optional[ResearchUsageSummary] = None
+    related_terms: List[ResearchRelatedTerm] = Field(default_factory=list)
+    searches: List[ResearchSearchItem] = Field(default_factory=list)
+    ayahs: List[ResearchAgentAyah] = Field(default_factory=list)

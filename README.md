@@ -10,6 +10,9 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 - High-confidence "did you mean" suggestions for close misses.
 - Quran page reader synchronized with the selected search result.
 - Multi-mushaf support, including Qaloun, Hafs, Warsh, Shuba, Douri, and Sousi.
+- Optional invite-only authentication with backend-managed users and signed session cookies.
+- Strict-context research agent that uses local transcript/book sources for term discovery and answers only from Quran search results.
+- Dedicated `/research` workspace with per-session Ollama cloud key entry, model switching, request-usage observability, and an experimental Tafssir mode.
 
 ## Project Layout
 
@@ -37,7 +40,15 @@ python scripts/build_db.py
 
 The builder now precomputes phrase-token metadata and morphology search variants into SQLite so the API does not need to keep large search indexes in memory at runtime.
 
-3. Start the API on port `8001`:
+3. Add optional research-agent sources under `data/research_sources/`, then build the generated research index:
+
+```powershell
+python scripts/build_research_index.py
+```
+
+Supported source formats are `.txt`, `.md`, `.json`, `.srt`, `.vtt`, and `.pdf` when `pypdf` is installed. Add `--with-embeddings` to store Ollama embeddings in the index; otherwise the agent uses FTS5 plus the Quran term catalog.
+
+4. Start the API on port `8001`:
 
 ```powershell
 python -m uvicorn src.main:app --host 127.0.0.1 --port 8001
@@ -65,13 +76,50 @@ $env:QBASAIR_LOW_MEMORY_MODE='1'
 
 This keeps the same search behavior but reduces SQLite cache pages and limits the size of in-process runtime caches.
 
-4. Start the web app on port `3000`:
+The research agent now defaults to direct Ollama cloud access at `https://ollama.com` with `QBASAIR_LLM_CHAT_MODEL=gemma4:31b-cloud` and `QBASAIR_LLM_EMBED_MODEL=nomic-embed-text`. Override these with `QBASAIR_LLM_PROVIDER`, `QBASAIR_OLLAMA_BASE_URL`, `QBASAIR_LLM_CHAT_MODEL`, and `QBASAIR_LLM_EMBED_MODEL`.
+For slower cloud-backed models, the backend now defaults to `QBASAIR_LLM_TIMEOUT_SECONDS=120`. You can raise it further if needed:
+
+```powershell
+$env:QBASAIR_LLM_TIMEOUT_SECONDS='180'
+```
+
+For local development, the recommended user flow is to open the dedicated research page and add an Ollama API key there:
+
+```powershell
+http://127.0.0.1:3000/research
+```
+
+The frontend keeps the key in browser `sessionStorage` only and forwards it to the backend through request headers. The backend does not persist the key.
+
+If you prefer an environment-based server default, set:
+
+```powershell
+$env:OLLAMA_API_KEY='your_api_key'
+$env:QBASAIR_OLLAMA_BASE_URL='https://ollama.com'
+```
+
+If you want to keep using a local Ollama daemon instead of direct cloud API requests, point the backend or the research settings panel back to:
+
+```powershell
+$env:QBASAIR_OLLAMA_BASE_URL='http://127.0.0.1:11434'
+```
+
+If you want to test the private auth flow locally, set:
+
+```powershell
+$env:QBASAIR_AUTH_ENABLED='1'
+$env:QBASAIR_SESSION_SECRET='replace-me-with-a-long-random-secret'
+$env:QBASAIR_SESSION_SECURE='0'
+python scripts\manage_users.py create --email you@example.com
+```
+
+5. Start the web app on port `3000`:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/start_web_dev.ps1
 ```
 
-5. Open `http://127.0.0.1:3000`.
+6. Open `http://127.0.0.1:3000` for the main search workspace, or `http://127.0.0.1:3000/research` for the dedicated research agent page.
 
 ## Verification
 
@@ -87,6 +135,24 @@ Build the frontend:
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/build_web.ps1
 ```
+
+## Docker Compose Deployment
+
+The repository now includes a production-oriented Docker Compose stack with:
+
+- `nginx` as the only public entrypoint
+- internal `web` and `api` services
+- rate limits for `/api/research-agent`
+- a hardened public default that disables Yamli through `NEXT_PUBLIC_ENABLE_YAMLI=0`
+- a Linux bootstrap helper at `scripts/bootstrap_production.sh`
+- a free Let's Encrypt path through `scripts/provision_tls.sh` and `scripts/renew_tls.sh`
+- an invite-only auth flow managed from the VM through `scripts/manage_users.py`
+
+The intended first production shape is a single-host deployment with persistent `data/` storage and one backend replica because the app currently relies on SQLite.
+
+Pushes and merges to `main` trigger automatic deployment via a GitHub Actions self-hosted runner on the Hetzner server. Append `[rebuild-db]` or `[rebuild-index]` to the commit message when the deploy also needs to regenerate a database.
+
+For the full Hetzner-oriented deployment guide including CI/CD runner setup, see [docs/deployment-hetzner.md](docs/deployment-hetzner.md).
 
 ## Architecture Note
 

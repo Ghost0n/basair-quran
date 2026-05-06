@@ -4,6 +4,8 @@ import Script from "next/script";
 import { YamliInit } from "@/components/yamli-init";
 import "./globals.css";
 
+const yamliEnabled = process.env.NEXT_PUBLIC_ENABLE_YAMLI !== "0";
+
 export const metadata: Metadata = {
   title: "بصائر القرآن",
   description: "مساحة بحث قرآنية للباحث تجمع بين الاستكشاف والقراءة والسياق.",
@@ -27,8 +29,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body>
         {children}
-        <Script src="https://api.yamli.com/js/yamli_api.js" strategy="afterInteractive" />
-        <YamliInit targetId="searchInput" />
+        {yamliEnabled ? <Script src="https://api.yamli.com/js/yamli_api.js" strategy="afterInteractive" /> : null}
+        {yamliEnabled ? <YamliInit targetId="searchInput" /> : null}
       </body>
     </html>
   );

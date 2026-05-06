@@ -1,0 +1,47 @@
+name: Deploy to production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    timeout-minutes: 30
+
+    steps:
+      - name: Pull latest code
+        run: |
+          cd /srv/q-basair
+          git fetch origin main
+          git reset --hard origin/main
+
+      - name: Rebuild quran.db if requested
+        run: |
+          cd /srv/q-basair
+          if git log -1 --pretty=%B | grep -q '\[rebuild-db\]'; then
+            echo "rebuild-db tag detected — rebuilding quran.db..."
+            docker compose --env-file .env.production run --rm api python scripts/build_db.py
+          else
+            echo "No rebuild-db tag — skipping quran.db rebuild."
+          fi
+
+      - name: Rebuild research index if requested
+        run: |
+          cd /srv/q-basair
+          if git log -1 --pretty=%B | grep -q '\[rebuild-index\]'; then
+            echo "rebuild-index tag detected — rebuilding research index..."
+            docker compose --env-file .env.production run --rm api python scripts/build_research_index.py
+          else
+            echo "No rebuild-index tag — skipping research index rebuild."
+          fi
+
+      - name: Build and restart stack
+        run: |
+          cd /srv/q-basair
+          docker compose --env-file .env.production up -d --build --remove-orphans
+
+      - name: Verify health
+        run: |
+          sleep 15
+          curl -sf https://basair-al-quran.duckdns.org/api/health | grep '"status":"ok"'
