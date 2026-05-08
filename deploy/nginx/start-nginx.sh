@@ -19,4 +19,7 @@ fi
 
 envsubst '${QBASAIR_SERVER_NAME} ${QBASAIR_PUBLIC_DOMAIN}' < "${CONFIG_TEMPLATE}" > /etc/nginx/conf.d/default.conf
 
+# Ensure the drop-in vhosts directory exists so the nginx.conf include does not error.
+mkdir -p /srv/nginx-vhosts.d
+
 exec nginx -g 'daemon off;'
