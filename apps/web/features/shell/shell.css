@@ -1,0 +1,768 @@
+/* =====================================================================
+   Shell — the persistent chrome of the workspace.
+   Hosts: LeftRail + TopBar (CommandBar) + the routed canvas.
+   ===================================================================== */
+
+.qb-frame {
+  position: relative;
+  display: flex;
+  direction: rtl;
+  min-height: 100dvh;
+  width: 100%;
+  background: var(--bg);
+  background-image: var(--page-bg);
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  isolation: isolate;
+}
+
+.qb-frame::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(900px 600px at 85% 15%, rgba(212, 175, 55, 0.07), transparent 55%),
+    radial-gradient(700px 500px at 10% 85%, rgba(212, 175, 55, 0.05), transparent 55%);
+  z-index: 0;
+}
+
+/* ---------- Left rail ---------- */
+
+.qb-rail {
+  position: sticky;
+  top: 0;
+  width: 72px;
+  flex: 0 0 72px;
+  height: 100dvh;
+  align-self: flex-start;
+  background: linear-gradient(180deg, rgba(20, 18, 12, 0.78), rgba(14, 12, 8, 0.72));
+  border-inline-start: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 0;
+  gap: 6px;
+  z-index: 5;
+  backdrop-filter: blur(20px);
+}
+
+.light .qb-rail,
+.light-mode .qb-rail {
+  background: linear-gradient(180deg, rgba(255, 253, 247, 0.85), rgba(244, 237, 219, 0.82));
+  border-inline-start-color: rgba(164, 129, 41, 0.20);
+}
+
+.qb-rail-brand-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-bottom: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out);
+}
+
+.qb-rail-brand-btn:hover {
+  background: rgba(212, 175, 55, 0.06);
+  border-color: rgba(212, 175, 55, 0.20);
+}
+
+.qb-rail-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-3);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  position: relative;
+  transition: color var(--dur) var(--ease-out), background var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out);
+}
+
+.qb-rail-btn:hover {
+  color: var(--gold-400);
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.qb-rail-btn.active {
+  color: var(--gold-400);
+  background: rgba(212, 175, 55, 0.12);
+  border-color: rgba(212, 175, 55, 0.30);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.qb-rail-btn.active::after {
+  content: "";
+  position: absolute;
+  inset-inline-end: -18px;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  background: var(--gold-400);
+  border-radius: 999px;
+}
+
+.qb-rail-divider {
+  width: 28px;
+  height: 1px;
+  background: var(--divider);
+  margin: 8px 0;
+}
+
+.qb-rail-spacer {
+  flex: 1;
+}
+
+.qb-rail-tip {
+  position: absolute;
+  inset-inline-start: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-elev-2);
+  color: var(--fg-1);
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  border: 1px solid var(--border);
+  opacity: 0;
+  transition: opacity 160ms var(--ease-out);
+  z-index: 20;
+}
+
+.qb-rail-btn:hover .qb-rail-tip {
+  opacity: 1;
+}
+
+/* U10: never show the tooltip when the destination is already active. */
+.qb-rail-btn.active .qb-rail-tip {
+  display: none;
+}
+
+.qb-rail-badge {
+  position: absolute;
+  top: 4px;
+  inset-inline-start: 4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 4px;
+  background: var(--gold-400);
+  color: #1a1207;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- Main column ---------- */
+
+.qb-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Top bar ---------- */
+
+.qb-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 64px;
+  flex: 0 0 64px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--divider);
+  background: linear-gradient(180deg, var(--bg-elev-1), color-mix(in srgb, var(--bg-elev-1) 88%, transparent));
+  backdrop-filter: blur(14px);
+}
+
+.light .qb-topbar,
+.light-mode .qb-topbar {
+  background: linear-gradient(180deg, rgba(255, 253, 247, 0.92), rgba(255, 253, 247, 0.78));
+}
+
+.qb-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--fg-3);
+  font-size: 13px;
+}
+
+.qb-crumb-current {
+  color: var(--fg-1);
+  font-weight: 600;
+}
+
+.qb-crumbs .dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--fg-mute);
+}
+
+/* ---------- Command bar ---------- */
+
+.qb-cmd {
+  flex: 1 1 360px;
+  max-width: 720px;
+  min-width: 220px;
+  margin: 0 auto;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.20);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 12px;
+  position: relative;
+  transition: border-color var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out), background var(--dur) var(--ease-out);
+}
+
+.light .qb-cmd,
+.light-mode .qb-cmd {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.qb-cmd:hover,
+.qb-cmd:focus-within {
+  border-color: rgba(212, 175, 55, 0.45);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.10);
+}
+
+.qb-cmd-icon {
+  color: var(--fg-3);
+  display: inline-flex;
+}
+
+.qb-cmd-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.10);
+  color: var(--gold-400);
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  white-space: nowrap;
+}
+
+.qb-cmd input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-arabic-display);
+  font-size: 18px;
+  color: var(--fg-1);
+  min-width: 0;
+  padding: 0;
+}
+
+.qb-cmd input::placeholder {
+  color: var(--fg-mute);
+  font-family: var(--font-arabic-ui);
+  font-size: 14px;
+}
+
+.qb-cmd-kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--fg-mute);
+  font-size: 11px;
+}
+
+.qb-cmd-kbd kbd {
+  font-family: var(--font-mono);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  color: var(--fg-2);
+}
+
+/* Suggestions dropdown attached to the command bar */
+.qb-cmd-suggestions {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  top: calc(100% + 6px);
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-3);
+  max-height: 360px;
+  overflow-y: auto;
+  z-index: 200;
+  padding: 4px;
+}
+
+.qb-cmd-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--fg-1);
+  text-align: right;
+  cursor: pointer;
+  font-family: var(--font-arabic-display);
+  font-size: 15px;
+}
+
+.qb-cmd-suggestion:hover,
+.qb-cmd-suggestion.active {
+  background: rgba(212, 175, 55, 0.10);
+  color: var(--gold-300);
+}
+
+.qb-cmd-suggestion .type {
+  /* U7: badge style — stays close to the text, not floating to the far end. */
+  font-family: var(--font-arabic-ui);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--fg-3);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-inline-start: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.light .qb-cmd-suggestion .type {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* ---------- Top actions ---------- */
+
+.qb-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qb-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-2);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 180ms var(--ease-out);
+}
+
+.qb-icon-btn:hover {
+  color: var(--gold-400);
+  background: rgba(212, 175, 55, 0.06);
+  border-color: var(--border);
+}
+
+.qb-icon-btn.gold {
+  color: var(--gold-400);
+  border-color: rgba(212, 175, 55, 0.30);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+/* ---------- Canvas ---------- */
+
+.qb-canvas {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ---------- Placeholders (Reading, coming-soon) ---------- */
+
+.qb-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+}
+
+.qb-placeholder-card {
+  max-width: 560px;
+  text-align: center;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  padding: 48px 40px;
+  box-shadow: var(--shadow-2);
+}
+
+.qb-placeholder-card .kicker {
+  margin-bottom: 12px;
+  display: block;
+}
+
+.qb-placeholder-card h2 {
+  font-family: var(--font-arabic-display);
+  color: var(--gold-400);
+  font-size: var(--fs-2xl);
+  margin-bottom: 12px;
+}
+
+.qb-placeholder-card p {
+  color: var(--fg-2);
+  font-size: var(--fs-base);
+  line-height: var(--lh-body);
+}
+
+.qb-placeholder-card .version-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.10);
+  border: 1px solid rgba(212, 175, 55, 0.30);
+  color: var(--gold-400);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+/* ---------- Theme toggle (in TopBar) ---------- */
+
+.qb-theme-toggle {
+  /* uses .qb-icon-btn base */
+}
+
+/* ---------- Auth strip (above the Shell, when AUTH_ENABLED) ---------- */
+
+.qb-auth-strip {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+/* =====================================================================
+   Tweaks panel — floating per-session overrides.
+   ===================================================================== */
+
+.qb-tweaks-fab {
+  position: fixed;
+  bottom: 22px;
+  inset-inline-end: 22px;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #eac54a, #c69e27);
+  color: #140f00;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 28px rgba(212, 175, 55, 0.35);
+  z-index: 39;
+}
+
+.qb-tweaks-panel {
+  position: fixed;
+  bottom: 22px;
+  inset-inline-end: 22px;
+  width: 320px;
+  background: rgba(20, 18, 12, 0.97);
+  border: 1px solid rgba(212, 175, 55, 0.30);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px);
+  z-index: 40;
+  overflow: hidden;
+}
+
+.light .qb-tweaks-panel {
+  background: rgba(255, 252, 244, 0.98);
+}
+
+.qb-tweaks-head {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--divider);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.qb-tweaks-head .t {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-arabic-display);
+  font-size: 16px;
+  color: var(--gold-400);
+}
+
+.qb-tweaks-head .x {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  color: var(--fg-3);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.qb-tweaks-head .x:hover {
+  color: var(--gold-400);
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.qb-tweaks-body {
+  padding: 12px 16px 16px;
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+.qb-tweak-section {
+  margin-bottom: 14px;
+}
+
+.qb-tweak-section:last-child {
+  margin-bottom: 0;
+}
+
+.qb-tweak-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--fg-3);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.qb-tweak-label .v {
+  font-family: var(--font-arabic-display);
+  color: var(--gold-400);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.qb-tweak-seg {
+  display: flex;
+  padding: 3px;
+  background: rgba(0, 0, 0, 0.20);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.light .qb-tweak-seg {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.qb-tweak-seg button {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: 7px;
+  font-size: 12px;
+  color: var(--fg-2);
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.qb-tweak-seg button.active {
+  background: linear-gradient(135deg, #eac54a, #c69e27);
+  color: #140f00;
+}
+
+.qb-tweak-select {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  background: rgba(0, 0, 0, 0.20);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--fg-1);
+  font-size: 13px;
+  font-family: var(--font-arabic-ui);
+}
+
+.light .qb-tweak-select {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.qb-tweak-select:focus {
+  outline: none;
+  border-color: var(--gold-400);
+}
+
+.qb-tweak-slider {
+  width: 100%;
+  appearance: none;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 999px;
+  outline: none;
+}
+
+.qb-tweak-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--gold-300), var(--gold-500));
+  cursor: pointer;
+}
+
+.qb-tweaks-foot {
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--divider);
+  display: flex;
+  gap: 8px;
+}
+
+.qb-tweaks-foot button {
+  flex: 1;
+  height: 32px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-2);
+}
+
+.qb-tweaks-foot button.primary {
+  background: rgba(212, 175, 55, 0.10);
+  border-color: rgba(212, 175, 55, 0.30);
+  color: var(--gold-400);
+}
+
+/* =====================================================================
+   Mobile bottom tab bar + responsive layout.
+   ===================================================================== */
+
+.qb-tabbar {
+  display: none;
+}
+
+.qb-tabbar-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--fg-3);
+}
+
+.qb-tabbar-btn .tile {
+  width: 40px;
+  height: 30px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qb-tabbar-btn .label {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.qb-tabbar-btn.active {
+  color: var(--gold-400);
+}
+
+.qb-tabbar-btn.active .tile {
+  background: rgba(212, 175, 55, 0.12);
+}
+
+@media (max-width: 768px) {
+  .qb-rail {
+    display: none;
+  }
+
+  .qb-tabbar {
+    display: flex;
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    height: 72px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    background: rgba(14, 12, 8, 0.96);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(20px);
+    z-index: 45;
+  }
+
+  .light .qb-tabbar,
+  .light-mode .qb-tabbar {
+    background: rgba(255, 253, 247, 0.97);
+  }
+
+  .qb-main {
+    padding-bottom: 72px;
+  }
+
+  .qb-topbar {
+    height: 56px;
+    flex-basis: 56px;
+    padding: 0 14px;
+    gap: 10px;
+  }
+
+  .qb-crumbs {
+    display: none;
+  }
+
+  .qb-cmd {
+    margin: 0;
+  }
+
+  .qb-tweaks-fab {
+    bottom: 86px;
+  }
+
+  .qb-tweaks-panel {
+    bottom: 86px;
+    inset-inline: 12px;
+    width: auto;
+  }
+}

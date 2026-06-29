@@ -3,8 +3,13 @@ from typing import Optional
 
 from fastapi import APIRouter, Query
 
-from src.app.models.api import AyahReaderMoreResponse, AyahReaderResponse, QuranPageResponse
-from src.app.services import quran_service
+from src.app.models.api import (
+    AyahReaderMoreResponse,
+    AyahReaderResponse,
+    MorphologyResponse,
+    QuranPageResponse,
+)
+from src.app.services import morphology_service, quran_service
 
 router = APIRouter(prefix="/api", tags=["reader"])
 
@@ -77,10 +82,15 @@ def quran_page(
     page: Optional[int] = Query(None, ge=1),
     ayah_id: Optional[int] = Query(None, ge=1),
     selected_ayah_id: Optional[int] = Query(None, ge=1),
+    surah: Optional[int] = Query(None, ge=1, le=114, description="Jump to this surah"),
+    ayah: Optional[int] = Query(None, ge=1, description="Jump to this ayah within the surah"),
+    juz: Optional[int] = Query(None, ge=1, le=30, description="Jump to the first page of this juz"),
 ) -> QuranPageResponse:
     start = time.time()
     cursor = quran_service.get_db().cursor()
-    payload = quran_service.build_quran_page_payload(cursor, mushaf, page, ayah_id, selected_ayah_id)
+    payload = quran_service.build_quran_page_payload(
+        cursor, mushaf, page, ayah_id, selected_ayah_id, surah, ayah, juz
+    )
     elapsed = (time.time() - start) * 1000
 
     if not payload["found"]:
@@ -103,3 +113,20 @@ def quran_page(
         len(payload["ayahs"]),
     )
     return QuranPageResponse(**payload)
+
+
+@router.get("/morphology", response_model=MorphologyResponse, response_model_exclude_none=True)
+def morphology(
+    surah: int = Query(..., ge=1, le=114, description="Surah number"),
+    ayah: int = Query(..., ge=1, description="Ayah number within the surah"),
+) -> MorphologyResponse:
+    start = time.time()
+    payload = morphology_service.get_ayah_morphology(surah, ayah)
+    quran_service.logger.info(
+        "GET /api/morphology?surah=%s&ayah=%s - %.1fms - %s words",
+        surah,
+        ayah,
+        (time.time() - start) * 1000,
+        len(payload["words"]),
+    )
+    return MorphologyResponse(**payload)

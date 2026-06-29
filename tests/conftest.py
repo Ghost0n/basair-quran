@@ -230,8 +230,14 @@ def api_client(tmp_path):
     create_test_db(db_path)
 
     original_db_path = main.get_db_path()
+    original_app_db_path = main.get_app_db_path()
     main.close_db_connection()
     main.set_db_path(str(db_path))
+    main.set_app_db_path(str(tmp_path / "app_data.db"))
+
+    from src.app.services import app_data_service
+
+    app_data_service.ensure_app_db()
 
     try:
         with TestClient(main.app) as client:
@@ -239,3 +245,4 @@ def api_client(tmp_path):
     finally:
         main.close_db_connection()
         main.set_db_path(original_db_path)
+        main.set_app_db_path(original_app_db_path)

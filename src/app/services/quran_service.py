@@ -1154,6 +1154,44 @@ def get_root_ids(cursor, q_simple, mushaf):
     return sorted(root_ids)
 
 
+def build_root_distribution(cursor, root_query, mushaf):
+    """Return per-surah occurrence counts for a root across the whole Quran."""
+    q_simple = normalize_query_search(root_query)
+    root_ids = get_root_ids(cursor, q_simple, mushaf)
+    if not root_ids:
+        return {"found": False, "root": root_query, "total": 0, "surah_count": 0, "surahs": []}
+
+    placeholders = ",".join("?" for _ in root_ids)
+    cursor.execute(
+        f"""
+        SELECT a.surah_id AS surah_id, s.name_arabic AS surah, COUNT(*) AS count
+        FROM word_occurrences wo
+        JOIN ayahs a ON wo.ayah_id = a.id
+        JOIN surahs s ON a.surah_id = s.id
+        WHERE wo.root_id IN ({placeholders}) AND a.mushaf_id = ?
+        GROUP BY a.surah_id, s.name_arabic
+        ORDER BY a.surah_id
+        """,
+        [*root_ids, mushaf],
+    )
+    surahs = [
+        {"surah_id": row["surah_id"], "surah": row["surah"], "count": row["count"]}
+        for row in cursor.fetchall()
+    ]
+
+    cursor.execute(f"SELECT root_text FROM roots WHERE id IN ({placeholders})", root_ids)
+    root_row = cursor.fetchone()
+    root_text = root_row["root_text"] if root_row else root_query
+
+    return {
+        "found": True,
+        "root": root_text,
+        "total": sum(item["count"] for item in surahs),
+        "surah_count": len(surahs),
+        "surahs": surahs,
+    }
+
+
 def fetch_mushaf_ayah_tokens(cursor, mushaf):
     """Fetch all Quran tokens for one mushaf grouped by ayah."""
     cursor.execute(
@@ -1670,7 +1708,8 @@ def fetch_root_summary(cursor, root_id, mushaf):
         """
         SELECT
             COUNT(*) AS total_occurrences,
-            COUNT(DISTINCT wo.ayah_id) AS total_verses
+            COUNT(DISTINCT wo.ayah_id) AS total_verses,
+            COUNT(DISTINCT a.surah_id) AS total_surahs
         FROM word_occurrences wo
         JOIN ayahs a ON wo.ayah_id = a.id
         WHERE wo.root_id = ? AND a.mushaf_id = ?
@@ -1678,7 +1717,7 @@ def fetch_root_summary(cursor, root_id, mushaf):
         (root_id, mushaf),
     )
     row = cursor.fetchone()
-    return row["total_occurrences"], row["total_verses"]
+    return row["total_occurrences"], row["total_verses"], row["total_surahs"]
 
 
 def fetch_root_page_verses(cursor, root_id, mushaf, page, page_size):
@@ -1902,6 +1941,7 @@ def get_mushaf_page_index(cursor, mushaf):
             a.text_uthmani,
             a.global_index,
             a.page,
+            a.juz,
             a.line_start,
             a.line_end,
             s.name_arabic AS surah_name
@@ -1932,6 +1972,7 @@ def get_mushaf_page_index(cursor, mushaf):
             "text": row["text_uthmani"],
             "global_index": row["global_index"],
             "page": row["page"],
+            "juz": row["juz"],
             "line_start": row["line_start"],
             "line_end": row["line_end"],
         }
@@ -1990,8 +2031,45 @@ def coerce_optional_int(value):
     return int(value)
 
 
-def build_quran_page_payload(cursor, mushaf, page=None, ayah_id=None, selected_ayah_id=None):
-    """Build one page of Quran text, optionally resolving the page from a selected ayah."""
+def resolve_locator_ayah_id(cursor, mushaf, surah=None, ayah=None, juz=None):
+    """Resolve a surah/ayah or juz locator to an ayah id for one mushaf."""
+    surah = coerce_optional_int(surah)
+    ayah = coerce_optional_int(ayah)
+    juz = coerce_optional_int(juz)
+
+    if juz is not None:
+        cursor.execute(
+            "SELECT id FROM ayahs WHERE mushaf_id = ? AND juz = ? ORDER BY global_index LIMIT 1",
+            (mushaf, juz),
+        )
+        row = cursor.fetchone()
+        return row["id"] if row else None
+
+    if surah is not None:
+        target_ayah = ayah if ayah is not None else 1
+        cursor.execute(
+            "SELECT id FROM ayahs WHERE mushaf_id = ? AND surah_id = ? AND number_in_surah = ?",
+            (mushaf, surah, target_ayah),
+        )
+        row = cursor.fetchone()
+        if row:
+            return row["id"]
+        # Requested ayah is out of range — fall back to the surah's first ayah.
+        cursor.execute(
+            "SELECT id FROM ayahs WHERE mushaf_id = ? AND surah_id = ? ORDER BY number_in_surah LIMIT 1",
+            (mushaf, surah),
+        )
+        row = cursor.fetchone()
+        return row["id"] if row else None
+
+    return None
+
+
+def build_quran_page_payload(
+    cursor, mushaf, page=None, ayah_id=None, selected_ayah_id=None, surah=None, ayah=None, juz=None
+):
+    """Build one page of Quran text, optionally resolving the page from a selected ayah,
+    a surah/ayah locator, or a juz number."""
     page = coerce_optional_int(page)
     ayah_id = coerce_optional_int(ayah_id)
     selected_ayah_id = coerce_optional_int(selected_ayah_id)
@@ -2003,6 +2081,11 @@ def build_quran_page_payload(cursor, mushaf, page=None, ayah_id=None, selected_a
     min_page = bounds["min_page"]
     max_page = bounds["max_page"]
     target_page = page
+
+    if ayah_id is None:
+        locator_ayah_id = resolve_locator_ayah_id(cursor, mushaf, surah, ayah, juz)
+        if locator_ayah_id is not None:
+            ayah_id = locator_ayah_id
 
     if ayah_id is not None:
         ayah_page = fetch_ayah_page(cursor, mushaf, ayah_id)
@@ -2022,11 +2105,19 @@ def build_quran_page_payload(cursor, mushaf, page=None, ayah_id=None, selected_a
 
     surahs = []
     seen_surahs = set()
+    juzs_in_order = []
+    seen_juzs = set()
     for ayah in ayahs:
-        if ayah["surah_id"] in seen_surahs:
-            continue
-        seen_surahs.add(ayah["surah_id"])
-        surahs.append({"id": ayah["surah_id"], "name": ayah["surah"]})
+        if ayah["surah_id"] not in seen_surahs:
+            seen_surahs.add(ayah["surah_id"])
+            surahs.append({"id": ayah["surah_id"], "name": ayah["surah"]})
+        juz_value = ayah.get("juz")
+        if juz_value is not None and juz_value not in seen_juzs:
+            seen_juzs.add(juz_value)
+            juzs_in_order.append(juz_value)
+
+    juz_primary = juzs_in_order[0] if juzs_in_order else None
+    juz_secondary = juzs_in_order[1] if len(juzs_in_order) > 1 else None
 
     return {
         "found": True,
@@ -2039,6 +2130,8 @@ def build_quran_page_payload(cursor, mushaf, page=None, ayah_id=None, selected_a
         "has_previous": target_page > min_page,
         "has_next": target_page < max_page,
         "selected_ayah_id": selected_ayah_id,
+        "juz": juz_primary,
+        "juz_secondary": juz_secondary,
         "surahs": surahs,
         "ayahs": ayahs,
     }
@@ -2125,6 +2218,7 @@ def build_paginated_exact_result(cursor, q, q_simple, mushaf, page, page_size):
         verse_list = phrase_matches_to_verse_list(matches)
         total_occurrences = len(matches)
         total_verses = len(verse_list)
+        total_surahs = len({v["surah_id"] for v in verse_list})
         total_pages = compute_total_pages(total_verses, page_size)
         page = clamp_page(page, total_pages)
         start = (page - 1) * page_size
@@ -2141,6 +2235,7 @@ def build_paginated_exact_result(cursor, q, q_simple, mushaf, page, page_size):
             "total_pages": total_pages,
             "total_occurrences": total_occurrences,
             "total_verses": total_verses,
+            "total_surahs": total_surahs,
             "verses": verses,
         }
 
@@ -2151,6 +2246,7 @@ def build_paginated_exact_result(cursor, q, q_simple, mushaf, page, page_size):
     verse_list = occurrences_to_verse_list(occurrences)
     total_occurrences = len(occurrences)
     total_verses = len(verse_list)
+    total_surahs = len({v["surah_id"] for v in verse_list})
     total_pages = compute_total_pages(total_verses, page_size)
     page = clamp_page(page, total_pages)
     start = (page - 1) * page_size
@@ -2167,6 +2263,7 @@ def build_paginated_exact_result(cursor, q, q_simple, mushaf, page, page_size):
         "total_pages": total_pages,
         "total_occurrences": total_occurrences,
         "total_verses": total_verses,
+        "total_surahs": total_surahs,
         "verses": verses,
     }
 
@@ -2178,7 +2275,7 @@ def build_paginated_root_result(cursor, root_id, mushaf, page, page_size):
     if not root_info:
         return None
 
-    total_occurrences, total_verses = fetch_root_summary(cursor, root_id, mushaf)
+    total_occurrences, total_verses, total_surahs = fetch_root_summary(cursor, root_id, mushaf)
     if not total_occurrences or not total_verses:
         return None
 
@@ -2196,6 +2293,7 @@ def build_paginated_root_result(cursor, root_id, mushaf, page, page_size):
         "total_pages": total_pages,
         "total_occurrences": total_occurrences,
         "total_verses": total_verses,
+        "total_surahs": total_surahs,
         "verses": verses,
     }
 

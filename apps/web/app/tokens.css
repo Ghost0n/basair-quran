@@ -1,0 +1,209 @@
+/* =====================================================================
+   Basair Al-Quran — Foundation Tokens (colors + typography)
+   ---------------------------------------------------------------------
+   RTL-native, Arabic-primary. Two themes. Warm, dignified palette.
+   The :root defaults to dark (the scholar's reading-room default).
+   Toggle .light on <html> or <body> to flip.
+
+   Source of truth — every component should read from these variables.
+   Do not introduce new design tokens without updating this file.
+   ===================================================================== */
+
+/* Brand-supplied Quran face (mushaf-quality Amiri Quran) — self-hosted */
+@font-face {
+  font-family: 'Amiri Quran';
+  src: url('/fonts/AmiriQuran-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Cairo (UI), Amiri (italic/bold fallback), Reem Kufi (titles) from Google Fonts.
+   Amiri Quran is the primary Quran face; the others fill gaps it doesn't cover. */
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Cairo:wght@300;400;500;600;700;800&family=Reem+Kufi:wght@400;500;600;700&display=swap');
+
+:root {
+  /* ---------- Brand / accent ---------- */
+  --gold-50:  #fbf6e2;
+  --gold-100: #f5e9b6;
+  --gold-200: #ecd57a;
+  --gold-300: #e0c14a;
+  --gold-400: #d4af37;   /* primary */
+  --gold-500: #b38b10;
+  --gold-600: #8a6a0c;
+  --gold-700: #5e4708;
+  --gold-800: #3a2c05;
+  --gold-900: #1f1702;
+
+  /* ---------- Ink (text) ---------- */
+  --ink-0:   #ffffff;
+  --ink-50:  #f7f3e8;
+  --ink-100: #e8e3d4;
+  --ink-200: #c7c0a8;
+  --ink-300: #9a917a;
+  --ink-400: #6a624f;
+  --ink-500: #3f3a2d;
+  --ink-600: #2a2519;
+  --ink-700: #1f1b13;
+  --ink-800: #15120c;
+  --ink-900: #0c0a07;
+
+  /* ---------- Semantic — strict evidence vs. tafssir interpretation ---------- */
+  --evidence-fg:  #d4af37;          /* gold = strict Quran evidence */
+  --evidence-bg:  rgba(212,175,55,0.10);
+  --evidence-border: rgba(212,175,55,0.45);
+
+  --tafssir-fg:   #c98a5b;          /* warmer copper = experimental */
+  --tafssir-bg:   rgba(201,138,91,0.10);
+  --tafssir-border: rgba(201,138,91,0.45);
+  --tafssir-stripe: repeating-linear-gradient(
+    -45deg,
+    rgba(201,138,91,0.16) 0 6px,
+    transparent 6px 14px
+  );
+
+  --info-fg:    #8ab4d8;
+  --warn-fg:    #d8b46a;
+  --danger-fg:  #c97a7a;
+  --success-fg: #8ab09a;
+
+  /* ---------- Dark theme (default) ---------- */
+  --bg:        #131210;
+  --bg-elev-1: #1a1813;
+  --bg-elev-2: #221f17;
+  --bg-elev-3: #2c281d;
+  --surface:   rgba(33, 30, 22, 0.78);
+  --surface-soft: rgba(255,255,255,0.03);
+  --border:    rgba(212,175,55,0.14);
+  --border-strong: rgba(212,175,55,0.30);
+  --divider:   rgba(255,255,255,0.06);
+
+  --fg-1: #f4ecd8;   /* primary copy */
+  --fg-2: #c7bfa8;   /* secondary copy */
+  --fg-3: #8d8674;   /* tertiary / meta */
+  --fg-mute: #5a5547;
+
+  --verse-fg: #ffffff;
+  --verse-bg: rgba(0,0,0,0.20);
+  --highlight-bg: rgba(212,175,55,0.22);
+  --highlight-fg: var(--gold-300);
+
+  /* Page background — warm radial wash, the "manuscript at night" feel */
+  --page-bg:
+    radial-gradient(circle at top right, rgba(212,175,55,0.13), transparent 26%),
+    radial-gradient(circle at 15% 18%, rgba(255,255,255,0.04), transparent 18%),
+    linear-gradient(180deg, #131210 0%, #181612 52%, #121009 100%);
+
+  /* ---------- Spacing scale (4px base) ---------- */
+  --sp-0: 0;
+  --sp-1: 0.25rem;   /* 4 */
+  --sp-2: 0.5rem;    /* 8 */
+  --sp-3: 0.75rem;   /* 12 */
+  --sp-4: 1rem;      /* 16 */
+  --sp-5: 1.25rem;   /* 20 */
+  --sp-6: 1.5rem;    /* 24 */
+  --sp-8: 2rem;      /* 32 */
+  --sp-10: 2.5rem;   /* 40 */
+  --sp-12: 3rem;     /* 48 */
+  --sp-16: 4rem;     /* 64 */
+
+  /* ---------- Radii ---------- */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 22px;
+  --r-2xl: 28px;
+  --r-pill: 999px;
+
+  /* ---------- Shadows / elevation ---------- */
+  --shadow-1: 0 4px 10px rgba(0,0,0,0.18);
+  --shadow-2: 0 10px 24px rgba(0,0,0,0.22);
+  --shadow-3: 0 18px 40px rgba(0,0,0,0.28);
+  --shadow-glow: 0 0 0 1px rgba(212,175,55,0.18), 0 0 24px rgba(212,175,55,0.10);
+  --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.04);
+
+  /* ---------- Motion ---------- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur: 240ms;
+  --dur-slow: 380ms;
+
+  /* ---------- Typography — families ---------- */
+  --font-arabic-display: 'Amiri Quran', 'Amiri', 'Reem Kufi', serif;  /* mushaf, ayahs, headings */
+  --font-arabic-mushaf:  'Amiri Quran', 'Amiri', serif;              /* alias — mushaf-only contexts */
+  --font-arabic-ui:      'Cairo', 'Inter', system-ui, sans-serif;    /* UI chrome, body */
+  --font-arabic-kufi:    'Reem Kufi', 'Cairo', sans-serif;           /* surah titles, deck */
+  --font-mono:           'Cairo', ui-monospace, monospace;
+
+  /* ---------- Type scale (Arabic runs ~1.05x larger; values calibrated) ---------- */
+  --fs-xs:   0.78rem;  /* 12.5 */
+  --fs-sm:   0.88rem;  /* 14   */
+  --fs-base: 1rem;     /* 16   */
+  --fs-md:   1.125rem; /* 18   */
+  --fs-lg:   1.3rem;   /* 20.8 */
+  --fs-xl:   1.6rem;   /* 25.6 */
+  --fs-2xl:  2rem;     /* 32   */
+  --fs-3xl:  2.6rem;   /* 41.6 */
+  --fs-4xl:  3.5rem;   /* 56   */
+
+  /* Mushaf reading sizes (these MUST stay generous) */
+  --fs-ayah:        1.6rem;
+  --fs-ayah-reader: 1.72rem;
+  --fs-ayah-large:  2.05rem;
+
+  --lh-tight: 1.2;
+  --lh-snug: 1.45;
+  --lh-body: 1.7;
+  --lh-mushaf: 2.25;     /* mushaf reading */
+
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.02em;
+  --tracking-uppercase: 0.06em;
+}
+
+/* =====================================================================
+   Light theme — warm parchment, illuminated manuscript
+   Apply with <html class="light">, <body class="light">, or
+   <body class="light-mode"> (legacy alias kept for compatibility).
+   ===================================================================== */
+.light, .light-mode, [data-theme="light"] {
+  --bg:        #faf6ec;
+  --bg-elev-1: #f5efdd;
+  --bg-elev-2: #efe7cf;
+  --bg-elev-3: #e8dfc1;
+  --surface:   rgba(255,255,255,0.78);
+  --surface-soft: rgba(255,255,255,0.55);
+  --border:    rgba(164,129,41,0.20);
+  --border-strong: rgba(164,129,41,0.42);
+  --divider:   rgba(60,46,18,0.10);
+
+  --fg-1: #1a160d;
+  --fg-2: #4a4232;
+  --fg-3: #7a7155;
+  --fg-mute: #a89f80;
+
+  --verse-fg: #0e0c08;
+  --verse-bg: rgba(212,175,55,0.10);
+  --highlight-bg: rgba(212,175,55,0.30);
+  --highlight-fg: #6a4d05;
+
+  --evidence-fg: #8a6a0c;
+  --evidence-bg: rgba(212,175,55,0.14);
+  --evidence-border: rgba(164,129,41,0.45);
+
+  --tafssir-fg: #8a4f25;
+  --tafssir-bg: rgba(174,108,62,0.12);
+  --tafssir-border: rgba(174,108,62,0.45);
+
+  --page-bg:
+    radial-gradient(circle at top right, rgba(212,175,55,0.16), transparent 26%),
+    radial-gradient(circle at 15% 18%, rgba(179,139,16,0.08), transparent 18%),
+    linear-gradient(180deg, #fbf8ef 0%, #f3eddc 52%, #eee4cf 100%);
+
+  --shadow-1: 0 4px 10px rgba(120,90,30,0.10);
+  --shadow-2: 0 10px 24px rgba(120,90,30,0.12);
+  --shadow-3: 0 18px 40px rgba(120,90,30,0.16);
+}

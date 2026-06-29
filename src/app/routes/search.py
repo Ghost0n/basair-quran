@@ -8,6 +8,7 @@ from src.app.models.api import (
     BatchSuggestRequest,
     LegacySearchResponse,
     PaginatedSearchResponse,
+    RootDistributionResponse,
     SearchResultPageResponse,
     SuggestionItem,
 )
@@ -226,3 +227,21 @@ def search_result_page(
         (time.time() - start) * 1000,
     )
     return SearchResultPageResponse(found=True, result=result)
+
+
+@router.get("/root-distribution", response_model=RootDistributionResponse, response_model_exclude_none=True)
+def root_distribution(
+    root: str = Query(..., max_length=config.MAX_QUERY_LENGTH, description="Root or word to map across the Quran"),
+    mushaf: int = Query(1, description="Mushaf ID"),
+) -> RootDistributionResponse:
+    start = time.time()
+    cursor = quran_service.get_db().cursor()
+    payload = quran_service.build_root_distribution(cursor, root, mushaf)
+    quran_service.logger.info(
+        "GET /api/root-distribution?root=%s&mushaf=%s - %.1fms - %s surahs",
+        root[:10],
+        mushaf,
+        (time.time() - start) * 1000,
+        payload["surah_count"],
+    )
+    return RootDistributionResponse(**payload)

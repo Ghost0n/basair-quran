@@ -3,12 +3,13 @@
 import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 
+import { useRouter, useSearchParams } from "next/navigation";
+
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type {
   DidYouMeanSuggestion,
   MushafItem,
   PaginatedSearchResult,
-  QuranPageResponse,
   SearchMode,
   SearchVerse,
   SuggestionItem,
@@ -26,6 +27,8 @@ import {
   removeChakl,
 } from "@/lib/quran-ui";
 import { generateArabicQueryCandidates } from "@/lib/arabic-transliteration";
+import { usePreferences } from "@/lib/preferences-context";
+import { useMushaf } from "@/features/reading/mushaf-context";
 
 import type { ThemeMode, WorkspaceView } from "../types";
 
@@ -86,7 +89,16 @@ export function useSearchWorkspace() {
   const [query, setQuery] = useState("");
   const [previewValue, setPreviewValue] = useState<string | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>("exact");
-  const [theme, setTheme] = useState<ThemeMode>("dark");
+  // Device-level theme: a stored value is an explicit per-device override.
+  // Without one we adopt the account default once it loads (see below).
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    if (typeof window === "undefined") return "dark";
+    try {
+      return window.localStorage.getItem("theme") === "light" ? "light" : "dark";
+    } catch {
+      return "dark";
+    }
+  });
   const [mushafs, setMushafs] = useState<MushafItem[]>([]);
   const [selectedMushaf, setSelectedMushaf] = useState<number>(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -98,23 +110,31 @@ export function useSearchWorkspace() {
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [loadingMushafs, setLoadingMushafs] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
-  const [isLoadingReader, setIsLoadingReader] = useState(false);
   const [isWorkspaceCollapsing, setIsWorkspaceCollapsing] = useState(false);
   const [results, setResults] = useState<PaginatedSearchResult[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [didYouMean, setDidYouMean] = useState<DidYouMeanSuggestion | null>(null);
   const [workspaceView, setWorkspaceView] = useState<WorkspaceView>("results");
-  const [readerData, setReaderData] = useState<QuranPageResponse | null>(null);
-  const [readerPageDraft, setReaderPageDraft] = useState("");
   const [resultPageDrafts, setResultPageDrafts] = useState<Record<string, string>>({});
   const [selectedVerseKey, setSelectedVerseKey] = useState<string | null>(null);
-  const [selectedAyahId, setSelectedAyahId] = useState<number | null>(null);
-  const [selectedHighlights, setSelectedHighlights] = useState<number[]>([]);
   const [searchContext, setSearchContext] = useState<{ q: string; mode: SearchMode; mushaf: number } | null>(null);
+
+  // Quran-page reading state is owned by the shared MushafProvider so the
+  // Reading mode and this search reader stay in sync.
+  const mushaf = useMushaf();
+
+  // Theme is a device override layered on top of the account default.
+  const { account, updateAccount } = usePreferences();
+  const userSetThemeRef = useRef(false);
+
+  // Search state is mirrored into the URL (?q=&sm=) so a search is
+  // shareable/bookmarkable; we hydrate from it once on mount.
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlHydratedRef = useRef(false);
 
   const resultsAreaRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const readerBodyRef = useRef<HTMLDivElement | null>(null);
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
   const toolsDrawerRef = useRef<HTMLDivElement | null>(null);
   const previousMushafRef = useRef(selectedMushaf);
@@ -287,31 +307,61 @@ export function useSearchWorkspace() {
 
   function clearWorkspaceState() {
     setResults([]);
-    setReaderData(null);
-    setReaderPageDraft("");
+    mushaf.reset();
     setResultPageDrafts({});
     setWorkspaceView("results");
     setSelectedVerseKey(null);
-    setSelectedAyahId(null);
-    setSelectedHighlights([]);
     setSearchContext(null);
   }
 
+  // Mirror the resolved query + mode into the URL so the page can be shared.
+  // history-preserving replace (no extra Back entries) and Next keeps the
+  // params in its own state so a later mode switch doesn't drop them.
+  function reflectSearchUrl(reflectedQuery: string, reflectedMode: SearchMode) {
+    if (typeof window === "undefined") return;
+    const sp = new URLSearchParams(window.location.search);
+    sp.set("mode", "search");
+    sp.set("q", reflectedQuery);
+    sp.set("sm", reflectedMode);
+    router.replace(`/?${sp.toString()}`, { scroll: false });
+  }
+
   useEffect(() => {
-    const storedTheme = window.localStorage.getItem("theme");
     const storedMushaf = Number(window.localStorage.getItem("selectedMushaf") || "1");
-    if (storedTheme === "light" || storedTheme === "dark") {
-      setTheme(storedTheme);
-    }
     if (Number.isFinite(storedMushaf) && storedMushaf > 0) {
       setSelectedMushaf(storedMushaf);
     }
   }, []);
 
+  // Adopt the account theme as the default when this device has no explicit
+  // override and the user hasn't toggled this session. Keeps the backend
+  // `theme` preference live across devices instead of being dead state.
   useEffect(() => {
-    document.body.classList.toggle("light-mode", theme === "light");
-    window.localStorage.setItem("theme", theme);
-  }, [theme]);
+    if (userSetThemeRef.current) return;
+    let hasOverride = false;
+    try {
+      hasOverride = window.localStorage.getItem("theme") !== null;
+    } catch {
+      hasOverride = false;
+    }
+    if (!hasOverride && (account.theme === "light" || account.theme === "dark")) {
+      setTheme(account.theme);
+    }
+  }, [account.theme]);
+
+  // Hydrate a search from ?q=&sm= once on first load (shared/bookmarked link).
+  useEffect(() => {
+    if (urlHydratedRef.current) return;
+    urlHydratedRef.current = true;
+    const urlQuery = searchParams.get("q");
+    if (!urlQuery || !urlQuery.trim()) return;
+    const urlMode: SearchMode = searchParams.get("sm") === "root" ? "root" : "exact";
+    setQuery(urlQuery);
+    setSearchMode(urlMode);
+    setSearchModeInitialized(true);
+    void runSearch(urlQuery, urlMode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     function handleGlobalKeyDown(event: globalThis.KeyboardEvent) {
@@ -567,18 +617,6 @@ export function useSearchWorkspace() {
   }, [api, isInputFocused, previewValue, query, searchMode, searchModeInitialized, selectedMushaf, suggestionsWithChakl]);
 
   useEffect(() => {
-    if (!readerBodyRef.current) return;
-    const selectedNode = readerBodyRef.current.querySelector(".quran-page-ayah.selected");
-    if (selectedNode instanceof HTMLElement) {
-      selectedNode.scrollIntoView({ block: "center", behavior: "smooth" });
-    }
-  }, [readerData]);
-
-  useEffect(() => {
-    setReaderPageDraft(readerData?.page ? String(readerData.page) : "");
-  }, [readerData?.page]);
-
-  useEffect(() => {
     setResultPageDrafts(
       Object.fromEntries(results.map((result) => [result.result_key, String(result.page)])),
     );
@@ -719,6 +757,7 @@ export function useSearchWorkspace() {
         setResults(response.results);
         setSearchContext({ q: effectiveQuery, mode: effectiveMode, mushaf: selectedMushaf });
       });
+      reflectSearchUrl(effectiveQuery, effectiveMode);
 
       const firstResult = response.results.find((result) => result.verses.length > 0);
       const firstVerse = firstResult?.verses[0];
@@ -736,41 +775,14 @@ export function useSearchWorkspace() {
   async function selectVerse(verse: SearchVerse, resultKey: string, switchToReader = true) {
     const selectionKey = getVerseSelectionKey(resultKey, verse);
     setSelectedVerseKey(selectionKey);
-    setSelectedAyahId(verse.ayah_id);
-    setSelectedHighlights(Array.isArray(verse.highlights) ? verse.highlights : []);
     if (switchToReader) {
       setWorkspaceView("reader");
     }
-    setIsLoadingReader(true);
-
-    try {
-      const pageData = await api.getQuranPageForAyah(verse.mushaf_id || selectedMushaf, verse.ayah_id);
-      if (!pageData.found) {
-        throw new Error("تعذر تحميل صفحة المصحف.");
-      }
-      setReaderData(pageData);
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "حدث خطأ في تحميل صفحة المصحف.");
-    } finally {
-      setIsLoadingReader(false);
-    }
-  }
-
-  async function loadReaderPage(nextPage: number) {
-    if (!readerData?.page || !selectedAyahId) return;
-    const requestedPage = clampPage(nextPage, readerData.max_page ?? readerData.total_pages ?? 1);
-    setIsLoadingReader(true);
-    try {
-      const pageData = await api.getQuranPage(selectedMushaf, requestedPage, selectedAyahId);
-      if (!pageData.found) {
-        throw new Error("تعذر تحميل صفحة المصحف.");
-      }
-      setReaderData(pageData);
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "حدث خطأ في تحميل صفحة المصحف.");
-    } finally {
-      setIsLoadingReader(false);
-    }
+    await mushaf.loadByAyah(
+      verse.mushaf_id || selectedMushaf,
+      verse.ayah_id,
+      Array.isArray(verse.highlights) ? verse.highlights : [],
+    );
   }
 
   async function loadResultPage(resultKey: string, requestedPage: number) {
@@ -893,6 +905,16 @@ export function useSearchWorkspace() {
       setDrawerOpen(false);
       setIsWorkspaceCollapsing(false);
       inputRef.current?.focus();
+      // Drop the shareable search params so the URL doesn't go stale.
+      if (typeof window !== "undefined") {
+        const sp = new URLSearchParams(window.location.search);
+        if (sp.has("q") || sp.has("sm")) {
+          sp.delete("q");
+          sp.delete("sm");
+          const next = sp.toString();
+          router.replace(next ? `/?${next}` : "/", { scroll: false });
+        }
+      }
     };
 
     if (workspaceVisible) {
@@ -978,11 +1000,17 @@ export function useSearchWorkspace() {
       return;
     }
 
-    if (event.key === "Enter" && activeSuggestionIndex >= 0) {
+    if (event.key === "Enter") {
       event.preventDefault();
-      const item = suggestions[activeSuggestionIndex];
-      if (item) {
-        applySuggestion(item);
+      if (activeSuggestionIndex >= 0) {
+        // B4: highlighted suggestion → apply it.
+        const item = suggestions[activeSuggestionIndex];
+        if (item) applySuggestion(item);
+      } else {
+        // B4: no suggestion highlighted → apply the first one.
+        const first = suggestions[0];
+        if (first) applySuggestion(first);
+        else void runSearch();
       }
     }
   }
@@ -991,7 +1019,6 @@ export function useSearchWorkspace() {
     refs: {
       resultsAreaRef,
       inputRef,
-      readerBodyRef,
       suggestionsRef,
       toolsDrawerRef,
     },
@@ -1011,7 +1038,6 @@ export function useSearchWorkspace() {
       suggestionsWithChakl,
       activeSuggestionIndex,
       isSearching,
-      isLoadingReader,
       isWorkspaceCollapsing,
       errorMessage,
       didYouMean,
@@ -1019,11 +1045,8 @@ export function useSearchWorkspace() {
       workspaceVisible,
       workspaceActive,
       results,
-      readerData,
-      readerPageDraft,
       resultPageDrafts,
       selectedVerseKey,
-      selectedHighlights,
       searchPrefix,
       modeToggleLabel,
       chaklButtonVisible,
@@ -1039,16 +1062,26 @@ export function useSearchWorkspace() {
       setDrawerOpen,
       setSelectedMushaf,
       setWorkspaceView,
-      setReaderPageDraft,
       setResultPageDraft(resultKey: string, value: string) {
         setResultPageDrafts((current) => ({ ...current, [resultKey]: value }));
       },
       toggleTheme() {
-        setTheme((current) => (current === "dark" ? "light" : "dark"));
+        userSetThemeRef.current = true;
+        setTheme((current) => {
+          const next: ThemeMode = current === "dark" ? "light" : "dark";
+          try {
+            window.localStorage.setItem("theme", next);
+          } catch {
+            /* private mode — theme just won't persist on this device */
+          }
+          // Mirror to the account default so the choice follows the user
+          // across devices; a failed write must not break the toggle.
+          void updateAccount({ theme: next }).catch(() => {});
+          return next;
+        });
       },
       runSearch,
       selectVerse,
-      loadReaderPage,
       loadResultPage,
       resetSearch,
       applySuggestion,

@@ -1,0 +1,164 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+
+import { useSearchParams } from "next/navigation";
+
+import { createQBasairApiClient } from "@q-basair/api-client";
+import type { RootDistributionResponse, SurahListItem } from "@q-basair/shared";
+
+import { API_BASE_URL } from "@/lib/config";
+import { formatNumber } from "@/lib/numerals";
+import { useMushaf } from "@/features/reading/mushaf-context";
+import { useShellMode } from "@/features/shell/mode-context";
+import { useWorkspace } from "@/features/shell/workspace-context";
+
+import "./concordance.css";
+
+const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
+
+/**
+ * Concordance heatmap — where a root lives across the whole Qurʾān. The
+ * 114-surah grid is colour-graded by occurrence density; clicking a
+ * surah opens it in the Mushaf.
+ */
+export function HeatmapScreen() {
+  const params = useSearchParams();
+  const root = params.get("root") ?? "";
+  const { state } = useWorkspace();
+  const mushaf = useMushaf();
+  const { setMode } = useShellMode();
+
+  const [surahs, setSurahs] = useState<SurahListItem[]>([]);
+  const [distribution, setDistribution] = useState<RootDistributionResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (surahs.length === 0) {
+      api.getSurahs().then((list) => {
+        if (!cancelled) setSurahs(list);
+      }).catch(() => {});
+    }
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!root) {
+      setDistribution(null);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    api
+      .getRootDistribution(root, state.selectedMushaf)
+      .then((response) => {
+        if (!cancelled) setDistribution(response);
+      })
+      .catch(() => {
+        if (!cancelled) setDistribution(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [root, state.selectedMushaf]);
+
+  const countBySurah = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const item of distribution?.surahs ?? []) {
+      map.set(item.surah_id, item.count);
+    }
+    return map;
+  }, [distribution]);
+
+  const maxCount = useMemo(
+    () => Math.max(1, ...(distribution?.surahs ?? []).map((item) => item.count)),
+    [distribution],
+  );
+
+  const topSurahs = useMemo(
+    () => [...(distribution?.surahs ?? [])].sort((a, b) => b.count - a.count).slice(0, 4),
+    [distribution],
+  );
+
+  function intensity(count: number): number {
+    if (count <= 0) return 0;
+    return Math.min(6, Math.ceil((count / maxCount) * 6));
+  }
+
+  if (!root) {
+    return (
+      <div className="qb-aux">
+        <div className="qb-aux-state">اختر جذراً من لوحة المطابقة لعرض انتشاره عبر المصحف.</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="qb-aux">
+      <div className="qb-aux-h">
+        <div>
+          <div className="kicker">البانوراما · CONCORDANCE HEATMAP</div>
+          <h2>{distribution?.root ?? root}</h2>
+          <div className="sub">
+            {loading
+              ? "جارٍ حساب الانتشار…"
+              : distribution?.found
+                ? `${formatNumber(distribution.total)} موضع في ${formatNumber(distribution.surah_count)} سورة`
+                : "لا توجد مواضع لهذا الجذر."}
+          </div>
+        </div>
+      </div>
+
+      {distribution?.found ? (
+        <>
+          <div className="qb-heatmap-grid">
+            {surahs.map((surah) => {
+              const count = countBySurah.get(surah.id) ?? 0;
+              return (
+                <button
+                  key={surah.id}
+                  type="button"
+                  className="qb-heat-cell"
+                  data-level={intensity(count)}
+                  title={`${surah.name} — ${formatNumber(count)} موضع`}
+                  onClick={() => {
+                    void mushaf.loadBySurah(state.selectedMushaf, surah.id);
+                    setMode("reading");
+                  }}
+                >
+                  <span className="n">{formatNumber(surah.id)}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {topSurahs.length > 0 ? (
+            <>
+              <div className="kicker" style={{ margin: "24px 0 10px" }}>
+                السُّوَر الأعلى ذِكراً
+              </div>
+              <div className="qb-aux-list">
+                {topSurahs.map((item) => (
+                  <div key={item.surah_id} className="qb-aux-row">
+                    <span className="icon-tile">{formatNumber(item.surah_id)}</span>
+                    <div className="grow">
+                      <div className="title">سورة {item.surah}</div>
+                      <div className="meta">{formatNumber(item.count)} موضع</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </>
+      ) : null}
+    </div>
+  );
+}

@@ -1,0 +1,375 @@
+/* =====================================================================
+   Companions — Notebook drawer + Bookmarks / Sessions / Roots screens.
+   ===================================================================== */
+
+/* ---------- Notebook drawer (side companion) ---------- */
+
+.qb-notebook {
+  width: 320px;
+  flex: 0 0 320px;
+  min-width: 0;
+  border-inline-end: 1px solid var(--divider);
+  background: linear-gradient(180deg, rgba(28, 25, 18, 0.62), rgba(20, 18, 12, 0.5));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  backdrop-filter: blur(14px);
+}
+
+.light .qb-notebook {
+  background: linear-gradient(180deg, rgba(252, 247, 231, 0.7), rgba(244, 236, 216, 0.55));
+}
+
+.qb-notebook .head {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--divider);
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.qb-notebook .head .kicker {
+  color: var(--gold-400);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.qb-notebook .head h4 {
+  font-family: var(--font-arabic-display);
+  font-size: 22px;
+  color: var(--fg-1);
+  margin: 4px 0;
+}
+
+.qb-notebook .head .meta {
+  color: var(--fg-3);
+  font-size: 11px;
+}
+
+.qb-notebook .head .close {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--fg-3);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.qb-notebook .head .close:hover {
+  color: var(--gold-400);
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.qb-notebook .body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px 16px;
+}
+
+.qb-nb-section {
+  margin-bottom: 18px;
+}
+
+.qb-nb-section .label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--fg-3);
+  letter-spacing: 0.10em;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--divider);
+}
+
+.qb-nb-section .label .count {
+  background: rgba(212, 175, 55, 0.10);
+  color: var(--gold-400);
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-family: var(--font-mono);
+  margin-inline-start: auto;
+}
+
+.qb-nb-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: border-color 180ms var(--ease-out), background 180ms var(--ease-out);
+  width: 100%;
+  text-align: start;
+}
+
+.light .qb-nb-item {
+  background: rgba(255, 253, 246, 0.6);
+}
+
+.qb-nb-item:hover {
+  border-color: rgba(212, 175, 55, 0.35);
+  background: rgba(212, 175, 55, 0.04);
+}
+
+.qb-nb-item .top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.qb-nb-item .top .surah {
+  color: var(--gold-400);
+  font-weight: 700;
+}
+
+.qb-nb-item .top .ref {
+  color: var(--fg-3);
+  font-family: var(--font-mono);
+}
+
+.qb-nb-item .top .age {
+  color: var(--fg-mute);
+  margin-inline-start: auto;
+  font-size: 10px;
+}
+
+.qb-nb-item .top .del {
+  color: var(--fg-mute);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.qb-nb-item .top .del:hover {
+  color: var(--tafssir-fg);
+}
+
+.qb-nb-item .preview {
+  font-family: var(--font-arabic-display);
+  font-size: 13px;
+  color: var(--fg-2);
+  line-height: 1.65;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.qb-nb-item .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--fg-3);
+}
+
+/* ---------- Aux full-screen layout (Bookmarks / Sessions / Roots) ---------- */
+
+.qb-aux {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 32px 40px 48px;
+}
+
+.qb-aux-h {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.qb-aux-h .kicker {
+  color: var(--gold-400);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.qb-aux-h h2 {
+  font-family: var(--font-arabic-display);
+  font-size: var(--fs-2xl);
+  color: var(--fg-1);
+  margin: 4px 0;
+}
+
+.qb-aux-h .sub {
+  color: var(--fg-3);
+  font-size: 13px;
+}
+
+.qb-aux-state {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--fg-2);
+  font-size: 14px;
+}
+
+/* Card grid (bookmarks collections) */
+.qb-aux-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.qb-collection-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--bg-elev-1);
+  overflow: hidden;
+}
+
+.qb-collection-card .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(212, 175, 55, 0.02));
+  border-bottom: 1px solid var(--border);
+}
+
+.qb-collection-card .head .name {
+  font-family: var(--font-arabic-display);
+  font-size: 20px;
+  color: var(--gold-400);
+}
+
+.qb-collection-card .head .count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--fg-3);
+}
+
+.qb-collection-card .body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qb-mini-verse {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+  cursor: pointer;
+  background: transparent;
+  text-align: start;
+  width: 100%;
+  transition: border-color 160ms var(--ease-out);
+}
+
+.qb-mini-verse:hover {
+  border-color: rgba(212, 175, 55, 0.4);
+}
+
+.qb-mini-verse .ref {
+  font-size: 10px;
+  color: var(--gold-400);
+  font-weight: 700;
+}
+
+.qb-mini-verse .text {
+  font-family: var(--font-arabic-display);
+  font-size: 15px;
+  color: var(--verse-fg);
+  line-height: 1.8;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Row list (sessions, roots) */
+.qb-aux-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qb-aux-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg-elev-1);
+}
+
+.qb-aux-row .icon-tile {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(212, 175, 55, 0.10);
+  color: var(--gold-400);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+}
+
+.qb-aux-row .icon-tile.copper {
+  background: var(--tafssir-bg);
+  color: var(--tafssir-fg);
+  border-color: var(--tafssir-border);
+}
+
+.qb-aux-row .grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.qb-aux-row .title {
+  font-family: var(--font-arabic-display);
+  font-size: 18px;
+  color: var(--fg-1);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.qb-aux-row .root-disp {
+  font-family: var(--font-arabic-display);
+  font-size: 22px;
+  color: var(--gold-400);
+  letter-spacing: 0.06em;
+}
+
+.qb-aux-row .meta {
+  font-size: 11px;
+  color: var(--fg-3);
+  margin-top: 2px;
+}
+
+.qb-aux-row .row-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--fg-mute);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.qb-aux-row .row-action:hover {
+  color: var(--tafssir-fg);
+  border-color: var(--tafssir-border);
+}

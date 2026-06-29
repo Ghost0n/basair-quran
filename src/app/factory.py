@@ -5,8 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
 from src.app.core import config
-from src.app.routes import auth_router, health_router, mushafs_router, reader_router, research_router, search_router
-from src.app.services import auth_service, quran_service
+from src.app.routes import (
+    auth_router,
+    companions_router,
+    health_router,
+    mushafs_router,
+    reader_router,
+    research_router,
+    search_router,
+)
+from src.app.services import app_data_service, auth_service, quran_service
 
 
 @asynccontextmanager
@@ -61,11 +69,12 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=config.get_cors_origins(),
         allow_credentials=True,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
     if config.is_auth_enabled():
         auth_service.ensure_auth_db()
+    app_data_service.ensure_app_db()
     app.include_router(auth_router)
     app.include_router(health_router)
     protected_dependencies = [Depends(require_authenticated_session)] if config.is_auth_enabled() else []
@@ -73,6 +82,7 @@ def create_app() -> FastAPI:
     app.include_router(search_router, dependencies=protected_dependencies)
     app.include_router(research_router, dependencies=protected_dependencies)
     app.include_router(reader_router, dependencies=protected_dependencies)
+    app.include_router(companions_router, dependencies=protected_dependencies)
     return app
 
 

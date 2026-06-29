@@ -24,6 +24,7 @@ _morphology_path = BASE_DIR / "data" / "quran-morphology.txt"
 _research_index_path = BASE_DIR / "data" / "research_agent.db"
 _research_sources_path = BASE_DIR / "data" / "research_sources"
 _auth_db_path = BASE_DIR / "data" / "auth.db"
+_app_db_path = BASE_DIR / "data" / "app_data.db"
 
 
 def read_bool_env(name: str, default: bool = False) -> bool:
@@ -76,6 +77,21 @@ def get_auth_db_path() -> str:
 def set_auth_db_path(path: str) -> None:
     global _auth_db_path
     _auth_db_path = Path(path)
+
+
+def get_app_db_path() -> str:
+    """Path to the user-data store (notebook, bookmarks, sessions, roots).
+
+    This database holds user-generated content and is NEVER produced by
+    scripts/build_db.py — a [rebuild-db] deploy must not touch it.
+    """
+    raw_path = os.environ.get("QBASAIR_APP_DB_PATH")
+    return str(Path(raw_path) if raw_path else _app_db_path)
+
+
+def set_app_db_path(path: str) -> None:
+    global _app_db_path
+    _app_db_path = Path(path)
 
 
 def get_llm_provider() -> str:

@@ -10,6 +10,12 @@ data/quran.db-wal
 data/research_agent.db
 data/research_agent.db-shm
 data/research_agent.db-wal
+data/app_data.db
+data/app_data.db-shm
+data/app_data.db-wal
+data/auth.db
+data/auth.db-shm
+data/auth.db-wal
 data/research_sources/**
 !data/research_sources/
 !data/research_sources/.gitkeep
@@ -19,3 +25,5 @@ dist/
 .runtime/
 *.log
 *.tsbuildinfo
+
+.claude/

@@ -57,6 +57,7 @@ export interface PaginatedSearchResult {
   total_pages: number;
   total_occurrences: number;
   total_verses: number;
+  total_surahs: number;
   verses: SearchVerse[];
 }
 
@@ -177,6 +178,152 @@ export interface ResearchAgentResponse {
   ayahs: ResearchAgentAyah[];
 }
 
+export interface QuranPageSurah {
+  id: number;
+  name: string;
+}
+
+export interface SurahListItem {
+  id: number;
+  name: string;
+  name_english?: string | null;
+  type?: string | null;
+  ayah_count: number;
+}
+
+export interface NotebookItem {
+  id: number;
+  ayah_id: number;
+  mushaf_id: number;
+  surah_id?: number | null;
+  surah?: string | null;
+  ayah?: number | null;
+  text?: string | null;
+  note?: string | null;
+  collection?: string | null;
+  created_at: number;
+}
+
+export interface NotebookItemCreate {
+  ayah_id: number;
+  mushaf_id?: number;
+  surah_id?: number | null;
+  surah?: string | null;
+  ayah?: number | null;
+  text?: string | null;
+  note?: string | null;
+  collection?: string | null;
+}
+
+export interface ResearchSessionSummary {
+  id: string;
+  title: string;
+  mode: "strict" | "tafssir";
+  message_count: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ResearchSessionDetail extends ResearchSessionSummary {
+  messages: Array<Record<string, unknown>>;
+}
+
+export interface ResearchSessionSave {
+  id: string;
+  title: string;
+  mode: "strict" | "tafssir";
+  messages: Array<Record<string, unknown>>;
+}
+
+export interface FollowedRoot {
+  id: number;
+  root_text: string;
+  root_id?: number | null;
+  occurrences?: number | null;
+  created_at: number;
+}
+
+export interface FollowedRootCreate {
+  root_text: string;
+  root_id?: number | null;
+  occurrences?: number | null;
+}
+
+export interface DeleteResult {
+  deleted: boolean;
+}
+
+export interface MorphologyWord {
+  position: number;
+  text: string;
+  root?: string | null;
+  lemma?: string | null;
+  pos: string;
+  pos_label: string;
+  case?: string | null;
+  case_label?: string | null;
+  features: string[];
+}
+
+export interface MorphologyResponse {
+  found: boolean;
+  surah: number;
+  ayah: number;
+  words: MorphologyWord[];
+}
+
+export type NumeralScript = "arabic-indic" | "latin" | "persian";
+
+export interface ResearchDefaults {
+  default_mode: "strict" | "tafssir";
+  depth: "fast" | "balanced" | "deep";
+}
+
+export interface UserPreferences {
+  riwayah: number;
+  mushaf_font: string;
+  numerals: NumeralScript;
+  ui_language: string;
+  theme: "dark" | "light" | "system";
+  font_size: number;
+  reciter: string;
+  research: ResearchDefaults;
+}
+
+export interface RootDistributionSurah {
+  surah_id: number;
+  surah: string;
+  count: number;
+}
+
+export interface RootDistributionResponse {
+  found: boolean;
+  root: string;
+  total: number;
+  surah_count: number;
+  surahs: RootDistributionSurah[];
+}
+
+export interface ReciterItem {
+  id: string;
+  name: string;
+  name_english: string;
+  riwayah: string;
+  style: string;
+  audio_base: string;
+}
+
+export interface UserPreferencesUpdate {
+  riwayah?: number;
+  mushaf_font?: string;
+  numerals?: NumeralScript;
+  ui_language?: string;
+  theme?: "dark" | "light" | "system";
+  font_size?: number;
+  reciter?: string;
+  research?: Partial<ResearchDefaults>;
+}
+
 export interface QuranPageAyah {
   ayah_id: number;
   mushaf_id: number;
@@ -186,6 +333,7 @@ export interface QuranPageAyah {
   text: string;
   global_index: number;
   page: string | number;
+  juz?: number | null;
   line_start?: number | null;
   line_end?: number | null;
   is_selected: boolean;
@@ -202,5 +350,8 @@ export interface QuranPageResponse {
   has_previous?: boolean;
   has_next?: boolean;
   selected_ayah_id?: number | null;
+  juz?: number | null;
+  juz_secondary?: number | null;
+  surahs?: QuranPageSurah[];
   ayahs: QuranPageAyah[];
 }

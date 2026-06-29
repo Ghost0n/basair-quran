@@ -1,36 +1,44 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 
-import { YamliInit } from "@/components/yamli-init";
+import "./tokens.css";
 import "./globals.css";
-
-const yamliEnabled = process.env.NEXT_PUBLIC_ENABLE_YAMLI !== "0";
 
 export const metadata: Metadata = {
   title: "بصائر القرآن",
   description: "مساحة بحث قرآنية للباحث تجمع بين الاستكشاف والقراءة والسياق.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "بصائر القرآن",
+    statusBarStyle: "black-translucent",
+  },
   icons: {
     icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
 };
 
+// Runs before first paint to apply the saved theme, so light-mode users
+// never see a flash of the dark default (FOUC). Mirrors the classes the
+// ThemeToggle applies at runtime (`light` + `light-mode`).
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.body.classList.add('light','light-mode');}}catch(e){}})();`;
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ar" dir="rtl">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Cairo:wght@300;400;700&display=swap"
-          rel="stylesheet"
+          rel="preload"
+          href="/fonts/AmiriQuran-Regular.ttf"
+          as="font"
+          type="font/ttf"
+          crossOrigin="anonymous"
         />
-        <meta name="theme-color" content="#1a1a1a" />
+        <meta name="theme-color" content="#131210" />
       </head>
-      <body>
+      <body suppressHydrationWarning>
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         {children}
-        {yamliEnabled ? <Script src="https://api.yamli.com/js/yamli_api.js" strategy="afterInteractive" /> : null}
-        {yamliEnabled ? <YamliInit targetId="searchInput" /> : null}
       </body>
     </html>
   );

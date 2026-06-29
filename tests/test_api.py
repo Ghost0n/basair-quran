@@ -267,12 +267,15 @@ def test_quran_page_resolves_selected_ayah_page_and_clamps(api_client):
     assert selected_body["has_previous"] is True
     assert selected_body["has_next"] is False
     assert selected_body["selected_ayah_id"] == 11
+    assert selected_body["juz"] == 1
+    assert "juz_secondary" not in selected_body
     assert [ayah["ayah"] for ayah in selected_body["ayahs"]] == [11, 12, 13, 14, 15]
     assert [ayah["is_selected"] for ayah in selected_body["ayahs"]] == [True, False, False, False, False]
     assert selected_body["ayahs"][0]["ayah_id"] == 11
     assert selected_body["ayahs"][0]["mushaf_id"] == 1
     assert selected_body["ayahs"][0]["surah_id"] == 1
     assert selected_body["ayahs"][0]["global_index"] == 10
+    assert selected_body["ayahs"][0]["juz"] == 1
 
     clamped_response = api_client.get(
         "/api/quran-page",
@@ -308,3 +311,58 @@ def test_quran_page_accepts_url_query_numbers(api_client):
     assert body["page"] == 2
     assert body["selected_ayah_id"] == 11
     assert body["ayahs"][0]["is_selected"] is True
+
+
+def test_quran_page_resolves_surah_ayah_and_juz_locators(api_client):
+    by_surah_ayah = api_client.get("/api/quran-page", params={"mushaf": 1, "surah": 1, "ayah": 11})
+    assert by_surah_ayah.status_code == 200
+    surah_ayah_body = by_surah_ayah.json()
+    assert surah_ayah_body["found"] is True
+    assert surah_ayah_body["page"] == 2
+    assert surah_ayah_body["selected_ayah_id"] == 11
+
+    by_surah_only = api_client.get("/api/quran-page", params={"mushaf": 1, "surah": 1})
+    assert by_surah_only.status_code == 200
+    surah_only_body = by_surah_only.json()
+    assert surah_only_body["found"] is True
+    assert surah_only_body["page"] == 1
+    assert surah_only_body["selected_ayah_id"] == 1
+
+    by_juz = api_client.get("/api/quran-page", params={"mushaf": 1, "juz": 1})
+    assert by_juz.status_code == 200
+    juz_body = by_juz.json()
+    assert juz_body["found"] is True
+    assert juz_body["page"] == 1
+
+
+def test_surahs_catalog_lists_surahs(api_client):
+    response = api_client.get("/api/surahs")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["id"] == 1
+    assert body[0]["name"] == "Fixture Surah"
+    assert body[0]["type"] == "meccan"
+    assert body[0]["ayah_count"] == 15
+
+
+def test_reciters_catalog_lists_reciters(api_client):
+    response = api_client.get("/api/reciters")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) >= 6
+    first = body[0]
+    assert first["id"]
+    assert first["name"]
+    assert first["audio_base"].startswith("https://")
+
+
+def test_root_distribution_aggregates_by_surah(api_client):
+    response = api_client.get("/api/root-distribution", params={"root": "shared", "mushaf": 1})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["found"] is True
+    assert body["surah_count"] == 1
+    assert body["surahs"][0]["surah_id"] == 1
+    assert body["surahs"][0]["count"] == body["total"]
+    assert body["total"] > 0

@@ -1,4 +1,4 @@
-from typing import List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -88,6 +88,7 @@ class PaginatedSearchResult(BaseModel):
     total_pages: int
     total_occurrences: int
     total_verses: int
+    total_surahs: int = 0
     verses: List[SearchVerse]
 
 
@@ -138,6 +139,14 @@ class QuranPageSurah(BaseModel):
     name: str
 
 
+class SurahListItem(BaseModel):
+    id: int
+    name: str
+    name_english: Optional[str] = None
+    type: Optional[str] = None
+    ayah_count: int
+
+
 class QuranPageAyah(BaseModel):
     ayah_id: int
     mushaf_id: int
@@ -147,6 +156,7 @@ class QuranPageAyah(BaseModel):
     text: str
     global_index: int
     page: str | int
+    juz: Optional[int] = None
     line_start: Optional[int] = None
     line_end: Optional[int] = None
     is_selected: bool
@@ -163,6 +173,8 @@ class QuranPageResponse(BaseModel):
     has_previous: Optional[bool] = None
     has_next: Optional[bool] = None
     selected_ayah_id: Optional[int] = None
+    juz: Optional[int] = None
+    juz_secondary: Optional[int] = None
     surahs: List[QuranPageSurah] = Field(default_factory=list)
     ayahs: List[QuranPageAyah]
 
@@ -267,3 +279,164 @@ class ResearchAgentResponse(BaseModel):
     related_terms: List[ResearchRelatedTerm] = Field(default_factory=list)
     searches: List[ResearchSearchItem] = Field(default_factory=list)
     ayahs: List[ResearchAgentAyah] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Companions — notebook, research sessions, followed roots (user-data store)
+# ---------------------------------------------------------------------------
+
+
+class NotebookItem(BaseModel):
+    id: int
+    ayah_id: int
+    mushaf_id: int = 1
+    surah_id: Optional[int] = None
+    surah: Optional[str] = None
+    ayah: Optional[int] = None
+    text: Optional[str] = None
+    note: Optional[str] = None
+    collection: Optional[str] = None
+    created_at: int
+
+
+class NotebookItemCreate(BaseModel):
+    ayah_id: int = Field(..., ge=1)
+    mushaf_id: int = Field(1, ge=1)
+    surah_id: Optional[int] = None
+    surah: Optional[str] = None
+    ayah: Optional[int] = None
+    text: Optional[str] = Field(None, max_length=4000)
+    note: Optional[str] = Field(None, max_length=2000)
+    collection: Optional[str] = Field(None, max_length=120)
+
+
+class ResearchSessionSummary(BaseModel):
+    id: str
+    title: str
+    mode: Literal["strict", "tafssir"] = "strict"
+    message_count: int = 0
+    created_at: int
+    updated_at: int
+
+
+class ResearchSessionDetail(ResearchSessionSummary):
+    messages: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class ResearchSessionSave(BaseModel):
+    id: str = Field(..., min_length=1, max_length=120)
+    title: str = Field("جلسة بحث", max_length=200)
+    mode: Literal["strict", "tafssir"] = "strict"
+    messages: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class FollowedRoot(BaseModel):
+    id: int
+    root_text: str
+    root_id: Optional[int] = None
+    occurrences: Optional[int] = None
+    created_at: int
+
+
+class FollowedRootCreate(BaseModel):
+    root_text: str = Field(..., min_length=1, max_length=120)
+    root_id: Optional[int] = None
+    occurrences: Optional[int] = None
+
+
+class DeleteResult(BaseModel):
+    deleted: bool
+
+
+# ---------------------------------------------------------------------------
+# Morphology — per-word root / lemma / part-of-speech
+# ---------------------------------------------------------------------------
+
+
+class MorphologyWord(BaseModel):
+    position: int
+    text: str
+    root: Optional[str] = None
+    lemma: Optional[str] = None
+    pos: str
+    pos_label: str
+    case: Optional[str] = None
+    case_label: Optional[str] = None
+    features: List[str] = Field(default_factory=list)
+
+
+class MorphologyResponse(BaseModel):
+    found: bool
+    surah: int
+    ayah: int
+    words: List[MorphologyWord] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# User preferences (account defaults; per-session Tweaks override on the client)
+# ---------------------------------------------------------------------------
+
+
+class ResearchDefaults(BaseModel):
+    default_mode: Literal["strict", "tafssir"] = "strict"
+    depth: Literal["fast", "balanced", "deep"] = "balanced"
+
+
+class UserPreferences(BaseModel):
+    riwayah: int = 1
+    mushaf_font: str = "amiri-quran"
+    numerals: Literal["arabic-indic", "latin", "persian"] = "arabic-indic"
+    ui_language: str = "ar"
+    theme: Literal["dark", "light", "system"] = "dark"
+    font_size: int = Field(28, ge=18, le=48)
+    reciter: str = ""
+    research: ResearchDefaults = Field(default_factory=ResearchDefaults)
+
+
+class ResearchDefaultsUpdate(BaseModel):
+    default_mode: Optional[Literal["strict", "tafssir"]] = None
+    depth: Optional[Literal["fast", "balanced", "deep"]] = None
+
+
+class UserPreferencesUpdate(BaseModel):
+    riwayah: Optional[int] = None
+    mushaf_font: Optional[str] = None
+    numerals: Optional[Literal["arabic-indic", "latin", "persian"]] = None
+    ui_language: Optional[str] = None
+    theme: Optional[Literal["dark", "light", "system"]] = None
+    font_size: Optional[int] = Field(None, ge=18, le=48)
+    reciter: Optional[str] = None
+    research: Optional[ResearchDefaultsUpdate] = None
+
+
+# ---------------------------------------------------------------------------
+# Reciters (recitation room)
+# ---------------------------------------------------------------------------
+
+
+class ReciterItem(BaseModel):
+    id: str
+    name: str
+    name_english: str
+    riwayah: str
+    style: str
+    audio_base: str
+
+
+# ---------------------------------------------------------------------------
+# Root distribution (Concordance heatmap)
+# ---------------------------------------------------------------------------
+
+
+class RootDistributionSurah(BaseModel):
+    surah_id: int
+    surah: str
+    count: int
+
+
+class RootDistributionResponse(BaseModel):
+    found: bool
+    root: str
+    total: int = 0
+    surah_count: int = 0
+    surahs: List[RootDistributionSurah] = Field(default_factory=list)

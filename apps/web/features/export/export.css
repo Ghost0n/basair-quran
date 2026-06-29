@@ -1,0 +1,179 @@
+/* =====================================================================
+   Export modal — share a research session as Markdown or JSON.
+   ===================================================================== */
+
+.qb-export-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.qb-export-modal {
+  width: min(720px, 100%);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-2xl);
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.qb-export-head {
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--divider);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.qb-export-head .kicker {
+  color: var(--gold-400);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.qb-export-head h3 {
+  font-family: var(--font-arabic-display);
+  font-size: var(--fs-lg);
+  color: var(--fg-1);
+  margin: 4px 0 0;
+}
+
+.qb-export-head .x {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--fg-3);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.qb-export-head .x:hover {
+  color: var(--gold-400);
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.qb-export-body {
+  padding: 18px 22px;
+  overflow-y: auto;
+}
+
+.qb-export-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--fg-3);
+  margin-bottom: 8px;
+}
+
+.qb-export-formats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.qb-export-format {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-1);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.qb-export-format:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.qb-export-format.active {
+  border-color: rgba(212, 175, 55, 0.5);
+  background: rgba(212, 175, 55, 0.10);
+  color: var(--gold-400);
+}
+
+.qb-export-format .soon {
+  margin-inline-start: auto;
+  font-size: 10px;
+  color: var(--fg-mute);
+}
+
+.qb-export-toggles {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.qb-export-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+.qb-export-preview {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.7;
+  color: var(--fg-2);
+  white-space: pre-wrap;
+  max-height: 220px;
+  overflow-y: auto;
+  direction: ltr;
+  text-align: start;
+}
+
+.light .qb-export-preview {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.qb-export-foot {
+  padding: 14px 22px;
+  border-top: 1px solid var(--divider);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.qb-export-foot button {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-2);
+}
+
+.qb-export-foot button.primary {
+  background: linear-gradient(135deg, #eac54a, #c69e27);
+  color: #140f00;
+  border: none;
+}

@@ -1,15 +1,29 @@
 import type {
   AuthLoginRequest,
   AuthSessionResponse,
+  DeleteResult,
+  FollowedRoot,
+  FollowedRootCreate,
+  MorphologyResponse,
   MushafItem,
+  NotebookItem,
+  NotebookItemCreate,
+  ReciterItem,
+  RootDistributionResponse,
   ResearchAgentSettingsResponse,
   PaginatedSearchResponse,
   QuranPageResponse,
   ResearchAgentRequest,
   ResearchAgentResponse,
+  ResearchSessionDetail,
+  ResearchSessionSave,
+  ResearchSessionSummary,
   SearchMode,
   SearchResultPageResponse,
   SuggestionItem,
+  SurahListItem,
+  UserPreferences,
+  UserPreferencesUpdate,
 } from "@q-basair/shared";
 
 export interface QBasairApiClientOptions {
@@ -188,6 +202,66 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
     },
     getQuranPageForAyah(mushaf: number, ayahId: number): Promise<QuranPageResponse> {
       return request<QuranPageResponse>(`/quran-page?mushaf=${mushaf}&ayah_id=${ayahId}`);
+    },
+    getQuranPageForSurah(mushaf: number, surah: number, ayah?: number): Promise<QuranPageResponse> {
+      const ayahPart = typeof ayah === "number" ? `&ayah=${ayah}` : "";
+      return request<QuranPageResponse>(`/quran-page?mushaf=${mushaf}&surah=${surah}${ayahPart}`);
+    },
+    getQuranPageForJuz(mushaf: number, juz: number): Promise<QuranPageResponse> {
+      return request<QuranPageResponse>(`/quran-page?mushaf=${mushaf}&juz=${juz}`);
+    },
+    getSurahs(): Promise<SurahListItem[]> {
+      return request<SurahListItem[]>("/surahs");
+    },
+    getMorphology(surah: number, ayah: number): Promise<MorphologyResponse> {
+      return request<MorphologyResponse>(`/morphology?surah=${surah}&ayah=${ayah}`);
+    },
+    getReciters(): Promise<ReciterItem[]> {
+      return request<ReciterItem[]>("/reciters");
+    },
+    getRootDistribution(root: string, mushaf = 1): Promise<RootDistributionResponse> {
+      return request<RootDistributionResponse>(
+        `/root-distribution?root=${encodeURIComponent(root)}&mushaf=${mushaf}`,
+      );
+    },
+    getNotebook(): Promise<NotebookItem[]> {
+      return request<NotebookItem[]>("/notebook");
+    },
+    addNotebookItem(item: NotebookItemCreate): Promise<NotebookItem> {
+      return request<NotebookItem>("/notebook", { method: "POST", body: JSON.stringify(item) });
+    },
+    deleteNotebookItem(itemId: number): Promise<DeleteResult> {
+      return request<DeleteResult>(`/notebook/${itemId}`, { method: "DELETE" });
+    },
+    getSessions(): Promise<ResearchSessionSummary[]> {
+      return request<ResearchSessionSummary[]>("/sessions");
+    },
+    getSession(sessionId: string): Promise<ResearchSessionDetail> {
+      return request<ResearchSessionDetail>(`/sessions/${encodeURIComponent(sessionId)}`);
+    },
+    saveSession(session: ResearchSessionSave): Promise<ResearchSessionDetail> {
+      return request<ResearchSessionDetail>("/sessions", { method: "POST", body: JSON.stringify(session) });
+    },
+    deleteSession(sessionId: string): Promise<DeleteResult> {
+      return request<DeleteResult>(`/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
+    },
+    getRoots(): Promise<FollowedRoot[]> {
+      return request<FollowedRoot[]>("/roots");
+    },
+    followRoot(root: FollowedRootCreate): Promise<FollowedRoot> {
+      return request<FollowedRoot>("/roots", { method: "POST", body: JSON.stringify(root) });
+    },
+    unfollowRoot(rootId: number): Promise<DeleteResult> {
+      return request<DeleteResult>(`/roots/${rootId}`, { method: "DELETE" });
+    },
+    getPreferences(): Promise<UserPreferences> {
+      return request<UserPreferences>("/user/preferences");
+    },
+    updatePreferences(patch: UserPreferencesUpdate): Promise<UserPreferences> {
+      return request<UserPreferences>("/user/preferences", {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      });
     },
   };
 }
