@@ -21,6 +21,27 @@ from src.app.core import config
 
 _lock = threading.Lock()
 _index: dict[tuple[int, int], list[dict]] | None = None
+# Secondary index: (surah, normalized-skeleton) -> words. Lets a verse be matched
+# by its text regardless of the riwāyah's ayah NUMBERING, which differs between
+# counting traditions (e.g. Madani/Qalūn vs Kufan/Hafs). The morphology source
+# (Quranic Arabic Corpus) is Kufan-numbered, so a Qalūn ayah number would point
+# at the wrong verse without this.
+_text_index: dict[tuple[int, str], list[dict]] | None = None
+
+# Fold to a consonant skeleton so the same verse matches across riwāyāt (only
+# marks/spelling differ). Mirrors scripts/build_mushaf_layout normalisation.
+_SIG_FOLD = {"آ": "ا", "أ": "ا", "إ": "ا", "ٱ": "ا", "ى": "ي", "ئ": "ي", "ؤ": "و", "ة": "ه"}
+
+
+def normalize_signature(text: str) -> str:
+    """Consonant-skeleton signature of an ayah (marks/spaces/symbols removed)."""
+    kept = [
+        ch
+        for ch in text
+        if (0x0621 <= ord(ch) <= 0x063A) or (0x0641 <= ord(ch) <= 0x064A) or ord(ch) == 0x0671
+    ]
+    folded = "".join(_SIG_FOLD.get(ch, ch) for ch in kept)
+    return folded.replace("ء", "")
 
 POS_LABELS = {
     "N": "اسم",
@@ -101,7 +122,7 @@ def _aggregate_word(segments: list[dict]) -> dict:
     }
 
 
-def _build_index() -> dict[tuple[int, int], list[dict]]:
+def _build_index() -> tuple[dict[tuple[int, int], list[dict]], dict[tuple[int, str], list[dict]]]:
     path = Path(config.get_morphology_path())
     raw: dict[tuple[int, int], dict[int, list[dict]]] = defaultdict(lambda: defaultdict(list))
     if path.exists():
@@ -132,30 +153,49 @@ def _build_index() -> dict[tuple[int, int], list[dict]]:
                 )
 
     index: dict[tuple[int, int], list[dict]] = {}
+    text_index: dict[tuple[int, str], list[dict]] = {}
     for key, words in raw.items():
-        index[key] = [_aggregate_word(words[word]) for word in sorted(words)]
-    return index
+        entries = [_aggregate_word(words[word]) for word in sorted(words)]
+        index[key] = entries
+        sig = normalize_signature("".join(entry["text"] for entry in entries))
+        if sig:
+            # Identical-skeleton verses (e.g. repeated āyāt) collide harmlessly:
+            # same words → same morphology.
+            text_index[(key[0], sig)] = entries
+    return index, text_index
 
 
-def _get_index() -> dict[tuple[int, int], list[dict]]:
-    global _index
+def _ensure_index() -> tuple[dict[tuple[int, int], list[dict]], dict[tuple[int, str], list[dict]]]:
+    global _index, _text_index
     if _index is None:
         with _lock:
             if _index is None:
-                _index = _build_index()
-    return _index
+                _index, _text_index = _build_index()
+    return _index, _text_index  # type: ignore[return-value]
 
 
 def reset_index() -> None:
     """Drop the cached index (used by tests that swap the morphology file)."""
-    global _index
+    global _index, _text_index
     with _lock:
         _index = None
+        _text_index = None
 
 
-def get_ayah_morphology(surah: int, ayah: int) -> dict:
-    """Return per-word morphology for one ayah."""
-    words = _get_index().get((surah, ayah))
+def get_ayah_morphology(surah: int, ayah: int, text: str | None = None) -> dict:
+    """Return per-word morphology for one ayah.
+
+    When ``text`` (the displayed ayah) is given, the verse is matched by its
+    normalized skeleton so the lookup is correct even for riwāyāt whose ayah
+    numbering differs from the Kufan/Hafs morphology source. Falls back to the
+    ``(surah, ayah)`` number when no text match is found.
+    """
+    index, text_index = _ensure_index()
+    words = None
+    if text:
+        words = text_index.get((surah, normalize_signature(text)))
+    if words is None:
+        words = index.get((surah, ayah))
     if not words:
         return {"found": False, "surah": surah, "ayah": ayah, "words": []}
     return {"found": True, "surah": surah, "ayah": ayah, "words": words}

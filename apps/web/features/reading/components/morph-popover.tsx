@@ -11,6 +11,8 @@ export type MorphTarget = {
   ayah: number;
   position: number;
   word: string;
+  /** Full displayed ayah text — used to match the verse across riwāyāt. */
+  ayahText?: string;
   top: number;
   left: number;
 };
@@ -21,7 +23,7 @@ export type MorphTarget = {
  * in the Mushaf.
  */
 export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose: () => void }) {
-  const { data, loading } = useMorphology(target.surah, target.ayah);
+  const { data, loading } = useMorphology(target.surah, target.ayah, target.ayahText);
 
   // B1: ESC key closes the popover.
   useEffect(() => {

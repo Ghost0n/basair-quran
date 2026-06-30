@@ -36,6 +36,7 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/ayah-reader-more`
 - `GET /api/quran-page`
 - `GET /api/mushaf-page-layout`
+- `GET /api/morphology`
 
 ## Authentic Madani layout notes
 
@@ -65,6 +66,19 @@ This document freezes the backend contract that the future frontend migration wi
   riwāyah is Hafs and the layout/fonts load, the client renders the glyph page;
   otherwise it renders the Unicode reader. Non-Hafs always degrades gracefully
   via `fallback: "reader"`.
+
+## Morphology notes
+
+- `GET /api/morphology?surah=N&ayah=M` returns per-word morphology (root, lemma,
+  POS, case, features) sourced from the Quranic Arabic Corpus, which is
+  **Kufan/Hafs-numbered**.
+- It accepts an optional `text` param (the displayed ayah). When present, the
+  verse is matched by its normalized consonant skeleton, so the lookup is correct
+  even for riwāyāt whose ayah **numbering** differs (e.g. Madani/Qalūn). Without
+  `text`, it falls back to the `(surah, ayah)` number — correct only for
+  Kufan-numbered riwāyāt (Hafs). Clients should send `text` for non-Hafs reading.
+- `position` is the 1-based word index within the verse; word counts are stable
+  across riwāyāt, so the displayed word index aligns once the verse is matched.
 
 ## Authentication notes
 

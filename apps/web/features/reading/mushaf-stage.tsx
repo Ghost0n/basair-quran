@@ -138,6 +138,7 @@ export function MushafStage() {
     position: number,
     word: string,
     event: React.MouseEvent,
+    ayahText?: string,
   ) {
     const container = mushaf.bodyRef.current;
     if (!container) return;
@@ -145,7 +146,7 @@ export function MushafStage() {
     const top = event.clientY - rect.top + container.scrollTop + 22;
     const rawLeft = event.clientX - rect.left - 160;
     const left = Math.min(Math.max(rawLeft, 12), Math.max(rect.width - 332, 12));
-    setMorphTarget({ surah, ayah, position, word, top, left });
+    setMorphTarget({ surah, ayah, position, word, ayahText, top, left });
   }
 
   // Keyboard path: anchor the popover off the focused word element instead of
@@ -156,6 +157,7 @@ export function MushafStage() {
     position: number,
     word: string,
     element: HTMLElement,
+    ayahText?: string,
   ) {
     const container = mushaf.bodyRef.current;
     if (!container) return;
@@ -164,7 +166,7 @@ export function MushafStage() {
     const top = wordRect.bottom - rect.top + container.scrollTop + 6;
     const rawLeft = wordRect.left - rect.left + wordRect.width / 2 - 160;
     const left = Math.min(Math.max(rawLeft, 12), Math.max(rect.width - 332, 12));
-    setMorphTarget({ surah, ayah, position, word, top, left });
+    setMorphTarget({ surah, ayah, position, word, ayahText, top, left });
   }
 
   if (error && !pageData) {
@@ -249,6 +251,7 @@ function AyatFlow({
     position: number,
     word: string,
     event: React.MouseEvent,
+    ayahText?: string,
   ) => void;
   onWordKey: (
     surah: number,
@@ -256,6 +259,7 @@ function AyatFlow({
     position: number,
     word: string,
     element: HTMLElement,
+    ayahText?: string,
   ) => void;
 }) {
   const blocks: { surahId: number; surahName: string; ayahs: QuranPageAyah[] }[] = [];
@@ -301,13 +305,13 @@ function AyatFlow({
                             aria-label={`تحليل الكلمة: ${word}`}
                             onClick={(event) => {
                               event.stopPropagation();
-                              onWordClick(ayah.surah_id, ayah.ayah, wordIndex + 1, word, event);
+                              onWordClick(ayah.surah_id, ayah.ayah, wordIndex + 1, word, event, ayah.text);
                             }}
                             onKeyDown={(event) => {
                               if (event.key === "Enter" || event.key === " ") {
                                 event.preventDefault();
                                 event.stopPropagation();
-                                onWordKey(ayah.surah_id, ayah.ayah, wordIndex + 1, word, event.currentTarget);
+                                onWordKey(ayah.surah_id, ayah.ayah, wordIndex + 1, word, event.currentTarget, ayah.text);
                               }
                             }}
                           >

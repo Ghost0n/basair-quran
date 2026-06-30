@@ -16,7 +16,7 @@ const cache = new Map<string, MorphologyResponse>();
  * Fetches per-word morphology for one ayah. Cached by surah:ayah so the
  * popover never refetches a verse the reader has already opened.
  */
-export function useMorphology(surah: number | null, ayah: number | null) {
+export function useMorphology(surah: number | null, ayah: number | null, text?: string) {
   const [data, setData] = useState<MorphologyResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -25,7 +25,9 @@ export function useMorphology(surah: number | null, ayah: number | null) {
       setData(null);
       return;
     }
-    const key = `${surah}:${ayah}`;
+    // Key by text too: the same (surah, ayah) maps to a different verse across
+    // riwāyāt (different numbering), so caching by number alone would be stale.
+    const key = `${surah}:${ayah}:${text ?? ""}`;
     const cached = cache.get(key);
     if (cached) {
       setData(cached);
@@ -35,7 +37,7 @@ export function useMorphology(surah: number | null, ayah: number | null) {
     setLoading(true);
     setData(null);
     api
-      .getMorphology(surah, ayah)
+      .getMorphology(surah, ayah, text)
       .then((response) => {
         cache.set(key, response);
         if (!cancelled) setData(response);
@@ -49,7 +51,7 @@ export function useMorphology(surah: number | null, ayah: number | null) {
     return () => {
       cancelled = true;
     };
-  }, [surah, ayah]);
+  }, [surah, ayah, text]);
 
   return { data, loading };
 }

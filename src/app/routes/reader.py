@@ -141,9 +141,14 @@ def mushaf_page_layout(
 def morphology(
     surah: int = Query(..., ge=1, le=114, description="Surah number"),
     ayah: int = Query(..., ge=1, description="Ayah number within the surah"),
+    text: str | None = Query(
+        None,
+        description="Displayed ayah text; matches the verse by skeleton so the "
+        "lookup is correct across riwāyāt with different ayah numbering.",
+    ),
 ) -> MorphologyResponse:
     start = time.time()
-    payload = morphology_service.get_ayah_morphology(surah, ayah)
+    payload = morphology_service.get_ayah_morphology(surah, ayah, text)
     quran_service.logger.info(
         "GET /api/morphology?surah=%s&ayah=%s - %.1fms - %s words",
         surah,

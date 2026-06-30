@@ -225,8 +225,11 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
     getSurahs(): Promise<SurahListItem[]> {
       return request<SurahListItem[]>("/surahs");
     },
-    getMorphology(surah: number, ayah: number): Promise<MorphologyResponse> {
-      return request<MorphologyResponse>(`/morphology?surah=${surah}&ayah=${ayah}`);
+    getMorphology(surah: number, ayah: number, text?: string): Promise<MorphologyResponse> {
+      // `text` lets the backend match the verse by its skeleton, so morphology is
+      // correct even when the riwāyah's ayah numbering differs from the source.
+      const textPart = text ? `&text=${encodeURIComponent(text)}` : "";
+      return request<MorphologyResponse>(`/morphology?surah=${surah}&ayah=${ayah}${textPart}`);
     },
     getReciters(): Promise<ReciterItem[]> {
       return request<ReciterItem[]>("/reciters");
