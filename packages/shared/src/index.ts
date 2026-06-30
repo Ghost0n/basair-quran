@@ -287,6 +287,7 @@ export interface UserPreferences {
   theme: "dark" | "light" | "system";
   font_size: number;
   reciter: string;
+  mushaf_render: "authentic" | "simple";
   research: ResearchDefaults;
 }
 
@@ -321,6 +322,7 @@ export interface UserPreferencesUpdate {
   theme?: "dark" | "light" | "system";
   font_size?: number;
   reciter?: string;
+  mushaf_render?: "authentic" | "simple";
   research?: Partial<ResearchDefaults>;
 }
 
@@ -354,4 +356,46 @@ export interface QuranPageResponse {
   juz_secondary?: number | null;
   surahs?: QuranPageSurah[];
   ayahs: QuranPageAyah[];
+}
+
+// ---- Authentic Madani (QCF) page layout — Hafs only ----
+
+export type MushafLineType = "ayah" | "surah_name" | "basmalah";
+
+export interface MushafLayoutGlyph {
+  glyph: string; // QCF private-use glyph string, rendered with the page font
+  surah: number;
+  ayah: number;
+  word_position: number;
+  ayah_id: number;
+  word_key: string; // "surah:ayah:word_position"
+  text?: string | null;
+  is_selected?: boolean;
+}
+
+export interface MushafLayoutLine {
+  line_number: number;
+  line_type: MushafLineType;
+  is_centered?: boolean;
+  surah_number?: number | null;
+  surah_name?: string | null;
+  glyph?: string | null; // basmalah line-level glyph
+  font_family?: string | null;
+  words?: MushafLayoutGlyph[];
+}
+
+export interface MushafPageLayoutResponse {
+  found: boolean;
+  fallback?: "reader" | null; // present when authentic layout is unavailable
+  mushaf_id?: number;
+  page?: number;
+  min_page?: number;
+  max_page?: number;
+  has_previous?: boolean;
+  has_next?: boolean;
+  selected_ayah_id?: number | null;
+  layout_id?: string | null;
+  font_base_path?: string | null;
+  surahs?: QuranPageSurah[];
+  lines?: MushafLayoutLine[];
 }

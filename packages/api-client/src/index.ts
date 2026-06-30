@@ -12,6 +12,7 @@ import type {
   RootDistributionResponse,
   ResearchAgentSettingsResponse,
   PaginatedSearchResponse,
+  MushafPageLayoutResponse,
   QuranPageResponse,
   ResearchAgentRequest,
   ResearchAgentResponse,
@@ -209,6 +210,17 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
     },
     getQuranPageForJuz(mushaf: number, juz: number): Promise<QuranPageResponse> {
       return request<QuranPageResponse>(`/quran-page?mushaf=${mushaf}&juz=${juz}`);
+    },
+    getMushafPageLayout(
+      mushaf: number,
+      page?: number,
+      selectedAyahId?: number,
+    ): Promise<MushafPageLayoutResponse> {
+      const pagePart = typeof page === "number" ? `&page=${page}` : "";
+      const selectedPart = typeof selectedAyahId === "number" ? `&selected_ayah_id=${selectedAyahId}` : "";
+      return request<MushafPageLayoutResponse>(
+        `/mushaf-page-layout?mushaf=${mushaf}${pagePart}${selectedPart}`,
+      );
     },
     getSurahs(): Promise<SurahListItem[]> {
       return request<SurahListItem[]>("/surahs");

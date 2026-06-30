@@ -111,6 +111,12 @@
   overflow-wrap: anywhere;
 }
 
+.qb-side-head-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
 .qb-side-head .close {
   width: 30px;
   height: 30px;

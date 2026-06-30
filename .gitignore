@@ -27,3 +27,9 @@ dist/
 *.tsbuildinfo
 
 .claude/
+
+# Authentic mushaf layout cache + fonts (fetched at build/deploy, not committed)
+data/mushaf_layout/
+
+# Authentic mushaf fonts (KFGQPC, fetched at deploy, not committed)
+apps/web/public/fonts/

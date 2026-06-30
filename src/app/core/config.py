@@ -25,6 +25,10 @@ _research_index_path = BASE_DIR / "data" / "research_agent.db"
 _research_sources_path = BASE_DIR / "data" / "research_sources"
 _auth_db_path = BASE_DIR / "data" / "auth.db"
 _app_db_path = BASE_DIR / "data" / "app_data.db"
+_mushaf_layout_path = BASE_DIR / "data" / "mushaf_layout"
+
+# The authentic Madani (QCF) page layout is Hafs-only; this is the Hafs mushaf id.
+HAFS_MUSHAF_ID = 2
 
 
 def read_bool_env(name: str, default: bool = False) -> bool:
@@ -92,6 +96,22 @@ def get_app_db_path() -> str:
 def set_app_db_path(path: str) -> None:
     global _app_db_path
     _app_db_path = Path(path)
+
+
+def get_mushaf_layout_path() -> str:
+    """Directory holding the authentic Madani (QCF) page-layout dataset cache."""
+    raw_path = os.environ.get("QBASAIR_MUSHAF_LAYOUT_PATH")
+    return str(Path(raw_path) if raw_path else _mushaf_layout_path)
+
+
+def set_mushaf_layout_path(path: str) -> None:
+    global _mushaf_layout_path
+    _mushaf_layout_path = Path(path)
+
+
+def get_hafs_mushaf_id() -> int:
+    """The mushaf id whose printed Madani layout the authentic reader uses."""
+    return HAFS_MUSHAF_ID
 
 
 def get_llm_provider() -> str:

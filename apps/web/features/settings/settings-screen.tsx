@@ -14,6 +14,11 @@ const NUMERAL_OPTIONS: { value: NumeralScript; label: string }[] = [
   { value: "persian", label: "فارسيّة ۰۱۲" },
 ];
 
+const RENDER_OPTIONS: { value: "authentic" | "simple"; label: string }[] = [
+  { value: "authentic", label: "مدني (تخطيط الصفحة)" },
+  { value: "simple", label: "نصّي" },
+];
+
 const LANGUAGE_OPTIONS: { value: string; label: string }[] = [
   { value: "ar", label: "العربية" },
   { value: "en", label: "English" },
@@ -76,6 +81,24 @@ export function SettingsScreen() {
               onChange={(event) => void updateAccount({ font_size: Number(event.target.value) })}
             />
           </div>
+          <div className="qb-setting-row">
+            <label>نمط المصحف</label>
+            <div className="qb-setting-seg">
+              {RENDER_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={account.mushaf_render === option.value ? "active" : ""}
+                  onClick={() => void updateAccount({ mushaf_render: option.value })}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="card-sub">
+            «مدني» يعرض صفحة المصحف بخطّ المدينة (رواية حفص فقط)؛ «نصّي» يعرض النصّ المتدفّق.
+          </p>
         </section>
 
         <section className="qb-setting-card">

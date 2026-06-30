@@ -95,6 +95,7 @@ DEFAULT_PREFERENCES: dict = {
     "theme": "dark",
     "font_size": 28,
     "reciter": "",
+    "mushaf_render": "simple",
     "research": {"default_mode": "strict", "depth": "balanced"},
 }
 

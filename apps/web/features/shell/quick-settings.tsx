@@ -16,6 +16,11 @@ const NUMERAL_OPTIONS: { value: NumeralScript; label: string }[] = [
   { value: "persian", label: "۰۱۲" },
 ];
 
+const RENDER_OPTIONS: { value: "authentic" | "simple"; label: string }[] = [
+  { value: "authentic", label: "مدني" },
+  { value: "simple", label: "نصّي" },
+];
+
 /**
  * Quick Settings — one top-bar popover that centralizes the controls a reader
  * changes often: theme, riwāyah, ayah font size, and numerals. These write
@@ -31,7 +36,11 @@ export function QuickSettings() {
   useEffect(() => {
     if (!open) return;
     function onPointer(event: MouseEvent) {
-      if (rootRef.current && !rootRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (rootRef.current && !rootRef.current.contains(target)) {
+        // The riwāyah SelectMenu renders its list in a portal on <body>, so a
+        // click on an option is "outside" rootRef — don't close for those.
+        if (target instanceof Element && target.closest(".qb-select-list")) return;
         setOpen(false);
       }
     }
@@ -98,6 +107,23 @@ export function QuickSettings() {
               }))}
               onChange={(next) => actions.setSelectedMushaf(Number(next))}
             />
+          </div>
+
+          <div className="qb-tweak-section">
+            <div className="qb-tweak-label">نمط المصحف</div>
+            <div className="qb-tweak-seg">
+              {RENDER_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={preferences.mushaf_render === option.value ? "active" : ""}
+                  onClick={() => void updateAccount({ mushaf_render: option.value })}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <div className="qb-tweak-note">«مدني» متاح في رواية حفص فقط.</div>
           </div>
 
           <div className="qb-tweak-section">

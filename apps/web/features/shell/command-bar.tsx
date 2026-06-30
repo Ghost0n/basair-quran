@@ -61,8 +61,18 @@ export function CommandBar() {
         ? `${state.resultsSummary.totalVerses} آية في ${state.resultsSummary.cards} مجموعة`
         : "";
 
+  // In Search mode with nothing typed yet, the command bar is the focal point:
+  // highlight it and surface example chips directly beneath it.
+  const searchActive = mode === "search";
+  const showSearchHint =
+    searchActive &&
+    !state.workspaceVisible &&
+    !state.isSearching &&
+    !listboxOpen &&
+    !state.inputValue.trim();
+
   return (
-    <div className="qb-cmd">
+    <div className={`qb-cmd${searchActive ? " is-search-active" : ""}`}>
       <span className="qb-cmd-icon">
         <Icon name="search" size={16} />
       </span>
@@ -120,6 +130,28 @@ export function CommandBar() {
               <span className="type">{helpers.getSuggestionTypeLabel(state.searchMode, suggestion)}</span>
             </button>
           ))}
+        </div>
+      ) : null}
+
+      {showSearchHint ? (
+        <div className="qb-cmd-hint" role="note">
+          <span className="lead">ابدأ بكتابة جذر أو كلمة قرآنية للبحث</span>
+          <div className="ex">
+            <span className="lbl">جرّب</span>
+            {state.quickExamples.map((example) => (
+              <button
+                key={example.label}
+                type="button"
+                onMouseDown={(event) => {
+                  // keep input focus through the click
+                  event.preventDefault();
+                  actions.runQuickExample(example);
+                }}
+              >
+                {example.label}
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
     </div>

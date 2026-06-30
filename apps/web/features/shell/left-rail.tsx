@@ -31,8 +31,9 @@ export function LeftRail() {
   const { actions, state } = useWorkspace();
 
   const handleBrandClick = () => {
-    actions.resetSearch();
-    setMode("reading");
+    // One clean navigation to the reading root (resetSearch handles the route);
+    // a separate setMode here would race it and hang the shell.
+    actions.resetSearch({ toReading: true });
   };
 
   const isLight = state.theme === "light";

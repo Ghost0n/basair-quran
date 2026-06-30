@@ -225,6 +225,64 @@
   box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.10);
 }
 
+/* In Search mode the command bar is the focal point — a persistent gold ring. */
+.qb-cmd.is-search-active {
+  border-color: rgba(212, 175, 55, 0.55);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.14);
+  background: rgba(212, 175, 55, 0.05);
+}
+
+/* Empty-search hint surfaced directly beneath the command bar. */
+.qb-cmd-hint {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  top: calc(100% + 6px);
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-3);
+  z-index: 200;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qb-cmd-hint .lead {
+  color: var(--fg-2);
+  font-size: 13px;
+}
+
+.qb-cmd-hint .ex {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.qb-cmd-hint .ex .lbl {
+  color: var(--fg-3);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.qb-cmd-hint .ex button {
+  font-family: var(--font-arabic-display);
+  font-size: 15px;
+  color: var(--gold-300);
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.22);
+  border-radius: 999px;
+  padding: 4px 14px;
+  cursor: pointer;
+  transition: background 140ms var(--ease-out);
+}
+
+.qb-cmd-hint .ex button:hover {
+  background: rgba(212, 175, 55, 0.16);
+}
+
 .qb-cmd-icon {
   color: var(--fg-3);
   display: inline-flex;
@@ -594,6 +652,13 @@
   color: var(--gold-400);
   font-size: 13px;
   font-weight: 600;
+}
+
+.qb-tweak-note {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-3);
 }
 
 .qb-tweak-seg {

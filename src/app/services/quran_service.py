@@ -22,6 +22,7 @@ _mushaf_latin_root_index_cache = OrderedDict()
 _mushaf_word_suggestion_candidates_cache = OrderedDict()
 _phrase_did_you_mean_cache = OrderedDict()
 _word_did_you_mean_cache = OrderedDict()
+_mushaf_layout_index_cache = OrderedDict()
 
 
 def get_cache_entry(cache, key):
@@ -51,7 +52,7 @@ def close_db_connection():
     """Close the cached SQLite connection."""
     global _db_connection, _mushaf_page_index_cache
     global _mushaf_latin_word_index_cache, _mushaf_latin_root_index_cache, _mushaf_word_suggestion_candidates_cache
-    global _phrase_did_you_mean_cache, _word_did_you_mean_cache
+    global _phrase_did_you_mean_cache, _word_did_you_mean_cache, _mushaf_layout_index_cache
     if _db_connection is not None:
         _db_connection.close()
         _db_connection = None
@@ -61,6 +62,7 @@ def close_db_connection():
     _mushaf_word_suggestion_candidates_cache = OrderedDict()
     _phrase_did_you_mean_cache = OrderedDict()
     _word_did_you_mean_cache = OrderedDict()
+    _mushaf_layout_index_cache = OrderedDict()
 
 
 def reset_morphology_search_index():
@@ -1994,6 +1996,152 @@ def get_mushaf_page_index(cursor, mushaf):
         }
 
     return put_cache_entry(_mushaf_page_index_cache, cache_key, index, config.get_runtime_mushaf_cache_limit())
+
+
+# Frontend static base for the per-page QCF fonts (QPC V1 WOFF2 — the set
+# distributed unmodified as WOFF2; V2 ships only as TTF).
+_MUSHAF_FONT_BASE_PATH = "/fonts/qpc-hafs-v1"
+
+
+def _layout_tables_present(cursor):
+    row = cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'mushaf_layout_meta'"
+    ).fetchone()
+    return row is not None
+
+
+def get_mushaf_layout_index(cursor):
+    """Cached authentic-layout index: page -> ordered lines (each with glyphs).
+
+    Returns {"present": False} when the layout tables are absent (a DB built
+    without scripts/build_mushaf_layout.py), so the reader can fall back.
+    """
+    cache_key = config.get_db_path()
+    cached = get_cache_entry(_mushaf_layout_index_cache, cache_key)
+    if cached is not None:
+        return cached
+
+    limit = config.get_runtime_mushaf_cache_limit()
+    if not _layout_tables_present(cursor):
+        return put_cache_entry(_mushaf_layout_index_cache, cache_key, {"present": False}, limit)
+
+    meta = cursor.execute(
+        "SELECT layout_id, mushaf_id, page_count FROM mushaf_layout_meta LIMIT 1"
+    ).fetchone()
+    if meta is None:
+        return put_cache_entry(_mushaf_layout_index_cache, cache_key, {"present": False}, limit)
+
+    surah_names = {row["id"]: row["name_arabic"] for row in cursor.execute("SELECT id, name_arabic FROM surahs")}
+
+    cursor.execute(
+        """
+        SELECT
+            l.id AS line_id, l.page, l.line_number, l.line_type, l.is_centered,
+            l.surah_number, l.line_glyph_v1,
+            w.surah_number AS w_surah, w.ayah_number, w.word_position, w.ayah_id, w.glyph_v1, w.word_text
+        FROM mushaf_layout_lines l
+        LEFT JOIN mushaf_layout_words w ON w.line_id = l.id
+        WHERE l.mushaf_id = ?
+        ORDER BY l.page, l.line_number, w.position_in_line
+        """,
+        (meta["mushaf_id"],),
+    )
+
+    pages = defaultdict(list)
+    page_surahs = defaultdict(OrderedDict)
+    line_by_id = {}
+
+    for row in cursor.fetchall():
+        line = line_by_id.get(row["line_id"])
+        if line is None:
+            line_type = row["line_type"]
+            # Font per line: ayah words use the per-page QCF font; the basmala
+            # uses the shared ligature (BSML) font; surah-name lines are text.
+            if line_type == "ayah":
+                font_family = f"qcf-p{row['page']}"
+            elif line_type == "basmalah":
+                font_family = "qcf-bsml"
+            else:
+                font_family = None
+            line = {
+                "line_number": row["line_number"],
+                "line_type": line_type,
+                "is_centered": bool(row["is_centered"]),
+                "surah_number": row["surah_number"],
+                "surah_name": surah_names.get(row["surah_number"]) if line_type == "surah_name" else None,
+                "glyph": row["line_glyph_v1"] if line_type == "basmalah" else None,
+                "font_family": font_family,
+                "words": [],
+            }
+            line_by_id[row["line_id"]] = line
+            pages[row["page"]].append(line)
+        if row["w_surah"] is not None:
+            surah, ayah, position = row["w_surah"], row["ayah_number"], row["word_position"]
+            line["words"].append({
+                "glyph": row["glyph_v1"],
+                "surah": surah,
+                "ayah": ayah,
+                "word_position": position,
+                "ayah_id": row["ayah_id"],
+                "word_key": f"{surah}:{ayah}:{position}",
+                "text": row["word_text"],
+            })
+            page_surahs[row["page"]].setdefault(surah, surah_names.get(surah, ""))
+
+    page_numbers = sorted(pages.keys())
+    index = {
+        "present": True,
+        "layout_id": meta["layout_id"],
+        "min_page": page_numbers[0] if page_numbers else None,
+        "max_page": page_numbers[-1] if page_numbers else None,
+        "pages": dict(pages),
+        "page_surahs": dict(page_surahs),
+    }
+    return put_cache_entry(_mushaf_layout_index_cache, cache_key, index, limit)
+
+
+def build_mushaf_page_layout(cursor, mushaf, page=None, selected_ayah_id=None):
+    """Authentic Madani page layout — Hafs only; fall back to the reader otherwise."""
+    if mushaf != config.get_hafs_mushaf_id():
+        return {"found": False, "fallback": "reader"}
+
+    index = get_mushaf_layout_index(cursor)
+    if not index.get("present"):
+        return {"found": False, "fallback": "reader"}
+
+    min_page, max_page = index["min_page"], index["max_page"]
+    if min_page is None:
+        return {"found": False, "fallback": "reader"}
+
+    if page is None:
+        page = min_page
+    if page < min_page or page > max_page:
+        return {"found": False}
+
+    lines = []
+    for line in index["pages"].get(page, []):
+        words = [
+            {**word, "is_selected": selected_ayah_id is not None and word["ayah_id"] == selected_ayah_id}
+            for word in line["words"]
+        ]
+        lines.append({**line, "words": words})
+
+    surahs = [{"id": sid, "name": name} for sid, name in index["page_surahs"].get(page, {}).items()]
+
+    return {
+        "found": True,
+        "mushaf_id": mushaf,
+        "page": page,
+        "min_page": min_page,
+        "max_page": max_page,
+        "has_previous": page > min_page,
+        "has_next": page < max_page,
+        "selected_ayah_id": selected_ayah_id,
+        "layout_id": index["layout_id"],
+        "font_base_path": _MUSHAF_FONT_BASE_PATH,
+        "surahs": surahs,
+        "lines": lines,
+    }
 
 
 def fetch_mushaf_page_bounds(cursor, mushaf):

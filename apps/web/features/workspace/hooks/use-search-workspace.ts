@@ -897,7 +897,11 @@ export function useSearchWorkspace() {
     }
   }
 
-  function resetSearch() {
+  function resetSearch(options?: { toReading?: boolean }) {
+    // `toReading` (the brand/logo) does ONE clean navigation to the reading
+    // root — never a second router call racing setMode (that race left the
+    // shell stuck mid-navigation). The plain reset stays in Search, cleared.
+    const toReading = options?.toReading ?? false;
     const finalizeReset = () => {
       setIsInputFocused(false);
       setQuery("");
@@ -913,20 +917,26 @@ export function useSearchWorkspace() {
       setDidYouMean(null);
       setDrawerOpen(false);
       setIsWorkspaceCollapsing(false);
+      if (typeof window === "undefined") return;
+      if (toReading) {
+        // Single navigation: clears q/sm AND mode → clean reading view.
+        router.replace("/", { scroll: false });
+        return;
+      }
       inputRef.current?.focus();
       // Drop the shareable search params so the URL doesn't go stale.
-      if (typeof window !== "undefined") {
-        const sp = new URLSearchParams(window.location.search);
-        if (sp.has("q") || sp.has("sm")) {
-          sp.delete("q");
-          sp.delete("sm");
-          const next = sp.toString();
-          router.replace(next ? `/?${next}` : "/", { scroll: false });
-        }
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.has("q") || sp.has("sm")) {
+        sp.delete("q");
+        sp.delete("sm");
+        const next = sp.toString();
+        router.replace(next ? `/?${next}` : "/", { scroll: false });
       }
     };
 
-    if (workspaceVisible) {
+    // Skip the collapse animation when leaving for reading — go immediately so
+    // there's no window where another effect can re-derive Search mode.
+    if (!toReading && workspaceVisible) {
       setIsWorkspaceCollapsing(true);
       window.setTimeout(finalizeReset, 240);
       return;

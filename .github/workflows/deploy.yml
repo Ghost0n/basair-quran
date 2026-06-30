@@ -22,6 +22,10 @@ jobs:
           if git log -1 --pretty=%B | grep -q '\[rebuild-db\]'; then
             echo "rebuild-db tag detected — rebuilding quran.db..."
             docker compose --env-file .env.production run --rm api python scripts/build_db.py
+            # build_db.py recreates quran.db, dropping the additive layout tables,
+            # so the authentic Madani (QCF) layout must be rebuilt right after it.
+            echo "rebuilding authentic Madani layout tables..."
+            docker compose --env-file .env.production run --rm api python scripts/build_mushaf_layout.py
           else
             echo "No rebuild-db tag — skipping quran.db rebuild."
           fi
@@ -34,6 +38,19 @@ jobs:
             docker compose --env-file .env.production run --rm api python scripts/build_research_index.py
           else
             echo "No rebuild-index tag — skipping research index rebuild."
+          fi
+
+      - name: Fetch authentic mushaf fonts (QPC V1, idempotent)
+        run: |
+          cd /srv/q-basair
+          # Fonts are gitignored binaries served by the web image, which bakes in
+          # apps/web/public at build time — so they must be on the host BEFORE the
+          # build below. The script is idempotent (skips fonts already present),
+          # so this is a no-op fast path on deploys after the first.
+          if command -v python3 >/dev/null 2>&1; then
+            python3 scripts/fetch_mushaf_fonts.py
+          else
+            docker run --rm -v "$PWD:/repo" -w /repo python:3.12-slim python scripts/fetch_mushaf_fonts.py
           fi
 
       - name: Build and restart stack

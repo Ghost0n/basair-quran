@@ -9,13 +9,16 @@ import { API_BASE_URL } from "@/lib/config";
 import { toArabicDigits } from "@/lib/numerals";
 import { ErrorState } from "@/components/error-state";
 import { useWorkspace } from "@/features/shell/workspace-context";
+import { usePreferences } from "@/lib/preferences-context";
 
 import "./reading.css";
 
 import { MushafHeader } from "./components/mushaf-header";
 import { MushafFooter } from "./components/mushaf-footer";
 import { MorphPopover, type MorphTarget } from "./components/morph-popover";
+import { GlyphPage } from "./components/glyph-page";
 import { useMushaf } from "./mushaf-context";
+import { useMushafLayout } from "./use-mushaf-layout";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -54,6 +57,8 @@ export function MushafStage() {
   const mushafRef = useRef(selectedMushaf);
   const currentPageRef = useRef<number | null>(null);
   currentPageRef.current = mushaf.pageData?.page ?? null;
+  // Tracks the last riwāyah we reconciled, so a failing reload can't loop.
+  const reconciledRef = useRef<number | null>(null);
 
   // Surah catalog (once).
   useEffect(() => {
@@ -73,13 +78,15 @@ export function MushafStage() {
     };
   }, []);
 
-  // Initial page load — restores the last viewed page from localStorage.
+  // Initial page load — and a self-heal: if the page ever ends up empty while
+  // reading (e.g. after a navigation reset), reload the last page rather than
+  // leaving the skeleton stuck. Guarded by `error` so a failed load can't loop.
   useEffect(() => {
-    if (!mushaf.pageData && !mushaf.isLoading) {
+    if (!mushaf.pageData && !mushaf.isLoading && !mushaf.error) {
       void mushaf.loadPage(selectedMushaf, mushaf.readLastPage(), { persist: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [mushaf.pageData, mushaf.isLoading, mushaf.error]);
 
   // Reload the current page in the new riwāyah when the selection changes.
   useEffect(() => {
@@ -93,6 +100,37 @@ export function MushafStage() {
   }, [selectedMushaf]);
 
   const { pageData, isLoading, error } = mushaf;
+
+  // Reconcile a stale riwāyah: a saved riwāyah can resolve to a new value after
+  // the first page request already fired for the default one, leaving the loaded
+  // page's mushaf diverged from the active selection (the switch effect above
+  // skips its reload when no page had loaded yet). Reload in the selected riwāyah
+  // — once per selection, so a load error can't loop.
+  useEffect(() => {
+    if (
+      pageData &&
+      !isLoading &&
+      pageData.mushaf_id !== undefined &&
+      pageData.mushaf_id !== selectedMushaf &&
+      reconciledRef.current !== selectedMushaf
+    ) {
+      reconciledRef.current = selectedMushaf;
+      void mushaf.loadPage(selectedMushaf, pageData.page ?? mushaf.readLastPage(), { persist: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageData, isLoading, selectedMushaf]);
+
+  // Authentic Madani (QCF) rendering is an opt-in account preference. The hook
+  // is fallback-safe: it yields a usable layout only for Hafs pages whose glyph
+  // fonts have loaded, so non-Hafs riwāyāt and the loading window keep showing
+  // the Unicode reader below.
+  const { preferences } = usePreferences();
+  const authentic = preferences.mushaf_render === "authentic";
+  const { layout } = useMushafLayout({
+    enabled: authentic,
+    mushafId: pageData?.mushaf_id,
+    page: pageData?.page,
+  });
 
   function handleWordClick(
     surah: number,
@@ -165,12 +203,21 @@ export function MushafStage() {
         ref={mushaf.bodyRef}
         onClick={() => setMorphTarget(null)}
       >
-        <AyatFlow
-          ayahs={pageData.ayahs}
-          selectedAyahId={mushaf.selectedAyahId}
-          onWordClick={handleWordClick}
-          onWordKey={handleWordKey}
-        />
+        {authentic && layout?.lines ? (
+          <GlyphPage
+            lines={layout.lines}
+            selectedAyahId={mushaf.selectedAyahId}
+            onWordClick={handleWordClick}
+            onWordKey={handleWordKey}
+          />
+        ) : (
+          <AyatFlow
+            ayahs={pageData.ayahs}
+            selectedAyahId={mushaf.selectedAyahId}
+            onWordClick={handleWordClick}
+            onWordKey={handleWordKey}
+          />
+        )}
         {morphTarget ? (
           <MorphPopover target={morphTarget} onClose={() => setMorphTarget(null)} />
         ) : null}

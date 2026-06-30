@@ -7,6 +7,7 @@ from src.app.models.api import (
     AyahReaderMoreResponse,
     AyahReaderResponse,
     MorphologyResponse,
+    MushafPageLayoutResponse,
     QuranPageResponse,
 )
 from src.app.services import morphology_service, quran_service
@@ -113,6 +114,27 @@ def quran_page(
         len(payload["ayahs"]),
     )
     return QuranPageResponse(**payload)
+
+
+@router.get("/mushaf-page-layout", response_model=MushafPageLayoutResponse, response_model_exclude_none=True)
+def mushaf_page_layout(
+    mushaf: int = Query(2, description="Mushaf ID — the authentic Madani layout is Hafs-only"),
+    page: Optional[int] = Query(None, ge=1, le=604),
+    selected_ayah_id: Optional[int] = Query(None, ge=1),
+) -> MushafPageLayoutResponse:
+    start = time.time()
+    cursor = quran_service.get_db().cursor()
+    payload = quran_service.build_mushaf_page_layout(cursor, mushaf, page, selected_ayah_id)
+    elapsed = (time.time() - start) * 1000
+
+    status = (
+        "fallback:reader" if payload.get("fallback")
+        else (f"page {payload['page']}, {len(payload['lines'])} lines" if payload["found"] else "not found")
+    )
+    quran_service.logger.info(
+        "GET /api/mushaf-page-layout?mushaf=%s&page=%s - %.1fms - %s", mushaf, page, elapsed, status
+    )
+    return MushafPageLayoutResponse(**payload)
 
 
 @router.get("/morphology", response_model=MorphologyResponse, response_model_exclude_none=True)

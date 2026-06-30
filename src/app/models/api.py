@@ -179,6 +179,46 @@ class QuranPageResponse(BaseModel):
     ayahs: List[QuranPageAyah]
 
 
+# ---- Authentic Madani (QCF) page layout — Hafs only ----
+
+class MushafLayoutGlyph(BaseModel):
+    glyph: str                       # QCF private-use glyph string for the page font
+    surah: int
+    ayah: int
+    word_position: int               # == ayah_words.word_position (text-split tokenization)
+    ayah_id: int
+    word_key: str                    # "surah:ayah:word_position"
+    text: Optional[str] = None       # uthmani word text (aria-label + morphology text-match)
+    is_selected: bool = False
+
+
+class MushafLayoutLine(BaseModel):
+    line_number: int
+    line_type: Literal["ayah", "surah_name", "basmalah"]
+    is_centered: bool = False
+    surah_number: Optional[int] = None   # surah_name lines
+    surah_name: Optional[str] = None     # surah_name lines (display name)
+    glyph: Optional[str] = None          # basmalah lines: the line-level glyph
+    font_family: Optional[str] = None    # per-page font id for ayah/basmala glyphs
+    words: List[MushafLayoutGlyph] = Field(default_factory=list)
+
+
+class MushafPageLayoutResponse(BaseModel):
+    found: bool
+    fallback: Optional[Literal["reader"]] = None  # set when authentic layout unavailable
+    mushaf_id: Optional[int] = None
+    page: Optional[int] = None
+    min_page: Optional[int] = None
+    max_page: Optional[int] = None
+    has_previous: Optional[bool] = None
+    has_next: Optional[bool] = None
+    selected_ayah_id: Optional[int] = None
+    layout_id: Optional[str] = None
+    font_base_path: Optional[str] = None          # e.g. '/fonts/qpc-hafs-v2'
+    surahs: List[QuranPageSurah] = Field(default_factory=list)
+    lines: List[MushafLayoutLine] = Field(default_factory=list)
+
+
 class ResearchAgentMessage(BaseModel):
     role: Literal["user", "assistant"]
     content: str = Field(..., min_length=1, max_length=4000)
@@ -390,6 +430,9 @@ class UserPreferences(BaseModel):
     theme: Literal["dark", "light", "system"] = "dark"
     font_size: int = Field(28, ge=18, le=48)
     reciter: str = ""
+    # "authentic" renders the line-faithful Madani QCF glyph page (Hafs only);
+    # "simple" renders the flowing Unicode reader. Default simple/opt-in.
+    mushaf_render: Literal["authentic", "simple"] = "simple"
     research: ResearchDefaults = Field(default_factory=ResearchDefaults)
 
 
@@ -406,6 +449,7 @@ class UserPreferencesUpdate(BaseModel):
     theme: Optional[Literal["dark", "light", "system"]] = None
     font_size: Optional[int] = Field(None, ge=18, le=48)
     reciter: Optional[str] = None
+    mushaf_render: Optional[Literal["authentic", "simple"]] = None
     research: Optional[ResearchDefaultsUpdate] = None
 
 

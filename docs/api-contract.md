@@ -35,6 +35,36 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/ayah-reader`
 - `GET /api/ayah-reader-more`
 - `GET /api/quran-page`
+- `GET /api/mushaf-page-layout`
+
+## Authentic Madani layout notes
+
+- `GET /api/mushaf-page-layout?page=N` returns the line-by-line QCF glyph layout
+  for the printed Madani page. It is **Hafs-only** and **additive** — it does not
+  change `/api/quran-page`. For non-Hafs riwāyāt, or a DB built without
+  `scripts/build_mushaf_layout.py`, it returns `{ "found": false, "fallback": "reader" }`
+  (never a 500); the client then renders the Unicode reader.
+- Each line carries `line_type` (`ayah` | `surah_name` | `basmalah`), `is_centered`,
+  and for ayah/basmalah lines the QCF glyph(s). Each ayah-line word carries `glyph`,
+  `word_key` (`surah:ayah:word_position`), `ayah_id`, and `text`.
+- `word_position` matches `ayah_words.word_position` (the text-split tokenization the
+  Unicode reader also uses), guaranteed by a build-time alignment in
+  `build_mushaf_layout.py`. The printed mushaf's "disconnected words" (e.g. `لَّوْ مَا`,
+  `بَعْدَ مَا`) are reconciled there.
+- Glyph strings are **trusted, server-generated** private-use codepoints, rendered
+  via `dangerouslySetInnerHTML` with the page font; they are never user input.
+- Per line, `font_family` is `qcf-p{page}` for ayah lines and `qcf-bsml` for the
+  basmala line; the frontend loads `${font_base_path}/p{page}.woff2` and
+  `${font_base_path}/bsml.woff2` on demand via the FontFace API.
+- The page WOFF2 fonts are **QPC V1** static assets under `font_base_path`
+  (`/fonts/qpc-hafs-v1`), fetched at deploy by `scripts/fetch_mushaf_fonts.py`
+  — not served by the API. (V1 because only V1 ships as redistributable WOFF2;
+  see `docs/authentic-mushaf-reader.md`.)
+- The authentic renderer is gated on the `mushaf_render: "authentic" | "simple"`
+  account preference (default `"simple"`). When `"authentic"` and the current
+  riwāyah is Hafs and the layout/fonts load, the client renders the glyph page;
+  otherwise it renders the Unicode reader. Non-Hafs always degrades gracefully
+  via `fallback: "reader"`.
 
 ## Authentication notes
 

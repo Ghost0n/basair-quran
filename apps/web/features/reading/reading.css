@@ -302,6 +302,78 @@
   color: var(--gold-300);
 }
 
+/* ---------- Authentic Madani (QCF) glyph page — Hafs, opt-in ---------- */
+
+.qb-glyph-page {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--fs-ayah) * 0.5);
+  padding: 4px 2px 12px;
+}
+
+/* Framed opening pages (1, 2) and the final page have <15 lines; a narrower
+   centered column keeps their few large words from spreading edge-to-edge. */
+.qb-glyph-page.is-opening {
+  max-width: 30rem;
+  margin-inline: auto;
+}
+
+.qb-glyph-line {
+  color: var(--verse-fg);
+  font-size: calc(var(--fs-ayah) * 1.15);
+  line-height: 1.6;
+}
+
+/* Ayah line: native justification fills the line edge-to-edge like the printed
+   page (text-align-last forces the single line to justify). */
+.qb-glyph-ayah {
+  text-align: justify;
+  text-align-last: justify;
+}
+
+/* A genuinely partial trailing line flows from the start rather than stretching. */
+.qb-glyph-ayah.short {
+  text-align-last: right;
+}
+
+/* Basmala: compact Unicode text in the display font, centered, in gold. */
+.qb-glyph-basmala {
+  text-align: center;
+  font-family: var(--font-arabic-display);
+  font-size: calc(var(--fs-ayah) * 0.92);
+  line-height: 2;
+  color: var(--gold-400);
+}
+
+/* Surah-name banner spacing inside the glyph page. */
+.qb-glyph-banner {
+  margin: 6px 0 2px;
+}
+
+.qb-glyph-word {
+  cursor: pointer;
+  border-radius: 4px;
+  transition: color 140ms var(--ease-out);
+}
+
+.qb-glyph-word:hover {
+  color: var(--gold-300);
+}
+
+.qb-glyph-word:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 1px;
+}
+
+/* A selected ayah's consecutive words on a line render as one solid block,
+   covering the justified gaps between them. */
+.qb-glyph-sel {
+  background: rgba(212, 175, 55, 0.18);
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.38);
+  border-radius: 6px;
+  padding: 0 3px;
+}
+
 /* ---------- Morph popover (stub data — Phase 6 wires real morphology) ---------- */
 
 .qb-morph-pop {

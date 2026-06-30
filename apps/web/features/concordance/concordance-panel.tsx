@@ -85,9 +85,22 @@ export function ConcordancePanel() {
               : "اكتب جذراً أو كلمة في شريط الأوامر"}
           </div>
         </div>
-        <button type="button" className="close" title="إغلاق" aria-label="إغلاق لوحة المطابقة" onClick={() => setMode("reading")}>
-          <Icon name="close" size={16} />
-        </button>
+        <div className="qb-side-head-actions">
+          {primary ? (
+            <button
+              type="button"
+              className="close"
+              title="بحث جديد"
+              aria-label="مسح البحث وبدء بحث جديد"
+              onClick={() => actions.resetSearch()}
+            >
+              <Icon name="history" size={15} />
+            </button>
+          ) : null}
+          <button type="button" className="close" title="إغلاق" aria-label="إغلاق لوحة المطابقة" onClick={() => setMode("reading")}>
+            <Icon name="close" size={16} />
+          </button>
+        </div>
       </div>
 
       <div className="qb-side-body">
@@ -125,16 +138,8 @@ export function ConcordancePanel() {
               <Icon name="search" size={26} />
             </div>
             <p className="qb-conc-empty-lead">
-              اكتب جذراً أو كلمة قرآنية في شريط الأوامر لتبدأ البحث.
+              اكتب جذراً أو كلمة قرآنية في شريط الأوامر بالأعلى ↑ لتبدأ البحث.
             </p>
-            <div className="qb-conc-examples">
-              <span className="lbl">جرّب</span>
-              {state.quickExamples.map((example) => (
-                <button key={example.label} type="button" onClick={() => actions.runQuickExample(example)}>
-                  {example.label}
-                </button>
-              ))}
-            </div>
             <div className="qb-conc-watermark" aria-hidden>
               ب · ص · ر
             </div>
