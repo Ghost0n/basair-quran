@@ -24,7 +24,7 @@ export function CommandBar() {
   useCommandShortcut();
 
   const { state, actions, refs, helpers } = useWorkspace();
-  const { setMode } = useShellMode();
+  const { mode, setMode } = useShellMode();
 
   // When the user starts typing or runs a search, surface the Search mode.
   // Use `replace` so this derived switch doesn't add a history entry.
@@ -35,6 +35,15 @@ export function CommandBar() {
     // we only react to workspaceActive becoming true
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.workspaceActive]);
+
+  // Entering Search with nothing yet searched → focus the input so the user
+  // can type immediately (the input is the point of the Search surface).
+  useEffect(() => {
+    if (mode === "search" && !state.workspaceVisible) {
+      refs.inputRef.current?.focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   const placeholder = "ابحث · انتقل · اسأل  —  /";
   const listboxOpen = state.suggestionsOpen && state.suggestions.length > 0;

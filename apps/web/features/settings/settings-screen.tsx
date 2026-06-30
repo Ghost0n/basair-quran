@@ -4,6 +4,7 @@ import "./settings.css";
 
 import type { NumeralScript } from "@q-basair/shared";
 
+import { SelectMenu } from "@/components/select-menu";
 import { usePreferences } from "@/lib/preferences-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
@@ -50,19 +51,17 @@ export function SettingsScreen() {
           <h3>المصحف والرواية</h3>
           <p className="card-sub">الرواية المعتمدة في القراءة والبحث.</p>
           <div className="qb-setting-row">
-            <label htmlFor="set-riwayah">الرواية</label>
-            <select
-              id="set-riwayah"
-              className="qb-setting-select"
-              value={state.selectedMushaf}
-              onChange={(event) => actions.setSelectedMushaf(Number(event.target.value))}
-            >
-              {state.mushafs.map((mushafItem) => (
-                <option key={mushafItem.id} value={mushafItem.id}>
-                  {mushafItem.name}
-                </option>
-              ))}
-            </select>
+            <label>الرواية</label>
+            <SelectMenu
+              className="qb-setting-menu"
+              ariaLabel="الرواية"
+              value={String(state.selectedMushaf)}
+              options={state.mushafs.map((mushafItem) => ({
+                value: String(mushafItem.id),
+                label: mushafItem.name,
+              }))}
+              onChange={(next) => actions.setSelectedMushaf(Number(next))}
+            />
           </div>
           <div className="qb-setting-row">
             <label>
@@ -161,19 +160,17 @@ export function SettingsScreen() {
           <h3>اللغة</h3>
           <p className="card-sub">لغة واجهة الاستخدام.</p>
           <div className="qb-setting-row">
-            <label htmlFor="set-language">لغة الواجهة</label>
-            <select
-              id="set-language"
-              className="qb-setting-select"
+            <label>لغة الواجهة</label>
+            <SelectMenu
+              className="qb-setting-menu"
+              ariaLabel="لغة الواجهة"
               value={account.ui_language}
-              onChange={(event) => void updateAccount({ ui_language: event.target.value })}
-            >
-              {LANGUAGE_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.value === "ar" ? option.label : `${option.label} — قريباً`}
-                </option>
-              ))}
-            </select>
+              options={LANGUAGE_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.value === "ar" ? option.label : `${option.label} — قريباً`,
+              }))}
+              onChange={(next) => void updateAccount({ ui_language: next })}
+            />
           </div>
           <div className="qb-settings-note">
             القرآن الكريم لا يُترجَم. تغيير اللغة يُبدّل واجهة الاستخدام فقط؛ نصّ الآيات يبقى بالعربية دائماً.

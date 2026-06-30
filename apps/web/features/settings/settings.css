@@ -150,10 +150,29 @@
   cursor: pointer;
 }
 
+.qb-setting-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--gold-300), var(--gold-500));
+  cursor: pointer;
+}
+
+.qb-setting-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
+}
+
 .qb-setting-value {
   color: var(--gold-400);
   font-family: var(--font-mono);
   font-size: 12px;
+}
+
+.qb-setting-menu {
+  min-width: 200px;
 }
 
 .qb-settings-note {

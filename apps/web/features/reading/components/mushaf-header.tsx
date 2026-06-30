@@ -5,12 +5,14 @@ import { useState } from "react";
 import type { QuranPageResponse, SurahListItem } from "@q-basair/shared";
 
 import { Icon, type IconName } from "@/components/icon";
+import { SelectMenu } from "@/components/select-menu";
 import { useNumerals } from "@/lib/preferences-context";
 
-type NavMode = "page" | "surah" | "ayah" | "juz";
+type NavMode = "surah" | "ayah" | "juz";
 
+// Page navigation now lives in the (editable) footer indicator, so the
+// header jump bar covers ayah / surah / juz only.
 const NAV_PILLS: { mode: NavMode; label: string; icon: IconName }[] = [
-  { mode: "page", label: "صفحة", icon: "page" },
   { mode: "ayah", label: "آية", icon: "cards" },
   { mode: "surah", label: "سورة", icon: "book" },
   { mode: "juz", label: "جزء", icon: "layers" },
@@ -25,26 +27,27 @@ function surahTypeLabel(type?: string | null): string {
 export function MushafHeader({
   pageData,
   surahs,
-  onJumpPage,
   onJumpSurah,
   onJumpJuz,
 }: {
   pageData: QuranPageResponse;
   surahs: SurahListItem[];
-  onJumpPage: (page: number) => void;
   onJumpSurah: (surahId: number, ayah?: number) => void;
   onJumpJuz: (juz: number) => void;
 }) {
   const formatNumber = useNumerals();
-  const [navMode, setNavMode] = useState<NavMode>("page");
-  const [pageDraft, setPageDraft] = useState("");
+  const [navMode, setNavMode] = useState<NavMode>("surah");
   const [surahDraft, setSurahDraft] = useState("");
   const [ayahDraft, setAyahDraft] = useState("");
-  const [juzDraft, setJuzDraft] = useState("");
 
   const currentSurahId = pageData.ayahs[0]?.surah_id;
   const currentSurah = surahs.find((s) => s.id === currentSurahId);
-  const maxPage = pageData.total_pages ?? pageData.max_page ?? 604;
+
+  const surahOptions = surahs.map((s) => ({ value: String(s.id), label: `${formatNumber(s.id)} · ${s.name}` }));
+  const juzOptions = Array.from({ length: 30 }, (_, i) => i + 1).map((n) => ({
+    value: String(n),
+    label: `الجزء ${formatNumber(n)}`,
+  }));
 
   return (
     <>
@@ -74,67 +77,39 @@ export function MushafHeader({
             >
               <Icon name={pill.icon} size={13} />
               {pill.label}
-              {pill.mode === "page" ? <span className="num" dir="ltr">{formatNumber(pageData.page ?? 1)}</span> : null}
             </button>
           ))}
         </div>
       </div>
 
       <div className="qb-jump-bar">
-        {navMode === "page" ? (
-          <>
-            <label htmlFor="qbJumpPage">انتقل إلى صفحة</label>
-            <input
-              id="qbJumpPage"
-              type="number"
-              min={1}
-              max={maxPage}
-              value={pageDraft}
-              placeholder={String(pageData.page ?? 1)}
-              onChange={(e) => setPageDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && pageDraft) onJumpPage(Number(pageDraft));
-              }}
-            />
-            <button type="button" className="qb-jump-go" onClick={() => pageDraft && onJumpPage(Number(pageDraft))}>
-              انتقال
-            </button>
-          </>
-        ) : null}
-
         {navMode === "surah" ? (
           <>
-            <label htmlFor="qbJumpSurah">انتقل إلى سورة</label>
-            <select id="qbJumpSurah" value={surahDraft} onChange={(e) => setSurahDraft(e.target.value)}>
-              <option value="">اختر سورة…</option>
-              {surahs.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {formatNumber(s.id)} · {s.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className="qb-jump-go"
-              onClick={() => surahDraft && onJumpSurah(Number(surahDraft))}
-            >
-              انتقال
-            </button>
+            <label>انتقل إلى سورة</label>
+            <SelectMenu
+              className="qb-jump-select"
+              ariaLabel="انتقل إلى سورة"
+              value=""
+              placeholder="اختر سورة…"
+              options={surahOptions}
+              onChange={(value) => value && onJumpSurah(Number(value))}
+            />
           </>
         ) : null}
 
         {navMode === "ayah" ? (
           <>
-            <label htmlFor="qbJumpAyahSurah">انتقل إلى آية</label>
-            <select id="qbJumpAyahSurah" value={surahDraft} onChange={(e) => setSurahDraft(e.target.value)}>
-              <option value="">السورة…</option>
-              {surahs.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {formatNumber(s.id)} · {s.name}
-                </option>
-              ))}
-            </select>
+            <label htmlFor="qbJumpAyah">انتقل إلى آية</label>
+            <SelectMenu
+              className="qb-jump-select"
+              ariaLabel="السورة"
+              value={surahDraft}
+              placeholder="السورة…"
+              options={surahOptions}
+              onChange={setSurahDraft}
+            />
             <input
+              id="qbJumpAyah"
               type="number"
               min={1}
               value={ayahDraft}
@@ -160,18 +135,15 @@ export function MushafHeader({
 
         {navMode === "juz" ? (
           <>
-            <label htmlFor="qbJumpJuz">انتقل إلى جزء</label>
-            <select id="qbJumpJuz" value={juzDraft} onChange={(e) => setJuzDraft(e.target.value)}>
-              <option value="">اختر جزءاً…</option>
-              {Array.from({ length: 30 }, (_, i) => i + 1).map((n) => (
-                <option key={n} value={n}>
-                  الجزء {formatNumber(n)}
-                </option>
-              ))}
-            </select>
-            <button type="button" className="qb-jump-go" onClick={() => juzDraft && onJumpJuz(Number(juzDraft))}>
-              انتقال
-            </button>
+            <label>انتقل إلى جزء</label>
+            <SelectMenu
+              className="qb-jump-select"
+              ariaLabel="انتقل إلى جزء"
+              value=""
+              placeholder="اختر جزءاً…"
+              options={juzOptions}
+              onChange={(value) => value && onJumpJuz(Number(value))}
+            />
           </>
         ) : null}
       </div>

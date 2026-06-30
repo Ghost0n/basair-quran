@@ -33,7 +33,7 @@
 .qb-surah-card .h-name {
   font-family: var(--font-arabic-display);
   font-size: 36px;
-  line-height: 1;
+  line-height: 1.25; /* room for Amiri Quran's tall letters + diacritics */
   color: var(--gold-400);
 }
 
@@ -148,6 +148,13 @@
 
 .qb-jump-bar input[type="number"] {
   width: 84px;
+  -moz-appearance: textfield; /* Firefox: no native spinners */
+}
+
+.qb-jump-bar input[type="number"]::-webkit-inner-spin-button,
+.qb-jump-bar input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .qb-jump-go {
@@ -160,6 +167,15 @@
   font-size: 13px;
   cursor: pointer;
   border: none;
+}
+
+/* Themed dropdown sizing inside the jump bar */
+.qb-jump-bar .qb-select {
+  min-width: 190px;
+}
+
+.qb-jump-bar .qb-select-btn {
+  height: 34px;
 }
 
 /* ---------- The Mushaf page ---------- */
@@ -195,41 +211,45 @@
 .qb-surah-banner {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 24px;
-  padding: 14px 18px;
-  background: linear-gradient(135deg, rgba(212, 175, 55, 0.10), rgba(212, 175, 55, 0.02));
-  border: 1px solid rgba(212, 175, 55, 0.22);
-  border-radius: 14px;
+  gap: 18px;
+  margin: 26px 0 16px;
 }
 
-.qb-surah-banner:not(:first-child) {
-  margin-top: 28px;
+.qb-surah-banner:first-child {
+  margin-top: 8px;
 }
 
-.qb-surah-banner .glyph {
-  font-family: var(--font-arabic-display);
-  font-size: 28px;
-  color: var(--gold-400);
-  line-height: 1;
-  padding: 4px 10px;
-  border: 1px solid rgba(212, 175, 55, 0.3);
-  border-radius: 8px;
+/* Tapered gold rules flanking the surah name — symmetric in both directions. */
+.qb-surah-banner .rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(212, 175, 55, 0.40), transparent);
 }
 
 .qb-surah-banner .name {
+  flex: 0 0 auto;
+  white-space: nowrap;
   font-family: var(--font-arabic-kufi);
-  font-size: 18px;
-  color: var(--fg-1);
+  font-size: 20px;
   font-weight: 600;
+  color: var(--gold-400);
+  padding: 5px 20px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.08);
 }
 
-.qb-surah-banner .basmala {
-  flex: 1;
+.light .qb-surah-banner .name {
+  background: rgba(164, 129, 41, 0.10);
+}
+
+/* Basmala — its own centered line at the start of each surah (when shown). */
+.qb-basmala-line {
   text-align: center;
   font-family: var(--font-arabic-display);
-  font-size: 22px;
+  font-size: calc(var(--fs-ayah) * 0.72);
+  line-height: 2;
   color: var(--gold-400);
+  margin: 2px 0 16px;
 }
 
 /* ---------- Ayat flow ---------- */
@@ -461,6 +481,49 @@
 
 .light .qb-mushaf-foot .pager .pages {
   background: rgba(255, 255, 255, 0.6);
+}
+
+/* The page indicator is click-to-edit: tap it to jump to any page. */
+.qb-mushaf-foot .pager button.pages {
+  cursor: pointer;
+  transition: border-color 160ms var(--ease-out), color 160ms var(--ease-out);
+}
+
+.qb-mushaf-foot .pager button.pages:hover {
+  border-color: rgba(212, 175, 55, 0.4);
+  color: var(--gold-400);
+}
+
+.qb-mushaf-foot .pager .pages.editing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+}
+
+.qb-mushaf-foot .pager .pages.editing input {
+  width: 50px;
+  height: 24px;
+  border: 1px solid var(--gold-400);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--fg-1);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+  outline: none;
+}
+
+.qb-mushaf-foot .pager .pages.editing input::-webkit-inner-spin-button,
+.qb-mushaf-foot .pager .pages.editing input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.light .qb-mushaf-foot .pager .pages.editing input {
+  background: rgba(255, 255, 255, 0.8);
 }
 
 /* ---------- Inline audio mini-player (inert in Phase 2) ---------- */

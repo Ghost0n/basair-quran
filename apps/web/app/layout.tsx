@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 
 // Runs before first paint to apply the saved theme, so light-mode users
 // never see a flash of the dark default (FOUC). Mirrors the classes the
-// ThemeToggle applies at runtime (`light` + `light-mode`).
+// workspace hook applies at runtime (`light` + `light-mode`).
 const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.body.classList.add('light','light-mode');}}catch(e){}})();`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

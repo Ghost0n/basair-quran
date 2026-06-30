@@ -252,7 +252,14 @@ code, .mono {
   min-width: 0;
 }
 
-.qb-surah-card .h-name,
+/* The surah name is a decorative display font (Amiri Quran) whose glyph ink
+   and diacritics extend past the text box — clipping it shaves the letters.
+   It always fits, so it never needs an ellipsis; only guard the meta line. */
+.qb-surah-card .h-name {
+  white-space: nowrap;
+  min-width: 0;
+}
+
 .qb-surah-card .h-meta {
   overflow: hidden;
   white-space: nowrap;
@@ -410,5 +417,18 @@ code, .mono {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Touch / coarse-pointer refinements ---------- */
+/* On touch there's no keyboard, so the ⌘K hint is noise that steals width;
+   and icon buttons get bumped toward the 44px target. */
+@media (pointer: coarse) {
+  .qb-cmd-kbd {
+    display: none;
+  }
+  .qb-icon-btn {
+    width: 42px;
+    height: 42px;
   }
 }

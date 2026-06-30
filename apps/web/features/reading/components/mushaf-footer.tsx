@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import type { QuranPageResponse } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
@@ -13,14 +15,18 @@ export function MushafFooter({
   isLoading,
   onPrev,
   onNext,
+  onJumpPage,
 }: {
   pageData: QuranPageResponse;
   riwayahLabel: string;
   isLoading: boolean;
   onPrev: () => void;
   onNext: () => void;
+  onJumpPage: (page: number) => void;
 }) {
   const formatNumber = useNumerals();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
   const juzLabel =
     pageData.juz != null
       ? pageData.juz_secondary != null
@@ -29,6 +35,14 @@ export function MushafFooter({
       : "—";
   const page = pageData.page ?? 1;
   const totalPages = pageData.total_pages ?? pageData.max_page ?? 604;
+
+  function commitPage() {
+    setEditing(false);
+    const next = Number(draft);
+    if (Number.isFinite(next) && next >= 1 && next <= totalPages && next !== page) {
+      onJumpPage(next);
+    }
+  }
 
   return (
     <div className="qb-mushaf-foot qb-mushaf-foot-hardened">
@@ -55,9 +69,39 @@ export function MushafFooter({
         >
           <Icon name="chevRight" size={14} />
         </button>
-        <div className="pages" dir="ltr">
-          {formatNumber(page)} / {formatNumber(totalPages)}
-        </div>
+        {editing ? (
+          <div className="pages editing" dir="ltr">
+            <input
+              type="number"
+              min={1}
+              max={totalPages}
+              autoFocus
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") commitPage();
+                else if (event.key === "Escape") setEditing(false);
+              }}
+              onBlur={commitPage}
+              aria-label="رقم الصفحة"
+            />
+            <span>/ {formatNumber(totalPages)}</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="pages"
+            dir="ltr"
+            onClick={() => {
+              setDraft(String(page));
+              setEditing(true);
+            }}
+            title="انتقل إلى صفحة"
+            aria-label={`الصفحة ${page} من ${totalPages} — اضغط للانتقال إلى صفحة أخرى`}
+          >
+            {formatNumber(page)} / {formatNumber(totalPages)}
+          </button>
+        )}
         <button
           type="button"
           className="nav"

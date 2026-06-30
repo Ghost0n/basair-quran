@@ -349,6 +349,15 @@ export function useSearchWorkspace() {
     }
   }, [account.theme]);
 
+  // Apply the theme to <body> (the pre-paint script sets it initially; this
+  // keeps it in sync as the user toggles). Lives here so it runs regardless
+  // of which chrome surfaces the theme control.
+  useEffect(() => {
+    const isLight = theme === "light";
+    document.body.classList.toggle("light", isLight);
+    document.body.classList.toggle("light-mode", isLight);
+  }, [theme]);
+
   // Hydrate a search from ?q=&sm= once on first load (shared/bookmarked link).
   useEffect(() => {
     if (urlHydratedRef.current) return;

@@ -22,7 +22,7 @@ const SAVED_DESTINATIONS: RailDestination[] = [
   { mode: "notebook", icon: "notebook", label: "الدفتر" },
   { mode: "bookmarks", icon: "bookmark", label: "المحفوظات" },
   { mode: "history", icon: "history", label: "السجلّ" },
-  { mode: "roots", icon: "tree", label: "جذور متابعة" },
+  { mode: "roots", icon: "tree", label: "جذور" },
   { mode: "audio", icon: "ear", label: "التلاوة" },
 ];
 
@@ -89,8 +89,8 @@ function RailButton({
       aria-label={destination.label}
       aria-current={isActive ? "page" : undefined}
     >
-      <Icon name={destination.icon} size={20} />
-      <span className="qb-rail-tip">{destination.label}</span>
+      <Icon name={destination.icon} size={19} />
+      <span className="qb-rail-label">{destination.label}</span>
     </button>
   );
 }

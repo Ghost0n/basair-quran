@@ -13,7 +13,6 @@ import { LeftRail } from "./left-rail";
 import { MobileTabBar } from "./mobile-tab-bar";
 import { ShortcutsModal } from "./shortcuts-modal";
 import { TopBar } from "./top-bar";
-import { TweaksPanel } from "./tweaks-panel";
 import { WorkspaceProvider } from "./workspace-context";
 
 /**
@@ -36,7 +35,6 @@ export function Shell({ children }: { children: ReactNode }) {
                 <TopBar />
                 <div className="qb-canvas">{children}</div>
               </div>
-              <TweaksPanel />
               <MobileTabBar />
             </div>
             <ShortcutsModal />

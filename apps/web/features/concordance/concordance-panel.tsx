@@ -120,9 +120,24 @@ export function ConcordancePanel() {
         ) : null}
 
         {!state.isSearching && !state.errorMessage && results.length === 0 ? (
-          <div className="qb-conc-state">
-            اكتب جذراً أو كلمة قرآنية لتبدأ.
-            <div className="hint">ب · ص · ر</div>
+          <div className="qb-conc-empty">
+            <div className="qb-conc-empty-art" aria-hidden>
+              <Icon name="search" size={26} />
+            </div>
+            <p className="qb-conc-empty-lead">
+              اكتب جذراً أو كلمة قرآنية في شريط الأوامر لتبدأ البحث.
+            </p>
+            <div className="qb-conc-examples">
+              <span className="lbl">جرّب</span>
+              {state.quickExamples.map((example) => (
+                <button key={example.label} type="button" onClick={() => actions.runQuickExample(example)}>
+                  {example.label}
+                </button>
+              ))}
+            </div>
+            <div className="qb-conc-watermark" aria-hidden>
+              ب · ص · ر
+            </div>
           </div>
         ) : null}
 

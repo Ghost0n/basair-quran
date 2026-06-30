@@ -346,19 +346,69 @@
 
 /* ---------- Empty / loading / error ---------- */
 
-.qb-conc-state {
-  padding: 32px 8px;
+.qb-conc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
-  color: var(--fg-3);
-  font-size: 13px;
-  line-height: 1.7;
+  gap: 14px;
+  padding: 40px 16px 24px;
 }
 
-.qb-conc-state .hint {
+.qb-conc-empty-art {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  color: var(--gold-400);
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.20);
+}
+
+.qb-conc-empty-lead {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--fg-2);
+  max-width: 280px;
+}
+
+.qb-conc-examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.qb-conc-examples .lbl {
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.qb-conc-examples button {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid rgba(212, 175, 55, 0.25);
+  color: var(--gold-300);
+  font-family: var(--font-arabic-display);
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 160ms var(--ease-out);
+}
+
+.qb-conc-examples button:hover {
+  background: rgba(212, 175, 55, 0.18);
+}
+
+.qb-conc-watermark {
   margin-top: 8px;
   font-family: var(--font-arabic-display);
-  font-size: 18px;
-  color: var(--gold-400);
+  font-size: 26px;
+  color: rgba(212, 175, 55, 0.22);
+  letter-spacing: 4px;
 }
 
 .qb-conc-error {
@@ -413,20 +463,26 @@
 /* ---------- Riwāyah selector (TopBar) ---------- */
 
 .qb-riwayah-select {
-  height: 34px;
-  padding: 0 10px;
+  appearance: none;
+  -webkit-appearance: none;
+  height: 38px;
+  padding-inline: 12px 30px; /* caret room on the inline-end */
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.20);
+  background-color: rgba(0, 0, 0, 0.20);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23d4af37' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 10px center; /* inline-end in RTL */
   border: 1px solid var(--border);
   color: var(--fg-2);
-  font-size: 12px;
+  font-size: 13px;
   font-family: var(--font-arabic-ui);
   cursor: pointer;
-  max-width: 160px;
+  max-width: 170px;
 }
 
 .light .qb-riwayah-select {
-  background: rgba(255, 255, 255, 0.55);
+  background-color: rgba(255, 255, 255, 0.55);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a07a10' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 
 .qb-riwayah-select:focus {

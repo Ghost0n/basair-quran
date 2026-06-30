@@ -32,8 +32,8 @@
 .qb-rail {
   position: sticky;
   top: 0;
-  width: 72px;
-  flex: 0 0 72px;
+  width: 84px;
+  flex: 0 0 84px;
   height: 100dvh;
   align-self: flex-start;
   background: linear-gradient(180deg, rgba(20, 18, 12, 0.78), rgba(14, 12, 8, 0.72));
@@ -74,12 +74,15 @@
 }
 
 .qb-rail-btn {
-  width: 44px;
-  height: 44px;
+  width: 68px;
+  min-height: 52px;
+  padding: 7px 2px;
   border-radius: 12px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   color: var(--fg-3);
   background: transparent;
   border: 1px solid transparent;
@@ -100,17 +103,6 @@
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
-.qb-rail-btn.active::after {
-  content: "";
-  position: absolute;
-  inset-inline-end: -18px;
-  top: 12px;
-  bottom: 12px;
-  width: 3px;
-  background: var(--gold-400);
-  border-radius: 999px;
-}
-
 .qb-rail-divider {
   width: 28px;
   height: 1px;
@@ -122,31 +114,15 @@
   flex: 1;
 }
 
-.qb-rail-tip {
-  position: absolute;
-  inset-inline-start: calc(100% + 8px);
-  top: 50%;
-  transform: translateY(-50%);
-  background: var(--bg-elev-2);
-  color: var(--fg-1);
-  font-size: 11px;
-  padding: 4px 8px;
-  border-radius: 6px;
+/* Always-visible rail labels (replaces the old hover tooltip) so the
+   icon-only chrome is discoverable without hover — matches the mobile tab bar. */
+.qb-rail-label {
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
   white-space: nowrap;
-  pointer-events: none;
-  border: 1px solid var(--border);
-  opacity: 0;
-  transition: opacity 160ms var(--ease-out);
-  z-index: 20;
-}
-
-.qb-rail-btn:hover .qb-rail-tip {
-  opacity: 1;
-}
-
-/* U10: never show the tooltip when the destination is already active. */
-.qb-rail-btn.active .qb-rail-tip {
-  display: none;
+  color: inherit;
 }
 
 .qb-rail-badge {
@@ -367,6 +343,49 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.qb-riwayah-menu {
+  max-width: 170px;
+}
+
+.qb-riwayah-menu .qb-select-btn {
+  min-width: 116px;
+}
+
+/* ---------- Quick Settings (top-bar popover) ---------- */
+
+.qb-quick {
+  position: relative;
+  display: inline-flex;
+}
+
+.qb-quick-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  inset-inline-end: 0;
+  width: 300px;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-3);
+  padding: 14px 16px;
+  z-index: 300;
+}
+
+.light .qb-quick-panel {
+  background: #fffdf7;
+}
+
+.qb-quick-head {
+  font-family: var(--font-arabic-display);
+  color: var(--gold-400);
+  font-size: 16px;
+  margin-bottom: 12px;
+}
+
+.qb-quick-menu {
+  width: 100%;
 }
 
 .qb-icon-btn {
@@ -628,6 +647,14 @@
   border-color: var(--gold-400);
 }
 
+.qb-tweak-menu {
+  width: 100%;
+}
+
+.qb-tweak-menu .qb-select-btn {
+  height: 36px;
+}
+
 .qb-tweak-slider {
   width: 100%;
   appearance: none;
@@ -644,6 +671,21 @@
   border-radius: 999px;
   background: linear-gradient(135deg, var(--gold-300), var(--gold-500));
   cursor: pointer;
+}
+
+.qb-tweak-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--gold-300), var(--gold-500));
+  cursor: pointer;
+}
+
+.qb-tweak-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.10);
 }
 
 .qb-tweaks-foot {
