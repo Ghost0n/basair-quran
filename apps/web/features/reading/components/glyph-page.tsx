@@ -20,6 +20,7 @@ type WordClick = (
   position: number,
   word: string,
   event: React.MouseEvent,
+  ayahText?: string,
 ) => void;
 
 type WordKey = (
@@ -28,6 +29,7 @@ type WordKey = (
   position: number,
   word: string,
   element: HTMLElement,
+  ayahText?: string,
 ) => void;
 
 /**
@@ -57,6 +59,18 @@ export function GlyphPage({
 }) {
   const isOpeningPage = lines.length < FULL_PAGE_LINES;
 
+  // Per-ayah text (joined from the page's words) so the morphology lookup can
+  // match the verse by skeleton — robust even where word tokenisation might
+  // diverge from the Kufan source. Partial (page-straddling) ayāt simply fall
+  // back to the (surah, ayah) number on the backend, which is correct for Hafs.
+  const ayahTextById = new Map<number, string>();
+  for (const line of lines) {
+    for (const word of line.words ?? []) {
+      const prev = ayahTextById.get(word.ayah_id);
+      ayahTextById.set(word.ayah_id, prev ? `${prev} ${word.text ?? ""}` : word.text ?? "");
+    }
+  }
+
   const renderWord = (word: MushafLayoutGlyph) => (
     <span
       key={word.word_key}
@@ -66,13 +80,13 @@ export function GlyphPage({
       aria-label={`تحليل الكلمة: ${word.text ?? ""}`}
       onClick={(event) => {
         event.stopPropagation();
-        onWordClick(word.surah, word.ayah, word.word_position, word.text ?? "", event);
+        onWordClick(word.surah, word.ayah, word.word_position, word.text ?? "", event, ayahTextById.get(word.ayah_id));
       }}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           event.stopPropagation();
-          onWordKey(word.surah, word.ayah, word.word_position, word.text ?? "", event.currentTarget);
+          onWordKey(word.surah, word.ayah, word.word_position, word.text ?? "", event.currentTarget, ayahTextById.get(word.ayah_id));
         }
       }}
       dangerouslySetInnerHTML={{ __html: word.glyph ?? "" }}

@@ -6,6 +6,22 @@ import { Icon } from "@/components/icon";
 
 import { useMorphology } from "../use-morphology";
 
+// Consonant-skeleton fold so the clicked word matches the morphology entry even
+// when marks/spelling differ (riwāyāt) — a fallback when position drifts.
+function skeleton(text: string): string {
+  const fold: Record<string, string> = {
+    "آ": "ا", "أ": "ا", "إ": "ا", "ٱ": "ا", "ى": "ي", "ئ": "ي", "ؤ": "و", "ة": "ه",
+  };
+  return [...text]
+    .filter((ch) => {
+      const cp = ch.codePointAt(0)!;
+      return (cp >= 0x0621 && cp <= 0x064a) || cp === 0x0671;
+    })
+    .map((ch) => fold[ch] ?? ch)
+    .join("")
+    .replace(/ء/g, "");
+}
+
 export type MorphTarget = {
   surah: number;
   ayah: number;
@@ -36,7 +52,7 @@ export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose
 
   const word =
     data?.words.find((entry) => entry.position === target.position) ??
-    data?.words.find((entry) => entry.text === target.word) ??
+    data?.words.find((entry) => skeleton(entry.text) === skeleton(target.word)) ??
     null;
 
   return (
