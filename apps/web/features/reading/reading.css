@@ -709,6 +709,8 @@
   box-shadow: var(--shadow-3), 0 0 0 1px rgba(212, 175, 55, 0.10);
   backdrop-filter: blur(20px);
   z-index: 30;
+  animation: qbPopIn var(--dur-fast) var(--ease-out);
+  transform-origin: top;
 }
 
 /* U11: header row keeps close button aligned with the word title cleanly */

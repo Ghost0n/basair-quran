@@ -441,6 +441,8 @@
   box-shadow: var(--shadow-3);
   padding: 14px 16px;
   z-index: 300;
+  animation: qbPopIn var(--dur) var(--ease-out);
+  transform-origin: top;
 }
 
 .light .qb-quick-panel {

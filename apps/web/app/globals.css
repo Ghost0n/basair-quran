@@ -436,6 +436,16 @@ code, .mono {
   }
 }
 
+/* Plain fade — for backdrops (scaling a full-screen dim layer would show edges). */
+@keyframes qbFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* A calm pulse for indeterminate loading (an alternative to the shimmer). */
 @keyframes qbPulse {
   0%,

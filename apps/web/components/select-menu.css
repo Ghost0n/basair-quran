@@ -67,6 +67,8 @@
   border-radius: 12px;
   box-shadow: var(--shadow-3);
   z-index: 400;
+  animation: qbPopIn var(--dur-fast) var(--ease-out);
+  transform-origin: top;
 }
 
 .light .qb-select-list {
