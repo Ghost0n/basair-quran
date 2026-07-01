@@ -6,6 +6,12 @@
   flex: 1;
   min-width: 0;
   min-height: 0;
+  /* Cap the reading column and centre it: on a wide monitor the page should
+     read like a centred mushaf, not stretch edge-to-edge (which blows the
+     justified word spacing out). Auto margins absorb the extra width. */
+  width: 100%;
+  max-width: 62rem;
+  margin-inline: auto;
   display: flex;
   flex-direction: column;
   padding: 28px 36px 0;
@@ -206,6 +212,14 @@
   transition: opacity 160ms var(--ease-out);
 }
 
+/* Authentic (glyph) page: fitted to one page, so centre it both ways in the
+   reading area. `margin:auto` on the child (below) is overflow-safe — if the
+   page can't fit (tiny window) it falls back to top-aligned + scroll. */
+.qb-mushaf-page.is-glyph {
+  display: flex;
+  flex-direction: column;
+}
+
 /* ---------- Surah banner ---------- */
 
 .qb-surah-banner {
@@ -337,12 +351,19 @@
 /* ---------- Authentic Madani (QCF) glyph page — Hafs, opt-in ---------- */
 
 .qb-glyph-page {
-  /* --qcf-fit: uniform down-scale set by useGlyphFit so every printed line
-     stays on one visual line at any width. Defaults to 1 (no scaling). */
+  /* --qcf-fit: uniform scale set by useGlyphFit so the whole page fits its
+     viewport (width + height) and each printed line stays on one visual line.
+     Defaults to 1 (no scaling). The page width is pinned to the content width
+     by the hook, so it centres here. */
   --qcf-fit: 1;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--fs-ayah) * 0.5 * var(--qcf-fit));
+  /* Centre both axes inside .qb-mushaf-page.is-glyph; overflow-safe (collapses
+     to top/start when the page is taller than the area). */
+  margin: auto;
+  /* Tight inter-line gap (like the printed page): less wasted height means the
+     one-page fit can render the whole page larger. */
+  gap: calc(var(--fs-ayah) * 0.28 * var(--qcf-fit));
   padding: 4px 2px 12px;
 }
 
@@ -356,7 +377,7 @@
 .qb-glyph-line {
   color: var(--verse-fg);
   font-size: calc(var(--fs-ayah) * 1.15 * var(--qcf-fit, 1));
-  line-height: 1.6;
+  line-height: 1.45;
 }
 
 /* Ayah line: native justification fills the line edge-to-edge like the printed

@@ -206,7 +206,7 @@ export function MushafStage() {
       />
 
       <div
-        className={`qb-mushaf-page${isLoading ? " is-loading" : ""}`}
+        className={`qb-mushaf-page${isLoading ? " is-loading" : ""}${authentic && layout?.lines ? " is-glyph" : ""}`}
         ref={mushaf.bodyRef}
         onClick={() => setMorphTarget(null)}
       >
