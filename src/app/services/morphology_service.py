@@ -27,6 +27,11 @@ _index: dict[tuple[int, int], list[dict]] | None = None
 # (Quranic Arabic Corpus) is Kufan-numbered, so a Qalūn ayah number would point
 # at the wrong verse without this.
 _text_index: dict[tuple[int, str], list[dict]] | None = None
+# Per-surah ordered word stream: [(word-skeleton, word), …]. Lets a displayed
+# verse be located as a contiguous run of words even when counting traditions
+# SPLIT or MERGE verses differently (e.g. Qalūn splits a long Kufan verse into
+# two), which the whole-verse skeleton index alone cannot handle.
+_word_stream: dict[int, list[tuple[str, dict]]] | None = None
 
 # Fold to a consonant skeleton so the same verse matches across riwāyāt (only
 # marks/spelling differ). Mirrors scripts/build_mushaf_layout normalisation.
@@ -122,7 +127,11 @@ def _aggregate_word(segments: list[dict]) -> dict:
     }
 
 
-def _build_index() -> tuple[dict[tuple[int, int], list[dict]], dict[tuple[int, str], list[dict]]]:
+def _build_index() -> tuple[
+    dict[tuple[int, int], list[dict]],
+    dict[tuple[int, str], list[dict]],
+    dict[int, list[tuple[str, dict]]],
+]:
     path = Path(config.get_morphology_path())
     raw: dict[tuple[int, int], dict[int, list[dict]]] = defaultdict(lambda: defaultdict(list))
     if path.exists():
@@ -162,24 +171,54 @@ def _build_index() -> tuple[dict[tuple[int, int], list[dict]], dict[tuple[int, s
             # Identical-skeleton verses (e.g. repeated āyāt) collide harmlessly:
             # same words → same morphology.
             text_index[(key[0], sig)] = entries
-    return index, text_index
+
+    word_stream: dict[int, list[tuple[str, dict]]] = defaultdict(list)
+    for surah, ayah in sorted(index.keys()):
+        for entry in index[(surah, ayah)]:
+            word_stream[surah].append((normalize_signature(entry["text"]), entry))
+    return index, text_index, dict(word_stream)
 
 
-def _ensure_index() -> tuple[dict[tuple[int, int], list[dict]], dict[tuple[int, str], list[dict]]]:
-    global _index, _text_index
+def _ensure_index() -> tuple[
+    dict[tuple[int, int], list[dict]],
+    dict[tuple[int, str], list[dict]],
+    dict[int, list[tuple[str, dict]]],
+]:
+    global _index, _text_index, _word_stream
     if _index is None:
         with _lock:
             if _index is None:
-                _index, _text_index = _build_index()
-    return _index, _text_index  # type: ignore[return-value]
+                _index, _text_index, _word_stream = _build_index()
+    return _index, _text_index, _word_stream  # type: ignore[return-value]
 
 
 def reset_index() -> None:
     """Drop the cached index (used by tests that swap the morphology file)."""
-    global _index, _text_index
+    global _index, _text_index, _word_stream
     with _lock:
         _index = None
         _text_index = None
+        _word_stream = None
+
+
+def _match_word_run(
+    surah: int, verse_sigs: list[str], word_stream: dict[int, list[tuple[str, dict]]]
+) -> list[dict] | None:
+    """Locate the displayed verse as a contiguous run in the surah's word stream.
+
+    Handles split/merge counting differences: the run may start mid-verse or span
+    two Kufan verses. Returns the matched words re-indexed to positions 1..N so a
+    click's word index aligns. ``None`` if the skeleton sequence isn't found.
+    """
+    stream = word_stream.get(surah)
+    if not stream or not verse_sigs or any(not s for s in verse_sigs):
+        return None
+    sigs = [sig for sig, _ in stream]
+    n = len(verse_sigs)
+    for start in range(len(sigs) - n + 1):
+        if sigs[start : start + n] == verse_sigs:
+            return [{**stream[start + offset][1], "position": offset + 1} for offset in range(n)]
+    return None
 
 
 def get_ayah_morphology(surah: int, ayah: int, text: str | None = None) -> dict:
@@ -190,11 +229,17 @@ def get_ayah_morphology(surah: int, ayah: int, text: str | None = None) -> dict:
     numbering differs from the Kufan/Hafs morphology source. Falls back to the
     ``(surah, ayah)`` number when no text match is found.
     """
-    index, text_index = _ensure_index()
+    index, text_index, word_stream = _ensure_index()
     words = None
     if text:
+        # 1) exact verse-boundary match (fast, common case: only numbering differs)
         words = text_index.get((surah, normalize_signature(text)))
+        # 2) run match — verse split/merged relative to the Kufan source
+        if words is None:
+            verse_sigs = [normalize_signature(token) for token in text.split()]
+            words = _match_word_run(surah, verse_sigs, word_stream)
     if words is None:
+        # 3) last resort: the ayah number (correct only for Kufan-numbered riwāyāt)
         words = index.get((surah, ayah))
     if not words:
         return {"found": False, "surah": surah, "ayah": ayah, "words": []}

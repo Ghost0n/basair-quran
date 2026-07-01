@@ -73,8 +73,11 @@ This document freezes the backend contract that the future frontend migration wi
   POS, case, features) sourced from the Quranic Arabic Corpus, which is
   **Kufan/Hafs-numbered**.
 - It accepts an optional `text` param (the displayed ayah). When present, the
-  verse is matched by its normalized consonant skeleton, so the lookup is correct
-  even for riwāyāt whose ayah **numbering** differs (e.g. Madani/Qalūn). Without
+  verse is matched by its normalized consonant skeleton — first as a whole verse,
+  then (if boundaries differ) as a **contiguous word run** in the surah's word
+  stream. This is correct even for riwāyāt whose ayah **numbering** differs
+  (e.g. Madani/Qalūn) *and* where a verse is **split or merged** relative to the
+  Kufan source (the run is re-indexed to the displayed word positions). Without
   `text`, it falls back to the `(surah, ayah)` number — correct only for
   Kufan-numbered riwāyāt (Hafs). Clients should send `text` for non-Hafs reading.
 - `position` is the 1-based word index within the verse; word counts are stable

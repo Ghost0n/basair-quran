@@ -52,3 +52,24 @@ def test_morphology_text_match_overrides_ayah_numbering(api_client):
     assert word14["root"] == "قوم"
     # The text match resolved a different verse than the bare ayah number.
     assert by_text["words"][0]["text"] != by_number["words"][0]["text"]
+
+
+def test_morphology_run_match_handles_split_verses(api_client):
+    from src.app.services.morphology_service import normalize_signature
+
+    # Some counting traditions SPLIT a long Kufan verse into two (e.g. Qalūn's
+    # Aal ʿImrān 3:3 is the first words of Kufan 3:4). Such a partial verse won't
+    # match a whole Kufan verse, so the word-run matcher must locate it and
+    # re-index positions — otherwise the ayah-number fallback resolves the wrong
+    # verse (the reported bug: clicking مِن showed نَزَّلَ from 3:3).
+    full = api_client.get("/api/morphology", params={"surah": 3, "ayah": 4}).json()
+    partial_text = " ".join(w["text"] for w in full["words"][:6])
+
+    body = api_client.get(
+        "/api/morphology", params={"surah": 3, "ayah": 3, "text": partial_text}
+    ).json()
+    assert body["found"] is True
+    # The run (not the 11-word 3:3 fallback) — exactly the 6 clicked words.
+    assert len(body["words"]) == 6
+    assert body["words"][0]["position"] == 1
+    assert normalize_signature(body["words"][0]["text"]) == normalize_signature(full["words"][0]["text"])
