@@ -67,7 +67,7 @@ export function SelectMenu({
     });
   }, [open]);
 
-  // Close on outside pointer, scroll, resize, or Escape.
+  // Close on outside pointer, ancestor/page scroll, resize, or Escape.
   useLayoutEffect(() => {
     if (!open) return;
     function onPointer(event: MouseEvent) {
@@ -75,16 +75,25 @@ export function SelectMenu({
       if (triggerRef.current?.contains(target) || listRef.current?.contains(target)) return;
       setOpen(false);
     }
-    function close() {
+    function onScroll(event: Event) {
+      // The scroll listener is capture-phase (to catch scrolls on any ancestor,
+      // since the list is fixed-positioned and would otherwise detach from its
+      // trigger). Scrolling INSIDE the list must NOT close it, so skip events
+      // originating within the list itself.
+      const target = event.target as Node | null;
+      if (target && listRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+    function onResize() {
       setOpen(false);
     }
     document.addEventListener("mousedown", onPointer);
-    window.addEventListener("scroll", close, true);
-    window.addEventListener("resize", close);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
     return () => {
       document.removeEventListener("mousedown", onPointer);
-      window.removeEventListener("scroll", close, true);
-      window.removeEventListener("resize", close);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
     };
   }, [open]);
 
