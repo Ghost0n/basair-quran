@@ -14,7 +14,8 @@
   margin-inline: auto;
   display: flex;
   flex-direction: column;
-  padding: 28px 36px 0;
+  /* Trim vertical chrome so the fitted page can be as large as possible. */
+  padding: 12px 32px 0;
   position: relative;
 }
 
@@ -29,7 +30,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
   gap: 16px;
   flex-shrink: 0;
 }
@@ -43,8 +44,8 @@
 
 .qb-surah-card .h-name {
   font-family: var(--font-arabic-display);
-  font-size: 36px;
-  line-height: 1.25; /* room for Amiri Quran's tall letters + diacritics */
+  font-size: 28px;
+  line-height: 1.2; /* room for Amiri Quran's tall letters + diacritics */
   color: var(--gold-400);
 }
 
@@ -187,6 +188,51 @@
 
 .qb-jump-bar .qb-select-btn {
   height: 34px;
+}
+
+/* Inline jump selector — lives in the header tools row (no separate jump bar). */
+.qb-jump-inline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.qb-jump-inline .qb-select {
+  min-width: 150px;
+}
+
+.qb-jump-inline .qb-select-btn {
+  height: 32px;
+}
+
+.qb-jump-inline input[type="number"] {
+  height: 32px;
+  width: 72px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.20);
+  border: 1px solid var(--border);
+  color: var(--fg-1);
+  font-size: 13px;
+  -moz-appearance: textfield;
+}
+
+.light .qb-jump-inline input[type="number"] {
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+.qb-jump-inline input[type="number"]::-webkit-inner-spin-button,
+.qb-jump-inline input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.qb-jump-inline input:focus {
+  outline: none;
+  border-color: var(--gold-400);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.12);
 }
 
 /* ---------- The Mushaf page ---------- */
@@ -610,7 +656,7 @@
   border: 1px solid rgba(212, 175, 55, 0.18);
   border-top: none;
   border-radius: 0 0 20px 20px;
-  padding: 14px 24px;
+  padding: 9px 24px;
   display: flex;
   align-items: center;
   gap: 16px;

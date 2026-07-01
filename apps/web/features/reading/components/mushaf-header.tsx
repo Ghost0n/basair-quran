@@ -50,42 +50,39 @@ export function MushafHeader({
   }));
 
   return (
-    <>
-      <div className="qb-mushaf-head">
-        <div className="qb-surah-card">
-          <span className="h-name">{currentSurah?.name ?? pageData.ayahs[0]?.surah ?? "المصحف"}</span>
-          <span className="h-meta">
-            {currentSurah ? (
-              <>
-                <strong>سورة {formatNumber(currentSurah.id)}</strong>
-                {surahTypeLabel(currentSurah.type) ? ` · ${surahTypeLabel(currentSurah.type)}` : ""}
-                {` · ${formatNumber(currentSurah.ayah_count)} آية`}
-              </>
-            ) : (
-              <strong>صفحة {formatNumber(pageData.page ?? 1)}</strong>
-            )}
-          </span>
-        </div>
-
-        <div className="qb-mushaf-tools">
-          {NAV_PILLS.map((pill) => (
-            <button
-              key={pill.mode}
-              type="button"
-              className={`qb-pill${navMode === pill.mode ? " active" : ""}`}
-              onClick={() => setNavMode(pill.mode)}
-            >
-              <Icon name={pill.icon} size={13} />
-              {pill.label}
-            </button>
-          ))}
-        </div>
+    <div className="qb-mushaf-head">
+      <div className="qb-surah-card">
+        <span className="h-name">{currentSurah?.name ?? pageData.ayahs[0]?.surah ?? "المصحف"}</span>
+        <span className="h-meta">
+          {currentSurah ? (
+            <>
+              <strong>سورة {formatNumber(currentSurah.id)}</strong>
+              {surahTypeLabel(currentSurah.type) ? ` · ${surahTypeLabel(currentSurah.type)}` : ""}
+              {` · ${formatNumber(currentSurah.ayah_count)} آية`}
+            </>
+          ) : (
+            <strong>صفحة {formatNumber(pageData.page ?? 1)}</strong>
+          )}
+        </span>
       </div>
 
-      <div className="qb-jump-bar">
-        {navMode === "surah" ? (
-          <>
-            <label>انتقل إلى سورة</label>
+      {/* Nav pills + the active mode's selector, inline on one row to keep the
+          reading area as tall (and the page as large) as possible. */}
+      <div className="qb-mushaf-tools">
+        {NAV_PILLS.map((pill) => (
+          <button
+            key={pill.mode}
+            type="button"
+            className={`qb-pill${navMode === pill.mode ? " active" : ""}`}
+            onClick={() => setNavMode(pill.mode)}
+          >
+            <Icon name={pill.icon} size={13} />
+            {pill.label}
+          </button>
+        ))}
+
+        <div className="qb-jump-inline">
+          {navMode === "surah" ? (
             <SelectMenu
               className="qb-jump-select"
               ariaLabel="انتقل إلى سورة"
@@ -94,48 +91,45 @@ export function MushafHeader({
               options={surahOptions}
               onChange={(value) => value && onJumpSurah(Number(value))}
             />
-          </>
-        ) : null}
+          ) : null}
 
-        {navMode === "ayah" ? (
-          <>
-            <label htmlFor="qbJumpAyah">انتقل إلى آية</label>
-            <SelectMenu
-              className="qb-jump-select"
-              ariaLabel="السورة"
-              value={surahDraft}
-              placeholder="السورة…"
-              options={surahOptions}
-              onChange={setSurahDraft}
-            />
-            <input
-              id="qbJumpAyah"
-              type="number"
-              min={1}
-              value={ayahDraft}
-              placeholder="رقم الآية"
-              onChange={(e) => setAyahDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && surahDraft) {
-                  onJumpSurah(Number(surahDraft), ayahDraft ? Number(ayahDraft) : undefined);
+          {navMode === "ayah" ? (
+            <>
+              <SelectMenu
+                className="qb-jump-select"
+                ariaLabel="السورة"
+                value={surahDraft}
+                placeholder="السورة…"
+                options={surahOptions}
+                onChange={setSurahDraft}
+              />
+              <input
+                id="qbJumpAyah"
+                type="number"
+                min={1}
+                value={ayahDraft}
+                placeholder="الآية"
+                aria-label="رقم الآية"
+                onChange={(e) => setAyahDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && surahDraft) {
+                    onJumpSurah(Number(surahDraft), ayahDraft ? Number(ayahDraft) : undefined);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="qb-jump-go"
+                onClick={() =>
+                  surahDraft && onJumpSurah(Number(surahDraft), ayahDraft ? Number(ayahDraft) : undefined)
                 }
-              }}
-            />
-            <button
-              type="button"
-              className="qb-jump-go"
-              onClick={() =>
-                surahDraft && onJumpSurah(Number(surahDraft), ayahDraft ? Number(ayahDraft) : undefined)
-              }
-            >
-              انتقال
-            </button>
-          </>
-        ) : null}
+              >
+                انتقال
+              </button>
+            </>
+          ) : null}
 
-        {navMode === "juz" ? (
-          <>
-            <label>انتقل إلى جزء</label>
+          {navMode === "juz" ? (
             <SelectMenu
               className="qb-jump-select"
               ariaLabel="انتقل إلى جزء"
@@ -144,9 +138,9 @@ export function MushafHeader({
               options={juzOptions}
               onChange={(value) => value && onJumpJuz(Number(value))}
             />
-          </>
-        ) : null}
+          ) : null}
+        </div>
       </div>
-    </>
+    </div>
   );
 }
