@@ -4,6 +4,11 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 
 ## Current Capabilities
 
+- A Home landing as the default entry: brand hero, a natural-language "اسأل" bar that
+  hands off to the research Studio, quick-entry cards (read / search / study), a
+  continue-reading shortcut to the last page, and a rotating āyah.
+- One command bar (`⌘K` / `/`) that searches and navigates, and routes a
+  natural-language question to the Studio (prefilled and submitted).
 - Smart exact-word search with safe handling for Arabic prefixes and Quranic orthography.
 - Root search with paginated result cards.
 - Compound phrase search within a single ayah.
@@ -14,6 +19,9 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   automatically per screen size (`reader_layout` preference; see
   [docs/authentic-mushaf-reader.md](docs/authentic-mushaf-reader.md)).
 - Multi-mushaf support, including Qaloun, Hafs, Warsh, Shuba, Douri, and Sousi.
+- A persistent floating media bar (transport · reciter chip · seekable progress ·
+  repeat/speed) shown across every screen; reciter selection lives in a filterable
+  sheet opened from the bar or the rail.
 - Optional invite-only authentication with backend-managed users and signed session cookies.
 - Strict-context research agent that uses local transcript/book sources for term discovery and answers only from Quran search results.
 - Dedicated `/research` workspace with per-session Ollama cloud key entry, model switching, request-usage observability, and an experimental Tafssir mode.
