@@ -302,6 +302,38 @@
   color: var(--gold-300);
 }
 
+/* Per-ayah save toggle — subtle until hovered, gold when the ayah is saved. */
+.qb-save-ayah {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin: 0 2px;
+  padding: 1px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--fg-3);
+  opacity: 0.4;
+  cursor: pointer;
+  transition: color 140ms var(--ease-out), opacity 140ms var(--ease-out);
+}
+
+.qb-save-ayah:hover {
+  opacity: 1;
+  color: var(--gold-300);
+}
+
+.qb-save-ayah.on {
+  opacity: 1;
+  color: var(--gold-400);
+}
+
+.qb-save-ayah:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 1px;
+  opacity: 1;
+}
+
 /* ---------- Authentic Madani (QCF) glyph page — Hafs, opt-in ---------- */
 
 .qb-glyph-page {

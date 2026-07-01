@@ -8,6 +8,7 @@ import type { QuranPageAyah, SurahListItem } from "@q-basair/shared";
 import { API_BASE_URL } from "@/lib/config";
 import { toArabicDigits } from "@/lib/numerals";
 import { ErrorState } from "@/components/error-state";
+import { Icon } from "@/components/icon";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { usePreferences } from "@/lib/preferences-context";
 
@@ -19,6 +20,7 @@ import { MorphPopover, type MorphTarget } from "./components/morph-popover";
 import { GlyphPage } from "./components/glyph-page";
 import { useMushaf } from "./mushaf-context";
 import { useMushafLayout } from "./use-mushaf-layout";
+import { useSavedAyat } from "./use-saved-ayat";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -132,6 +134,9 @@ export function MushafStage() {
     page: pageData?.page,
   });
 
+  // Save/un-save an ayah to the library (الدفتر) straight from the reader.
+  const saved = useSavedAyat();
+
   function handleWordClick(
     surah: number,
     ayah: number,
@@ -216,6 +221,8 @@ export function MushafStage() {
           <AyatFlow
             ayahs={pageData.ayahs}
             selectedAyahId={mushaf.selectedAyahId}
+            isSaved={saved.isSaved}
+            onToggleSave={saved.toggle}
             onWordClick={handleWordClick}
             onWordKey={handleWordKey}
           />
@@ -240,11 +247,15 @@ export function MushafStage() {
 function AyatFlow({
   ayahs,
   selectedAyahId,
+  isSaved,
+  onToggleSave,
   onWordClick,
   onWordKey,
 }: {
   ayahs: QuranPageAyah[];
   selectedAyahId: number | null;
+  isSaved: (ayahId: number) => boolean;
+  onToggleSave: (ayah: QuranPageAyah) => void;
   onWordClick: (
     surah: number,
     ayah: number,
@@ -319,6 +330,19 @@ function AyatFlow({
                           </span>
                         ))}
                       <span className="qb-num-glyph">{`﴿${toArabicDigits(ayah.ayah)}﴾`}</span>
+                      <button
+                        type="button"
+                        className={`qb-save-ayah${isSaved(ayah.ayah_id) ? " on" : ""}`}
+                        aria-label={isSaved(ayah.ayah_id) ? "إزالة من الدفتر" : "حفظ في الدفتر"}
+                        aria-pressed={isSaved(ayah.ayah_id)}
+                        title={isSaved(ayah.ayah_id) ? "محفوظة في الدفتر" : "حفظ في الدفتر"}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onToggleSave(ayah);
+                        }}
+                      >
+                        <Icon name={isSaved(ayah.ayah_id) ? "bookmarkFilled" : "bookmark"} size={13} />
+                      </button>
                     </span>
                     {/* inter-ayah space lives OUTSIDE the token so a selected
                         ayah's highlight/selection has no trailing space */}
