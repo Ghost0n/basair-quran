@@ -65,7 +65,12 @@ function useMushafController(): MushafController {
 
   useEffect(() => {
     if (!bodyRef.current) return;
-    const node = bodyRef.current.querySelector(".qb-ayah-tok.selected, .quran-page-ayah.selected");
+    // Include the glyph reader's selection block (.qb-glyph-sel) so a saved/
+    // jumped-to ayah scrolls into view there too, on the rare occasions the
+    // authentic page can't fully fit and scrolls.
+    const node = bodyRef.current.querySelector(
+      ".qb-ayah-tok.selected, .quran-page-ayah.selected, .qb-glyph-sel",
+    );
     if (node instanceof HTMLElement) {
       node.scrollIntoView({ block: "center", behavior: "smooth" });
     }

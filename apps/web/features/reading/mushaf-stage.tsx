@@ -61,7 +61,7 @@ function pageSpread(page: number): { right: number; left: number; facing: number
 }
 
 export function MushafStage() {
-  const { state } = useWorkspace();
+  const { state, actions } = useWorkspace();
   const mushaf = useMushaf();
   const selectedMushaf = state.selectedMushaf;
 
@@ -115,19 +115,30 @@ export function MushafStage() {
 
   const { pageData, isLoading, error } = mushaf;
 
-  // Reconcile a stale riwāyah: a saved riwāyah can resolve to a new value after
-  // the first page request already fired for the default one, leaving the loaded
-  // page's mushaf diverged from the active selection (the switch effect above
-  // skips its reload when no page had loaded yet). Reload in the selected riwāyah
-  // — once per selection, so a load error can't loop.
+  // Reconcile when the loaded page's riwāyah diverges from the active selection.
+  // Two causes, opposite fixes:
+  //  • A deliberate open of a specific ayah in ANOTHER riwāyah (e.g. a saved
+  //    verse from the library was saved in Qālūn while the reader is on Ḥafṣ).
+  //    Here the loaded page IS what the user asked for — adopt its riwāyah into
+  //    the selection rather than reloading and losing the ayah. Presetting the
+  //    refs keeps the selection-change effect from re-loading the same page.
+  //  • A stale default load: the first page request fired for the default
+  //    riwāyah before the saved/account one resolved. Bring the page to the
+  //    selected riwāyah (once per selection, so a load error can't loop).
   useEffect(() => {
     if (
-      pageData &&
-      !isLoading &&
-      pageData.mushaf_id !== undefined &&
-      pageData.mushaf_id !== selectedMushaf &&
-      reconciledRef.current !== selectedMushaf
+      !pageData ||
+      isLoading ||
+      pageData.mushaf_id === undefined ||
+      pageData.mushaf_id === selectedMushaf
     ) {
+      return;
+    }
+    if (mushaf.selectedAyahId != null) {
+      mushafRef.current = pageData.mushaf_id;
+      reconciledRef.current = pageData.mushaf_id;
+      actions.setSelectedMushaf(pageData.mushaf_id);
+    } else if (reconciledRef.current !== selectedMushaf) {
       reconciledRef.current = selectedMushaf;
       void mushaf.loadPage(selectedMushaf, pageData.page ?? mushaf.readLastPage(), { persist: true });
     }
