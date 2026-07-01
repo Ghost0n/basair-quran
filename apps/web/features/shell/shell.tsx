@@ -7,6 +7,7 @@ import "./shell.css";
 import { OnboardingGate } from "@/features/onboarding/onboarding-screen";
 import { MushafProvider } from "@/features/reading/mushaf-context";
 import { RecitationProvider } from "@/features/recitation/recitation-context";
+import { RecitationBar } from "@/features/recitation/recitation-bar";
 import { PreferencesProvider } from "@/lib/preferences-context";
 
 import { LeftRail } from "./left-rail";
@@ -34,6 +35,7 @@ export function Shell({ children }: { children: ReactNode }) {
               <div className="qb-main">
                 <TopBar />
                 <div className="qb-canvas">{children}</div>
+                <RecitationBar />
               </div>
               <MobileTabBar />
             </div>

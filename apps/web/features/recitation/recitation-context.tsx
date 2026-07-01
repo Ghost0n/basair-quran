@@ -41,6 +41,12 @@ type RecitationValue = {
   stop: () => void;
   next: () => void;
   prev: () => void;
+  /** Jump within the current ayah's audio (0..1 of its duration). */
+  seek: (ratio: number) => void;
+  /** The reciter-picker sheet opened from the media bar / rail. */
+  sheetOpen: boolean;
+  openSheet: () => void;
+  closeSheet: () => void;
 };
 
 const RecitationContext = createContext<RecitationValue | null>(null);
@@ -62,6 +68,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState(0);
   const [speed, setSpeedState] = useState(1);
   const [repeatAyah, setRepeatAyah] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const reciter = useMemo(
     () => reciters.find((item) => item.id === reciterId) ?? reciters[0] ?? null,
@@ -166,7 +173,18 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     if (audioRef.current) audioRef.current.playbackRate = value;
   }, []);
 
+  const seek = useCallback((ratio: number) => {
+    const audio = audioRef.current;
+    if (!audio || !audio.duration || Number.isNaN(audio.duration)) return;
+    const clamped = Math.min(Math.max(ratio, 0), 1);
+    audio.currentTime = audio.duration * clamped;
+    setProgress(clamped);
+  }, []);
+
   const toggleRepeat = useCallback(() => setRepeatAyah((value) => !value), []);
+
+  const openSheet = useCallback(() => setSheetOpen(true), []);
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
 
   // Audio element event wiring.
   const handleEnded = useCallback(() => {
@@ -195,6 +213,10 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       stop,
       next,
       prev,
+      seek,
+      sheetOpen,
+      openSheet,
+      closeSheet,
     }),
     [
       reciters,
@@ -213,6 +235,10 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       stop,
       next,
       prev,
+      seek,
+      sheetOpen,
+      openSheet,
+      closeSheet,
     ],
   );
 

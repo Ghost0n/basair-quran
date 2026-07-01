@@ -232,3 +232,322 @@
   border-color: rgba(212, 175, 55, 0.4);
   background: rgba(212, 175, 55, 0.08);
 }
+
+/* =====================================================================
+   Floating media bar — persistent bottom transport, global across screens.
+   A fixed slice of .qb-main so the reader area recomputes above it.
+   ===================================================================== */
+
+.qb-media-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 58px;
+  margin: 0 16px 12px;
+  padding: 0 14px;
+  background: linear-gradient(180deg, rgba(33, 30, 22, 0.9), rgba(20, 18, 12, 0.92));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2);
+  backdrop-filter: blur(20px);
+  animation: qbRise var(--dur) var(--ease-out);
+}
+
+.light .qb-media-bar {
+  background: linear-gradient(180deg, rgba(255, 253, 246, 0.95), rgba(244, 236, 216, 0.92));
+}
+
+.qb-media-transport {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.qb-media-transport .nav,
+.qb-media-transport .play {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  border-radius: 999px;
+}
+
+.qb-media-transport .nav {
+  width: 30px;
+  height: 30px;
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--gold-400);
+}
+
+.qb-media-transport .nav:hover {
+  background: rgba(212, 175, 55, 0.2);
+}
+
+.qb-media-transport .play {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #eac54a, #c69e27);
+  color: #140f00;
+  box-shadow: 0 2px 10px rgba(212, 175, 55, 0.25);
+}
+
+.qb-media-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.qb-media-reciter {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+  max-width: 190px;
+  padding: 4px 8px 4px 4px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease-out), background var(--dur) var(--ease-out);
+}
+
+.qb-media-reciter:hover {
+  border-color: var(--border-strong);
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.qb-media-reciter .avatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #eac54a, #8a6a0c);
+  color: #1a1207;
+}
+
+.qb-media-reciter .txt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  text-align: start;
+  line-height: 1.25;
+}
+
+.qb-media-reciter .name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-1);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.qb-media-reciter .ref {
+  font-size: 11px;
+  color: var(--fg-3);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.qb-media-seek {
+  flex: 1;
+  min-width: 60px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  position: relative;
+  cursor: pointer;
+}
+
+.light .qb-media-seek {
+  background: rgba(60, 46, 18, 0.12);
+}
+
+.qb-media-seek .fill {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #c69e27, #eac54a);
+}
+
+.qb-media-seek:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 3px;
+}
+
+.qb-media-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.qb-media-tools .chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out);
+}
+
+.qb-media-tools .chip.icon {
+  padding: 0;
+  width: 28px;
+}
+
+.qb-media-tools .chip:hover {
+  border-color: var(--border-strong);
+  color: var(--fg-1);
+}
+
+.qb-media-tools .chip.active {
+  color: var(--gold-400);
+  border-color: rgba(212, 175, 55, 0.4);
+  background: rgba(212, 175, 55, 0.1);
+}
+
+/* ---------- Reciter sheet (opened from the bar / rail) ---------- */
+
+.qb-reciter-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: qbFade var(--dur) var(--ease-out);
+}
+
+.qb-reciter-sheet {
+  width: min(560px, 100%);
+  max-height: 72vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border-strong);
+  border-bottom: none;
+  border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+  box-shadow: var(--shadow-3);
+  padding: 16px 18px 22px;
+  animation: qbSheetUp var(--dur) var(--ease-out);
+}
+
+@keyframes qbSheetUp {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.qb-reciter-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.qb-reciter-sheet-head .kicker {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--gold-400);
+  text-transform: uppercase;
+}
+
+.qb-reciter-sheet-head .x {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+.qb-reciter-sheet-head .x:hover {
+  color: var(--fg-1);
+  border-color: var(--border-strong);
+}
+
+.qb-reciter-search {
+  width: 100%;
+  height: 40px;
+  padding: 0 14px;
+  margin-bottom: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-size: 14px;
+}
+
+.light .qb-reciter-search {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.qb-reciter-search:focus {
+  outline: none;
+  border-color: var(--gold-400);
+}
+
+.qb-reciter-sheet-list {
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qb-reciter-empty {
+  padding: 24px;
+  text-align: center;
+  color: var(--fg-3);
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .qb-media-bar {
+    gap: 10px;
+    margin: 0 8px 8px;
+    padding: 0 10px;
+  }
+
+  /* On the tightest screens, drop the speed/repeat chips to keep transport,
+     reciter, and seek usable; they remain reachable from the reciter sheet. */
+  .qb-media-tools .chip:not(.icon) {
+    display: none;
+  }
+
+  .qb-reciter-sheet {
+    max-height: 80vh;
+  }
+}
