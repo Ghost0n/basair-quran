@@ -1,15 +1,13 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { QuranPageAyah, SurahListItem } from "@q-basair/shared";
+import type { SurahListItem } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
-import { toArabicDigits } from "@/lib/numerals";
 import { ErrorState } from "@/components/error-state";
-import { Icon } from "@/components/icon";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { usePreferences } from "@/lib/preferences-context";
 
@@ -17,8 +15,9 @@ import "./reading.css";
 
 import { MushafHeader } from "./components/mushaf-header";
 import { MushafFooter } from "./components/mushaf-footer";
-import { MorphPopover, type MorphTarget } from "./components/morph-popover";
-import { GlyphPage, type GlyphSaveTarget } from "./components/glyph-page";
+import { type MorphTarget } from "./components/morph-popover";
+import { type GlyphSaveTarget } from "./components/glyph-page";
+import { PagedReader } from "./components/paged-reader";
 import { useMushaf } from "./mushaf-context";
 import { useMushafLayout } from "./use-mushaf-layout";
 import { useGlyphFit } from "./use-glyph-fit";
@@ -29,27 +28,6 @@ const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 // Surahs are catalog data — fetch once per session.
 let surahCache: SurahListItem[] | null = null;
-
-const BASMALA = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
-const AT_TAWBAH_ID = 9; // the only surah with no basmala at all.
-
-// Strip Qur'anic diacritics/marks/tatweel and normalize alef forms, so the
-// basmala can be matched across riwāyāt regardless of vowel marks.
-function stripArabicMarks(text: string): string {
-  return text
-    .replace(/\p{M}/gu, "")
-    .replace(/ـ/g, "")
-    .replace(/[آأإٱ]/g, "ا")
-    .replace(/\s+/g, "");
-}
-
-const BASMALA_NORMALIZED = stripArabicMarks(BASMALA);
-
-// Whether an ayah's text IS the basmala — true for Al-Fatiha's ayah 1 in
-// riwāyāt that count it (e.g. Hafs), so we don't print a duplicate header.
-function isBasmalaText(text: string): boolean {
-  return stripArabicMarks(text).startsWith(BASMALA_NORMALIZED);
-}
 
 // Facing-page pairing for the two-page spread. The Madani mushaf opens on the
 // (1,2),(3,4)… spreads: the odd page reads first (on the right, in RTL) and the
@@ -157,6 +135,12 @@ export function MushafStage() {
     page: pageData?.page,
   });
 
+  // Reader layout preference resolves the paged family here. Dedicated scroll /
+  // ayah surfaces arrive in later phases; until then those values read as paged.
+  const readerLayout = preferences.reader_layout;
+  const pagedMode: "auto" | "single" | "spread" =
+    readerLayout === "single" ? "single" : readerLayout === "spread" ? "spread" : "auto";
+
   // Save/un-save an ayah to the library (الدفتر) straight from the reader.
   const saved = useSavedAyat();
 
@@ -174,11 +158,13 @@ export function MushafStage() {
   }
 
   // Two-page facing spread on wide screens; collapses to a single page when the
-  // window is too narrow (or on the simple reader / non-Hafs, where layout is null).
+  // window is too narrow, when the user forces single, or on the simple reader /
+  // non-Hafs (where layout is null).
   const wide = useWideScreen();
   const currentPage = pageData?.page ?? null;
   const pair = currentPage != null && currentPage >= 1 ? pageSpread(currentPage) : null;
-  const spreadIntent = authentic && wide && Boolean(layout?.lines) && pair != null;
+  const spreadIntent =
+    pagedMode !== "single" && authentic && wide && Boolean(layout?.lines) && pair != null;
   const facing = useMushafLayout({
     enabled: spreadIntent,
     mushafId: pageData?.mushaf_id,
@@ -272,57 +258,24 @@ export function MushafStage() {
         onJumpJuz={(juz) => void mushaf.loadByJuz(selectedMushaf, juz)}
       />
 
-      <div
-        className={`qb-mushaf-page${isLoading ? " is-loading" : ""}${authentic && layout?.lines ? " is-glyph" : ""}${showSpread ? " is-spread" : ""}`}
-        ref={mushaf.bodyRef}
-        onClick={() => setMorphTarget(null)}
-      >
-        {authentic && layout?.lines ? (
-          <div className="qb-glyph-spread" ref={spreadRef}>
-            {showSpread && rightLayout?.lines && leftLayout?.lines ? (
-              <>
-                <GlyphPage
-                  lines={rightLayout.lines}
-                  selectedAyahId={mushaf.selectedAyahId}
-                  isSaved={saved.isSaved}
-                  onToggleSave={handleGlyphSave}
-                  onWordClick={handleWordClick}
-                  onWordKey={handleWordKey}
-                />
-                <GlyphPage
-                  lines={leftLayout.lines}
-                  selectedAyahId={mushaf.selectedAyahId}
-                  isSaved={saved.isSaved}
-                  onToggleSave={handleGlyphSave}
-                  onWordClick={handleWordClick}
-                  onWordKey={handleWordKey}
-                />
-              </>
-            ) : (
-              <GlyphPage
-                lines={layout.lines}
-                selectedAyahId={mushaf.selectedAyahId}
-                isSaved={saved.isSaved}
-                onToggleSave={handleGlyphSave}
-                onWordClick={handleWordClick}
-                onWordKey={handleWordKey}
-              />
-            )}
-          </div>
-        ) : (
-          <AyatFlow
-            ayahs={pageData.ayahs}
-            selectedAyahId={mushaf.selectedAyahId}
-            isSaved={saved.isSaved}
-            onToggleSave={saved.toggle}
-            onWordClick={handleWordClick}
-            onWordKey={handleWordKey}
-          />
-        )}
-        {morphTarget ? (
-          <MorphPopover target={morphTarget} onClose={() => setMorphTarget(null)} />
-        ) : null}
-      </div>
+      <PagedReader
+        pageData={pageData}
+        isLoading={isLoading}
+        authentic={authentic}
+        layout={layout}
+        showSpread={showSpread}
+        rightLayout={rightLayout}
+        leftLayout={leftLayout}
+        spreadRef={spreadRef}
+        selectedAyahId={mushaf.selectedAyahId}
+        isSaved={saved.isSaved}
+        onToggleSave={saved.toggle}
+        onGlyphSave={handleGlyphSave}
+        onWordClick={handleWordClick}
+        onWordKey={handleWordKey}
+        morphTarget={morphTarget}
+        onClearMorph={() => setMorphTarget(null)}
+      />
 
       <MushafFooter
         pageData={pageData}
@@ -334,134 +287,4 @@ export function MushafStage() {
       />
     </div>
   );
-}
-
-function AyatFlow({
-  ayahs,
-  selectedAyahId,
-  isSaved,
-  onToggleSave,
-  onWordClick,
-  onWordKey,
-}: {
-  ayahs: QuranPageAyah[];
-  selectedAyahId: number | null;
-  isSaved: (ayahId: number) => boolean;
-  onToggleSave: (ayah: QuranPageAyah) => void;
-  onWordClick: (
-    surah: number,
-    ayah: number,
-    position: number,
-    word: string,
-    event: React.MouseEvent,
-    ayahText?: string,
-  ) => void;
-  onWordKey: (
-    surah: number,
-    ayah: number,
-    position: number,
-    word: string,
-    element: HTMLElement,
-    ayahText?: string,
-  ) => void;
-}) {
-  const blocks: { surahId: number; surahName: string; ayahs: QuranPageAyah[] }[] = [];
-  for (const ayah of ayahs) {
-    const last = blocks[blocks.length - 1];
-    if (last && last.surahId === ayah.surah_id) {
-      last.ayahs.push(ayah);
-    } else {
-      blocks.push({ surahId: ayah.surah_id, surahName: ayah.surah, ayahs: [ayah] });
-    }
-  }
-
-  return (
-    <>
-      {blocks.map((block, blockIndex) => {
-        const firstAyah = block.ayahs[0];
-        // Traditional mushaf: the surah header + basmala appear only at the
-        // surah's actual start (ayah 1) — even mid-page — never repeated on
-        // continuation pages. At-Tawbah (9) has no basmala; and when ayah 1's
-        // text already IS the basmala (e.g. Hafs Al-Fatiha) we don't duplicate.
-        const isSurahStart = firstAyah?.ayah === 1;
-        const showBasmala =
-          isSurahStart && block.surahId !== AT_TAWBAH_ID && !isBasmalaText(firstAyah?.text ?? "");
-        return (
-          <Fragment key={`${block.surahId}-${blockIndex}`}>
-            {isSurahStart ? <SurahBanner surahName={block.surahName} /> : null}
-            {showBasmala ? <BasmalaLine /> : null}
-            <p className="qb-ayat-flow">
-              {block.ayahs.map((ayah) => {
-                const isSelected = ayah.is_selected || ayah.ayah_id === selectedAyahId;
-                return (
-                  <Fragment key={ayah.ayah_id}>
-                    <span className={`qb-ayah-tok${isSelected ? " selected" : ""}`}>
-                      {ayah.text
-                        .trim()
-                        .split(/\s+/)
-                        .map((word, wordIndex) => (
-                          <span
-                            key={wordIndex}
-                            className="qb-word"
-                            role="button"
-                            tabIndex={0}
-                            aria-label={`تحليل الكلمة: ${word}`}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onWordClick(ayah.surah_id, ayah.ayah, wordIndex + 1, word, event, ayah.text);
-                            }}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                onWordKey(ayah.surah_id, ayah.ayah, wordIndex + 1, word, event.currentTarget, ayah.text);
-                              }
-                            }}
-                          >
-                            {word}{" "}
-                          </span>
-                        ))}
-                      <span className="qb-num-glyph">{`﴿${toArabicDigits(ayah.ayah)}﴾`}</span>
-                      <button
-                        type="button"
-                        className={`qb-save-ayah${isSaved(ayah.ayah_id) ? " on" : ""}`}
-                        aria-label={isSaved(ayah.ayah_id) ? "إزالة من الدفتر" : "حفظ في الدفتر"}
-                        aria-pressed={isSaved(ayah.ayah_id)}
-                        title={isSaved(ayah.ayah_id) ? "محفوظة في الدفتر" : "حفظ في الدفتر"}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onToggleSave(ayah);
-                        }}
-                      >
-                        <Icon name={isSaved(ayah.ayah_id) ? "bookmarkFilled" : "bookmark"} size={13} />
-                      </button>
-                    </span>
-                    {/* inter-ayah space lives OUTSIDE the token so a selected
-                        ayah's highlight/selection has no trailing space */}
-                    {" "}
-                  </Fragment>
-                );
-              })}
-            </p>
-          </Fragment>
-        );
-      })}
-    </>
-  );
-}
-
-function SurahBanner({ surahName }: { surahName: string }) {
-  // Clean surah header: the name flanked by tapered gold rules — no bordered
-  // ornaments. The basmala, when shown, is a separate line below (BasmalaLine).
-  return (
-    <div className="qb-surah-banner">
-      <span className="rule" aria-hidden />
-      <span className="name">سورة {surahName}</span>
-      <span className="rule" aria-hidden />
-    </div>
-  );
-}
-
-function BasmalaLine() {
-  return <div className="qb-basmala-line">{BASMALA}</div>;
 }
