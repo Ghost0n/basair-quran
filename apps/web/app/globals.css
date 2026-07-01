@@ -38,6 +38,8 @@ body {
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Theme swaps cross-fade the page rather than snapping instantly. */
+  transition: background-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out);
 }
 
 body::before {
@@ -403,6 +405,52 @@ code, .mono {
 
 .qb-error-state-retry:hover {
   background: rgba(212, 175, 55, 0.18);
+}
+
+/* ---------- Motion primitives ---------- */
+/* A small shared vocabulary the whole app reaches for, so entrances feel of a
+   piece. All are neutralised by the reduced-motion block below (it zeroes every
+   animation/transition), so callers don't need to gate them individually. */
+
+/* Overlays & popovers: fade + gentle scale up. */
+@keyframes qbPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* List items & cards: fade + rise. Pair with `animation-delay` for a stagger. */
+@keyframes qbRise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* A calm pulse for indeterminate loading (an alternative to the shimmer). */
+@keyframes qbPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Universal tactile press. Targets real <button>s only, so the span-based word
+   tokens (role=button) in the reader are left alone. */
+button:not(:disabled):active {
+  transform: scale(0.97);
 }
 
 /* ---------- Reduced motion (a11y) ---------- */
