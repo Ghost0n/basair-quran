@@ -136,13 +136,19 @@ export function MushafStage() {
   // Unicode scroller; the ayah surface arrives in a later phase (reads as paged
   // for now). Everything else resolves within the paged family.
   const readerLayout = preferences.reader_layout;
-  const scrollMode = readerLayout === "scroll";
-  const ayahMode = readerLayout === "ayah";
+  // Smart default: `auto` resolves per viewport and recomputes on resize. Phones
+  // read better with continuous scroll than a fixed page; tablet/desktop stay in
+  // the paged family (which already gives the spread on wide authentic, single
+  // otherwise). An explicit choice is always honoured as-is.
+  const isNarrow = !useWideScreen(768);
+  const effectiveLayout = readerLayout === "auto" && isNarrow ? "scroll" : readerLayout;
+  const scrollMode = effectiveLayout === "scroll";
+  const ayahMode = effectiveLayout === "ayah";
   // The continuous readers (scroll + ayah) share a windowing engine and route the
   // footer prev/next to a smooth in-place scroll rather than a page swap.
   const continuousMode = scrollMode || ayahMode;
   const pagedMode: "auto" | "single" | "spread" =
-    readerLayout === "single" ? "single" : readerLayout === "spread" ? "spread" : "auto";
+    effectiveLayout === "single" ? "single" : effectiveLayout === "spread" ? "spread" : "auto";
 
   // Authentic glyph layout is a paged-only concern — scroll & ayah render Unicode.
   const { layout } = useMushafLayout({
