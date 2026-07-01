@@ -343,6 +343,76 @@
   opacity: 0.5;
 }
 
+/* ---------- Ayah mode: one verse per row ---------- */
+
+/* A focused single column — comfortable line length, room for per-ayah
+   translation/tafsir later. */
+.qb-mushaf-stage.is-ayah {
+  max-width: 56rem;
+}
+
+.qb-mushaf-page.is-ayah {
+  padding: 20px 28px 28px;
+  scroll-padding-top: 8px;
+}
+
+.qb-ayah-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 14px 12px;
+  border-radius: var(--r-md, 14px);
+  border-bottom: 1px solid var(--divider);
+  transition: background 200ms var(--ease-out);
+}
+
+.qb-ayah-row:hover {
+  background: rgba(212, 175, 55, 0.04);
+}
+
+.qb-ayah-row.is-selected {
+  background: rgba(212, 175, 55, 0.1);
+  border-inline-start: 3px solid var(--gold-400);
+  padding-inline-start: 9px;
+}
+
+/* The leading verse-number chip. */
+.qb-ayah-row-num {
+  flex-shrink: 0;
+  min-width: 32px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  margin-top: 6px;
+  border-radius: var(--r-pill, 999px);
+  background: rgba(212, 175, 55, 0.1);
+  border: 1px solid var(--border);
+  color: var(--gold-400);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.qb-ayah-row-text {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-arabic-display);
+  font-size: var(--fs-ayah);
+  line-height: 2.1;
+  color: var(--verse-fg);
+  font-weight: 500;
+  text-align: start;
+}
+
+/* In the list the row carries the selection cue, so drop the token's inline box
+   (its .selected class stays as the scroll-into-view target). */
+.qb-ayah-row .qb-ayah-tok.selected {
+  background: transparent;
+  box-shadow: none;
+}
+
 /* ---------- Surah banner ---------- */
 
 .qb-surah-banner {

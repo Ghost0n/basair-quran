@@ -28,6 +28,12 @@ function isBasmalaText(text: string): boolean {
   return stripArabicMarks(text).startsWith(BASMALA_NORMALIZED);
 }
 
+/** Whether a standalone basmala line should precede this ayah (a surah start,
+ *  not At-Tawbah, and its ayah text isn't itself the basmala). */
+export function basmalaVisibleFor(ayah: QuranPageAyah): boolean {
+  return ayah.ayah === 1 && ayah.surah_id !== AT_TAWBAH_ID && !isBasmalaText(ayah.text);
+}
+
 export type WordClickHandler = (
   surah: number,
   ayah: number,
@@ -45,6 +51,78 @@ export type WordKeyHandler = (
   element: HTMLElement,
   ayahText?: string,
 ) => void;
+
+type AyahTokensProps = {
+  ayah: QuranPageAyah;
+  selectedAyahId: number | null;
+  isSaved: (ayahId: number) => boolean;
+  onToggleSave: (ayah: QuranPageAyah) => void;
+  onWordClick: WordClickHandler;
+  onWordKey: WordKeyHandler;
+  /** Show the trailing ﴿N﴾ marker (the ayah reader uses its own leading chip). */
+  showNumber?: boolean;
+};
+
+/**
+ * AyahTokens — one ayah rendered as clickable word spans (each opening
+ * morphology), the ayah-number glyph, and a save-to-library toggle. Selection
+ * puts `.qb-ayah-tok.selected` on the wrapper (also the scroll-into-view hook's
+ * target). Shared by the flowing reader and the ayah-by-ayah reader.
+ */
+export function AyahTokens({
+  ayah,
+  selectedAyahId,
+  isSaved,
+  onToggleSave,
+  onWordClick,
+  onWordKey,
+  showNumber = true,
+}: AyahTokensProps) {
+  const isSelected = ayah.is_selected || ayah.ayah_id === selectedAyahId;
+  return (
+    <span className={`qb-ayah-tok${isSelected ? " selected" : ""}`}>
+      {ayah.text
+        .trim()
+        .split(/\s+/)
+        .map((word, wordIndex) => (
+          <span
+            key={wordIndex}
+            className="qb-word"
+            role="button"
+            tabIndex={0}
+            aria-label={`تحليل الكلمة: ${word}`}
+            onClick={(event) => {
+              event.stopPropagation();
+              onWordClick(ayah.surah_id, ayah.ayah, wordIndex + 1, word, event, ayah.text);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                event.stopPropagation();
+                onWordKey(ayah.surah_id, ayah.ayah, wordIndex + 1, word, event.currentTarget, ayah.text);
+              }
+            }}
+          >
+            {word}{" "}
+          </span>
+        ))}
+      {showNumber ? <span className="qb-num-glyph">{`﴿${toArabicDigits(ayah.ayah)}﴾`}</span> : null}
+      <button
+        type="button"
+        className={`qb-save-ayah${isSaved(ayah.ayah_id) ? " on" : ""}`}
+        aria-label={isSaved(ayah.ayah_id) ? "إزالة من الدفتر" : "حفظ في الدفتر"}
+        aria-pressed={isSaved(ayah.ayah_id)}
+        title={isSaved(ayah.ayah_id) ? "محفوظة في الدفتر" : "حفظ في الدفتر"}
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleSave(ayah);
+        }}
+      >
+        <Icon name={isSaved(ayah.ayah_id) ? "bookmarkFilled" : "bookmark"} size={13} />
+      </button>
+    </span>
+  );
+}
 
 /**
  * AyatFlow — the flowing Unicode mushaf: ayahs grouped into surah blocks with a
@@ -83,67 +161,29 @@ export function AyatFlow({
         const firstAyah = block.ayahs[0];
         // Traditional mushaf: the surah header + basmala appear only at the
         // surah's actual start (ayah 1) — even mid-page — never repeated on
-        // continuation pages. At-Tawbah (9) has no basmala; and when ayah 1's
-        // text already IS the basmala (e.g. Hafs Al-Fatiha) we don't duplicate.
+        // continuation pages.
         const isSurahStart = firstAyah?.ayah === 1;
-        const showBasmala =
-          isSurahStart && block.surahId !== AT_TAWBAH_ID && !isBasmalaText(firstAyah?.text ?? "");
+        const showBasmala = Boolean(firstAyah) && basmalaVisibleFor(firstAyah);
         return (
           <Fragment key={`${block.surahId}-${blockIndex}`}>
             {isSurahStart ? <SurahBanner surahName={block.surahName} /> : null}
             {showBasmala ? <BasmalaLine /> : null}
             <p className="qb-ayat-flow">
-              {block.ayahs.map((ayah) => {
-                const isSelected = ayah.is_selected || ayah.ayah_id === selectedAyahId;
-                return (
-                  <Fragment key={ayah.ayah_id}>
-                    <span className={`qb-ayah-tok${isSelected ? " selected" : ""}`}>
-                      {ayah.text
-                        .trim()
-                        .split(/\s+/)
-                        .map((word, wordIndex) => (
-                          <span
-                            key={wordIndex}
-                            className="qb-word"
-                            role="button"
-                            tabIndex={0}
-                            aria-label={`تحليل الكلمة: ${word}`}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              onWordClick(ayah.surah_id, ayah.ayah, wordIndex + 1, word, event, ayah.text);
-                            }}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter" || event.key === " ") {
-                                event.preventDefault();
-                                event.stopPropagation();
-                                onWordKey(ayah.surah_id, ayah.ayah, wordIndex + 1, word, event.currentTarget, ayah.text);
-                              }
-                            }}
-                          >
-                            {word}{" "}
-                          </span>
-                        ))}
-                      <span className="qb-num-glyph">{`﴿${toArabicDigits(ayah.ayah)}﴾`}</span>
-                      <button
-                        type="button"
-                        className={`qb-save-ayah${isSaved(ayah.ayah_id) ? " on" : ""}`}
-                        aria-label={isSaved(ayah.ayah_id) ? "إزالة من الدفتر" : "حفظ في الدفتر"}
-                        aria-pressed={isSaved(ayah.ayah_id)}
-                        title={isSaved(ayah.ayah_id) ? "محفوظة في الدفتر" : "حفظ في الدفتر"}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onToggleSave(ayah);
-                        }}
-                      >
-                        <Icon name={isSaved(ayah.ayah_id) ? "bookmarkFilled" : "bookmark"} size={13} />
-                      </button>
-                    </span>
-                    {/* inter-ayah space lives OUTSIDE the token so a selected
-                        ayah's highlight/selection has no trailing space */}
-                    {" "}
-                  </Fragment>
-                );
-              })}
+              {block.ayahs.map((ayah) => (
+                <Fragment key={ayah.ayah_id}>
+                  <AyahTokens
+                    ayah={ayah}
+                    selectedAyahId={selectedAyahId}
+                    isSaved={isSaved}
+                    onToggleSave={onToggleSave}
+                    onWordClick={onWordClick}
+                    onWordKey={onWordKey}
+                  />
+                  {/* inter-ayah space lives OUTSIDE the token so a selected
+                      ayah's highlight/selection has no trailing space */}
+                  {" "}
+                </Fragment>
+              ))}
             </p>
           </Fragment>
         );
@@ -152,7 +192,7 @@ export function AyatFlow({
   );
 }
 
-function SurahBanner({ surahName }: { surahName: string }) {
+export function SurahBanner({ surahName }: { surahName: string }) {
   // Clean surah header: the name flanked by tapered gold rules — no bordered
   // ornaments. The basmala, when shown, is a separate line below (BasmalaLine).
   return (
@@ -164,6 +204,6 @@ function SurahBanner({ surahName }: { surahName: string }) {
   );
 }
 
-function BasmalaLine() {
+export function BasmalaLine() {
   return <div className="qb-basmala-line">{BASMALA}</div>;
 }

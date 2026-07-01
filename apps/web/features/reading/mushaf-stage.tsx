@@ -19,6 +19,7 @@ import { type MorphTarget } from "./components/morph-popover";
 import { type GlyphSaveTarget } from "./components/glyph-page";
 import { PagedReader } from "./components/paged-reader";
 import { ScrollReader, type ScrollControls } from "./components/scroll-reader";
+import { AyahReader } from "./components/ayah-reader";
 import { useMushaf } from "./mushaf-context";
 import { useMushafLayout } from "./use-mushaf-layout";
 import { useGlyphFit } from "./use-glyph-fit";
@@ -136,12 +137,16 @@ export function MushafStage() {
   // for now). Everything else resolves within the paged family.
   const readerLayout = preferences.reader_layout;
   const scrollMode = readerLayout === "scroll";
+  const ayahMode = readerLayout === "ayah";
+  // The continuous readers (scroll + ayah) share a windowing engine and route the
+  // footer prev/next to a smooth in-place scroll rather than a page swap.
+  const continuousMode = scrollMode || ayahMode;
   const pagedMode: "auto" | "single" | "spread" =
     readerLayout === "single" ? "single" : readerLayout === "spread" ? "spread" : "auto";
 
-  // Authentic glyph layout is a paged-only concern — scroll mode renders Unicode.
+  // Authentic glyph layout is a paged-only concern — scroll & ayah render Unicode.
   const { layout } = useMushafLayout({
-    enabled: authentic && !scrollMode,
+    enabled: authentic && !continuousMode,
     mushafId: pageData?.mushaf_id,
     page: pageData?.page,
   });
@@ -192,7 +197,7 @@ export function MushafStage() {
 
   const totalPages = pageData?.total_pages ?? pageData?.max_page ?? 604;
   function goPrev() {
-    if (scrollMode && scrollControlsRef.current) {
+    if (continuousMode && scrollControlsRef.current) {
       scrollControlsRef.current.scrollByPage(-1);
       return;
     }
@@ -201,7 +206,7 @@ export function MushafStage() {
     if (target >= 1) void mushaf.loadPage(selectedMushaf, target, { persist: true });
   }
   function goNext() {
-    if (scrollMode && scrollControlsRef.current) {
+    if (continuousMode && scrollControlsRef.current) {
       scrollControlsRef.current.scrollByPage(1);
       return;
     }
@@ -271,7 +276,7 @@ export function MushafStage() {
 
   return (
     <div
-      className={`qb-mushaf-stage${showSpread ? " is-spread" : ""}${scrollMode ? " is-scroll" : ""}`}
+      className={`qb-mushaf-stage${showSpread ? " is-spread" : ""}${scrollMode ? " is-scroll" : ""}${ayahMode ? " is-ayah" : ""}`}
     >
       <MushafHeader
         pageData={pageData}
@@ -282,6 +287,20 @@ export function MushafStage() {
 
       {scrollMode ? (
         <ScrollReader
+          mushafId={selectedMushaf}
+          anchorData={pageData}
+          totalPages={totalPages}
+          selectedAyahId={mushaf.selectedAyahId}
+          isSaved={saved.isSaved}
+          onToggleSave={saved.toggle}
+          onWordClick={handleWordClick}
+          onWordKey={handleWordKey}
+          morphTarget={morphTarget}
+          onClearMorph={() => setMorphTarget(null)}
+          registerControls={registerScrollControls}
+        />
+      ) : ayahMode ? (
+        <AyahReader
           mushafId={selectedMushaf}
           anchorData={pageData}
           totalPages={totalPages}
