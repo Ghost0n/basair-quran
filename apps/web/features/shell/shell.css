@@ -703,6 +703,22 @@
   color: #140f00;
 }
 
+.qb-tweak-seg button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* 5-way layout switcher: flow into a 3-column grid so labels stay readable. */
+.qb-tweak-seg.is-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+}
+
+.qb-tweak-seg.is-grid button {
+  flex: none;
+}
+
 .qb-tweak-select {
   width: 100%;
   height: 36px;

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import type { NumeralScript } from "@q-basair/shared";
+import type { NumeralScript, ReaderLayout } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { SelectMenu } from "@/components/select-menu";
@@ -21,6 +21,16 @@ const RENDER_OPTIONS: { value: "authentic" | "simple"; label: string }[] = [
   { value: "simple", label: "نصّي" },
 ];
 
+// Reader layout (orthogonal to the renderer). "صفحتان" (spread) needs the
+// authentic Madani glyph page (Hafs only), so it's gated on mushaf_render.
+const LAYOUT_OPTIONS: { value: ReaderLayout; label: string; authenticOnly?: boolean }[] = [
+  { value: "auto", label: "تلقائي" },
+  { value: "single", label: "صفحة" },
+  { value: "spread", label: "صفحتان", authenticOnly: true },
+  { value: "scroll", label: "تمرير" },
+  { value: "ayah", label: "آية آية" },
+];
+
 /**
  * Quick Settings — one top-bar popover that centralizes the controls a reader
  * changes often: theme, riwāyah, ayah font size, and numerals. These write
@@ -32,6 +42,15 @@ export function QuickSettings() {
   const { preferences, updateAccount } = usePreferences();
   const { state, actions } = useWorkspace();
   const rootRef = useRef<HTMLDivElement | null>(null);
+
+  // The two-page spread only renders on the authentic Madani glyph page, which
+  // the backend serves for Ḥafṣ alone — so gate "صفحتان" on both. We detect Ḥafṣ
+  // by the selected riwāyah's name rather than a hardcoded id.
+  const selectedMushafName =
+    state.mushafs.find((item) => item.id === state.selectedMushaf)?.name ??
+    state.selectedMushafLabel ??
+    "";
+  const spreadAvailable = preferences.mushaf_render === "authentic" && selectedMushafName.includes("حفص");
 
   useEffect(() => {
     if (!open) return;
@@ -124,6 +143,30 @@ export function QuickSettings() {
               ))}
             </div>
             <div className="qb-tweak-note">«مدني» متاح في رواية حفص فقط.</div>
+          </div>
+
+          <div className="qb-tweak-section">
+            <div className="qb-tweak-label">تخطيط الصفحة</div>
+            <div className="qb-tweak-seg is-grid" role="group" aria-label="تخطيط الصفحة">
+              {LAYOUT_OPTIONS.map((option) => {
+                const disabled = Boolean(option.authenticOnly) && !spreadAvailable;
+                const active = preferences.reader_layout === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    className={active ? "active" : ""}
+                    disabled={disabled}
+                    aria-pressed={active}
+                    title={disabled ? "متاح في النمط المدني (حفص) فقط" : option.label}
+                    onClick={() => void updateAccount({ reader_layout: option.value })}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="qb-tweak-note">«صفحتان» متاح في النمط المدني (حفص) فقط.</div>
           </div>
 
           <div className="qb-tweak-section">
