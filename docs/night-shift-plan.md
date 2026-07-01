@@ -4,6 +4,8 @@ This is the authoritative brief for autonomous overnight `/loop` sessions. It
 consolidates the user's decisions and sequences the workstreams. The reader-modes
 detail lives in [`reader-modes-plan.md`](./reader-modes-plan.md).
 
+**Branch:** `feat/Q-Basair-6-refonte-design` (off `develop`). Commit token `[Q-Basair-6]`.
+
 ## Decisions (authoritative — from the user)
 
 1. **Visual latitude: bigger redesign is allowed.** Not just refine — the loop may
@@ -22,7 +24,7 @@ detail lives in [`reader-modes-plan.md`](./reader-modes-plan.md).
 
 ## Working mode & guardrails (autonomous loop)
 
-- One logical change per commit; **French** message; `type: [Q-Basair-5] - …`;
+- One logical change per commit; **French** message; `type: [Q-Basair-6] - …`;
   **do not push**; **never commit** `data/quran.db` / `data/research_agent.db` or corpora.
 - **Verify every change in-browser** (preview_* tools) + `scripts/build_web.ps1`
   green before committing. Backend up on 8001, web on 3000 (CORS needs :3000).
@@ -48,6 +50,7 @@ detail lives in [`reader-modes-plan.md`](./reader-modes-plan.md).
 4. **Home landing + command-bar "ask" → Studio**.
 5. **Redesign polish pass** (component restyle, hierarchy, empty states, a11y),
    plus proactive fixes folded into every workstream above.
+6. **Final report** (last step) → `docs/night-shift-report.md` (see below).
 
 ---
 
@@ -138,6 +141,22 @@ Proactive + a dedicated pass: consistent spacing/rhythm, type hierarchy, empty
 states, focus/hover states, a11y (roving tabindex in lists/readers, ARIA, contrast),
 and cohesion across the (now bolder) surfaces. Update `README.md` +
 `docs/authentic-mushaf-reader.md` where user-visible behavior changes.
+
+## Final report (required last step)
+
+When the plan is complete — or the session is wrapping up — write
+`docs/night-shift-report.md` as an honest review (commit `docs: [Q-Basair-6] - …`):
+
+- **Shipped** — per workstream: what changed, key commits, before→after notes.
+- **Verified** — what was checked in-browser / by tests, and confidence per area.
+- **Not done / deferred** — remaining items, known limitations, anything logged
+  along the way (be honest; not a victory lap).
+- **Future work** — concrete next steps to finish or harden each workstream.
+- **New ideas** — fresh functionality suggestions worth considering (features, UX
+  bets, performance/a11y wins, content). Think beyond the current scope.
+
+If the loop runs across multiple sessions, keep appending/updating this report so
+the final state is a single, current review.
 
 ## Verification cadence (every phase)
 

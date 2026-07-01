@@ -1,8 +1,8 @@
 # Reader Modes — Implementation Plan (night-shift spec)
 
-Status: **plan / not yet built.** Target branch: `fix/Q-Basair-5-stabilisation`
-(or a fresh `feat/Q-Basair-N-reader-modes`). Each phase = its own verified commit,
-French message, `[Q-Basair-5]` token, no push, no generated DBs.
+Status: **plan / not yet built.** Target branch: `feat/Q-Basair-6-refonte-design`
+(the night-shift enhancement/design branch, off `develop`). Each phase = its own
+verified commit, French message, `[Q-Basair-6]` token, no push, no generated DBs.
 
 ## 1. Goal
 
@@ -146,7 +146,7 @@ Keep backend model, shared types, api-client, frontend aligned (AGENTS.md rule):
 - Do NOT commit `data/quran.db` / `data/research_agent.db` or corpora.
 - Keep backend model ↔ shared types ↔ api-client ↔ frontend ↔ docs ↔ tests aligned
   in the same slice when a shape changes.
-- Commits: `type: [Q-Basair-5] - message` (French), one logical change each, no push.
+- Commits: `type: [Q-Basair-6] - message` (French), one logical change each, no push.
 - Merge to `main` for this branch must carry `[rebuild-db]` (earlier work touched
   `build_mushaf_layout` deploy wiring). Reader-modes phases themselves are frontend/
   API only → no deploy tag needed on their own.
