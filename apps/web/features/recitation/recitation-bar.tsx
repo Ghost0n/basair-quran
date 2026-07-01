@@ -1,5 +1,7 @@
 "use client";
 
+import "./recitation.css";
+
 import type { KeyboardEvent, MouseEvent } from "react";
 
 import { Icon } from "@/components/icon";

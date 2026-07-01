@@ -11,7 +11,6 @@ export const SHELL_MODES = [
   "bookmarks",
   "history",
   "roots",
-  "audio",
   "settings",
   "heatmap",
 ] as const;

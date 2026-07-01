@@ -6,7 +6,6 @@ import { useShellMode } from "@/features/shell/mode-context";
 import { WorkspaceCanvas, CompanionCanvas } from "@/features/shell/workspace-canvas";
 import { LibraryScreen } from "@/features/companions/library-screen";
 import { HeatmapScreen } from "@/features/concordance/heatmap-screen";
-import { RecitationScreen } from "@/features/recitation/recitation-screen";
 import { SettingsScreen } from "@/features/settings/settings-screen";
 
 function WorkspacePage() {
@@ -29,8 +28,6 @@ function WorkspacePage() {
       return <CompanionCanvas><LibraryScreen initialTab="sessions" /></CompanionCanvas>;
     case "roots":
       return <CompanionCanvas><LibraryScreen initialTab="roots" /></CompanionCanvas>;
-    case "audio":
-      return <CompanionCanvas><RecitationScreen /></CompanionCanvas>;
     case "settings":
       return <CompanionCanvas><SettingsScreen /></CompanionCanvas>;
     case "heatmap":

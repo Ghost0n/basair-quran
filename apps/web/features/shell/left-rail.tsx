@@ -2,6 +2,7 @@
 
 import { BrandMark } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
+import { useRecitation } from "@/features/recitation/recitation-context";
 
 import { useShellMode, type ShellMode } from "./mode-context";
 import { useWorkspace } from "./workspace-context";
@@ -22,12 +23,12 @@ const SAVED_DESTINATIONS: RailDestination[] = [
   // الدفتر consolidates the former Notebook / Bookmarks / History / Roots
   // surfaces (all views of the same saved data) into one tabbed library.
   { mode: "notebook", icon: "notebook", label: "الدفتر" },
-  { mode: "audio", icon: "ear", label: "التلاوة" },
 ];
 
 export function LeftRail() {
   const { mode, setMode } = useShellMode();
   const { actions, state } = useWorkspace();
+  const recitation = useRecitation();
 
   const handleBrandClick = () => {
     // One clean navigation to the reading root (resetSearch handles the route);
@@ -58,6 +59,20 @@ export function LeftRail() {
       {SAVED_DESTINATIONS.map((dest) => (
         <RailButton key={dest.mode} destination={dest} activeMode={mode} onSelect={setMode} />
       ))}
+
+      {/* التلاوة is no longer a screen — it summons the reciter sheet; the media
+          bar (in the shell) carries transport once a recitation is playing. */}
+      <button
+        type="button"
+        className={`qb-rail-btn${recitation.sheetOpen ? " active" : ""}`}
+        onClick={recitation.openSheet}
+        title="التلاوة"
+        aria-label="التلاوة"
+        aria-haspopup="dialog"
+      >
+        <Icon name="ear" size={19} />
+        <span className="qb-rail-label">التلاوة</span>
+      </button>
 
       <div className="qb-rail-spacer" />
 
