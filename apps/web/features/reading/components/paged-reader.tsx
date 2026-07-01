@@ -64,6 +64,8 @@ export function PagedReader({
       className={`qb-mushaf-page${isLoading ? " is-loading" : ""}${authentic && layout?.lines ? " is-glyph" : ""}${showSpread ? " is-spread" : ""}`}
       ref={mushaf.bodyRef}
       onClick={onClearMorph}
+      role="region"
+      aria-label={showSpread ? "المصحف — صفحتان" : "المصحف — صفحة"}
     >
       {authentic && layout?.lines ? (
         <div className="qb-glyph-spread" ref={spreadRef}>

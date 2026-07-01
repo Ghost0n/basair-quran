@@ -59,7 +59,14 @@ export function AyahReader({
   const { pages } = useReaderWindow({ mushafId, anchorData, totalPages, registerControls });
 
   return (
-    <div className="qb-mushaf-page is-ayah" ref={mushaf.bodyRef} onClick={onClearMorph}>
+    <div
+      className="qb-mushaf-page is-ayah"
+      ref={mushaf.bodyRef}
+      onClick={onClearMorph}
+      role="region"
+      aria-label="المصحف — آية بآية"
+      tabIndex={0}
+    >
       {pages.map((pg) => (
         <div className="qb-scroll-page" data-page={pg.page ?? 0} key={`${mushafId}-${pg.page ?? 0}`}>
           {pg.ayahs.map((ayah) => {

@@ -413,6 +413,34 @@
   box-shadow: none;
 }
 
+/* ---------- Reader: mode-swap transition + keyboard focus ---------- */
+
+/* A quiet cross-fade whenever the reader surface (re)mounts — i.e. on a layout
+   switch (paged ↔ scroll ↔ ayah) or the first load. Gated by reduced-motion.
+   Page-to-page navigation keeps the same element mounted, so it doesn't re-fire. */
+@media (prefers-reduced-motion: no-preference) {
+  .qb-mushaf-page {
+    animation: qbReaderFade var(--dur, 240ms) var(--ease-out, ease);
+  }
+}
+
+@keyframes qbReaderFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* The scroll/ayah surfaces are focusable scroll regions (role="region",
+   tabindex=0) so keyboard users can reach and scroll them without tabbing
+   through every word. Give that focus a clear ring. */
+.qb-mushaf-page:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: -3px;
+}
+
 /* ---------- Surah banner ---------- */
 
 .qb-surah-banner {

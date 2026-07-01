@@ -53,7 +53,14 @@ export function ScrollReader({
   const { pages } = useReaderWindow({ mushafId, anchorData, totalPages, registerControls });
 
   return (
-    <div className="qb-mushaf-page is-scroll" ref={mushaf.bodyRef} onClick={onClearMorph}>
+    <div
+      className="qb-mushaf-page is-scroll"
+      ref={mushaf.bodyRef}
+      onClick={onClearMorph}
+      role="region"
+      aria-label="المصحف — تمرير مستمر"
+      tabIndex={0}
+    >
       {pages.map((pg) => (
         <section className="qb-scroll-page" data-page={pg.page ?? 0} key={`${mushafId}-${pg.page ?? 0}`}>
           <AyatFlow

@@ -9,6 +9,10 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 - Compound phrase search within a single ayah.
 - High-confidence "did you mean" suggestions for close misses.
 - Quran page reader synchronized with the selected search result.
+- Multiple reader layouts — single page, two-page spread (authentic Hafs), continuous
+  vertical scroll, and an ayah-by-ayah list — chosen from Quick Settings or resolved
+  automatically per screen size (`reader_layout` preference; see
+  [docs/authentic-mushaf-reader.md](docs/authentic-mushaf-reader.md)).
 - Multi-mushaf support, including Qaloun, Hafs, Warsh, Shuba, Douri, and Sousi.
 - Optional invite-only authentication with backend-managed users and signed session cookies.
 - Strict-context research agent that uses local transcript/book sources for term discovery and answers only from Quran search results.

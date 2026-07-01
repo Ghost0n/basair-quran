@@ -109,3 +109,28 @@ Hafs is `mushaf_id = 2`. Everything here is **parallel** to the existing
    (recommended — keeps ~tens of MB of binaries out of git) vs commit to the repo.
 4. **Scope confirmation:** authentic mode is **Hafs‑only**, opt‑in; the default Qalūn
    experience and all other riwāyāt keep today's Unicode reader.
+
+## Reader layout modes (orthogonal to the renderer)
+
+`mushaf_render` (`authentic` | `simple`) chooses **which glyphs draw** the page.
+`reader_layout` chooses **how pages/ayahs are arranged** — the two are independent
+account preferences. `reader_layout` values:
+
+| Value | Behaviour | Renderer |
+|---|---|---|
+| `auto` (default) | Resolves per viewport, recomputing on resize: phones (<768px) → `scroll`; tablet/desktop → paged (spread on wide authentic Hafs, single otherwise). | either |
+| `single` | One fit‑to‑height page, centred. Forces single even on a wide authentic Hafs screen. | either |
+| `spread` | Two facing pages, fit‑to‑height. Authentic Hafs only — degrades to `single` otherwise. | authentic |
+| `scroll` | Continuous vertical scroll of stacked pages inside the reader viewport (the document never scrolls). Neighbours stream in on scroll; the top‑of‑viewport page drives the footer + persisted last page. | Unicode |
+| `ayah` | One verse per row (number chip · verse · save), surah banner + basmala at surah starts. Same continuous windowing as `scroll`. | Unicode |
+
+`MushafStage` is a dispatcher: `PagedReader` (single/spread/auto), `ScrollReader`, and
+`AyahReader`. The two continuous readers share the `useReaderWindow` hook (bounded
+12‑page window, scroll‑proximity + fill loading, prepend scroll‑compensation, footer
+sync). The switcher lives in Quick Settings; **صفحتان** is gated on authentic Hafs.
+
+**Not yet done:** `scroll`/`ayah` render the Unicode reader for every riwāyah —
+authentic glyph pages are not yet fit‑to‑**width** for the scroll column
+(`useGlyphFitWidth` is future work); windowed virtualization (pruning far pages) is
+also deferred (the window is currently capped, not pruned). Word tokens are each a tab
+stop — a roving‑tabindex pass is future a11y work.
