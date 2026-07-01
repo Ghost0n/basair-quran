@@ -67,6 +67,18 @@ This document freezes the backend contract that the future frontend migration wi
   otherwise it renders the Unicode reader. Non-Hafs always degrades gracefully
   via `fallback: "reader"`.
 
+## Reader layout notes
+
+- `reader_layout` is an account preference on `GET/PATCH /api/user/preferences`,
+  **orthogonal** to `mushaf_render`. It selects how pages/ayahs are arranged, not
+  which renderer draws them: `"auto"` (default, resolved per viewport), `"single"`
+  (one fit-to-height page), `"spread"` (two facing pages, authentic/Hafs only —
+  degrades to `single` otherwise), `"scroll"` (continuous vertical scroll of pages,
+  fit-to-width), `"ayah"` (ayah-by-ayah list).
+- It is a **presentation** preference consumed by the client only; no server
+  reader endpoint changes shape. Unknown/off-Hafs combinations degrade gracefully
+  on the client (e.g. `spread` → `single`).
+
 ## Morphology notes
 
 - `GET /api/morphology?surah=N&ayah=M` returns per-word morphology (root, lemma,

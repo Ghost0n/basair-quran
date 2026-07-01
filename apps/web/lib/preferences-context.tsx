@@ -27,6 +27,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   font_size: 28,
   reciter: "",
   mushaf_render: "simple",
+  reader_layout: "auto",
   research: { default_mode: "strict", depth: "balanced" },
 };
 

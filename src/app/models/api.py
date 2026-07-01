@@ -433,6 +433,9 @@ class UserPreferences(BaseModel):
     # "authentic" renders the line-faithful Madani QCF glyph page (Hafs only);
     # "simple" renders the flowing Unicode reader. Default simple/opt-in.
     mushaf_render: Literal["authentic", "simple"] = "simple"
+    # Reader layout is orthogonal to mushaf_render: how pages/ayahs are arranged.
+    # "auto" resolves per viewport; the others are explicit user choices.
+    reader_layout: Literal["auto", "single", "spread", "scroll", "ayah"] = "auto"
     research: ResearchDefaults = Field(default_factory=ResearchDefaults)
 
 
@@ -450,6 +453,7 @@ class UserPreferencesUpdate(BaseModel):
     font_size: Optional[int] = Field(None, ge=18, le=48)
     reciter: Optional[str] = None
     mushaf_render: Optional[Literal["authentic", "simple"]] = None
+    reader_layout: Optional[Literal["auto", "single", "spread", "scroll", "ayah"]] = None
     research: Optional[ResearchDefaultsUpdate] = None
 
 

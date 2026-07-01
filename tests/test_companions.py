@@ -88,19 +88,27 @@ def test_user_preferences_defaults_and_patch(api_client):
     body = defaults.json()
     assert body["numerals"] == "arabic-indic"
     assert body["riwayah"] == 1
+    assert body["reader_layout"] == "auto"
     assert body["research"]["default_mode"] == "strict"
 
     patched = api_client.patch(
         "/api/user/preferences",
-        json={"numerals": "latin", "font_size": 32, "research": {"depth": "deep"}},
+        json={
+            "numerals": "latin",
+            "font_size": 32,
+            "reader_layout": "scroll",
+            "research": {"depth": "deep"},
+        },
     )
     assert patched.status_code == 200
     updated = patched.json()
     assert updated["numerals"] == "latin"
     assert updated["font_size"] == 32
+    assert updated["reader_layout"] == "scroll"
     assert updated["research"]["depth"] == "deep"
     assert updated["research"]["default_mode"] == "strict"
 
     # Persisted across requests.
     reread = api_client.get("/api/user/preferences")
     assert reread.json()["numerals"] == "latin"
+    assert reread.json()["reader_layout"] == "scroll"

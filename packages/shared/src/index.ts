@@ -274,6 +274,9 @@ export interface MorphologyResponse {
 
 export type NumeralScript = "arabic-indic" | "latin" | "persian";
 
+/** How pages/ayahs are arranged in the reader (orthogonal to mushaf_render). */
+export type ReaderLayout = "auto" | "single" | "spread" | "scroll" | "ayah";
+
 export interface ResearchDefaults {
   default_mode: "strict" | "tafssir";
   depth: "fast" | "balanced" | "deep";
@@ -288,6 +291,7 @@ export interface UserPreferences {
   font_size: number;
   reciter: string;
   mushaf_render: "authentic" | "simple";
+  reader_layout: ReaderLayout;
   research: ResearchDefaults;
 }
 
@@ -323,6 +327,7 @@ export interface UserPreferencesUpdate {
   font_size?: number;
   reciter?: string;
   mushaf_render?: "authentic" | "simple";
+  reader_layout?: ReaderLayout;
   research?: Partial<ResearchDefaults>;
 }
 
