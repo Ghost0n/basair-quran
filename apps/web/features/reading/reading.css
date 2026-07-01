@@ -337,9 +337,12 @@
 /* ---------- Authentic Madani (QCF) glyph page — Hafs, opt-in ---------- */
 
 .qb-glyph-page {
+  /* --qcf-fit: uniform down-scale set by useGlyphFit so every printed line
+     stays on one visual line at any width. Defaults to 1 (no scaling). */
+  --qcf-fit: 1;
   display: flex;
   flex-direction: column;
-  gap: calc(var(--fs-ayah) * 0.5);
+  gap: calc(var(--fs-ayah) * 0.5 * var(--qcf-fit));
   padding: 4px 2px 12px;
 }
 
@@ -352,7 +355,7 @@
 
 .qb-glyph-line {
   color: var(--verse-fg);
-  font-size: calc(var(--fs-ayah) * 1.15);
+  font-size: calc(var(--fs-ayah) * 1.15 * var(--qcf-fit, 1));
   line-height: 1.6;
 }
 
@@ -372,7 +375,7 @@
 .qb-glyph-basmala {
   text-align: center;
   font-family: var(--font-arabic-display);
-  font-size: calc(var(--fs-ayah) * 0.92);
+  font-size: calc(var(--fs-ayah) * 0.92 * var(--qcf-fit, 1));
   line-height: 2;
   color: var(--gold-400);
 }
@@ -731,6 +734,19 @@
   .qb-recitation-ayah {
     font-size: 28px;
     padding: 20px;
+  }
+}
+
+/* Phone-width verses (simple reader): a narrow column fits only 2–4 words per
+   line, so forced justification stretches each row edge-to-edge with large,
+   uneven gaps — the text reads "loose" and unstable when resized. Natural
+   (start/right) alignment keeps the words together and the rhythm calm. The
+   wider desktop/tablet column keeps the justified, printed-page look. */
+@media (max-width: 600px) {
+  .qb-ayat-flow {
+    text-align: start;
+    text-align-last: start;
+    line-height: 2.1;
   }
 }
 
