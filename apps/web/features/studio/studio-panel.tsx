@@ -2,13 +2,14 @@
 
 import "./studio.css";
 
-import { useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 
 import type { ResearchAgentResponse, TafssirDepth } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { useNumerals } from "@/lib/preferences-context";
 import { renderHighlightedVerseText } from "@/lib/quran-ui";
+import { STUDIO_ASK_EVENT, drainStudioAsk } from "@/lib/studio-prefill";
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { saveClientResearchSettings } from "@/features/research/lib/research-client-settings";
 import { useShellMode } from "@/features/shell/mode-context";
@@ -59,6 +60,27 @@ export function StudioPanel() {
     setDraft("");
     void studio.submit(content, state.selectedMushaf);
   }
+
+  // A prefilled ask (from the command bar or the Home "اسأل" bar) submits into
+  // the active session. `askRef` always holds the latest submit binding so the
+  // deferred drain targets the restored session, not the mount's throwaway one.
+  const askRef = useRef<(question: string) => void>(() => {});
+  askRef.current = (question) => void studio.submit(question, state.selectedMushaf);
+
+  useEffect(() => {
+    const drain = () => {
+      const question = drainStudioAsk();
+      if (question) askRef.current(question);
+    };
+    // Defer past the persisted-sessions restore (a mount effect that re-renders),
+    // so we submit into the real active session.
+    const timer = window.setTimeout(drain, 0);
+    window.addEventListener(STUDIO_ASK_EVENT, drain);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener(STUDIO_ASK_EVENT, drain);
+    };
+  }, []);
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey) {

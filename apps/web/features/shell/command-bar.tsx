@@ -2,8 +2,11 @@
 
 import { useEffect } from "react";
 
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
+
 import { Icon } from "@/components/icon";
 import { modKey } from "@/lib/platform";
+import { looksLikeQuestion, queueStudioAsk } from "@/lib/studio-prefill";
 
 import { useShellMode } from "./mode-context";
 import { useCommandShortcut } from "./use-command-shortcut";
@@ -44,6 +47,24 @@ export function CommandBar() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
+
+  // Intent routing: a natural-language question (not a highlighted suggestion,
+  // not a short search term) hands off to the Studio — delivering the bar's
+  // "اسأل" promise. Everything else falls through to the existing search path.
+  function onInputKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter" && state.activeSuggestionIndex < 0) {
+      const value = event.currentTarget.value.trim();
+      if (value && looksLikeQuestion(value)) {
+        event.preventDefault();
+        queueStudioAsk(value);
+        event.currentTarget.value = "";
+        actions.setQuery("");
+        setMode("studio");
+        return;
+      }
+    }
+    actions.handleInputKeyDown(event);
+  }
 
   const placeholder = "ابحث · انتقل · اسأل  —  /";
   const listboxOpen = state.suggestionsOpen && state.suggestions.length > 0;
@@ -90,7 +111,7 @@ export function CommandBar() {
         onChange={(event) => actions.setQuery(event.currentTarget.value)}
         onFocus={actions.openSuggestions}
         onBlur={actions.closeSuggestions}
-        onKeyDown={actions.handleInputKeyDown}
+        onKeyDown={onInputKeyDown}
         aria-label="مساحة الأمر — بحث وتصفّح"
         role="combobox"
         aria-expanded={listboxOpen}
