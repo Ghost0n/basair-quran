@@ -20,10 +20,16 @@ export const dynamic = "force-dynamic";
 export default function ShellLayout({ children }: { children: ReactNode }) {
   return (
     <>
-      <AuthTopbar />
-      <Suspense fallback={null}>
-        <Shell>{children}</Shell>
-      </Suspense>
+      {/* qb-shell-root caps the workspace at the viewport height so the app
+          feels stable: the chrome (rail, top bar, footer) stays put and each
+          screen scrolls inside its own region instead of growing the whole
+          document. It also absorbs the optional auth strip above the frame. */}
+      <div className="qb-shell-root">
+        <AuthTopbar />
+        <Suspense fallback={null}>
+          <Shell>{children}</Shell>
+        </Suspense>
+      </div>
       {yamliEnabled ? <Script src="https://api.yamli.com/js/yamli_api.js" strategy="afterInteractive" /> : null}
       {yamliEnabled ? <YamliInit targetId="searchInput" /> : null}
     </>

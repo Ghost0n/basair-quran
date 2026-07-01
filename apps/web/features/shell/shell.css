@@ -3,11 +3,22 @@
    Hosts: LeftRail + TopBar (CommandBar) + the routed canvas.
    ===================================================================== */
 
+/* App-shell root: pins the whole workspace to the viewport height and owns the
+   overflow boundary, so nothing grows the document. Each screen provides its
+   own inner scroll region (reader page, studio thread, results body, …). */
+.qb-shell-root {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .qb-frame {
   position: relative;
   display: flex;
   direction: rtl;
-  min-height: 100dvh;
+  flex: 1 1 auto;
+  min-height: 0;
   width: 100%;
   background: var(--bg);
   background-image: var(--page-bg);
@@ -34,8 +45,8 @@
   top: 0;
   width: 84px;
   flex: 0 0 84px;
-  height: 100dvh;
-  align-self: flex-start;
+  height: 100%;
+  align-self: stretch;
   background: linear-gradient(180deg, rgba(20, 18, 12, 0.78), rgba(14, 12, 8, 0.72));
   border-inline-start: 1px solid var(--border);
   display: flex;
@@ -147,6 +158,7 @@
 .qb-main {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   position: relative;
