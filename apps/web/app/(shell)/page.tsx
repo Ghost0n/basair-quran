@@ -4,9 +4,7 @@ import { Suspense } from "react";
 
 import { useShellMode } from "@/features/shell/mode-context";
 import { WorkspaceCanvas, CompanionCanvas } from "@/features/shell/workspace-canvas";
-import { BookmarksScreen } from "@/features/companions/bookmarks-screen";
-import { RootsScreen } from "@/features/companions/roots-screen";
-import { SessionsScreen } from "@/features/companions/sessions-screen";
+import { LibraryScreen } from "@/features/companions/library-screen";
 import { HeatmapScreen } from "@/features/concordance/heatmap-screen";
 import { RecitationScreen } from "@/features/recitation/recitation-screen";
 import { SettingsScreen } from "@/features/settings/settings-screen";
@@ -21,15 +19,16 @@ function WorkspacePage() {
       return <WorkspaceCanvas mode="search" />;
     case "studio":
       return <WorkspaceCanvas mode="studio" />;
+    // الدفتر — unified library (saved verses, research sessions, followed roots)
+    // beside the Mushaf. The legacy bookmarks/history/roots modes open the same
+    // screen on the matching tab so old links keep working.
     case "notebook":
-      return <WorkspaceCanvas mode="notebook" />;
-    // U5: companion screens show beside the Mushaf on desktop.
     case "bookmarks":
-      return <CompanionCanvas><BookmarksScreen /></CompanionCanvas>;
+      return <CompanionCanvas><LibraryScreen initialTab="verses" /></CompanionCanvas>;
     case "history":
-      return <CompanionCanvas><SessionsScreen /></CompanionCanvas>;
+      return <CompanionCanvas><LibraryScreen initialTab="sessions" /></CompanionCanvas>;
     case "roots":
-      return <CompanionCanvas><RootsScreen /></CompanionCanvas>;
+      return <CompanionCanvas><LibraryScreen initialTab="roots" /></CompanionCanvas>;
     case "audio":
       return <CompanionCanvas><RecitationScreen /></CompanionCanvas>;
     case "settings":

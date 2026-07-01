@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 
 import "@/features/concordance/concordance.css";
 
-import { NotebookDrawer } from "@/features/companions/notebook-drawer";
 import { ConcordancePanel } from "@/features/concordance/concordance-panel";
 import { MushafStage } from "@/features/reading/mushaf-stage";
 import { StudioPanel } from "@/features/studio/studio-panel";
@@ -23,7 +22,7 @@ export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
   const isMobile = useIsMobile();
 
   const panel =
-    mode === "search" ? <ConcordancePanel /> : mode === "notebook" ? <NotebookDrawer /> : mode === "studio" ? <StudioPanel /> : null;
+    mode === "search" ? <ConcordancePanel /> : mode === "studio" ? <StudioPanel /> : null;
 
   if (isMobile) {
     return <div className="qb-workspace-canvas">{panel ?? <MushafStage />}</div>;
@@ -32,7 +31,6 @@ export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
   return (
     <div className="qb-workspace-canvas">
       {mode === "search" ? <ConcordancePanel /> : null}
-      {mode === "notebook" ? <NotebookDrawer /> : null}
       <MushafStage />
       {mode === "studio" ? <StudioPanel /> : null}
     </div>

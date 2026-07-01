@@ -19,10 +19,9 @@ const WORK_DESTINATIONS: RailDestination[] = [
 ];
 
 const SAVED_DESTINATIONS: RailDestination[] = [
+  // الدفتر consolidates the former Notebook / Bookmarks / History / Roots
+  // surfaces (all views of the same saved data) into one tabbed library.
   { mode: "notebook", icon: "notebook", label: "الدفتر" },
-  { mode: "bookmarks", icon: "bookmark", label: "المحفوظات" },
-  { mode: "history", icon: "history", label: "السجلّ" },
-  { mode: "roots", icon: "tree", label: "جذور" },
   { mode: "audio", icon: "ear", label: "التلاوة" },
 ];
 
