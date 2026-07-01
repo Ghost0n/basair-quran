@@ -1,10 +1,8 @@
 "use client";
 
-import { Fragment, useRef } from "react";
+import { Fragment } from "react";
 
 import type { MushafLayoutLine, MushafLayoutGlyph } from "@q-basair/shared";
-
-import { useGlyphFit } from "../use-glyph-fit";
 
 // The basmala is rendered as compact, unambiguous Unicode text (in the display
 // font) rather than the QCF "line-filling" ligature, which spreads its segments
@@ -61,11 +59,6 @@ export function GlyphPage({
 }) {
   const isOpeningPage = lines.length < FULL_PAGE_LINES;
 
-  // Scale the font down so every printed line stays on one visual line, however
-  // narrow the viewport gets (fit-to-width). Re-measures when the page changes.
-  const pageRef = useRef<HTMLDivElement | null>(null);
-  useGlyphFit(pageRef, [lines]);
-
   // Per-ayah text (joined from the page's words) so the morphology lookup can
   // match the verse by skeleton — robust even where word tokenisation might
   // diverge from the Kufan source. Partial (page-straddling) ayāt simply fall
@@ -101,7 +94,7 @@ export function GlyphPage({
   );
 
   return (
-    <div ref={pageRef} className={`qb-glyph-page${isOpeningPage ? " is-opening" : ""}`}>
+    <div className={`qb-glyph-page${isOpeningPage ? " is-opening" : ""}`}>
       {lines.map((line) => {
         if (line.line_type === "surah_name") {
           return (

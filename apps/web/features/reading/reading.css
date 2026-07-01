@@ -18,6 +18,11 @@
   position: relative;
 }
 
+/* A two-page facing spread needs room for both leaves side by side. */
+.qb-mushaf-stage.is-spread {
+  max-width: 88rem;
+}
+
 /* ---------- Header: surah card + nav tools ---------- */
 
 .qb-mushaf-head {
@@ -212,12 +217,36 @@
   transition: opacity 160ms var(--ease-out);
 }
 
-/* Authentic (glyph) page: fitted to one page, so centre it both ways in the
-   reading area. `margin:auto` on the child (below) is overflow-safe — if the
-   page can't fit (tiny window) it falls back to top-aligned + scroll. */
+/* Authentic (glyph) page/spread: fitted to fill one screen, so centre it both
+   ways in the reading area. `margin:auto` on the spread (below) is overflow-safe
+   — if it can't fit (tiny window) it falls back to top-aligned + scroll. The
+   backdrop is dressed with a faint geometric lattice + centre glow so the empty
+   margins around the page(s) read as an intentional mushaf frame. */
 .qb-mushaf-page.is-glyph {
   display: flex;
-  flex-direction: column;
+  background:
+    radial-gradient(130% 100% at 50% 42%, rgba(212, 175, 55, 0.06), transparent 62%),
+    repeating-linear-gradient(45deg, transparent 0 17px, rgba(212, 175, 55, 0.02) 17px 18px),
+    repeating-linear-gradient(-45deg, transparent 0 17px, rgba(212, 175, 55, 0.02) 17px 18px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.06));
+}
+
+.light .qb-mushaf-page.is-glyph,
+.light-mode .qb-mushaf-page.is-glyph {
+  background:
+    radial-gradient(130% 100% at 50% 42%, rgba(164, 129, 41, 0.08), transparent 62%),
+    repeating-linear-gradient(45deg, transparent 0 17px, rgba(164, 129, 41, 0.04) 17px 18px),
+    repeating-linear-gradient(-45deg, transparent 0 17px, rgba(164, 129, 41, 0.04) 17px 18px),
+    linear-gradient(180deg, rgba(120, 92, 20, 0.03), rgba(120, 92, 20, 0.06));
+}
+
+/* Holds one page, or two facing pages side by side (RTL: the first child — the
+   odd/earlier page — sits on the right). Centred as a group inside the area. */
+.qb-glyph-spread {
+  display: flex;
+  gap: 2.5rem;
+  margin: auto;
+  align-items: center;
 }
 
 /* ---------- Surah banner ---------- */
@@ -358,13 +387,23 @@
   --qcf-fit: 1;
   display: flex;
   flex-direction: column;
-  /* Centre both axes inside .qb-mushaf-page.is-glyph; overflow-safe (collapses
-     to top/start when the page is taller than the area). */
-  margin: auto;
+  /* Width is pinned by useGlyphFit; the .qb-glyph-spread parent centres us. */
+  margin: 0;
   /* Tight inter-line gap (like the printed page): less wasted height means the
      one-page fit can render the whole page larger. */
   gap: calc(var(--fs-ayah) * 0.28 * var(--qcf-fit));
-  padding: 4px 2px 12px;
+  padding: 12px 14px 14px;
+  /* A physical "sheet": faint page panel + hairline frame so, in a spread, the
+     two pages read as two leaves of the mushaf. */
+  background: linear-gradient(180deg, rgba(255, 253, 246, 0.035), rgba(255, 253, 246, 0.015));
+  border: 1px solid rgba(212, 175, 55, 0.20);
+  border-radius: 6px;
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.38);
+}
+
+.light .qb-glyph-page {
+  background: linear-gradient(180deg, rgba(255, 253, 246, 0.7), rgba(250, 244, 230, 0.55));
+  box-shadow: 0 10px 30px rgba(90, 70, 20, 0.12);
 }
 
 /* Framed opening pages (1, 2) and the final page have <15 lines; a narrower

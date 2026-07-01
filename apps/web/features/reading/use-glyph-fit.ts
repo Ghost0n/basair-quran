@@ -3,55 +3,51 @@
 import { useLayoutEffect, useRef, type RefObject } from "react";
 
 /**
- * Fit an authentic QCF page to its viewport — both width AND height.
+ * Fit the authentic mushaf page(s) to the reading area — width AND height.
  *
- * Three goals:
- *  1. One page, no scroll — the printed lines fit within the reader's height.
- *  2. No stretched spacing — on a wide screen we must NOT let justification
- *     spread the words edge-to-edge. The page is pinned to exactly the (scaled)
- *     natural line width and centred, so full justification only fills the line
- *     the way the printed mushaf does, never the whole monitor.
- *  3. Never enlarge past the base reading size, and never shrink below a floor
- *     (below which the page is allowed to scroll rather than become unreadable).
+ * Works for a single page or a two-page facing spread: every `.qb-glyph-page`
+ * inside `ref` is scaled by ONE uniform factor so that
+ *  1. each page fits the available height (one page, no scroll), and
+ *  2. all pages sit side by side within the available width.
+ * Each page's width is then pinned to its own scaled content width so full
+ * justification has no slack to stretch (no giant word gaps); CSS centres the
+ * group. Below a scale floor the area is allowed to scroll rather than render
+ * illegibly small.
  *
- * How: measure the widest line's natural single-line width and the page's
- * natural single-line height at base size, then take the largest uniform scale
- * that fits both the available width and height. The scale drives the
- * `--qcf-fit` CSS var (font-size + line gaps); the page width is pinned to the
- * scaled natural width so justification has no slack.
+ * `ref` is the spread container (`.qb-glyph-spread`); the scroll viewport
+ * (`.qb-mushaf-page`) gives the size budget and the stage is the resize trigger
+ * (its size is independent of the viewport's scrollbar, so pinning page widths
+ * can't feed back into the observer).
  *
- * Re-runs on reader resize (ResizeObserver on the stage — decoupled from the
- * page's own scrollbar so pinning the width can't feed back into a loop), on
- * web-font load, and on page change (deps).
+ * Re-runs on stage resize, web-font load, and page/spread change (deps).
  */
 const MAX_SCALE = 1;
-// Floor is low so "one page, no scroll" wins even for a large font preference;
-// below this the page is allowed to scroll rather than become unreadable.
+// Low floor so "one screen, no scroll" wins even with a large font preference;
+// below it the page is allowed to scroll rather than become unreadable.
 const MIN_SCALE = 0.3;
 
 export function useGlyphFit(ref: RefObject<HTMLElement | null>, deps: unknown[]) {
   const rafRef = useRef(0);
 
   useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    // The scroll viewport gives the height/width budget; the stage is a stable
-    // resize trigger (its size doesn't change when the viewport's scrollbar
-    // toggles, so pinning the page width can't cause an observer feedback loop).
-    const viewport = el.closest<HTMLElement>(".qb-mushaf-page") ?? el.parentElement;
-    const trigger = el.closest<HTMLElement>(".qb-mushaf-stage") ?? viewport;
+    const container = ref.current;
+    if (!container || typeof ResizeObserver === "undefined") return;
+    const viewport = container.closest<HTMLElement>(".qb-mushaf-page") ?? container.parentElement;
+    const trigger = container.closest<HTMLElement>(".qb-mushaf-stage") ?? viewport;
     if (!viewport || !trigger) return;
 
     let cancelled = false;
 
     const measure = () => {
       if (cancelled) return;
-      const lines = el.querySelectorAll<HTMLElement>(".qb-glyph-ayah");
-      if (lines.length === 0) return;
+      const pages = Array.from(container.querySelectorAll<HTMLElement>(".qb-glyph-page"));
+      if (pages.length === 0) return;
 
-      // Measure at base size with no width cap.
-      el.style.setProperty("--qcf-fit", "1");
-      el.style.width = "";
+      // Reset to base size / natural width for measurement.
+      pages.forEach((page) => {
+        page.style.setProperty("--qcf-fit", "1");
+        page.style.width = "";
+      });
 
       const cs = getComputedStyle(viewport);
       const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
@@ -60,38 +56,68 @@ export function useGlyphFit(ref: RefObject<HTMLElement | null>, deps: unknown[])
       const availH = viewport.clientHeight - padY;
       if (availW <= 0 || availH <= 0) return;
 
-      // Natural widest single-line width + natural single-line page height.
-      // `width: max-content` gives the intrinsic (un-justified) line width —
-      // measuring scrollWidth alone would just report the justified box width.
-      lines.forEach((line) => {
-        line.style.width = "max-content";
-      });
-      let maxW = 0;
-      lines.forEach((line) => {
-        if (line.offsetWidth > maxW) maxW = line.offsetWidth;
-      });
-      const naturalH = el.scrollHeight;
-      lines.forEach((line) => {
-        line.style.width = "";
-      });
-      if (maxW <= 0 || naturalH <= 0) return;
+      const gap = parseFloat(getComputedStyle(container).columnGap) || 0;
 
-      // Largest uniform scale that fits both axes (with a hair of safety),
-      // clamped so we never enlarge past base nor shrink into illegibility.
-      const widthScale = (availW * 0.997) / maxW;
-      // A little extra height headroom: some pages carry a surah banner whose
-      // fixed margins don't scale with the font, so keep clear of the edge.
-      const heightScale = (availH * 0.97) / naturalH;
-      let scale = Math.min(MAX_SCALE, widthScale, heightScale);
+      // Per page: intrinsic widest line width (max-content, so justification
+      // doesn't inflate it), natural single-line height, and the page's own
+      // padding+border (which sit outside the content width under border-box).
+      const metrics = pages.map((page) => {
+        const pcs = getComputedStyle(page);
+        const chromeX =
+          (parseFloat(pcs.paddingLeft) || 0) +
+          (parseFloat(pcs.paddingRight) || 0) +
+          (parseFloat(pcs.borderLeftWidth) || 0) +
+          (parseFloat(pcs.borderRightWidth) || 0);
+        const lines = Array.from(page.querySelectorAll<HTMLElement>(".qb-glyph-ayah"));
+        lines.forEach((line) => {
+          line.style.width = "max-content";
+        });
+        let maxW = 0;
+        lines.forEach((line) => {
+          if (line.offsetWidth > maxW) maxW = line.offsetWidth;
+        });
+        const naturalH = page.scrollHeight;
+        lines.forEach((line) => {
+          line.style.width = "";
+        });
+        return { maxW, naturalH, chromeX };
+      });
+
+      const maxNaturalH = Math.max(...metrics.map((m) => m.naturalH));
+      const sumMaxW = metrics.reduce((sum, m) => sum + m.maxW, 0);
+      if (maxNaturalH <= 0 || sumMaxW <= 0) return;
+
+      const totalGap = gap * (pages.length - 1);
+      const totalChromeX = metrics.reduce((sum, m) => sum + m.chromeX, 0);
+      // Height headroom absorbs fixed page padding + banner margins (unscaled).
+      const heightScale = (availH * 0.97) / maxNaturalH;
+      const widthScale = (availW * 0.997 - totalGap - totalChromeX) / sumMaxW;
+      let scale = Math.min(MAX_SCALE, heightScale, widthScale);
       scale = Math.max(scale, MIN_SCALE);
 
-      el.style.setProperty("--qcf-fit", scale.toFixed(4));
-      // Pin the page to the width the content needs, plus a few px so per-glyph
-      // rounding at the scaled size can't push the widest line into a wrap (a
-      // single wrap would cascade into a height overflow → scrollbar). The small
-      // slack costs only a hair of justified spacing.
-      const pageW = Math.min(availW, Math.ceil(maxW * scale) + 8);
-      el.style.width = `${pageW}px`;
+      const apply = (s: number) => {
+        pages.forEach((page, index) => {
+          page.style.setProperty("--qcf-fit", s.toFixed(4));
+          // Content width + the page's own padding/border (border-box), plus a
+          // few px of slack so per-glyph rounding can't push a line into a wrap
+          // (one wrap would cascade into a height overflow → scrollbar).
+          page.style.width = `${Math.ceil(metrics[index].maxW * s) + metrics[index].chromeX + 8}px`;
+        });
+      };
+      apply(scale);
+
+      // Correction pass: fixed bits that don't scale with the font (page
+      // padding, a surah banner's margins) can make the linear estimate
+      // overshoot the height. If the tallest page still exceeds the budget,
+      // nudge the scale down once so the whole page fits without scrolling.
+      let tallest = 0;
+      pages.forEach((page) => {
+        if (page.offsetHeight > tallest) tallest = page.offsetHeight;
+      });
+      if (tallest > availH) {
+        const corrected = Math.max(MIN_SCALE, (scale * availH * 0.98) / tallest);
+        if (corrected < scale) apply(corrected);
+      }
     };
 
     const schedule = () => {
@@ -115,8 +141,10 @@ export function useGlyphFit(ref: RefObject<HTMLElement | null>, deps: unknown[])
       cancelled = true;
       cancelAnimationFrame(rafRef.current);
       observer.disconnect();
-      el.style.width = "";
-      el.style.removeProperty("--qcf-fit");
+      container.querySelectorAll<HTMLElement>(".qb-glyph-page").forEach((page) => {
+        page.style.width = "";
+        page.style.removeProperty("--qcf-fit");
+      });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);

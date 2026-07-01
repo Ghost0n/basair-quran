@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type { QuranPageAyah, SurahListItem } from "@q-basair/shared";
@@ -20,6 +21,8 @@ import { MorphPopover, type MorphTarget } from "./components/morph-popover";
 import { GlyphPage } from "./components/glyph-page";
 import { useMushaf } from "./mushaf-context";
 import { useMushafLayout } from "./use-mushaf-layout";
+import { useGlyphFit } from "./use-glyph-fit";
+import { useWideScreen } from "./use-wide-screen";
 import { useSavedAyat } from "./use-saved-ayat";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
@@ -46,6 +49,15 @@ const BASMALA_NORMALIZED = stripArabicMarks(BASMALA);
 // riwāyāt that count it (e.g. Hafs), so we don't print a duplicate header.
 function isBasmalaText(text: string): boolean {
   return stripArabicMarks(text).startsWith(BASMALA_NORMALIZED);
+}
+
+// Facing-page pairing for the two-page spread. The Madani mushaf opens on the
+// (1,2),(3,4)… spreads: the odd page reads first (on the right, in RTL) and the
+// even page faces it on the left. Given the loaded page, resolve its pair.
+function pageSpread(page: number): { right: number; left: number; facing: number } {
+  const right = page % 2 === 1 ? page : page - 1; // odd → right (read first)
+  const left = right + 1; // even → left
+  return { right, left, facing: page === right ? left : right };
 }
 
 export function MushafStage() {
@@ -137,6 +149,37 @@ export function MushafStage() {
   // Save/un-save an ayah to the library (الدفتر) straight from the reader.
   const saved = useSavedAyat();
 
+  // Two-page facing spread on wide screens; collapses to a single page when the
+  // window is too narrow (or on the simple reader / non-Hafs, where layout is null).
+  const wide = useWideScreen();
+  const currentPage = pageData?.page ?? null;
+  const pair = currentPage != null && currentPage >= 1 ? pageSpread(currentPage) : null;
+  const spreadIntent = authentic && wide && Boolean(layout?.lines) && pair != null;
+  const facing = useMushafLayout({
+    enabled: spreadIntent,
+    mushafId: pageData?.mushaf_id,
+    page: pair?.facing,
+  });
+  const showSpread = spreadIntent && Boolean(facing.layout?.lines) && pair != null;
+  const rightLayout = pair && currentPage === pair.right ? layout : facing.layout;
+  const leftLayout = pair && currentPage === pair.right ? facing.layout : layout;
+
+  // The spread container drives the fit (one uniform scale for both pages).
+  const spreadRef = useRef<HTMLDivElement | null>(null);
+  useGlyphFit(spreadRef as RefObject<HTMLElement | null>, [layout, facing.layout, showSpread]);
+
+  const totalPages = pageData?.total_pages ?? pageData?.max_page ?? 604;
+  function goPrev() {
+    if (!pageData?.page) return;
+    const target = showSpread && pair ? pair.right - 2 : pageData.page - 1;
+    if (target >= 1) void mushaf.loadPage(selectedMushaf, target, { persist: true });
+  }
+  function goNext() {
+    if (!pageData?.page) return;
+    const target = showSpread && pair ? pair.right + 2 : pageData.page + 1;
+    if (target <= totalPages) void mushaf.loadPage(selectedMushaf, target, { persist: true });
+  }
+
   function handleWordClick(
     surah: number,
     ayah: number,
@@ -197,7 +240,7 @@ export function MushafStage() {
   }
 
   return (
-    <div className="qb-mushaf-stage">
+    <div className={`qb-mushaf-stage${showSpread ? " is-spread" : ""}`}>
       <MushafHeader
         pageData={pageData}
         surahs={surahs}
@@ -206,17 +249,36 @@ export function MushafStage() {
       />
 
       <div
-        className={`qb-mushaf-page${isLoading ? " is-loading" : ""}${authentic && layout?.lines ? " is-glyph" : ""}`}
+        className={`qb-mushaf-page${isLoading ? " is-loading" : ""}${authentic && layout?.lines ? " is-glyph" : ""}${showSpread ? " is-spread" : ""}`}
         ref={mushaf.bodyRef}
         onClick={() => setMorphTarget(null)}
       >
         {authentic && layout?.lines ? (
-          <GlyphPage
-            lines={layout.lines}
-            selectedAyahId={mushaf.selectedAyahId}
-            onWordClick={handleWordClick}
-            onWordKey={handleWordKey}
-          />
+          <div className="qb-glyph-spread" ref={spreadRef}>
+            {showSpread && rightLayout?.lines && leftLayout?.lines ? (
+              <>
+                <GlyphPage
+                  lines={rightLayout.lines}
+                  selectedAyahId={mushaf.selectedAyahId}
+                  onWordClick={handleWordClick}
+                  onWordKey={handleWordKey}
+                />
+                <GlyphPage
+                  lines={leftLayout.lines}
+                  selectedAyahId={mushaf.selectedAyahId}
+                  onWordClick={handleWordClick}
+                  onWordKey={handleWordKey}
+                />
+              </>
+            ) : (
+              <GlyphPage
+                lines={layout.lines}
+                selectedAyahId={mushaf.selectedAyahId}
+                onWordClick={handleWordClick}
+                onWordKey={handleWordKey}
+              />
+            )}
+          </div>
         ) : (
           <AyatFlow
             ayahs={pageData.ayahs}
@@ -236,8 +298,8 @@ export function MushafStage() {
         pageData={pageData}
         riwayahLabel={state.selectedMushafLabel || "—"}
         isLoading={isLoading}
-        onPrev={() => pageData.page && void mushaf.loadPage(selectedMushaf, pageData.page - 1, { persist: true })}
-        onNext={() => pageData.page && void mushaf.loadPage(selectedMushaf, pageData.page + 1, { persist: true })}
+        onPrev={goPrev}
+        onNext={goNext}
         onJumpPage={(targetPage) => void mushaf.loadPage(selectedMushaf, targetPage, { persist: true })}
       />
     </div>
