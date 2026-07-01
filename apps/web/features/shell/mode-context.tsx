@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
 export const SHELL_MODES = [
+  "home",
   "reading",
   "search",
   "studio",
@@ -17,7 +18,7 @@ export const SHELL_MODES = [
 
 export type ShellMode = (typeof SHELL_MODES)[number];
 
-const DEFAULT_MODE: ShellMode = "reading";
+const DEFAULT_MODE: ShellMode = "home";
 
 function isShellMode(value: string | null): value is ShellMode {
   return value !== null && (SHELL_MODES as readonly string[]).includes(value);

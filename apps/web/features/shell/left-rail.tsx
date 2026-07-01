@@ -31,8 +31,9 @@ export function LeftRail() {
   const recitation = useRecitation();
 
   const handleBrandClick = () => {
-    // One clean navigation to the reading root (resetSearch handles the route);
-    // a separate setMode here would race it and hang the shell.
+    // One clean navigation to the root (resetSearch handles the route); with the
+    // default mode now `home`, `/` lands on the Home landing. A separate setMode
+    // here would race it and hang the shell.
     actions.resetSearch({ toReading: true });
   };
 
@@ -44,8 +45,8 @@ export function LeftRail() {
         type="button"
         className="qb-rail-brand-btn"
         onClick={handleBrandClick}
-        title="بصائر القرآن — العودة إلى القراءة"
-        aria-label="بصائر القرآن — العودة إلى القراءة"
+        title="بصائر القرآن — الصفحة الرئيسية"
+        aria-label="بصائر القرآن — الصفحة الرئيسية"
       >
         <BrandMark size={40} light={isLight} />
       </button>

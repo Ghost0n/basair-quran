@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import { useShellMode } from "@/features/shell/mode-context";
 import { WorkspaceCanvas, CompanionCanvas } from "@/features/shell/workspace-canvas";
+import { HomeScreen } from "@/features/home/home-screen";
 import { LibraryScreen } from "@/features/companions/library-screen";
 import { HeatmapScreen } from "@/features/concordance/heatmap-screen";
 import { SettingsScreen } from "@/features/settings/settings-screen";
@@ -12,6 +13,8 @@ function WorkspacePage() {
   const { mode } = useShellMode();
 
   switch (mode) {
+    case "home":
+      return <HomeScreen />;
     case "reading":
       return <WorkspaceCanvas mode="reading" />;
     case "search":
