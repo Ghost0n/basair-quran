@@ -295,6 +295,54 @@
   align-items: center;
 }
 
+/* ---------- Scroll mode: continuous vertical reading ---------- */
+
+/* A wider reading column so the flowing text fills a 16:9 screen instead of
+   wasting the sides — the whole point of scroll mode. */
+.qb-mushaf-stage.is-scroll {
+  max-width: 74rem;
+}
+
+/* The page itself is the scroller (base already sets overflow-y:auto); pages
+   stack as normal block flow — no glyph centring. scroll-padding keeps a page
+   from tucking under the top padding when the footer pager jumps to it. */
+.qb-mushaf-page.is-scroll {
+  scroll-padding-top: 8px;
+}
+
+.qb-scroll-page {
+  position: relative;
+}
+
+/* A quiet page-break marker between successive pages: the page number centred
+   on a tapered gold rule. */
+.qb-scroll-page-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 20px 0 4px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--fg-3);
+  user-select: none;
+}
+
+.qb-scroll-page-mark::before,
+.qb-scroll-page-mark::after {
+  content: "";
+  height: 1px;
+  flex: 1;
+  max-width: 140px;
+  background: linear-gradient(90deg, transparent, var(--border-strong, rgba(212, 175, 55, 0.3)), transparent);
+}
+
+/* The last page in the window has no following page — drop its trailing rule. */
+.qb-scroll-page:last-of-type .qb-scroll-page-mark {
+  opacity: 0.5;
+}
+
 /* ---------- Surah banner ---------- */
 
 .qb-surah-banner {

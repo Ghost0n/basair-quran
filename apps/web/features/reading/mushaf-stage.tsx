@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
@@ -18,6 +18,7 @@ import { MushafFooter } from "./components/mushaf-footer";
 import { type MorphTarget } from "./components/morph-popover";
 import { type GlyphSaveTarget } from "./components/glyph-page";
 import { PagedReader } from "./components/paged-reader";
+import { ScrollReader, type ScrollControls } from "./components/scroll-reader";
 import { useMushaf } from "./mushaf-context";
 import { useMushafLayout } from "./use-mushaf-layout";
 import { useGlyphFit } from "./use-glyph-fit";
@@ -129,17 +130,28 @@ export function MushafStage() {
   // the Unicode reader below.
   const { preferences } = usePreferences();
   const authentic = preferences.mushaf_render === "authentic";
+
+  // Reader layout preference dispatches the surface. `scroll` is a continuous
+  // Unicode scroller; the ayah surface arrives in a later phase (reads as paged
+  // for now). Everything else resolves within the paged family.
+  const readerLayout = preferences.reader_layout;
+  const scrollMode = readerLayout === "scroll";
+  const pagedMode: "auto" | "single" | "spread" =
+    readerLayout === "single" ? "single" : readerLayout === "spread" ? "spread" : "auto";
+
+  // Authentic glyph layout is a paged-only concern — scroll mode renders Unicode.
   const { layout } = useMushafLayout({
-    enabled: authentic,
+    enabled: authentic && !scrollMode,
     mushafId: pageData?.mushaf_id,
     page: pageData?.page,
   });
 
-  // Reader layout preference resolves the paged family here. Dedicated scroll /
-  // ayah surfaces arrive in later phases; until then those values read as paged.
-  const readerLayout = preferences.reader_layout;
-  const pagedMode: "auto" | "single" | "spread" =
-    readerLayout === "single" ? "single" : readerLayout === "spread" ? "spread" : "auto";
+  // The scroll reader registers its imperative scroll control so the shared
+  // footer prev/next can move the viewport instead of re-anchoring the page.
+  const scrollControlsRef = useRef<ScrollControls | null>(null);
+  const registerScrollControls = useCallback((controls: ScrollControls | null) => {
+    scrollControlsRef.current = controls;
+  }, []);
 
   // Save/un-save an ayah to the library (الدفتر) straight from the reader.
   const saved = useSavedAyat();
@@ -180,11 +192,19 @@ export function MushafStage() {
 
   const totalPages = pageData?.total_pages ?? pageData?.max_page ?? 604;
   function goPrev() {
+    if (scrollMode && scrollControlsRef.current) {
+      scrollControlsRef.current.scrollByPage(-1);
+      return;
+    }
     if (!pageData?.page) return;
     const target = showSpread && pair ? pair.right - 2 : pageData.page - 1;
     if (target >= 1) void mushaf.loadPage(selectedMushaf, target, { persist: true });
   }
   function goNext() {
+    if (scrollMode && scrollControlsRef.current) {
+      scrollControlsRef.current.scrollByPage(1);
+      return;
+    }
     if (!pageData?.page) return;
     const target = showSpread && pair ? pair.right + 2 : pageData.page + 1;
     if (target <= totalPages) void mushaf.loadPage(selectedMushaf, target, { persist: true });
@@ -250,7 +270,9 @@ export function MushafStage() {
   }
 
   return (
-    <div className={`qb-mushaf-stage${showSpread ? " is-spread" : ""}`}>
+    <div
+      className={`qb-mushaf-stage${showSpread ? " is-spread" : ""}${scrollMode ? " is-scroll" : ""}`}
+    >
       <MushafHeader
         pageData={pageData}
         surahs={surahs}
@@ -258,24 +280,40 @@ export function MushafStage() {
         onJumpJuz={(juz) => void mushaf.loadByJuz(selectedMushaf, juz)}
       />
 
-      <PagedReader
-        pageData={pageData}
-        isLoading={isLoading}
-        authentic={authentic}
-        layout={layout}
-        showSpread={showSpread}
-        rightLayout={rightLayout}
-        leftLayout={leftLayout}
-        spreadRef={spreadRef}
-        selectedAyahId={mushaf.selectedAyahId}
-        isSaved={saved.isSaved}
-        onToggleSave={saved.toggle}
-        onGlyphSave={handleGlyphSave}
-        onWordClick={handleWordClick}
-        onWordKey={handleWordKey}
-        morphTarget={morphTarget}
-        onClearMorph={() => setMorphTarget(null)}
-      />
+      {scrollMode ? (
+        <ScrollReader
+          mushafId={selectedMushaf}
+          anchorData={pageData}
+          totalPages={totalPages}
+          selectedAyahId={mushaf.selectedAyahId}
+          isSaved={saved.isSaved}
+          onToggleSave={saved.toggle}
+          onWordClick={handleWordClick}
+          onWordKey={handleWordKey}
+          morphTarget={morphTarget}
+          onClearMorph={() => setMorphTarget(null)}
+          registerControls={registerScrollControls}
+        />
+      ) : (
+        <PagedReader
+          pageData={pageData}
+          isLoading={isLoading}
+          authentic={authentic}
+          layout={layout}
+          showSpread={showSpread}
+          rightLayout={rightLayout}
+          leftLayout={leftLayout}
+          spreadRef={spreadRef}
+          selectedAyahId={mushaf.selectedAyahId}
+          isSaved={saved.isSaved}
+          onToggleSave={saved.toggle}
+          onGlyphSave={handleGlyphSave}
+          onWordClick={handleWordClick}
+          onWordKey={handleWordKey}
+          morphTarget={morphTarget}
+          onClearMorph={() => setMorphTarget(null)}
+        />
+      )}
 
       <MushafFooter
         pageData={pageData}

@@ -37,6 +37,13 @@ export type MushafController = {
   loadByAyah: (mushafId: number, ayahId: number, highlights?: number[]) => Promise<void>;
   loadBySurah: (mushafId: number, surah: number, ayah?: number) => Promise<void>;
   loadByJuz: (mushafId: number, juz: number) => Promise<void>;
+  /**
+   * Swap the active page to one already fetched elsewhere (e.g. the scroll
+   * reader's window) WITHOUT a network round-trip — keeps the footer/juz and the
+   * persisted last-page in sync as the user scrolls. Suppresses the one
+   * scroll-into-view pass so it can't fight the user's own scrolling.
+   */
+  setActivePage: (data: QuranPageResponse) => void;
   setPageDraft: (value: string) => void;
   reset: () => void;
   readLastPage: () => number;
@@ -58,12 +65,19 @@ function useMushafController(): MushafController {
   const [selectedHighlights, setSelectedHighlights] = useState<number[]>([]);
   const [pageDraft, setPageDraft] = useState("");
   const bodyRef = useRef<HTMLDivElement | null>(null);
+  // Set by setActivePage so the next scroll-into-view pass is skipped (the scroll
+  // reader is already positioned; auto-centring the selection would fight it).
+  const suppressScrollIntoViewRef = useRef(false);
 
   useEffect(() => {
     setPageDraft(pageData?.page ? String(pageData.page) : "");
   }, [pageData?.page]);
 
   useEffect(() => {
+    if (suppressScrollIntoViewRef.current) {
+      suppressScrollIntoViewRef.current = false;
+      return;
+    }
     if (!bodyRef.current) return;
     // Include the glyph reader's selection block (.qb-glyph-sel) so a saved/
     // jumped-to ayah scrolls into view there too, on the rare occasions the
@@ -163,6 +177,14 @@ function useMushafController(): MushafController {
     [applyResult],
   );
 
+  const setActivePage = useCallback(
+    (data: QuranPageResponse) => {
+      suppressScrollIntoViewRef.current = true;
+      applyResult(data, true);
+    },
+    [applyResult],
+  );
+
   const reset = useCallback(() => {
     setPageData(null);
     setError(null);
@@ -192,6 +214,7 @@ function useMushafController(): MushafController {
     loadByAyah,
     loadBySurah,
     loadByJuz,
+    setActivePage,
     setPageDraft,
     reset,
     readLastPage,
