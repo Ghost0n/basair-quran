@@ -18,7 +18,7 @@ import "./reading.css";
 import { MushafHeader } from "./components/mushaf-header";
 import { MushafFooter } from "./components/mushaf-footer";
 import { MorphPopover, type MorphTarget } from "./components/morph-popover";
-import { GlyphPage } from "./components/glyph-page";
+import { GlyphPage, type GlyphSaveTarget } from "./components/glyph-page";
 import { useMushaf } from "./mushaf-context";
 import { useMushafLayout } from "./use-mushaf-layout";
 import { useGlyphFit } from "./use-glyph-fit";
@@ -149,6 +149,19 @@ export function MushafStage() {
   // Save/un-save an ayah to the library (الدفتر) straight from the reader.
   const saved = useSavedAyat();
 
+  // Glyph reader save: build the ayah payload from the clicked word + catalog.
+  function handleGlyphSave(target: GlyphSaveTarget) {
+    const surahName = surahs.find((item) => item.id === target.surahId)?.name ?? `${target.surahId}`;
+    saved.toggle({
+      ayah_id: target.ayahId,
+      mushaf_id: pageData?.mushaf_id ?? selectedMushaf,
+      surah_id: target.surahId,
+      surah: surahName,
+      ayah: target.ayah,
+      text: target.text.trim(),
+    });
+  }
+
   // Two-page facing spread on wide screens; collapses to a single page when the
   // window is too narrow (or on the simple reader / non-Hafs, where layout is null).
   const wide = useWideScreen();
@@ -260,12 +273,16 @@ export function MushafStage() {
                 <GlyphPage
                   lines={rightLayout.lines}
                   selectedAyahId={mushaf.selectedAyahId}
+                  isSaved={saved.isSaved}
+                  onToggleSave={handleGlyphSave}
                   onWordClick={handleWordClick}
                   onWordKey={handleWordKey}
                 />
                 <GlyphPage
                   lines={leftLayout.lines}
                   selectedAyahId={mushaf.selectedAyahId}
+                  isSaved={saved.isSaved}
+                  onToggleSave={handleGlyphSave}
                   onWordClick={handleWordClick}
                   onWordKey={handleWordKey}
                 />
@@ -274,6 +291,8 @@ export function MushafStage() {
               <GlyphPage
                 lines={layout.lines}
                 selectedAyahId={mushaf.selectedAyahId}
+                isSaved={saved.isSaved}
+                onToggleSave={handleGlyphSave}
                 onWordClick={handleWordClick}
                 onWordKey={handleWordKey}
               />

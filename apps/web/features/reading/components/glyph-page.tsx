@@ -4,6 +4,8 @@ import { Fragment } from "react";
 
 import type { MushafLayoutLine, MushafLayoutGlyph } from "@q-basair/shared";
 
+import { Icon } from "@/components/icon";
+
 // The basmala is rendered as compact, unambiguous Unicode text (in the display
 // font) rather than the QCF "line-filling" ligature, which spreads its segments
 // across the whole line and reads as disconnected.
@@ -32,6 +34,14 @@ type WordKey = (
   ayahText?: string,
 ) => void;
 
+/** Minimal ayah info emitted by the reader when saving from a word. */
+export type GlyphSaveTarget = {
+  ayahId: number;
+  surahId: number;
+  ayah: number;
+  text: string;
+};
+
 /**
  * GlyphPage — the authentic line-faithful Madani (QCF) renderer.
  *
@@ -49,11 +59,15 @@ type WordKey = (
 export function GlyphPage({
   lines,
   selectedAyahId,
+  isSaved,
+  onToggleSave,
   onWordClick,
   onWordKey,
 }: {
   lines: MushafLayoutLine[];
   selectedAyahId: number | null;
+  isSaved: (ayahId: number) => boolean;
+  onToggleSave: (target: GlyphSaveTarget) => void;
   onWordClick: WordClick;
   onWordKey: WordKey;
 }) {
@@ -71,27 +85,68 @@ export function GlyphPage({
     }
   }
 
-  const renderWord = (word: MushafLayoutGlyph) => (
-    <span
-      key={word.word_key}
-      className="qb-glyph-word"
-      role="button"
-      tabIndex={0}
-      aria-label={`تحليل الكلمة: ${word.text ?? ""}`}
-      onClick={(event) => {
-        event.stopPropagation();
-        onWordClick(word.surah, word.ayah, word.word_position, word.text ?? "", event, ayahTextById.get(word.ayah_id));
-      }}
-      onKeyDown={(event) => {
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
+  // The last word of each ayah that COMPLETES on this page carries the end-of-
+  // ayah marker (its glyph includes the number). We anchor a save toggle there,
+  // mirroring the simple reader's bookmark after ﴿n﴾. A word is an ayah end when
+  // the next word in reading order belongs to a different ayah — a trailing
+  // ayah that spills onto the next page is intentionally left for that page.
+  const ayahEndKeys = new Set<string | number>();
+  const flat = lines.flatMap((line) => line.words ?? []);
+  for (let i = 0; i < flat.length - 1; i++) {
+    if (flat[i + 1].ayah_id !== flat[i].ayah_id) ayahEndKeys.add(flat[i].word_key);
+  }
+
+  const renderWord = (word: MushafLayoutGlyph) => {
+    const glyph = (
+      <span
+        className="qb-glyph-word"
+        role="button"
+        tabIndex={0}
+        aria-label={`تحليل الكلمة: ${word.text ?? ""}`}
+        onClick={(event) => {
           event.stopPropagation();
-          onWordKey(word.surah, word.ayah, word.word_position, word.text ?? "", event.currentTarget, ayahTextById.get(word.ayah_id));
-        }
-      }}
-      dangerouslySetInnerHTML={{ __html: word.glyph ?? "" }}
-    />
-  );
+          onWordClick(word.surah, word.ayah, word.word_position, word.text ?? "", event, ayahTextById.get(word.ayah_id));
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            event.stopPropagation();
+            onWordKey(word.surah, word.ayah, word.word_position, word.text ?? "", event.currentTarget, ayahTextById.get(word.ayah_id));
+          }
+        }}
+        dangerouslySetInnerHTML={{ __html: word.glyph ?? "" }}
+      />
+    );
+
+    if (!ayahEndKeys.has(word.word_key)) return <Fragment key={word.word_key}>{glyph}</Fragment>;
+
+    const saved = isSaved(word.ayah_id);
+    // The bookmark is absolutely positioned so it never changes the line's
+    // intrinsic width (which the fit measurement relies on).
+    return (
+      <span key={word.word_key} className="qb-glyph-end">
+        {glyph}
+        <button
+          type="button"
+          className={`qb-glyph-save${saved ? " on" : ""}`}
+          aria-label={saved ? "إزالة من الدفتر" : "حفظ في الدفتر"}
+          aria-pressed={saved}
+          title={saved ? "محفوظة في الدفتر" : "حفظ الآية في الدفتر"}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleSave({
+              ayahId: word.ayah_id,
+              surahId: word.surah,
+              ayah: word.ayah,
+              text: ayahTextById.get(word.ayah_id) ?? word.text ?? "",
+            });
+          }}
+        >
+          <Icon name={saved ? "bookmarkFilled" : "bookmark"} size={12} />
+        </button>
+      </span>
+    );
+  };
 
   return (
     <div className={`qb-glyph-page${isOpeningPage ? " is-opening" : ""}`}>

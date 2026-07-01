@@ -469,6 +469,42 @@
   padding: 0 3px;
 }
 
+/* Save-ayah affordance in the glyph reader — parity with the simple reader.
+   Anchored to each completed ayah's end marker; absolutely positioned so it
+   never affects the justified line width the fit measurement depends on. */
+.qb-glyph-end {
+  position: relative;
+}
+
+.qb-glyph-save {
+  position: absolute;
+  top: 50%;
+  inset-inline-end: -1.15em;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--gold-400);
+  opacity: 0.4;
+  cursor: pointer;
+  transition: opacity 140ms var(--ease-out), color 140ms var(--ease-out);
+}
+
+.qb-glyph-save:hover,
+.qb-glyph-save:focus-visible {
+  opacity: 1;
+}
+
+.qb-glyph-save.on {
+  opacity: 1;
+  color: var(--gold-300);
+}
+
 /* ---------- Morph popover (stub data — Phase 6 wires real morphology) ---------- */
 
 .qb-morph-pop {

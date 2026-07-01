@@ -3,11 +3,24 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { QuranPageAyah } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
+
+/**
+ * The minimal shape needed to save an ayah. Both readers can produce it: the
+ * simple reader passes its QuranPageAyah (a superset); the glyph reader builds
+ * one from the clicked word + the surah catalog.
+ */
+export type SavableAyah = {
+  ayah_id: number;
+  mushaf_id: number;
+  surah_id: number;
+  surah: string;
+  ayah: number;
+  text: string;
+};
 
 /**
  * Tracks which ayāt the user has saved to the library (الدفتر) and lets the
@@ -40,7 +53,7 @@ export function useSavedAyat() {
   const isSaved = useCallback((ayahId: number) => byAyahId.has(ayahId), [byAyahId]);
 
   const toggle = useCallback(
-    async (ayah: QuranPageAyah) => {
+    async (ayah: SavableAyah) => {
       const existingId = byAyahId.get(ayah.ayah_id);
       if (existingId != null) {
         setByAyahId((prev) => {
