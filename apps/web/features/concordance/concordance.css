@@ -20,6 +20,19 @@
   border-inline-end: 1px solid var(--divider);
   display: flex;
   flex-direction: column;
+  animation: qbPanelIn var(--dur) var(--ease-out);
+}
+
+/* Side panels settle in with a fade + a short horizontal glide as they open. */
+@keyframes qbPanelIn {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* Tighten the aux page padding inside the compact panel */
@@ -74,6 +87,7 @@
   min-height: 0;
   overflow: hidden;
   backdrop-filter: blur(14px);
+  animation: qbPanelIn var(--dur) var(--ease-out);
 }
 
 .light .qb-side-panel {
@@ -234,6 +248,10 @@
   position: relative;
   width: 100%;
   text-align: start;
+  /* Results mount with a staggered fade + rise. `backwards` (not forwards) so the
+     completed animation never locks `transform` and break the hover lift. */
+  animation: qbRise var(--dur) var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 35ms);
 }
 
 .light .qb-verse-row {

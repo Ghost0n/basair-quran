@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -194,7 +194,7 @@ export function ConcordancePanel() {
                 {result.root}
               </div>
             ) : null}
-            {result.verses.map((verse) => {
+            {result.verses.map((verse, verseIndex) => {
               const selectionKey = getVerseSelectionKey(result.result_key, verse);
               const isSelected = selectionKey === state.selectedVerseKey;
               const isPinned = pinnedAyahIds.has(verse.ayah_id);
@@ -207,6 +207,7 @@ export function ConcordancePanel() {
                 <div
                   key={selectionKey}
                   className={`qb-verse-row${isSelected ? " selected" : ""}`}
+                  style={{ "--i": Math.min(verseIndex, 12) } as CSSProperties}
                   role="button"
                   tabIndex={0}
                   aria-pressed={isSelected}
