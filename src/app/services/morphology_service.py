@@ -79,6 +79,41 @@ CASE_LABELS = {
     "GEN": "مجرور",
 }
 
+# Readable Arabic for the grammatical features worth surfacing (السمات). QAC
+# codes not listed here are intentionally dropped: POS echoes already shown as
+# القسم (e.g. "P" for a preposition), segment structure (PREF/SUFF/PRON), verb
+# form numbers, and lemma families — so the line only shows relevant الصرف info.
+FEATURE_LABELS = {
+    # aspect / voice / derivation
+    "PERF": "ماضٍ", "IMPF": "مضارع", "IMPV": "أمر",
+    "PASS": "مبنيّ للمجهول", "ACT_PCPL": "اسم فاعل", "PASS_PCPL": "اسم مفعول",
+    # mood (verb i‘rāb)
+    "MOOD:IND": "مرفوع", "MOOD:SUBJ": "منصوب", "MOOD:JUS": "مجزوم",
+    # person
+    "1S": "المتكلّم", "1P": "المتكلّمون",
+    "2MS": "المخاطَب", "2FS": "المخاطَبة", "2MP": "المخاطَبون", "2FP": "المخاطَبات",
+    "2MD": "المخاطَبان", "2FD": "المخاطَبتان",
+    "3MS": "الغائب", "3FS": "الغائبة", "3MP": "الغائبون", "3FP": "الغائبات",
+    "3MD": "الغائبان", "3FD": "الغائبتان",
+    # gender / number (nouns)
+    "M": "مذكّر", "F": "مؤنّث",
+    "MS": "مفرد مذكّر", "FS": "مفرد مؤنّث",
+    "MD": "مثنّى مذكّر", "FD": "مثنّى مؤنّث",
+    "MP": "جمع مذكّر", "FP": "جمع مؤنّث",
+    # definiteness
+    "INDEF": "نكرة", "DEF": "معرفة",
+}
+
+
+def _label_features(flags: list[str]) -> list[str]:
+    """Translate QAC feature codes to readable Arabic, dropping noise/redundant codes."""
+    labels: list[str] = []
+    for flag in flags:
+        label = FEATURE_LABELS.get(flag)
+        if label and label not in labels:
+            labels.append(label)
+    return labels
+
 
 def _parse_features(raw: str) -> dict:
     root = None
@@ -123,7 +158,7 @@ def _aggregate_word(segments: list[dict]) -> dict:
         "pos_label": POS_LABELS.get(pos, pos),
         "case": features["case"],
         "case_label": CASE_LABELS.get(features["case"]) if features["case"] else None,
-        "features": features["flags"],
+        "features": _label_features(features["flags"]),
     }
 
 

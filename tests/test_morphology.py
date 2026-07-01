@@ -23,6 +23,19 @@ def test_morphology_validates_surah_bounds(api_client):
     assert response.status_code == 422
 
 
+def test_morphology_features_are_readable(api_client):
+    # السمات shows readable Arabic, never raw QAC codes, and drops POS echoes.
+    # مِن (preposition): its only QAC "feature" is "P" (its own POS) → nothing to show.
+    preposition = api_client.get("/api/morphology", params={"surah": 3, "ayah": 4}).json()["words"][0]
+    assert preposition["features"] == []
+    # نَزَّلَ (verb): raw "PERF|VF:2|3MS" → readable aspect + person, no raw codes.
+    verb = api_client.get("/api/morphology", params={"surah": 3, "ayah": 3}).json()["words"][0]
+    assert "ماضٍ" in verb["features"]
+    assert "PERF" not in verb["features"] and "3MS" not in verb["features"]
+    # No feature label contains Latin letters (i.e. no untranslated code leaked).
+    assert not any(any("a" <= ch.lower() <= "z" for ch in feat) for feat in verb["features"])
+
+
 def test_normalize_signature_folds_across_riwayat():
     from src.app.services.morphology_service import normalize_signature
 
