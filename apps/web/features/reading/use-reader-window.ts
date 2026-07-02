@@ -11,9 +11,9 @@ import { useMushaf } from "./mushaf-context";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
-// Bound the loaded window so the DOM stays light. No pruning in this pass — once
-// the cap is reached, auto-loading pauses; the footer (or a surah/juz jump)
-// re-anchors and starts a fresh window. Windowed virtualization is future work.
+// Bound the loaded window so the DOM stays light. Once the cap is reached the
+// window SLIDES: growing one edge prunes the far edge, so endless scrolling
+// keeps a constant-size DOM. Anchor compensation keeps the view still.
 const MAX_PAGES = 12;
 
 export type ScrollControls = { scrollByPage: (delta: number) => void };
@@ -31,16 +31,21 @@ const pageOf = (data: QuranPageResponse) => data.page ?? 0;
 
 /**
  * useReaderWindow — the shared engine behind the continuous readers (scroll +
- * ayah). It keeps a bounded window of fetched pages around an anchor, streams
+ * ayah). It keeps a sliding window of fetched pages around an anchor, streams
  * neighbours in by scroll proximity (plus a fill pass for short/initial pages),
- * compensates scrollTop on prepend so the view never jumps, tracks the
- * top-of-viewport page (→ footer + persisted last page via `setActivePage`), and
- * registers a `scrollByPage` control for the footer prev/next.
+ * prunes the far edge past the cap, tracks the top-of-viewport page (→ footer +
+ * persisted last page via `setActivePage`), and registers a `scrollByPage`
+ * control for the footer prev/next.
+ *
+ * View stability uses ANCHOR compensation: before a window mutation the active
+ * page element's viewport offset is recorded; after render, scrollTop is nudged
+ * so that element sits exactly where it was. This is exact for every case —
+ * prepend, append, and a prune at either edge — unlike height arithmetic.
  *
  * The consuming component owns the scroll element (`mushaf.bodyRef`) and must
  * render each page inside a `.qb-scroll-page[data-page="N"]` wrapper — the DOM
- * contract this hook reads for page tracking and jumps. How the ayahs inside are
- * laid out (flowing text vs one card per ayah) is entirely the component's call.
+ * contract this hook reads for page tracking, jumps, and anchoring. How the
+ * ayahs inside are laid out is entirely the component's call.
  */
 export function useReaderWindow({
   mushafId,
@@ -57,34 +62,46 @@ export function useReaderWindow({
   const loadingRef = useRef<Set<number>>(new Set());
   const prevMushafRef = useRef(mushafId);
 
-  // Scroll-compensation bookkeeping: keep the first-visible page fixed when a
-  // page is prepended above it (adding height above the viewport would jump it).
-  const preScrollRef = useRef<{ height: number; top: number } | null>(null);
-  const firstPageRef = useRef<number | null>(anchorData.page ?? null);
+  // Anchor bookkeeping: the active page element's viewport top, captured just
+  // before a window mutation, restored (via scrollTop) just after it renders.
+  const anchorPosRef = useRef<{ page: number; top: number } | null>(null);
 
   // The page currently at the top of the viewport (drives footer + prev/next).
   const activePageRef = useRef<number>(anchorData.page ?? 1);
   const hasScrolledRef = useRef(false);
 
-  // Fetch a neighbour into the window (dedup + cap guarded). `side` records which
-  // edge grew, so the layout effect can compensate a top insertion.
+  // Fetch a neighbour into the window (dedup guarded); growing past the cap
+  // prunes the opposite edge so the window slides instead of stalling.
   const loadNeighbour = useCallback(
     async (page: number, side: "top" | "bottom") => {
       if (page < 1 || page > totalPages) return;
       if (loadingRef.current.has(page)) return;
       if (pagesRef.current.some((pg) => pageOf(pg) === page)) return;
-      if (pagesRef.current.length >= MAX_PAGES) return;
       loadingRef.current.add(page);
       try {
         const data = await api.getQuranPage(mushafId, page);
         if (!data.found || data.mushaf_id !== mushafId) return;
         const el = mushaf.bodyRef.current;
-        if (el && side === "top") {
-          preScrollRef.current = { height: el.scrollHeight, top: el.scrollTop };
+        if (el) {
+          // Capture the anchor before React commits the new window.
+          const node = el.querySelector<HTMLElement>(
+            `.qb-scroll-page[data-page="${activePageRef.current}"]`,
+          );
+          if (node) {
+            anchorPosRef.current = {
+              page: activePageRef.current,
+              top: node.getBoundingClientRect().top,
+            };
+          }
         }
         setPages((prev) => {
           if (prev.some((pg) => pageOf(pg) === page)) return prev;
-          return [...prev, data].sort((a, b) => pageOf(a) - pageOf(b));
+          let next = [...prev, data].sort((a, b) => pageOf(a) - pageOf(b));
+          if (next.length > MAX_PAGES) {
+            // Slide: drop the page farthest from the growing edge.
+            next = side === "bottom" ? next.slice(next.length - MAX_PAGES) : next.slice(0, MAX_PAGES);
+          }
+          return next;
         });
       } catch {
         /* a failed neighbour just isn't added; the reader stays usable */
@@ -105,8 +122,7 @@ export function useReaderWindow({
     const inWindow = !mushafChanged && pagesRef.current.some((pg) => pageOf(pg) === page);
     if (inWindow) return;
     loadingRef.current.clear();
-    preScrollRef.current = null;
-    firstPageRef.current = page;
+    anchorPosRef.current = null;
     activePageRef.current = page;
     hasScrolledRef.current = false;
     setPages([anchorData]);
@@ -115,17 +131,16 @@ export function useReaderWindow({
     });
   }, [anchorData, mushafId, mushaf.bodyRef]);
 
-  // Compensate scrollTop after a prepend so the previously-first page stays put.
+  // Restore the anchor page to its pre-mutation viewport position.
   useLayoutEffect(() => {
     const el = mushaf.bodyRef.current;
-    const newFirst = pages.length ? pageOf(pages[0]) : null;
-    const prevFirst = firstPageRef.current;
-    if (el && prevFirst != null && newFirst != null && newFirst < prevFirst && preScrollRef.current) {
-      const delta = el.scrollHeight - preScrollRef.current.height;
-      el.scrollTop = preScrollRef.current.top + delta;
-    }
-    firstPageRef.current = newFirst;
-    preScrollRef.current = null;
+    const anchor = anchorPosRef.current;
+    anchorPosRef.current = null;
+    if (!el || !anchor) return;
+    const node = el.querySelector<HTMLElement>(`.qb-scroll-page[data-page="${anchor.page}"]`);
+    if (!node) return; // anchor got pruned (shouldn't happen — it's in view)
+    const delta = node.getBoundingClientRect().top - anchor.top;
+    if (delta !== 0) el.scrollTop += delta;
   }, [pages, mushaf.bodyRef]);
 
   // On scroll: (1) mark the top-of-viewport page active (footer + persistence),
@@ -155,8 +170,7 @@ export function useReaderWindow({
         }
       }
       const loaded = pagesRef.current;
-      if (loaded.length >= MAX_PAGES) return;
-      // Approaching the bottom → append the next page.
+      // Approaching the bottom → append the next page (window slides if full).
       if (el.scrollHeight - (el.scrollTop + el.clientHeight) < 700) {
         void loadNeighbour(Math.max(...loaded.map(pageOf)) + 1, "bottom");
       }
@@ -188,7 +202,7 @@ export function useReaderWindow({
   }, [pages, loadNeighbour, totalPages, mushaf.bodyRef]);
 
   // Footer prev/next → smooth scroll to the adjacent page. If it isn't loaded
-  // (beyond the cap), re-anchor through the shared loader.
+  // (beyond the window), re-anchor through the shared loader.
   useEffect(() => {
     const scrollByPage = (delta: number) => {
       const target = activePageRef.current + delta;
