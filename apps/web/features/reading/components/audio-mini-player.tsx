@@ -4,15 +4,17 @@ import { Icon } from "@/components/icon";
 import { useRecitation } from "@/features/recitation/recitation-context";
 
 /**
- * Inline audio mini-player in the Mushaf footer. Plays the first ayah of
- * the current page through the global recitation element; shows live
- * progress while a recitation is running.
+ * Footer "play this page" chip. Starts recitation from the page's first ayah
+ * through the global recitation element; once playing, the floating media bar
+ * owns the transport, progress, and reciter identity — this chip stays a
+ * contextual shortcut (and a pause toggle while its own ayah is playing).
  */
 export function AudioMiniPlayer({ surah, ayah }: { surah?: number; ayah?: number }) {
   const recitation = useRecitation();
   const playable = typeof surah === "number" && typeof ayah === "number";
   const isThisAyah =
     recitation.current?.surah === surah && recitation.current?.ayah === ayah;
+  const isPlayingHere = isThisAyah && recitation.isPlaying;
 
   function onClick() {
     if (!playable) return;
@@ -24,20 +26,17 @@ export function AudioMiniPlayer({ surah, ayah }: { surah?: number; ayah?: number
   }
 
   return (
-    <span className="qb-audio" title="التلاوة الصوتية">
+    <span className="qb-audio" title="تلاوة من بداية الصفحة">
       <button
         type="button"
         className="play"
         onClick={onClick}
         disabled={!playable}
-        aria-label={isThisAyah && recitation.isPlaying ? "إيقاف التلاوة" : "تشغيل التلاوة"}
+        aria-label={isPlayingHere ? "إيقاف التلاوة" : "تشغيل التلاوة من هذه الصفحة"}
       >
-        <Icon name={isThisAyah && recitation.isPlaying ? "pause" : "play"} size={11} />
+        <Icon name={isPlayingHere ? "pause" : "play"} size={11} />
       </button>
-      <span className="label">{recitation.reciter ? recitation.reciter.name : "التلاوة"}</span>
-      <span className="progress" aria-hidden>
-        <span style={{ width: isThisAyah ? `${Math.round(recitation.progress * 100)}%` : "0%" }} />
-      </span>
+      <span className="label">تلاوة الصفحة</span>
     </span>
   );
 }

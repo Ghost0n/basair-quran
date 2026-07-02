@@ -963,21 +963,6 @@
   opacity: 0.6;
 }
 
-.qb-audio .progress {
-  width: 80px;
-  height: 3px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.qb-audio .progress span {
-  display: block;
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, var(--gold-300), var(--gold-500));
-}
-
 /* ---------- Loading / empty / error ---------- */
 
 .qb-mushaf-state {
