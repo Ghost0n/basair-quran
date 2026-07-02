@@ -164,16 +164,16 @@ export function useStudioSessions() {
     [active, patchSession],
   );
 
-  const submit = useCallback(
-    async (content: string, mushaf: number) => {
+  const submitInto = useCallback(
+    async (target: StudioSession, content: string, mushaf: number) => {
       const trimmed = content.trim();
-      if (!trimmed || !active || isResearching) return;
+      if (!trimmed || isResearching) return;
 
-      const priorMessages = active.messages;
+      const priorMessages = target.messages;
       const userMessage: StudioMessage = { role: "user", content: trimmed };
-      const titleFromFirst = priorMessages.length === 0 ? trimmed.slice(0, 48) : active.title;
+      const titleFromFirst = priorMessages.length === 0 ? trimmed.slice(0, 48) : target.title;
 
-      patchSession(active.id, {
+      patchSession(target.id, {
         messages: [...priorMessages, userMessage],
         title: titleFromFirst,
       });
@@ -192,8 +192,8 @@ export function useStudioSessions() {
             mushaf: Number.isFinite(mushaf) && mushaf > 0 ? Math.trunc(mushaf) : 1,
             max_results: 8,
             answer_language: "auto",
-            response_mode: active.mode,
-            tafssir_depth: active.mode === "tafssir" ? active.depth : undefined,
+            response_mode: target.mode,
+            tafssir_depth: target.mode === "tafssir" ? target.depth : undefined,
           },
           { headers: buildResearchHeaders(clientSettings) },
         );
@@ -204,15 +204,15 @@ export function useStudioSessions() {
         ];
         setSessions((current) =>
           current.map((session) =>
-            session.id === active.id ? { ...session, messages: nextMessages } : session,
+            session.id === target.id ? { ...session, messages: nextMessages } : session,
           ),
         );
         // Persist the session to the user-data store (Phase 5 — Companions).
         try {
           await api.saveSession({
-            id: active.id,
+            id: target.id,
             title: titleFromFirst,
-            mode: active.mode,
+            mode: target.mode,
             messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
           });
         } catch {
@@ -224,7 +224,28 @@ export function useStudioSessions() {
         setIsResearching(false);
       }
     },
-    [active, isResearching, clientSettings, patchSession],
+    [isResearching, clientSettings, patchSession],
+  );
+
+  const submit = useCallback(
+    (content: string, mushaf: number) => {
+      if (!active) return Promise.resolve();
+      return submitInto(active, content, mushaf);
+    },
+    [active, submitInto],
+  );
+
+  // A hand-off ask (command bar / Home) opens its own fresh session so it can't
+  // inherit an existing thread's mode or context. `submitInto` updates by id, so
+  // submitting before the state flush is safe.
+  const askInNewSession = useCallback(
+    (content: string, mushaf: number) => {
+      const session = createSession();
+      setSessions((current) => [...current, session]);
+      setActiveId(session.id);
+      return submitInto(session, content, mushaf);
+    },
+    [submitInto],
   );
 
   return {
@@ -241,5 +262,6 @@ export function useStudioSessions() {
     setMode,
     setDepth,
     submit,
+    askInNewSession,
   };
 }

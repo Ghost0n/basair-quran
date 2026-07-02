@@ -61,11 +61,11 @@ export function StudioPanel() {
     void studio.submit(content, state.selectedMushaf);
   }
 
-  // A prefilled ask (from the command bar or the Home "اسأل" bar) submits into
-  // the active session. `askRef` always holds the latest submit binding so the
-  // deferred drain targets the restored session, not the mount's throwaway one.
+  // A prefilled ask (from the command bar or the Home "اسأل" bar) opens a FRESH
+  // session — it must not inherit an existing thread's mode/context. `askRef`
+  // always holds the latest binding so the deferred drain uses live settings.
   const askRef = useRef<(question: string) => void>(() => {});
-  askRef.current = (question) => void studio.submit(question, state.selectedMushaf);
+  askRef.current = (question) => void studio.askInNewSession(question, state.selectedMushaf);
 
   useEffect(() => {
     const drain = () => {
