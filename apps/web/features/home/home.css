@@ -9,13 +9,19 @@
   min-height: 0;
   overflow-y: auto;
   display: flex;
-  justify-content: center;
-  padding: 0 24px 40px;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--sp-6) 24px var(--sp-10);
 }
 
 .qb-home-inner {
   width: 100%;
   max-width: 720px;
+  /* Scroll-safe vertical centering: the stack settles into the optical middle
+     so the verse commands the room; on short viewports the auto-margins collapse
+     to 0 and the column scrolls normally from the top (justify-content:center
+     would clip the top out of reach). */
+  margin-block: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -31,9 +37,10 @@
   align-items: center;
   gap: 10px;
   text-align: center;
-  /* The hero carries the page's breathing room; 8vh keeps the fold generous at
-     1080 and honest at short heights. */
-  padding-block: clamp(var(--sp-8), 8vh, var(--sp-16)) 0;
+  /* The column is vertically centered by .qb-home-inner's auto-margins, so the
+     hero no longer carries the page's breathing room itself — a small bottom
+     gap seats it above the ask bar. */
+  padding-block: 0 var(--sp-1);
 }
 
 /* The brand, whispered — the shell rail carries the seal; the wordmark appears
