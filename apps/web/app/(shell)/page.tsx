@@ -31,8 +31,11 @@ function WorkspacePage() {
       return <CompanionCanvas><LibraryScreen initialTab="sessions" /></CompanionCanvas>;
     case "roots":
       return <CompanionCanvas><LibraryScreen initialTab="roots" /></CompanionCanvas>;
+    // Settings is a full-width page (like the heatmap), not a companion beside
+    // the Mushaf: its multi-column card grid was designed for the wide canvas,
+    // and you don't read while configuring.
     case "settings":
-      return <CompanionCanvas><SettingsScreen /></CompanionCanvas>;
+      return <SettingsScreen />;
     case "heatmap":
       return <HeatmapScreen />;
     default:

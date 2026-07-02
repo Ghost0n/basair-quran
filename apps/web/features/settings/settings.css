@@ -7,9 +7,16 @@
   min-height: 0;
   overflow-y: auto;
   padding: 32px 40px 56px;
+  /* Full-width page: centre the content column at its design measure so the
+     card grid breathes on a wide canvas instead of hugging one edge. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .qb-settings-h {
+  width: 100%;
+  max-width: 980px;
   margin-bottom: 24px;
 }
 
@@ -36,6 +43,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 16px;
+  width: 100%;
   max-width: 980px;
 }
 
