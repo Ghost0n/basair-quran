@@ -314,6 +314,14 @@
   position: relative;
 }
 
+/* Authentic page in the scroll column: the wrapper is the width budget for
+   useGlyphFitWidth and centres the pinned-width page (tall page, big text). */
+.qb-glyph-scroll-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0;
+}
+
 /* A quiet page-break marker between successive pages: the page number centred
    on a tapered gold rule. */
 .qb-scroll-page-mark {

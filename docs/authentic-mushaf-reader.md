@@ -121,16 +121,23 @@ account preferences. `reader_layout` values:
 | `auto` (default) | Resolves per viewport, recomputing on resize: phones (<768px) → `scroll`; tablet/desktop → paged (spread on wide authentic Hafs, single otherwise). | either |
 | `single` | One fit‑to‑height page, centred. Forces single even on a wide authentic Hafs screen. | either |
 | `spread` | Two facing pages, fit‑to‑height. Authentic Hafs only — degrades to `single` otherwise. | authentic |
-| `scroll` | Continuous vertical scroll of stacked pages inside the reader viewport (the document never scrolls). Neighbours stream in on scroll; the top‑of‑viewport page drives the footer + persisted last page. | Unicode |
+| `scroll` | Continuous vertical scroll of stacked pages inside the reader viewport (the document never scrolls). Neighbours stream in on scroll; the top‑of‑viewport page drives the footer + persisted last page. | either |
 | `ayah` | One verse per row (number chip · verse · save), surah banner + basmala at surah starts. Same continuous windowing as `scroll`. | Unicode |
 
 `MushafStage` is a dispatcher: `PagedReader` (single/spread/auto), `ScrollReader`, and
-`AyahReader`. The two continuous readers share the `useReaderWindow` hook (bounded
-12‑page window, scroll‑proximity + fill loading, prepend scroll‑compensation, footer
-sync). The switcher lives in Quick Settings; **صفحتان** is gated on authentic Hafs.
+`AyahReader`. The two continuous readers share the `useReaderWindow` hook: a
+**sliding** 12‑page window (scroll‑proximity + fill loading; growing one edge prunes
+the far edge) kept visually still by anchor compensation — the active page element's
+viewport offset is captured before each mutation and restored after render. The
+switcher lives in Quick Settings; **صفحتان** is gated on authentic Hafs.
 
-**Not yet done:** `scroll`/`ayah` render the Unicode reader for every riwāyah —
-authentic glyph pages are not yet fit‑to‑**width** for the scroll column
-(`useGlyphFitWidth` is future work); windowed virtualization (pruning far pages) is
-also deferred (the window is currently capped, not pruned). Word tokens are each a tab
-stop — a roving‑tabindex pass is future a11y work.
+In authentic `scroll`, each windowed page fetches its own QCF layout + page font and
+renders fit‑to‑**width** (`useGlyphFitWidth`: the widest printed line fills the column,
+upscaling allowed, the page grows tall); the Unicode flow stands in per page until the
+font is ready and stays for non‑Ḥafṣ (endpoint fallback). Keyboard: a page is ONE tab
+stop — words are roving‑focus (`useWordNav`: arrows walk words, Home/End, Escape).
+
+**Not yet done:** `ayah` mode stays Unicode by design (per‑ayah glyph rendering would
+need word‑run slicing of page layouts); a session ask always lands in a fresh Studio
+session but the Home ask bar still treats every input as a question (no search
+fallback).

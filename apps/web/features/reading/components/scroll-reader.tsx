@@ -1,27 +1,38 @@
 "use client";
 
+import { useRef } from "react";
+
 import type { QuranPageAyah, QuranPageResponse } from "@q-basair/shared";
 
 import { useNumerals } from "@/lib/preferences-context";
 
 import { AyatFlow, type WordClickHandler, type WordKeyHandler } from "./ayat-flow";
+import { GlyphPage, type GlyphSaveTarget } from "./glyph-page";
 import { MorphPopover, type MorphTarget } from "./morph-popover";
 import { useMushaf } from "../mushaf-context";
+import { useMushafLayout } from "../use-mushaf-layout";
+import { useGlyphFitWidth } from "../use-glyph-fit-width";
 import { useReaderWindow, type ScrollControls } from "../use-reader-window";
 import { useWordNav } from "../use-word-nav";
 
 export type { ScrollControls };
 
-type ScrollReaderProps = {
+type SharedHandlers = {
+  selectedAyahId: number | null;
+  isSaved: (ayahId: number) => boolean;
+  onToggleSave: (ayah: QuranPageAyah) => void;
+  onGlyphSave: (target: GlyphSaveTarget) => void;
+  onWordClick: WordClickHandler;
+  onWordKey: WordKeyHandler;
+};
+
+type ScrollReaderProps = SharedHandlers & {
   mushafId: number;
   /** The current anchor page (MushafStage's pageData); a far jump resets the window. */
   anchorData: QuranPageResponse;
   totalPages: number;
-  selectedAyahId: number | null;
-  isSaved: (ayahId: number) => boolean;
-  onToggleSave: (ayah: QuranPageAyah) => void;
-  onWordClick: WordClickHandler;
-  onWordKey: WordKeyHandler;
+  /** Authentic QCF rendering is on (Ḥafṣ) — sections try the glyph layout. */
+  authentic: boolean;
   morphTarget: MorphTarget | null;
   onClearMorph: () => void;
   registerControls: (controls: ScrollControls | null) => void;
@@ -33,16 +44,20 @@ type ScrollReaderProps = {
  * edge (see `useReaderWindow`). The document never scrolls (the app-shell caps
  * height); only this viewport does.
  *
- * Renders the Unicode reader for every riwāyah — authentic glyph pages are not
- * yet fit-to-width in scroll mode (future work), so scroll degrades to Unicode.
+ * In authentic mode each windowed page fetches its own QCF layout and renders
+ * the glyph page fit-to-WIDTH (`useGlyphFitWidth` — tall pages, big text); the
+ * Unicode flow stands in per page until its layout + font are ready, and stays
+ * for non-Ḥafṣ riwāyāt (the endpoint falls back), exactly like the paged reader.
  */
 export function ScrollReader({
   mushafId,
   anchorData,
   totalPages,
+  authentic,
   selectedAyahId,
   isSaved,
   onToggleSave,
+  onGlyphSave,
   onWordClick,
   onWordKey,
   morphTarget,
@@ -65,11 +80,14 @@ export function ScrollReader({
     >
       {pages.map((pg) => (
         <section className="qb-scroll-page" data-page={pg.page ?? 0} key={`${mushafId}-${pg.page ?? 0}`}>
-          <AyatFlow
-            ayahs={pg.ayahs}
+          <ScrollPageBody
+            data={pg}
+            mushafId={mushafId}
+            authentic={authentic}
             selectedAyahId={selectedAyahId}
             isSaved={isSaved}
             onToggleSave={onToggleSave}
+            onGlyphSave={onGlyphSave}
             onWordClick={onWordClick}
             onWordKey={onWordKey}
           />
@@ -80,5 +98,58 @@ export function ScrollReader({
       ))}
       {morphTarget ? <MorphPopover target={morphTarget} onClose={onClearMorph} /> : null}
     </div>
+  );
+}
+
+/**
+ * One page of the scroll column. Authentic mode tries the QCF layout (own fetch
+ * + font gate per page — `useMushafLayout` prefetches neighbours, so walking the
+ * window warms the next fonts); until it's usable, or off-Ḥafṣ where it never
+ * becomes usable, the Unicode flow renders. The glyph page is scaled to fill the
+ * column width and centred by the wrapper.
+ */
+function ScrollPageBody({
+  data,
+  mushafId,
+  authentic,
+  selectedAyahId,
+  isSaved,
+  onToggleSave,
+  onGlyphSave,
+  onWordClick,
+  onWordKey,
+}: SharedHandlers & { data: QuranPageResponse; mushafId: number; authentic: boolean }) {
+  const { layout } = useMushafLayout({
+    enabled: authentic,
+    mushafId,
+    page: data.page,
+  });
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  useGlyphFitWidth(wrapRef, [layout]);
+
+  if (authentic && layout?.lines) {
+    return (
+      <div className="qb-glyph-scroll-wrap" ref={wrapRef}>
+        <GlyphPage
+          lines={layout.lines}
+          selectedAyahId={selectedAyahId}
+          isSaved={isSaved}
+          onToggleSave={onGlyphSave}
+          onWordClick={onWordClick}
+          onWordKey={onWordKey}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <AyatFlow
+      ayahs={data.ayahs}
+      selectedAyahId={selectedAyahId}
+      isSaved={isSaved}
+      onToggleSave={onToggleSave}
+      onWordClick={onWordClick}
+      onWordKey={onWordKey}
+    />
   );
 }

@@ -150,7 +150,9 @@ export function MushafStage() {
   const pagedMode: "auto" | "single" | "spread" =
     effectiveLayout === "single" ? "single" : effectiveLayout === "spread" ? "spread" : "auto";
 
-  // Authentic glyph layout is a paged-only concern — scroll & ayah render Unicode.
+  // The stage-level layout fetch serves the PAGED reader only. In scroll mode
+  // each windowed section fetches its own page layout (fit-to-width); the ayah
+  // list stays Unicode by design.
   const { layout } = useMushafLayout({
     enabled: authentic && !continuousMode,
     mushafId: pageData?.mushaf_id,
@@ -296,9 +298,11 @@ export function MushafStage() {
           mushafId={selectedMushaf}
           anchorData={pageData}
           totalPages={totalPages}
+          authentic={authentic}
           selectedAyahId={mushaf.selectedAyahId}
           isSaved={saved.isSaved}
           onToggleSave={saved.toggle}
+          onGlyphSave={handleGlyphSave}
           onWordClick={handleWordClick}
           onWordKey={handleWordKey}
           morphTarget={morphTarget}
