@@ -143,13 +143,16 @@ export function useReaderWindow({
     if (delta !== 0) el.scrollTop += delta;
   }, [pages, mushaf.bodyRef]);
 
-  // LATE content swaps (a section above the viewport growing after its commit —
-  // e.g. the Unicode placeholder swapping to taller glyphs once the page font
-  // lands) are covered by the browser's native CSS scroll anchoring
-  // (overflow-anchor, on by default), measured exact here. Do NOT add a manual
-  // ResizeObserver correction on top — it double-compensates with the native
-  // one. The layout-effect above is still required for React window mutations:
-  // it corrects pre-paint, so native anchoring sees no displacement afterwards.
+  // LATE content swaps (a section above the viewport growing after its commit)
+  // are covered differently per path. Unicode column: the browser's native CSS
+  // scroll anchoring (overflow-anchor, on by default) compensates exactly — do
+  // NOT add a manual ResizeObserver correction on top; it double-compensates
+  // with the native one (measured). Authentic glyph column: the fit hook writes
+  // `width` on the pages, which SUPPRESSES native anchoring — so
+  // useGlyphFitWidth carries its own pre-paint anchor around every refit
+  // (including the font swap-in that triggers it). The layout-effect above is
+  // still required for React window mutations: it corrects pre-paint, so
+  // whichever late-swap mechanism follows sees no displacement.
 
   // On scroll: (1) mark the top-of-viewport page active (footer + persistence),
   // and (2) stream neighbours in by proximity. Scroll-driven loading is used

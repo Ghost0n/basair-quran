@@ -305,9 +305,11 @@
 
 /* The page itself is the scroller (base already sets overflow-y:auto); pages
    stack as normal block flow — no glyph centring. scroll-padding keeps a page
-   from tucking under the top padding when the footer pager jumps to it. */
+   from tucking under the top padding when the footer pager jumps to it; the
+   stable gutter keeps the fit width from oscillating with the scrollbar. */
 .qb-mushaf-page.is-scroll {
   scroll-padding-top: 8px;
+  scrollbar-gutter: stable;
 }
 
 .qb-scroll-page {

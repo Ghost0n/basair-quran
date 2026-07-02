@@ -1,7 +1,5 @@
 "use client";
 
-import { useRef } from "react";
-
 import type { QuranPageAyah, QuranPageResponse } from "@q-basair/shared";
 
 import { useNumerals } from "@/lib/preferences-context";
@@ -68,6 +66,10 @@ export function ScrollReader({
   const formatNumber = useNumerals();
   const { pages } = useReaderWindow({ mushafId, anchorData, totalPages, registerControls });
   useWordNav(mushaf.bodyRef);
+  // ONE uniform fit for every glyph page in the column (identical card width and
+  // text scale — a muṣḥaf's leaves are physically identical). Mounted once;
+  // its own observers catch window slides and each page's async font arrival.
+  useGlyphFitWidth(mushaf.bodyRef);
 
   return (
     <div
@@ -124,12 +126,10 @@ function ScrollPageBody({
     mushafId,
     page: data.page,
   });
-  const wrapRef = useRef<HTMLDivElement | null>(null);
-  useGlyphFitWidth(wrapRef, [layout]);
 
   if (authentic && layout?.lines) {
     return (
-      <div className="qb-glyph-scroll-wrap" ref={wrapRef}>
+      <div className="qb-glyph-scroll-wrap">
         <GlyphPage
           lines={layout.lines}
           selectedAyahId={selectedAyahId}
