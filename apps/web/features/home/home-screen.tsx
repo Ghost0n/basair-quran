@@ -11,8 +11,9 @@ import { BrandMarkRich } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
-import { queueStudioAsk } from "@/lib/studio-prefill";
+import { looksLikeQuestion, queueStudioAsk } from "@/lib/studio-prefill";
 import { useShellMode, type ShellMode } from "@/features/shell/mode-context";
+import { useWorkspace } from "@/features/shell/workspace-context";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -54,6 +55,7 @@ export function HomeScreen() {
   const { setMode } = useShellMode();
   const { preferences } = usePreferences();
   const formatNumber = useNumerals();
+  const { actions } = useWorkspace();
 
   const [ask, setAsk] = useState("");
   const [lastPage, setLastPage] = useState<number | null>(null);
@@ -98,13 +100,24 @@ export function HomeScreen() {
     return () => window.clearInterval(timer);
   }, []);
 
+  // Same intent routing as the command bar: a natural-language question goes to
+  // the Studio; a short root/word/phrase runs as a search (URL-driven, so the
+  // workspace picks it up). The submit button label mirrors the detected intent.
+  const askIsQuestion = !ask.trim() || looksLikeQuestion(ask);
+
   function submitAsk(event: FormEvent) {
     event.preventDefault();
-    const question = ask.trim();
-    if (!question) return;
-    queueStudioAsk(question);
+    const value = ask.trim();
+    if (!value) return;
     setAsk("");
-    setMode("studio");
+    if (looksLikeQuestion(value)) {
+      queueStudioAsk(value);
+      setMode("studio");
+    } else {
+      // Runs through the shared workspace (same path as the command bar's
+      // example chips); the workspace-active effect switches the mode itself.
+      actions.runQuickExample({ query: value, mode: "exact" });
+    }
   }
 
   const ayah = ROTATING_AYAHS[ayahIndex];
@@ -125,12 +138,12 @@ export function HomeScreen() {
             type="text"
             value={ask}
             onChange={(event) => setAsk(event.target.value)}
-            placeholder="اسأل سؤالاً عن معنى أو موضوع في القرآن…"
-            aria-label="اسأل سؤالاً عن القرآن"
+            placeholder="اسأل سؤالاً… أو اكتب جذراً/كلمة للبحث"
+            aria-label="اسأل سؤالاً أو ابحث في القرآن"
             dir="rtl"
           />
           <button type="submit" disabled={!ask.trim()}>
-            اسأل
+            {askIsQuestion ? "اسأل" : "ابحث"}
           </button>
         </form>
 
