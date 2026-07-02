@@ -21,7 +21,7 @@
 }
 
 .qb-settings-h .kicker {
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -57,7 +57,7 @@
 .qb-setting-card h3 {
   font-family: var(--font-arabic-display);
   font-size: var(--fs-md);
-  color: var(--gold-400);
+  color: var(--gold-text);
   margin-bottom: 4px;
 }
 
@@ -174,7 +174,7 @@
 }
 
 .qb-setting-value {
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-family: var(--font-mono);
   font-size: 12px;
 }

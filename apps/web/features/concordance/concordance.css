@@ -80,7 +80,7 @@
 }
 
 .qb-side-head .kicker {
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -121,7 +121,7 @@
 }
 
 .qb-side-head .close:hover {
-  color: var(--gold-400);
+  color: var(--gold-text);
   background: rgba(212, 175, 55, 0.06);
   border-color: var(--border);
 }
@@ -145,7 +145,7 @@
 
 .qb-root-summary .root-disp {
   font-family: var(--font-arabic-display);
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 30px;
   line-height: 1;
   letter-spacing: 0.08em;
@@ -191,7 +191,7 @@
   border-radius: 8px;
   border: 1px solid rgba(212, 175, 55, 0.30);
   background: rgba(212, 175, 55, 0.08);
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -255,7 +255,7 @@
 }
 
 .qb-verse-row .vmeta .surah {
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-weight: 700;
 }
 
@@ -281,12 +281,12 @@
 }
 
 .qb-verse-row .vmeta .pin:hover {
-  color: var(--gold-400);
+  color: var(--gold-text);
   background: rgba(212, 175, 55, 0.08);
 }
 
 .qb-verse-row .vmeta .pin.on {
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 .qb-verse-row .vtext {
@@ -326,7 +326,7 @@
   border-radius: 8px;
   border: 1px solid var(--border);
   background: rgba(212, 175, 55, 0.06);
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -361,7 +361,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 16px;
-  color: var(--gold-400);
+  color: var(--gold-text);
   background: rgba(212, 175, 55, 0.08);
   border: 1px solid rgba(212, 175, 55, 0.20);
 }

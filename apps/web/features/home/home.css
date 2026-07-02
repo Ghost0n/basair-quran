@@ -75,7 +75,7 @@
   display: flex;
   align-items: center;
   gap: var(--sp-4);
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: var(--fs-sm);
 }
@@ -110,7 +110,7 @@
 }
 
 .qb-home-ask > svg {
-  color: var(--gold-400);
+  color: var(--gold-text);
   flex-shrink: 0;
 }
 
@@ -176,7 +176,7 @@
 }
 
 .qb-home-continue strong {
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-weight: 700;
 }
 
@@ -201,11 +201,11 @@
 }
 
 .qb-home-deskrow .stat svg {
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 .qb-home-deskrow .stat strong {
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-weight: 700;
 }
 
@@ -242,7 +242,7 @@
 
 .qb-home-card > svg {
   flex-shrink: 0;
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 .qb-home-card .title {
@@ -289,7 +289,7 @@
 .qb-home-recent .all {
   border: none;
   background: transparent;
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-family: var(--font-arabic-ui);
   font-size: var(--fs-xs);
   cursor: pointer;
@@ -314,7 +314,7 @@
 
 .qb-home-recent .row svg {
   flex-shrink: 0;
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 .qb-home-recent .row .title {

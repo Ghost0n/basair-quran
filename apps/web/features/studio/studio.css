@@ -43,7 +43,7 @@
 }
 
 .qb-studio-tab.active {
-  color: var(--gold-400);
+  color: var(--gold-text);
   background: rgba(212, 175, 55, 0.08);
   border-color: var(--border);
   margin-bottom: -1px;
@@ -185,7 +185,7 @@
 }
 
 .qb-msg.bot .lbl {
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -262,7 +262,7 @@
 }
 
 .qb-msg.bot .ev-row .num {
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 10px;
   font-weight: 700;
   font-family: var(--font-mono);
@@ -320,7 +320,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 12px;
 }
 
@@ -421,11 +421,11 @@
 }
 
 .qb-composer .tool-chip:hover {
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 .qb-composer .tool-chip.active {
-  color: var(--gold-400);
+  color: var(--gold-text);
   border-color: rgba(212, 175, 55, 0.30);
   background: rgba(212, 175, 55, 0.08);
 }

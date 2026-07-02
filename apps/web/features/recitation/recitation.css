@@ -108,7 +108,7 @@
   width: 30px;
   height: 30px;
   background: rgba(212, 175, 55, 0.1);
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 .qb-media-transport .nav:hover {
@@ -250,7 +250,7 @@
 }
 
 .qb-media-tools .chip.active {
-  color: var(--gold-400);
+  color: var(--gold-text);
   border-color: rgba(212, 175, 55, 0.4);
   background: rgba(212, 175, 55, 0.1);
 }
@@ -304,7 +304,7 @@
 .qb-reciter-sheet-head .kicker {
   font-size: 10px;
   letter-spacing: 0.14em;
-  color: var(--gold-400);
+  color: var(--gold-text);
   text-transform: uppercase;
 }
 

@@ -88,6 +88,12 @@
   --highlight-bg: rgba(212,175,55,0.22);
   --highlight-fg: var(--gold-300);
 
+  /* Gold UI text (headings, kickers, meta, chips). Theme-aware so gold text
+     stays readable on light surfaces: identical to gold-400 in dark (no change),
+     a darker gold in light (see .light) to clear WCAG-AA contrast. Use this for
+     gold TEXT; keep --gold-400 for gold fills, borders, and icons. */
+  --gold-text: var(--gold-400);
+
   /* Page background — warm radial wash, the "manuscript at night" feel */
   --page-bg:
     radial-gradient(circle at top right, rgba(212,175,55,0.13), transparent 26%),
@@ -189,6 +195,10 @@
   --verse-bg: rgba(212,175,55,0.10);
   --highlight-bg: rgba(212,175,55,0.30);
   --highlight-fg: #6a4d05;
+
+  /* Darker gold for text on the light parchment (matches the design's evidence
+     gold); gold-400 itself is too light to read on cream surfaces. */
+  --gold-text: #8a6a0c;
 
   --evidence-fg: #8a6a0c;
   --evidence-bg: rgba(212,175,55,0.14);

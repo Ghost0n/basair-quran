@@ -36,7 +36,7 @@
 .qb-shortcuts-modal .head h3 {
   font-family: var(--font-arabic-display);
   font-size: var(--fs-lg);
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 .qb-shortcuts-modal .head .x {

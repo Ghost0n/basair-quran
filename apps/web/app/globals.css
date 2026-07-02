@@ -66,7 +66,7 @@ h1, .h1 {
   font-family: var(--font-arabic-display);
   font-size: var(--fs-4xl);
   line-height: var(--lh-tight);
-  color: var(--gold-400);
+  color: var(--gold-text);
   margin: 0;
   letter-spacing: var(--tracking-tight);
 }
@@ -115,7 +115,7 @@ small {
   font-size: var(--fs-xs);
   font-weight: 700;
   letter-spacing: var(--tracking-uppercase);
-  color: var(--gold-400);
+  color: var(--gold-text);
   text-transform: none; /* Arabic doesn't have caps */
 }
 
@@ -138,7 +138,7 @@ code, .mono {
 
 .ayah-num {
   font-family: var(--font-arabic-display);
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 0.86em;
   margin-inline: 0.18rem;
 }
@@ -397,7 +397,7 @@ code, .mono {
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  color: var(--gold-400);
+  color: var(--gold-text);
   background: rgba(212, 175, 55, 0.10);
   border: 1px solid rgba(212, 175, 55, 0.30);
   transition: background var(--dur) var(--ease-out);

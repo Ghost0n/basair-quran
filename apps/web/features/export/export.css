@@ -38,7 +38,7 @@
 }
 
 .qb-export-head .kicker {
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -63,7 +63,7 @@
 }
 
 .qb-export-head .x:hover {
-  color: var(--gold-400);
+  color: var(--gold-text);
   background: rgba(212, 175, 55, 0.06);
 }
 
@@ -109,7 +109,7 @@
 .qb-export-format.active {
   border-color: rgba(212, 175, 55, 0.5);
   background: rgba(212, 175, 55, 0.10);
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 .qb-export-format .soon {

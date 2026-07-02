@@ -46,7 +46,7 @@
   font-family: var(--font-arabic-display);
   font-size: 28px;
   line-height: 1.2; /* room for Amiri Quran's tall letters + diacritics */
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 .qb-surah-card .h-meta {
@@ -87,12 +87,12 @@
 }
 
 .qb-pill:hover {
-  color: var(--gold-400);
+  color: var(--gold-text);
   border-color: rgba(212, 175, 55, 0.30);
 }
 
 .qb-pill.active {
-  color: var(--gold-400);
+  color: var(--gold-text);
   background: rgba(212, 175, 55, 0.12);
   border-color: rgba(212, 175, 55, 0.40);
 }
@@ -399,7 +399,7 @@
   border-radius: var(--r-pill, 999px);
   background: rgba(212, 175, 55, 0.1);
   border: 1px solid var(--border);
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 12px;
   font-weight: 700;
@@ -477,7 +477,7 @@
   font-family: var(--font-arabic-kufi);
   font-size: 20px;
   font-weight: 600;
-  color: var(--gold-400);
+  color: var(--gold-text);
   padding: 5px 20px;
   border-radius: 999px;
   background: rgba(212, 175, 55, 0.08);
@@ -493,7 +493,7 @@
   font-family: var(--font-arabic-display);
   font-size: calc(var(--fs-ayah) * 0.72);
   line-height: 2;
-  color: var(--gold-400);
+  color: var(--gold-text);
   margin: 2px 0 16px;
 }
 
@@ -543,7 +543,7 @@
 
 .qb-num-glyph {
   font-family: var(--font-arabic-display);
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 0.78em;
   margin: 0 4px;
   background: transparent;
@@ -579,7 +579,7 @@
 
 .qb-save-ayah.on {
   opacity: 1;
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 .qb-save-ayah:focus-visible {
@@ -648,7 +648,7 @@
   font-family: var(--font-arabic-display);
   font-size: calc(var(--fs-ayah) * 0.92 * var(--qcf-fit, 1));
   line-height: 2;
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 /* Surah-name banner spacing inside the glyph page. */
@@ -701,7 +701,7 @@
   padding: 0;
   border: none;
   background: transparent;
-  color: var(--gold-400);
+  color: var(--gold-text);
   opacity: 0.4;
   cursor: pointer;
   transition: opacity 140ms var(--ease-out), color 140ms var(--ease-out);
@@ -749,7 +749,7 @@
 .qb-morph-pop .word {
   font-family: var(--font-arabic-display);
   font-size: 32px;
-  color: var(--gold-400);
+  color: var(--gold-text);
   line-height: 1;
   margin-bottom: 4px;
 }
@@ -812,7 +812,7 @@
 }
 
 .qb-morph-pop .close:hover {
-  color: var(--gold-400);
+  color: var(--gold-text);
   background: rgba(212, 175, 55, 0.08);
 }
 
@@ -867,7 +867,7 @@
   height: 32px;
   border-radius: 8px;
   border: 1px solid var(--border);
-  color: var(--gold-400);
+  color: var(--gold-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -908,7 +908,7 @@
 
 .qb-mushaf-foot .pager button.pages:hover {
   border-color: rgba(212, 175, 55, 0.4);
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 .qb-mushaf-foot .pager .pages.editing {

@@ -103,12 +103,12 @@
 }
 
 .qb-rail-btn:hover {
-  color: var(--gold-400);
+  color: var(--gold-text);
   background: rgba(212, 175, 55, 0.06);
 }
 
 .qb-rail-btn.active {
-  color: var(--gold-400);
+  color: var(--gold-text);
   background: rgba(212, 175, 55, 0.12);
   border-color: rgba(212, 175, 55, 0.30);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
@@ -307,7 +307,7 @@
   padding: 4px 10px;
   border-radius: 8px;
   background: rgba(212, 175, 55, 0.10);
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 12px;
   font-weight: 700;
   border: 1px solid rgba(212, 175, 55, 0.25);
@@ -451,7 +451,7 @@
 
 .qb-quick-head {
   font-family: var(--font-arabic-display);
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 16px;
   margin-bottom: 12px;
 }
@@ -475,13 +475,13 @@
 }
 
 .qb-icon-btn:hover {
-  color: var(--gold-400);
+  color: var(--gold-text);
   background: rgba(212, 175, 55, 0.06);
   border-color: var(--border);
 }
 
 .qb-icon-btn.gold {
-  color: var(--gold-400);
+  color: var(--gold-text);
   border-color: rgba(212, 175, 55, 0.30);
   background: rgba(212, 175, 55, 0.08);
 }
@@ -523,7 +523,7 @@
 
 .qb-placeholder-card h2 {
   font-family: var(--font-arabic-display);
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: var(--fs-2xl);
   margin-bottom: 12px;
 }
@@ -543,7 +543,7 @@
   border-radius: 999px;
   background: rgba(212, 175, 55, 0.10);
   border: 1px solid rgba(212, 175, 55, 0.30);
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
@@ -618,7 +618,7 @@
   gap: 8px;
   font-family: var(--font-arabic-display);
   font-size: 16px;
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 .qb-tweaks-head .x {
@@ -632,7 +632,7 @@
 }
 
 .qb-tweaks-head .x:hover {
-  color: var(--gold-400);
+  color: var(--gold-text);
   background: rgba(212, 175, 55, 0.06);
 }
 
@@ -663,7 +663,7 @@
 
 .qb-tweak-label .v {
   font-family: var(--font-arabic-display);
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 13px;
   font-weight: 600;
 }
@@ -805,7 +805,7 @@
 .qb-tweaks-foot button.primary {
   background: rgba(212, 175, 55, 0.10);
   border-color: rgba(212, 175, 55, 0.30);
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 /* =====================================================================
@@ -844,7 +844,7 @@
 }
 
 .qb-tabbar-btn.active {
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 .qb-tabbar-btn.active .tile {

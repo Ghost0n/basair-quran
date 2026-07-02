@@ -32,7 +32,7 @@
 }
 
 .qb-notebook .head .kicker {
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -62,7 +62,7 @@
 }
 
 .qb-notebook .head .close:hover {
-  color: var(--gold-400);
+  color: var(--gold-text);
   background: rgba(212, 175, 55, 0.06);
 }
 
@@ -92,7 +92,7 @@
 
 .qb-nb-section .label .count {
   background: rgba(212, 175, 55, 0.10);
-  color: var(--gold-400);
+  color: var(--gold-text);
   padding: 1px 6px;
   border-radius: 999px;
   font-size: 9px;
@@ -132,7 +132,7 @@
 }
 
 .qb-nb-item .top .surah {
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-weight: 700;
 }
 
@@ -196,7 +196,7 @@
 }
 
 .qb-aux-h .kicker {
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.06em;
@@ -252,7 +252,7 @@
 .qb-collection-card .head .name {
   font-family: var(--font-arabic-display);
   font-size: 20px;
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 .qb-collection-card .head .count {
@@ -285,7 +285,7 @@
 
 .qb-mini-verse .ref {
   font-size: 10px;
-  color: var(--gold-400);
+  color: var(--gold-text);
   font-weight: 700;
 }
 
@@ -339,7 +339,7 @@
   justify-content: center;
   flex-shrink: 0;
   background: rgba(212, 175, 55, 0.10);
-  color: var(--gold-400);
+  color: var(--gold-text);
   border: 1px solid rgba(212, 175, 55, 0.25);
 }
 
@@ -366,7 +366,7 @@
 .qb-aux-row .root-disp {
   font-family: var(--font-arabic-display);
   font-size: 22px;
-  color: var(--gold-400);
+  color: var(--gold-text);
   letter-spacing: 0.06em;
 }
 
@@ -427,12 +427,12 @@
 }
 
 .qb-lib-tab.active {
-  color: var(--gold-400);
+  color: var(--gold-text);
   border-bottom-color: var(--gold-400);
 }
 
 .qb-lib-tab.active .n {
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
 
 /* A clickable verse row that opens the ayah (button reset, fills the row). */

@@ -45,7 +45,7 @@
 }
 
 .qb-select-btn > .qb-icon {
-  color: var(--gold-400);
+  color: var(--gold-text);
   flex-shrink: 0;
 }
 
@@ -93,7 +93,7 @@
 }
 
 .qb-select-opt .qb-icon {
-  color: var(--gold-400);
+  color: var(--gold-text);
   flex-shrink: 0;
 }
 
@@ -114,5 +114,5 @@
 }
 
 .qb-select-opt.selected {
-  color: var(--gold-400);
+  color: var(--gold-text);
 }
