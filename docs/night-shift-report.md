@@ -166,6 +166,20 @@ the animation timeline, so entrance transforms (e.g. the panel's `translateX(14p
 read frozen — resting layout confirmed by force-finishing animations
 (`getAnimations().forEach(a => a.finish())`).
 
+**Verification caveat (important for future sessions).** The throttled preview tab
+also returns **stale `getComputedStyle`** values for deeply-nested, non-painted text
+nodes — a diagnostic injected `.qb-word { color: red !important }`, and even an inline
+`color: lime !important`, did **not** change the reported computed color. So a broad
+`getComputedStyle`-based light-theme contrast sweep is unreliable in this environment.
+Treat any **CSS-impossible** reading (a value no matched rule or inheritance can
+produce) as a stale-tab artifact, not a bug. One scare was chased to ground: the
+Unicode reader's āyah words *appeared* white-on-cream in light theme, but that is the
+stale-read artifact — by CSS the words inherit `--verse-fg` (`#0e0c08` in light,
+confirmed on every painted ancestor), so the verse text renders dark/correct. No change
+made (and none should be guessed at — āyah rendering is sacred). Reads that **match**
+the CSS math (e.g. the gold-text token resolving gold-400 → `#8a6a0c`, contrast
+1.9 → 4.4) stayed trustworthy.
+
 ## Still not done / deferred (be honest)
 
 - **Vitest harness — deferred to the owner.** The repo has **no JS lockfile at all**;
