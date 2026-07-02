@@ -221,6 +221,11 @@
   font-size: 14px;
 }
 
+/* Indeterminate loading breathes calmly (qbPulse) — no spinner. */
+.qb-aux-state.is-loading {
+  animation: qbPulse 1.6s var(--ease-in-out) infinite;
+}
+
 /* Card grid (bookmarks collections) */
 .qb-aux-grid {
   display: grid;
@@ -310,7 +315,20 @@
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   background: var(--bg-elev-1);
+  /* Rows mount in a soft cascade; `backwards` keeps transform free afterwards. */
+  animation: qbRise var(--dur) var(--ease-out) backwards;
 }
+
+/* Pure-CSS stagger, capped at the first ten rows (the visible fold). */
+.qb-aux-row:nth-child(2) { animation-delay: 35ms; }
+.qb-aux-row:nth-child(3) { animation-delay: 70ms; }
+.qb-aux-row:nth-child(4) { animation-delay: 105ms; }
+.qb-aux-row:nth-child(5) { animation-delay: 140ms; }
+.qb-aux-row:nth-child(6) { animation-delay: 175ms; }
+.qb-aux-row:nth-child(7) { animation-delay: 210ms; }
+.qb-aux-row:nth-child(8) { animation-delay: 245ms; }
+.qb-aux-row:nth-child(9) { animation-delay: 280ms; }
+.qb-aux-row:nth-child(n + 10) { animation-delay: 315ms; }
 
 .qb-aux-row .icon-tile {
   width: 42px;

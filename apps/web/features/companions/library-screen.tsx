@@ -91,7 +91,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
       </div>
 
       {companions.error ? <div className="qb-aux-state">{companions.error}</div> : null}
-      {companions.loading ? <div className="qb-aux-state">جارٍ التحميل…</div> : null}
+      {companions.loading ? <div className="qb-aux-state is-loading">جارٍ التحميل…</div> : null}
 
       {/* ---- Verses ---- */}
       {tab === "verses" && !companions.loading ? (
