@@ -527,22 +527,29 @@
 .qb-heat-cell[data-level="5"] { background: rgba(212, 175, 55, 0.80); color: #1a1207; }
 .qb-heat-cell[data-level="6"] { background: var(--gold-400); color: #1a1207; }
 
-/* ---------- Responsive: full-width panels on mobile ---------- */
+/* ---------- Responsive ---------- */
 
 .qb-side-panel-wide {
   width: 460px;
   flex: 0 0 460px;
 }
 
-@media (max-width: 768px) {
+/* Focus mode: below the desk threshold the workspace renders a single surface
+   (see COMPACT_WORKSPACE in workspace-canvas.tsx), so the active panel fills the
+   whole column instead of sitting at its desk width beside an empty gap where
+   the Mushaf used to be. Keep this breakpoint in sync with that constant. */
+@media (max-width: 1000px) {
   .qb-side-panel,
   .qb-side-panel-wide,
+  .qb-companion-panel,
   .qb-notebook {
     width: 100%;
     flex: 1 1 auto;
     border-inline-end: none;
   }
+}
 
+@media (max-width: 768px) {
   .qb-heatmap-grid {
     grid-template-columns: repeat(10, 1fr);
   }
