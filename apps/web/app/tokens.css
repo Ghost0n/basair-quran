@@ -93,6 +93,9 @@
      a darker gold in light (see .light) to clear WCAG-AA contrast. Use this for
      gold TEXT; keep --gold-400 for gold fills, borders, and icons. */
   --gold-text: var(--gold-400);
+  /* Brighter emphasis gold text (hover/active/highlight). Brightest gold in dark;
+     collapses to the same readable dark gold as --gold-text in light. */
+  --gold-text-bright: var(--gold-300);
 
   /* Page background — warm radial wash, the "manuscript at night" feel */
   --page-bg:
@@ -199,6 +202,7 @@
   /* Darker gold for text on the light parchment (matches the design's evidence
      gold); gold-400 itself is too light to read on cream surfaces. */
   --gold-text: #8a6a0c;
+  --gold-text-bright: #8a6a0c;
 
   --evidence-fg: #8a6a0c;
   --evidence-bg: rgba(212,175,55,0.14);

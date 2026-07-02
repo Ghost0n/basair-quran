@@ -538,7 +538,7 @@
 
 .qb-word:hover {
   background: rgba(212, 175, 55, 0.12);
-  color: var(--gold-300);
+  color: var(--gold-text-bright);
 }
 
 .qb-num-glyph {
@@ -553,7 +553,7 @@
 }
 
 .qb-num-glyph:hover {
-  color: var(--gold-300);
+  color: var(--gold-text-bright);
 }
 
 /* Per-ayah save toggle — subtle until hovered, gold when the ayah is saved. */
@@ -574,7 +574,7 @@
 
 .qb-save-ayah:hover {
   opacity: 1;
-  color: var(--gold-300);
+  color: var(--gold-text-bright);
 }
 
 .qb-save-ayah.on {
@@ -663,7 +663,7 @@
 }
 
 .qb-glyph-word:hover {
-  color: var(--gold-300);
+  color: var(--gold-text-bright);
 }
 
 /* Plain :focus (matches .qb-word) so arrow-key walking always shows the cursor. */
@@ -714,7 +714,7 @@
 
 .qb-glyph-save.on {
   opacity: 1;
-  color: var(--gold-300);
+  color: var(--gold-text-bright);
 }
 
 /* ---------- Morph popover (stub data — Phase 6 wires real morphology) ---------- */

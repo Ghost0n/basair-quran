@@ -110,7 +110,7 @@
 .qb-select-opt.active,
 .qb-select-opt:hover {
   background: rgba(212, 175, 55, 0.12);
-  color: var(--gold-300);
+  color: var(--gold-text-bright);
 }
 
 .qb-select-opt.selected {

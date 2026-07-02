@@ -173,7 +173,7 @@
 }
 
 .qb-root-summary .root-stats .s .v {
-  color: var(--gold-300);
+  color: var(--gold-text-bright);
   font-size: 18px;
   font-weight: 700;
   font-family: var(--font-arabic-display);
@@ -299,7 +299,7 @@
 
 .qb-verse-row .vtext .highlight {
   background: rgba(212, 175, 55, 0.30);
-  color: var(--gold-300);
+  color: var(--gold-text-bright);
   padding: 0 3px;
   border-radius: 4px;
   font-weight: 700;
@@ -391,7 +391,7 @@
   border-radius: 999px;
   background: rgba(212, 175, 55, 0.08);
   border: 1px solid rgba(212, 175, 55, 0.25);
-  color: var(--gold-300);
+  color: var(--gold-text-bright);
   font-family: var(--font-arabic-display);
   font-size: 15px;
   cursor: pointer;
