@@ -1,6 +1,7 @@
 /* =====================================================================
-   Home — the default landing (brand hero · ask bar · quick cards ·
-   continue reading · rotating āyah).
+   Home — the default landing. The āyah holds the seat of honor (the only
+   calligraphy in the room); everything else is quiet furniture: ask bar,
+   desk row, entry tiles, recent sessions.
    ===================================================================== */
 
 .qb-home {
@@ -9,7 +10,7 @@
   overflow-y: auto;
   display: flex;
   justify-content: center;
-  padding: 48px 24px 64px;
+  padding: 0 24px 40px;
 }
 
 .qb-home-inner {
@@ -18,43 +19,87 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 26px;
+  gap: var(--sp-5);
   animation: qbRise var(--dur-slow) var(--ease-out);
 }
 
-.qb-home-hero {
+/* ---------- Hero: the verse ---------- */
+
+.qb-home-ayah-hero {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   text-align: center;
+  /* The hero carries the page's breathing room; 8vh keeps the fold generous at
+     1080 and honest at short heights. */
+  padding-block: clamp(var(--sp-8), 8vh, var(--sp-16)) 0;
 }
 
-.qb-home-hero h1 {
+/* The brand, whispered — the shell rail carries the seal; the wordmark appears
+   here only so the product name exists somewhere visible on first paint. */
+.qb-home-ayah-hero .kicker {
+  font-family: var(--font-arabic-kufi);
+  font-size: var(--fs-xs);
+  letter-spacing: var(--tracking-uppercase);
+  color: var(--fg-mute);
+}
+
+.qb-home-ayah-hero .ayah-text {
   font-family: var(--font-arabic-display);
-  font-size: var(--fs-3xl);
-  color: var(--gold-400);
-  margin: 10px 0 0;
+  font-size: var(--fs-4xl);
+  line-height: var(--lh-mushaf);
+  color: var(--verse-fg);
+  max-width: 20ch;
+  text-wrap: balance;
+  margin: 0;
+  /* Reserve two wrapped lines so the 9s rotation never reflows the furniture
+     below (verses alternate between one and two lines at this measure). */
+  min-height: calc(2em * var(--lh-mushaf));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: qbFade var(--dur-slow) var(--ease-out);
 }
 
-.qb-home-hero .subtitle {
-  color: var(--fg-3);
-  font-size: var(--fs-md);
-  margin: 0;
+/* Reference: سورة · آية in mono gold, flanked by hairline rules — an ornament
+   made entirely of tokens. */
+.qb-home-ayah-hero .ayah-ref {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  color: var(--gold-400);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--fs-sm);
 }
+
+.qb-home-ayah-hero .ayah-ref::before,
+.qb-home-ayah-hero .ayah-ref::after {
+  content: "";
+  width: 56px;
+  height: 1px;
+  background: var(--border-strong);
+}
+
+/* ---------- Ask / search bar (quiet at rest, glow as a focus reward) ---------- */
 
 .qb-home-ask {
   display: flex;
   align-items: center;
   gap: 10px;
   width: 100%;
-  max-width: 620px;
+  max-width: 560px;
   padding: 7px 7px 7px 18px;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
   border-radius: var(--r-pill);
+  box-shadow: var(--shadow-1);
+  transition: border-color var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out);
+}
+
+.qb-home-ask:focus-within {
+  border-color: var(--border-strong);
   box-shadow: var(--shadow-glow);
-  backdrop-filter: blur(12px);
 }
 
 .qb-home-ask > svg {
@@ -81,8 +126,8 @@
   padding: 10px 24px;
   border: none;
   border-radius: var(--r-pill);
-  background: linear-gradient(135deg, #eac54a, #c69e27);
-  color: #140f00;
+  background: var(--gold-400);
+  color: var(--ink-900);
   font-family: var(--font-arabic-ui);
   font-weight: 700;
   cursor: pointer;
@@ -93,18 +138,29 @@
   cursor: default;
 }
 
+/* ---------- Desk row: continue-reading + library stats, one line ---------- */
+
+.qb-home-deskrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
 .qb-home-continue {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 18px;
+  gap: 8px;
+  padding: 7px 16px;
   border: 1px solid var(--border);
   border-radius: var(--r-pill);
+  /* The only filled pill in the row — it's the primary desk action. */
   background: rgba(212, 175, 55, 0.08);
   color: var(--fg-1);
   cursor: pointer;
   font-family: var(--font-arabic-ui);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
   transition: border-color var(--dur) var(--ease-out);
 }
 
@@ -117,69 +173,7 @@
   font-weight: 700;
 }
 
-.qb-home-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  width: 100%;
-}
-
-.qb-home-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 22px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.06));
-  cursor: pointer;
-  text-align: center;
-  transition: border-color var(--dur) var(--ease-out), transform var(--dur) var(--ease-out);
-}
-
-.light .qb-home-card {
-  background: linear-gradient(180deg, rgba(255, 253, 246, 0.7), rgba(244, 236, 216, 0.5));
-}
-
-.qb-home-card:hover {
-  border-color: var(--border-strong);
-  transform: translateY(-2px);
-}
-
-.qb-home-card .ico {
-  width: 44px;
-  height: 44px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--r-md);
-  background: rgba(212, 175, 55, 0.1);
-  color: var(--gold-400);
-}
-
-.qb-home-card .title {
-  font-family: var(--font-arabic-display);
-  font-size: var(--fs-lg);
-  color: var(--fg-1);
-}
-
-.qb-home-card .hint {
-  font-size: var(--fs-xs);
-  color: var(--fg-3);
-}
-
-/* ---------- Light desk stats ---------- */
-
-.qb-home-stats {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.qb-home-stats .stat {
+.qb-home-deskrow .stat {
   display: inline-flex;
   align-items: center;
   gap: 7px;
@@ -194,18 +188,71 @@
   transition: border-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out);
 }
 
-.qb-home-stats .stat:hover {
+.qb-home-deskrow .stat:hover {
   border-color: var(--border-strong);
   color: var(--fg-1);
 }
 
-.qb-home-stats .stat svg {
+.qb-home-deskrow .stat svg {
   color: var(--gold-400);
 }
 
-.qb-home-stats .stat strong {
+.qb-home-deskrow .stat strong {
   color: var(--gold-400);
   font-weight: 700;
+}
+
+/* ---------- Three doors: compact horizontal tiles ---------- */
+
+.qb-home-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--sp-3);
+  width: 100%;
+}
+
+.qb-home-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.06));
+  cursor: pointer;
+  text-align: start;
+  min-width: 0;
+  transition: border-color var(--dur) var(--ease-out);
+}
+
+.light .qb-home-card {
+  background: linear-gradient(180deg, rgba(255, 253, 246, 0.7), rgba(244, 236, 216, 0.5));
+}
+
+.qb-home-card:hover {
+  border-color: var(--border-strong);
+}
+
+.qb-home-card > svg {
+  flex-shrink: 0;
+  color: var(--gold-400);
+}
+
+.qb-home-card .title {
+  flex-shrink: 0;
+  font-family: var(--font-arabic-ui);
+  font-size: var(--fs-base);
+  font-weight: 600;
+  color: var(--fg-1);
+}
+
+.qb-home-card .hint {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--fs-xs);
+  color: var(--fg-3);
 }
 
 /* ---------- Recent research sessions ---------- */
@@ -228,7 +275,7 @@
 .qb-home-recent .lbl {
   font-size: var(--fs-xs);
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: var(--tracking-uppercase);
   color: var(--fg-3);
 }
 
@@ -291,35 +338,32 @@
   border-color: var(--tafssir-border, rgba(201, 138, 91, 0.45));
 }
 
-.qb-home-ayah {
-  text-align: center;
-  padding: 22px 24px 4px;
-  border-top: 1px solid var(--divider);
-  width: 100%;
-  max-width: 620px;
-}
+/* ---------- Responsive ---------- */
 
-.qb-home-ayah .ayah-text {
-  font-family: var(--font-arabic-display);
-  font-size: var(--fs-ayah);
-  color: var(--verse-fg);
-  line-height: 2;
-  margin: 0 0 8px;
-  animation: qbFade var(--dur-slow) var(--ease-out);
-}
-
-.qb-home-ayah .ayah-ref {
-  font-size: var(--fs-sm);
-  color: var(--gold-400);
-  font-family: var(--font-mono, ui-monospace, monospace);
+/* Short desktops: the hero verse steps down one size so the fold still shows
+   verse + ask bar + desk row + doors without scrolling. */
+@media (max-height: 820px) {
+  .qb-home-ayah-hero .ayah-text {
+    font-size: var(--fs-3xl);
+  }
 }
 
 @media (max-width: 640px) {
   .qb-home {
-    padding: 28px 16px 48px;
+    padding: 0 16px 40px;
+  }
+
+  .qb-home-ayah-hero .ayah-text {
+    font-size: var(--fs-2xl);
   }
 
   .qb-home-cards {
     grid-template-columns: 1fr;
+  }
+
+  /* The hint would wrap awkwardly at phone widths — the tile keeps it as its
+     title/aria description instead. */
+  .qb-home-card .hint {
+    display: none;
   }
 }

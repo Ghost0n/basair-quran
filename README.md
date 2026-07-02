@@ -4,9 +4,10 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 
 ## Current Capabilities
 
-- A Home landing as the default entry: brand hero, a natural-language "اسأل" bar that
-  hands off to the research Studio, quick-entry cards (read / search / study), a
-  continue-reading shortcut to the last page, and a rotating āyah.
+- A Home landing as the default entry: a rotating āyah as the centerpiece, a
+  natural-language "اسأل/ابحث" bar (questions → Studio, terms → search), a desk row
+  (continue-reading + library stats), quick-entry tiles (read / search / study), and
+  the latest research sessions.
 - One command bar (`⌘K` / `/`) that searches and navigates, and routes a
   natural-language question to the Studio (prefilled and submitted).
 - Smart exact-word search with safe handling for Arabic prefixes and Quranic orthography.

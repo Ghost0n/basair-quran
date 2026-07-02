@@ -7,10 +7,9 @@ import { useEffect, useState, type FormEvent } from "react";
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type { ResearchSessionSummary } from "@q-basair/shared";
 
-import { BrandMarkRich } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
-import { useNumerals, usePreferences } from "@/lib/preferences-context";
+import { useNumerals } from "@/lib/preferences-context";
 import { looksLikeQuestion, queueStudioAsk, queueStudioOpenSession } from "@/lib/studio-prefill";
 import { useShellMode, type ShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
@@ -33,9 +32,9 @@ const QUICK_CARDS: QuickCard[] = [
   { mode: "studio", icon: "feather", title: "الدراسة", hint: "بحث موجَّه في المعاني" },
 ];
 
-// A small rotating set of well-known āyāt for the "verse of the moment". The
-// text is shown exactly as in the muṣḥaf; only the reference number follows the
-// numeral preference.
+// A small rotating set of well-known āyāt — the page's centerpiece. The text is
+// shown exactly as in the muṣḥaf; only the reference number follows the numeral
+// preference. Any addition must be exact Uthmani text, 2–6 words, owner-reviewed.
 const ROTATING_AYAHS: { text: string; surah: string; ayah: number }[] = [
   { text: "ٱللَّهُ نُورُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ", surah: "النور", ayah: 35 },
   { text: "وَقُل رَّبِّ زِدْنِى عِلْمًا", surah: "طه", ayah: 114 },
@@ -47,13 +46,14 @@ const ROTATING_AYAHS: { text: string; surah: string; ayah: number }[] = [
 const ROTATE_MS = 9000;
 
 /**
- * HomeScreen — the default landing: brand hero, a prominent natural-language
- * "ask" bar that hands off to the Studio, quick-entry cards, a continue-reading
- * shortcut to the last page, and a rotating āyah. One click reaches every room.
+ * HomeScreen — the default landing. The rotating āyah is the hero (the Qurʾān is
+ * the room's centerpiece — the brand lives in the shell chrome, whispered here
+ * as a kufi kicker); beneath it, compact furniture: the ask/search bar, a desk
+ * row (continue-reading + library stats), three entry tiles, and the latest
+ * research sessions. One glance orients, one click reaches every room.
  */
 export function HomeScreen() {
   const { setMode } = useShellMode();
-  const { preferences } = usePreferences();
   const formatNumber = useNumerals();
   const { actions } = useWorkspace();
 
@@ -71,8 +71,14 @@ export function HomeScreen() {
       if (Number.isFinite(stored) && stored >= 1) setLastPage(stored);
       setLastSurah(window.localStorage.getItem(LAST_SURAH_KEY));
     } catch {
-      /* no last page — the continue card just won't show */
+      /* no last page — the continue pill falls back to "start reading" */
     }
+    // Seed the opening verse by day, so returning users don't always land on
+    // the same āyah (client-side effect — no SSR hydration mismatch).
+    const dayOfYear = Math.floor(
+      (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000,
+    );
+    setAyahIndex(dayOfYear % ROTATING_AYAHS.length);
   }, []);
 
   // Light desk stats + the latest research sessions. Each source fails silently
@@ -121,15 +127,21 @@ export function HomeScreen() {
   }
 
   const ayah = ROTATING_AYAHS[ayahIndex];
-  const isLight = preferences.theme === "light";
 
   return (
     <div className="qb-home">
       <div className="qb-home-inner">
-        <header className="qb-home-hero">
-          <BrandMarkRich size={96} light={isLight} />
-          <h1>بَصَائِر القُرآن</h1>
-          <p className="subtitle">غرفة القراءة والبحث الموجَّه في القرآن الكريم</p>
+        {/* The verse holds the seat of honor; the brand is a whisper above it.
+            No aria-live: a forever-rotating announcement is screen-reader noise —
+            the verse stays ordinary readable (and selectable) text. */}
+        <header className="qb-home-ayah-hero">
+          <span className="kicker">بَصَائِر</span>
+          <p key={ayahIndex} className="ayah-text">
+            {ayah.text}
+          </p>
+          <span className="ayah-ref">
+            {ayah.surah} · {formatNumber(ayah.ayah)}
+          </span>
         </header>
 
         <form className="qb-home-ask" onSubmit={submitAsk} role="search">
@@ -147,33 +159,36 @@ export function HomeScreen() {
           </button>
         </form>
 
-        {lastPage ? (
+        {/* The desk row: continue-reading (never empty — falls back to "start
+            reading") beside the library stats, one quiet line of pills. */}
+        <div className="qb-home-deskrow">
           <button type="button" className="qb-home-continue" onClick={() => setMode("reading")}>
-            <Icon name="book" size={16} />
-            <span>
-              تابع القراءة · {lastSurah ? <>سورة <strong>{lastSurah}</strong> · </> : null}
-              صفحة <strong>{formatNumber(lastPage)}</strong>
-            </span>
-            <Icon name="arrowLeft" size={16} />
+            <Icon name="book" size={15} />
+            {lastPage ? (
+              <span>
+                تابع القراءة · {lastSurah ? <>سورة <strong>{lastSurah}</strong> · </> : null}
+                صفحة <strong>{formatNumber(lastPage)}</strong>
+              </span>
+            ) : (
+              <span>
+                ابدأ القراءة · سورة <strong>الفاتحة</strong>
+              </span>
+            )}
+            <Icon name="arrowLeft" size={15} />
           </button>
-        ) : null}
-
-        {savedCount || rootsCount ? (
-          <div className="qb-home-stats" aria-label="إحصاءات المكتبة">
-            {savedCount ? (
-              <button type="button" className="stat" onClick={() => setMode("notebook")}>
-                <Icon name="bookmarkFilled" size={13} />
-                <strong>{formatNumber(savedCount)}</strong> آية محفوظة
-              </button>
-            ) : null}
-            {rootsCount ? (
-              <button type="button" className="stat" onClick={() => setMode("roots")}>
-                <Icon name="tree" size={13} />
-                <strong>{formatNumber(rootsCount)}</strong> جذر مُتابَع
-              </button>
-            ) : null}
-          </div>
-        ) : null}
+          {savedCount ? (
+            <button type="button" className="stat" onClick={() => setMode("notebook")}>
+              <Icon name="bookmarkFilled" size={13} />
+              <strong>{formatNumber(savedCount)}</strong> آية محفوظة
+            </button>
+          ) : null}
+          {rootsCount ? (
+            <button type="button" className="stat" onClick={() => setMode("roots")}>
+              <Icon name="tree" size={13} />
+              <strong>{formatNumber(rootsCount)}</strong> جذر مُتابَع
+            </button>
+          ) : null}
+        </div>
 
         <div className="qb-home-cards">
           {QUICK_CARDS.map((card) => (
@@ -182,10 +197,9 @@ export function HomeScreen() {
               type="button"
               className="qb-home-card"
               onClick={() => setMode(card.mode)}
+              title={card.hint}
             >
-              <span className="ico">
-                <Icon name={card.icon} size={22} />
-              </span>
+              <Icon name={card.icon} size={16} />
               <span className="title">{card.title}</span>
               <span className="hint">{card.hint}</span>
             </button>
@@ -221,15 +235,6 @@ export function HomeScreen() {
             ))}
           </div>
         ) : null}
-
-        <div className="qb-home-ayah" aria-live="polite">
-          <p key={ayahIndex} className="ayah-text">
-            {ayah.text}
-          </p>
-          <span className="ayah-ref">
-            {ayah.surah} · {formatNumber(ayah.ayah)}
-          </span>
-        </div>
       </div>
     </div>
   );
