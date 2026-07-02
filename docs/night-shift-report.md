@@ -140,6 +140,25 @@ Four more items closed:
 | `d6fed7d` | **Recent sessions deep-open in the Studio**: a click hydrates that saved thread as a live tab (`openSavedSession`); already-open tabs just activate. |
 | — | **Tablet (~800) pass**: Home, Studio, authentic glyph scroll, media bar — all within viewport, no overflow-x, no console errors. |
 
+## Layout & dimensions pass (follow-up)
+
+A pass focused on layout, visual balance, and element dimensions — bold where it
+served the purpose. Two real defects found by measurement and fixed:
+
+| Commit | What |
+|---|---|
+| `1349967` | **Home vertically balanced**: the landing stack clustered under the top bar (verse → ask → desk row → tiles all between y=64 and y=638 at 1080, ~440px of dead space below). Centred with the scroll-safe `margin-block:auto` pattern so the āyah holds the optical centre; on short viewports the auto-margins collapse to 0 and the column scrolls from the top (verified `clippedAbove:false` at 680px, balanced 183/183 at 1080). |
+| `9cfd1ea` | **Panel focus mode below the desk threshold**: from 769–1000px a fixed 440px panel + the 84px rail crushed the Mushaf to ~296px (measured at 820px). The workspace canvas now drops to focus mode at ≤1000px — the active surface fills the column, the Mushaf is one rail-tap away — mirroring the existing mobile single-column behaviour. Rail/tab-bar switch stays independent at 768px. |
+
+Audited with no change needed: the **Mushaf stage** (caps of 62/74/88/56rem centre
+correctly in the main column; authentic glyph pages are fit-to-height portrait leaves
+in a framed card — by design) and the **top bar** (command bar centred in the main
+column, no overflow). Verified in-browser at 375 / 820 / 1024 / 1440 / 1920: focus vs
+desk transitions correct, no horizontal overflow, no console errors, builds green.
+Preview note: the headless tab pauses the animation timeline, so entrance transforms
+(e.g. the panel's `translateX(14px)`) read frozen — resting layout confirmed by
+force-finishing animations (`getAnimations().forEach(a => a.finish())`).
+
 ## Still not done / deferred (be honest)
 
 - **Vitest harness — deferred to the owner.** The repo has **no JS lockfile at all**;
