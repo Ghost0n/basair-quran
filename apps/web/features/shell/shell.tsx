@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 
 import "./shell.css";
 
-import { OnboardingGate } from "@/features/onboarding/onboarding-screen";
 import { MushafProvider } from "@/features/reading/mushaf-context";
 import { RecitationProvider } from "@/features/recitation/recitation-context";
 import { RecitationBar } from "@/features/recitation/recitation-bar";
@@ -40,7 +39,6 @@ export function Shell({ children }: { children: ReactNode }) {
               <MobileTabBar />
             </div>
             <ShortcutsModal />
-            <OnboardingGate />
           </WorkspaceProvider>
         </RecitationProvider>
       </MushafProvider>

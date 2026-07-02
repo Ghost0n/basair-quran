@@ -1,0 +1,83 @@
+/* =====================================================================
+   Keyboard shortcuts cheat-sheet (⌘? / Ctrl+?).
+   ===================================================================== */
+
+.qb-shortcuts-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: qbFade var(--dur) var(--ease-out);
+}
+
+.qb-shortcuts-modal {
+  width: min(440px, 100%);
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-3);
+  overflow: hidden;
+  animation: qbPopIn var(--dur) var(--ease-out);
+}
+
+.qb-shortcuts-modal .head {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--divider);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.qb-shortcuts-modal .head h3 {
+  font-family: var(--font-arabic-display);
+  font-size: var(--fs-lg);
+  color: var(--gold-400);
+}
+
+.qb-shortcuts-modal .head .x {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: none;
+  background: transparent;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+.qb-shortcuts-list {
+  padding: 12px 20px 18px;
+}
+
+.qb-shortcut-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--divider);
+  font-size: 13px;
+  color: var(--fg-1);
+}
+
+.qb-shortcut-row:last-child {
+  border-bottom: none;
+}
+
+.qb-shortcut-row .keys {
+  display: flex;
+  gap: 4px;
+}
+
+.qb-shortcut-row kbd {
+  font-family: var(--font-mono);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: var(--fg-2);
+}

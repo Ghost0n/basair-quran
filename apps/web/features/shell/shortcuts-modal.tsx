@@ -1,5 +1,7 @@
 "use client";
 
+import "./shortcuts-modal.css";
+
 import { useEffect, useState } from "react";
 
 import { Icon } from "@/components/icon";
