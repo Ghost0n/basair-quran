@@ -9,7 +9,7 @@ import type { ResearchAgentResponse, TafssirDepth } from "@q-basair/shared";
 import { Icon } from "@/components/icon";
 import { useNumerals } from "@/lib/preferences-context";
 import { renderHighlightedVerseText } from "@/lib/quran-ui";
-import { STUDIO_ASK_EVENT, drainStudioAsk } from "@/lib/studio-prefill";
+import { STUDIO_ASK_EVENT, drainStudioAsk, drainStudioOpenSession } from "@/lib/studio-prefill";
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { saveClientResearchSettings } from "@/features/research/lib/research-client-settings";
 import { useShellMode } from "@/features/shell/mode-context";
@@ -62,13 +62,18 @@ export function StudioPanel() {
   }
 
   // A prefilled ask (from the command bar or the Home "اسأل" bar) opens a FRESH
-  // session — it must not inherit an existing thread's mode/context. `askRef`
-  // always holds the latest binding so the deferred drain uses live settings.
+  // session — it must not inherit an existing thread's mode/context. A queued
+  // session-open (Home / history) hydrates that saved thread as a tab. The refs
+  // always hold the latest bindings so the deferred drain uses live settings.
   const askRef = useRef<(question: string) => void>(() => {});
   askRef.current = (question) => void studio.askInNewSession(question, state.selectedMushaf);
+  const openRef = useRef<(id: string) => void>(() => {});
+  openRef.current = (id) => void studio.openSavedSession(id);
 
   useEffect(() => {
     const drain = () => {
+      const openId = drainStudioOpenSession();
+      if (openId) openRef.current(openId);
       const question = drainStudioAsk();
       if (question) askRef.current(question);
     };

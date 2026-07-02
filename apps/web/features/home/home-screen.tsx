@@ -11,7 +11,7 @@ import { BrandMarkRich } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
-import { looksLikeQuestion, queueStudioAsk } from "@/lib/studio-prefill";
+import { looksLikeQuestion, queueStudioAsk, queueStudioOpenSession } from "@/lib/studio-prefill";
 import { useShellMode, type ShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
@@ -205,7 +205,11 @@ export function HomeScreen() {
                 key={session.id}
                 type="button"
                 className="row"
-                onClick={() => setMode("history")}
+                onClick={() => {
+                  // Deep-open THIS session as a Studio tab (hydrated from the store).
+                  queueStudioOpenSession(session.id);
+                  setMode("studio");
+                }}
                 title={session.title}
               >
                 <Icon name="sparkles" size={13} />

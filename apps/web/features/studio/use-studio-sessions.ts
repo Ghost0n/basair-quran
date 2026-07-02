@@ -248,6 +248,48 @@ export function useStudioSessions() {
     [submitInto],
   );
 
+  // Re-open a saved session (from Home / the history list) as a live tab: fetch
+  // the stored thread and hydrate it. If the tab is already open, just activate.
+  // Stored messages carry role+content only — assistant evidence cards don't
+  // survive the round-trip (the store keeps text), which is fine for review;
+  // continuing the thread re-grounds through the agent as usual.
+  const openSavedSession = useCallback(
+    async (id: string) => {
+      let alreadyOpen = false;
+      setSessions((current) => {
+        alreadyOpen = current.some((session) => session.id === id);
+        return current;
+      });
+      if (alreadyOpen) {
+        setActiveId(id);
+        return;
+      }
+      try {
+        const detail = await api.getSession(id);
+        const messages: StudioMessage[] = (detail.messages ?? [])
+          .map((m) => ({
+            role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
+            content: typeof m.content === "string" ? m.content : "",
+          }))
+          .filter((m) => m.content);
+        const session: StudioSession = {
+          id: detail.id,
+          title: detail.title,
+          messages,
+          mode: detail.mode,
+          depth: "balanced",
+        };
+        setSessions((current) =>
+          current.some((s) => s.id === id) ? current : [...current, session],
+        );
+        setActiveId(id);
+      } catch {
+        setError("تعذّر فتح الجلسة المحفوظة.");
+      }
+    },
+    [],
+  );
+
   return {
     sessions,
     active,
@@ -263,5 +305,6 @@ export function useStudioSessions() {
     setDepth,
     submit,
     askInNewSession,
+    openSavedSession,
   };
 }

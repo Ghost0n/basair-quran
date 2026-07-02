@@ -30,6 +30,29 @@ export function drainStudioAsk(): string | null {
   }
 }
 
+// Same relay pattern for "open this saved session as a tab" (Home / history).
+const OPEN_KEY = "qb.studio.open-session";
+
+export function queueStudioOpenSession(sessionId: string): void {
+  if (!sessionId) return;
+  try {
+    window.sessionStorage.setItem(OPEN_KEY, sessionId);
+  } catch {
+    /* private mode — the mount drain just won't find it; harmless */
+  }
+  window.dispatchEvent(new CustomEvent(STUDIO_ASK_EVENT));
+}
+
+export function drainStudioOpenSession(): string | null {
+  try {
+    const value = window.sessionStorage.getItem(OPEN_KEY);
+    if (value) window.sessionStorage.removeItem(OPEN_KEY);
+    return value || null;
+  } catch {
+    return null;
+  }
+}
+
 const QUESTION_WORDS = new Set([
   "هل",
   "ما",
