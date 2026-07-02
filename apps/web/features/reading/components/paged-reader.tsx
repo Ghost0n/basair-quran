@@ -8,6 +8,7 @@ import { GlyphPage, type GlyphSaveTarget } from "./glyph-page";
 import { MorphPopover, type MorphTarget } from "./morph-popover";
 import { AyatFlow, type WordClickHandler, type WordKeyHandler } from "./ayat-flow";
 import { useMushaf } from "../mushaf-context";
+import { useWordNav } from "../use-word-nav";
 
 type PagedReaderProps = {
   pageData: { ayahs: QuranPageAyah[] };
@@ -58,6 +59,7 @@ export function PagedReader({
   onClearMorph,
 }: PagedReaderProps) {
   const mushaf = useMushaf();
+  useWordNav(mushaf.bodyRef);
 
   return (
     <div
@@ -66,6 +68,7 @@ export function PagedReader({
       onClick={onClearMorph}
       role="region"
       aria-label={showSpread ? "المصحف — صفحتان" : "المصحف — صفحة"}
+      tabIndex={0}
     >
       {authentic && layout?.lines ? (
         <div className="qb-glyph-spread" ref={spreadRef}>

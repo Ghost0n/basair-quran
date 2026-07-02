@@ -17,6 +17,7 @@ import {
 import { MorphPopover, type MorphTarget } from "./morph-popover";
 import { useMushaf } from "../mushaf-context";
 import { useReaderWindow, type ScrollControls } from "../use-reader-window";
+import { useWordNav } from "../use-word-nav";
 
 type AyahReaderProps = {
   mushafId: number;
@@ -57,6 +58,7 @@ export function AyahReader({
   const mushaf = useMushaf();
   const formatNumber = useNumerals();
   const { pages } = useReaderWindow({ mushafId, anchorData, totalPages, registerControls });
+  useWordNav(mushaf.bodyRef);
 
   return (
     <div

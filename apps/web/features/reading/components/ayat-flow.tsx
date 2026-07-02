@@ -89,7 +89,9 @@ export function AyahTokens({
             key={wordIndex}
             className="qb-word"
             role="button"
-            tabIndex={0}
+            // Roving focus: words are focusable but not tabbable — the reader
+            // container is the tab stop and arrows walk words (useWordNav).
+            tabIndex={-1}
             aria-label={`تحليل الكلمة: ${word}`}
             onClick={(event) => {
               event.stopPropagation();

@@ -101,7 +101,8 @@ export function GlyphPage({
       <span
         className="qb-glyph-word"
         role="button"
-        tabIndex={0}
+        // Roving focus: tabbing stops on the reader container, not each word.
+        tabIndex={-1}
         aria-label={`تحليل الكلمة: ${word.text ?? ""}`}
         onClick={(event) => {
           event.stopPropagation();

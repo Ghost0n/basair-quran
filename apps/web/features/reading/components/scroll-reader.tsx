@@ -8,6 +8,7 @@ import { AyatFlow, type WordClickHandler, type WordKeyHandler } from "./ayat-flo
 import { MorphPopover, type MorphTarget } from "./morph-popover";
 import { useMushaf } from "../mushaf-context";
 import { useReaderWindow, type ScrollControls } from "../use-reader-window";
+import { useWordNav } from "../use-word-nav";
 
 export type { ScrollControls };
 
@@ -51,6 +52,7 @@ export function ScrollReader({
   const mushaf = useMushaf();
   const formatNumber = useNumerals();
   const { pages } = useReaderWindow({ mushafId, anchorData, totalPages, registerControls });
+  useWordNav(mushaf.bodyRef);
 
   return (
     <div

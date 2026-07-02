@@ -517,6 +517,15 @@
   transition: background 140ms var(--ease-out), color 140ms var(--ease-out);
 }
 
+/* Keyboard word-walking (useWordNav) needs a visible cursor. Plain :focus (not
+   :focus-visible): arrow-key focus() after a mouse interaction doesn't always
+   qualify as "visible" per heuristics, but here focus on a word IS the cursor. */
+.qb-word:focus {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 1px;
+  background: rgba(212, 175, 55, 0.12);
+}
+
 .qb-word:hover {
   background: rgba(212, 175, 55, 0.12);
   color: var(--gold-300);
@@ -647,7 +656,8 @@
   color: var(--gold-300);
 }
 
-.qb-glyph-word:focus-visible {
+/* Plain :focus (matches .qb-word) so arrow-key walking always shows the cursor. */
+.qb-glyph-word:focus {
   outline: 2px solid var(--gold-400);
   outline-offset: 1px;
 }
