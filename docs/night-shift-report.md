@@ -107,61 +107,62 @@ cards stack on mobile.
 
 ---
 
-## Not done / deferred (be honest)
+## Gap-closure pass (follow-up night)
 
-- **Glyph fit-to-width scroll.** Scroll and ayah modes render the **Unicode** reader
-  for every riwāyah; authentic QCF glyph pages are not yet fit-to-width for a scroll
-  column (`useGlyphFitWidth` was never written). On Ḥafṣ+authentic, choosing scroll/
-  ayah silently drops to Unicode.
-- **No window virtualization.** `useReaderWindow` caps at 12 pages and does **not**
-  prune; past the cap, auto-loading pauses until a footer/surah jump re-anchors. Fine
-  for a reading session, not for marathon scrolling.
-- **Roving tabindex not done.** Every reader word is still its own tab stop — a large
-  tab sequence. Logged in `docs/authentic-mushaf-reader.md`; a real roving-focus pass
-  is future a11y work. The scroll/ayah surfaces are at least focusable regions now.
-- **Dead CSS left in place.** Retiring `RecitationScreen` orphaned the
-  `.qb-recitation-*` / `.qb-reciter-list` rules in `recitation.css` (and the
-  `.qb-companion-panel .qb-recitation*` overrides in `concordance.css`). They're
-  unused/harmless; I chose not to hand-delete ~170 lines late in the session (higher
-  risk than value). `.qb-reciter-row*` is still used by the sheet.
-- **Footer `AudioMiniPlayer` kept.** It overlaps the media bar's job; kept because
-  it's synced via the same context and still handy for "play this page". Should be
-  reconciled (remove, or repurpose as a follow-along toggle).
-- **Ask heuristic is conservative** and one-directional. The command bar only routes
-  clear questions (ends with ؟, ≥6 words, or interrogative-led ≥3 words); it can miss
-  a terse question. The **Home ask bar** treats *all* input as a question (no search
-  fallback). No "ask" mode chip to force intent.
-- **Prefilled ask targets the active session**, not a fresh one — an ask can land in
-  an existing (possibly tafssir) thread and inherit its mode/context.
-- **Home is thin vs. the brief.** No light stats (saved āyāt / followed roots), no
-  recent sessions; the rotating āyah is a **curated 5-item set**, not from the API;
-  continue-reading shows the **page number only** (no surah name). Onboarding's
-  "ابدأ القراءة" now lands on Home (default), a slight label mismatch.
+A second autonomous pass worked the list below down. Eight of the original gaps
+are now **closed** (same rules: one commit each, build green, verified in-browser):
+
+| Commit | Gap closed |
+|---|---|
+| `794d7ca` | Dead recitation-screen CSS deleted (~200 lines; `.qb-reciter-row*` kept for the sheet) |
+| `428829e` | Footer mini-player reconciled → a slim "تلاوة الصفحة" chip; the bar owns transport/progress |
+| `cf6d524` | A relayed ask opens a **fresh** Studio session (`askInNewSession`) — no mode/context inheritance |
+| `8e9d3a1` | Home enriched: سورة on continue-reading, stats chips (saved āyāt / roots), 3 recent sessions (gold/copper coded) |
+| `714749c` | **Roving word focus**: words `tabIndex=-1`, one tab stop per reader, arrows/Home/End/Escape (`useWordNav`), visible focus ring |
+| `6baaf0d` | **Sliding window**: past the 12-page cap the window prunes the far edge; exact anchor compensation (0px drift measured) |
+| `fb50e07` | Library rows stagger (`qbRise` nth-child) + `qbPulse` on the loading state |
+| `f006653` | **Glyph fit-to-width scroll** (`useGlyphFitWidth`): authentic Ḥafṣ pages fill the scroll column (measured 1.78× on 1920px, 0 wrapped printed lines), per-page layout+font with Unicode standby, Qālūn falls back |
+
+Verified per gap: sheet/bar styling after the CSS purge; chip play/pause + bar
+handoff; two asks → two separate sessions (thread isolation checked); Home stats +
+sessions from the live store, mobile clean; word-walk on both renderers; window
+slide 50→72 and back with footer fidelity; stagger delays computed; glyph scroll
+correctness (scale, no wraps, morphology, streaming, fallback). No console errors.
+
+## Still not done / deferred (be honest)
+
+- **Ask heuristic is conservative** and one-directional. The command bar can miss a
+  terse question, and the **Home ask bar** treats *all* input as a question (no
+  search fallback). No "ask" mode chip to force intent either way.
+- **Ayah mode stays Unicode by design** — per-ayah glyph rendering would need
+  word-run slicing of page layouts (deliberate, documented).
+- **Recent-session rows open the history tab**, not the exact session in the Studio
+  (per-session deep-open needs load-session wiring in the Studio panel).
+- **The rotating āyah is a curated 5-item set**, not an API surface.
 - **Theme cross-fade is body-level only** — panels/surfaces still snap; a fuller
-  themed-surface transition was out of scope.
-- **Motion leftovers.** `qbPulse` is defined but unused; list-stagger is only on
-  concordance results (library/session/bookmark lists don't stagger); the media-bar
-  seek is the only "progress" surface touched.
-- **Tablet width** (~800) was spot-checked, not exhaustively verified per feature;
-  primary coverage was 1920 + 375.
-- **No new automated tests** beyond the `reader_layout` round-trip — the repo has no
-  frontend test runner, so reader modes, intent routing, and the media bar rely on
-  build + in-browser verification.
+  themed-surface transition remains out of scope.
+- **Glyph-scroll placeholder swap can nudge the view**: when a page's font lands and
+  Unicode swaps to (taller) glyphs above the viewport, the anchor compensation
+  doesn't cover it (it only guards window mutations). Rare in practice — pages
+  stream in near the edges — but real.
+- **Tablet width (~800)** stayed spot-checked, not exhaustively verified per feature.
+- **No frontend test runner** — intent routing, `useReaderWindow`, `useWordNav`, and
+  `useGlyphFitWidth` are verified in-browser only; a Vitest harness is still the
+  right next hardening step.
+- **i18n**: strings remain Arabic-literal (no `t()` layer yet).
 
 ## Future work (to finish/harden each stream)
 
-- **Reader:** write `useGlyphFitWidth` for authentic scroll; add true virtualization
-  (prune with scroll compensation both edges); per-ayah translation/tafsir slot in
-  ayah mode (the column was sized for it); roving-tabindex + arrow-key word nav.
+- **Reader:** per-ayah translation/tafsir slot in ayah mode (the column was sized for
+  it); anchor-guard the glyph placeholder→font swap; per-ayah glyph rendering for the
+  ayah list (word-run slicing of page layouts).
 - **Media bar:** verse markers on the seek track; range-repeat (repeat A→B); a
-  follow-along mode that highlights the playing āyah in the reader and auto-scrolls;
-  remove/repurpose the footer mini-player.
-- **Home/ask:** live stats + recent sessions; a real "verse of the moment" endpoint;
-  surah name on continue-reading; an "ask vs search" mode chip; start a **new** studio
-  session per ask.
-- **Cleanup:** delete the dead recitation CSS; reconcile the two audio players; add a
-  frontend test runner (Vitest) and cover intent routing + `useReaderWindow`.
-- **i18n:** strings are Arabic-literal; route them through `t()` before adding locales.
+  follow-along mode that highlights the playing āyah in the reader and auto-scrolls.
+- **Home/ask:** a real "verse of the moment" endpoint; an "ask vs search" mode chip;
+  deep-open a recent session directly in the Studio.
+- **Hardening:** add a frontend test runner (Vitest) and cover intent routing,
+  `useReaderWindow` (slide + anchor math), `useWordNav`, and `useGlyphFitWidth`.
+- **i18n:** route strings through `t()` before adding locales.
 
 ## New functionality ideas (beyond the brief)
 
