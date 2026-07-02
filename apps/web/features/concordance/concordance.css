@@ -44,31 +44,6 @@
   font-size: var(--fs-xl);
 }
 
-/* Recitation inside the companion panel: let it fill the column naturally */
-.qb-companion-panel .qb-recitation {
-  flex: 1;
-  min-height: 0;
-  flex-direction: column;
-}
-
-.qb-companion-panel .qb-reciter-list {
-  width: 100%;
-  flex: 0 0 auto;
-  border-inline-end: none;
-  border-bottom: 1px solid var(--divider);
-  max-height: 220px;
-}
-
-.qb-companion-panel .qb-recitation-theatre {
-  padding: 24px 20px;
-  gap: 12px;
-}
-
-.qb-companion-panel .qb-recitation-ayah {
-  font-size: 22px;
-  padding: 16px 18px;
-}
-
 /* Settings inside the companion panel */
 .qb-companion-panel .qb-settings {
   flex: 1;
