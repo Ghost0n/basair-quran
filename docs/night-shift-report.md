@@ -149,15 +149,22 @@ served the purpose. Two real defects found by measurement and fixed:
 |---|---|
 | `1349967` | **Home vertically balanced**: the landing stack clustered under the top bar (verse → ask → desk row → tiles all between y=64 and y=638 at 1080, ~440px of dead space below). Centred with the scroll-safe `margin-block:auto` pattern so the āyah holds the optical centre; on short viewports the auto-margins collapse to 0 and the column scrolls from the top (verified `clippedAbove:false` at 680px, balanced 183/183 at 1080). |
 | `9cfd1ea` | **Panel focus mode below the desk threshold**: from 769–1000px a fixed 440px panel + the 84px rail crushed the Mushaf to ~296px (measured at 820px). The workspace canvas now drops to focus mode at ≤1000px — the active surface fills the column, the Mushaf is one rail-tap away — mirroring the existing mobile single-column behaviour. Rail/tab-bar switch stays independent at 768px. |
+| `9a49bb6` | **Settings is a full-width page**: it was crammed into a 400px companion panel beside the Mushaf, forcing its `auto-fill minmax(320px)` card grid (designed for a 980px canvas) into a permanent single column. Now renders full-width like the root panorama (Mushaf hidden), content centred at its 980px measure → a clean 2×2 grid at 1440/1024, single column on mobile. |
+| `764ae37` | **Theme-aware gold text (`--gold-text`)**: gold-400 text on the light parchment failed WCAG AA (~1.9:1 for card headings). New token identical to gold-400 in dark (no change, 8.4:1) and the design's darker `#8a6a0c` in light (4.4:1); 78 gold-TEXT usages swapped, gold fills/borders/icons keep `--gold-400`. |
+| `2e39613` | **Bright gold text (`--gold-text-bright`)**: completes the above for the 12 `--gold-300` emphasis usages (hover/active/stat values) — brightest in dark (unchanged), the same readable `#8a6a0c` in light. |
 
 Audited with no change needed: the **Mushaf stage** (caps of 62/74/88/56rem centre
 correctly in the main column; authentic glyph pages are fit-to-height portrait leaves
-in a framed card — by design) and the **top bar** (command bar centred in the main
-column, no overflow). Verified in-browser at 375 / 820 / 1024 / 1440 / 1920: focus vs
-desk transitions correct, no horizontal overflow, no console errors, builds green.
-Preview note: the headless tab pauses the animation timeline, so entrance transforms
-(e.g. the panel's `translateX(14px)`) read frozen — resting layout confirmed by
-force-finishing animations (`getAnimations().forEach(a => a.finish())`).
+in a framed card — by design), the **spread/ayah reader modes** (spread caps at 88rem
+with a centred 2.5rem gutter and one uniform `useGlyphFit` scale for both leaves; ayah
+caps at 56rem with padded rows — sound by construction), the **Studio/Concordance
+panels** (440/460px, healthy internal density), and the **top bar**. Verified
+in-browser at 375 / 820 / 1024 / 1440 / 1920 and in both themes: focus vs desk
+transitions correct, no horizontal overflow, no console errors, builds green, contrast
+sampled (dark unchanged, light 1.9:1 → 4.4:1). Preview note: the headless tab pauses
+the animation timeline, so entrance transforms (e.g. the panel's `translateX(14px)`)
+read frozen — resting layout confirmed by force-finishing animations
+(`getAnimations().forEach(a => a.finish())`).
 
 ## Still not done / deferred (be honest)
 
