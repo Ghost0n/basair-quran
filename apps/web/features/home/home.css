@@ -169,6 +169,128 @@
   color: var(--fg-3);
 }
 
+/* ---------- Light desk stats ---------- */
+
+.qb-home-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.qb-home-stats .stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out);
+}
+
+.qb-home-stats .stat:hover {
+  border-color: var(--border-strong);
+  color: var(--fg-1);
+}
+
+.qb-home-stats .stat svg {
+  color: var(--gold-400);
+}
+
+.qb-home-stats .stat strong {
+  color: var(--gold-400);
+  font-weight: 700;
+}
+
+/* ---------- Recent research sessions ---------- */
+
+.qb-home-recent {
+  width: 100%;
+  max-width: 620px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qb-home-recent .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.qb-home-recent .lbl {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--fg-3);
+}
+
+.qb-home-recent .all {
+  border: none;
+  background: transparent;
+  color: var(--gold-400);
+  font-family: var(--font-arabic-ui);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+
+.qb-home-recent .row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: transparent;
+  cursor: pointer;
+  text-align: start;
+  transition: border-color var(--dur) var(--ease-out);
+}
+
+.qb-home-recent .row:hover {
+  border-color: var(--border-strong);
+}
+
+.qb-home-recent .row svg {
+  flex-shrink: 0;
+  color: var(--gold-400);
+}
+
+.qb-home-recent .row .title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--fg-1);
+  font-size: var(--fs-sm);
+}
+
+/* Strict = gold, tafssir = copper — the product's non-negotiable coding. */
+.qb-home-recent .row .mode {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: var(--r-pill);
+  color: var(--evidence-fg, var(--gold-400));
+  background: var(--evidence-bg, rgba(212, 175, 55, 0.1));
+  border: 1px solid var(--evidence-border, rgba(212, 175, 55, 0.45));
+}
+
+.qb-home-recent .row .mode.tafssir {
+  color: var(--tafssir-fg, #c98a5b);
+  background: var(--tafssir-bg, rgba(201, 138, 91, 0.1));
+  border-color: var(--tafssir-border, rgba(201, 138, 91, 0.45));
+}
+
 .qb-home-ayah {
   text-align: center;
   padding: 22px 24px 4px;

@@ -4,13 +4,20 @@ import "./home.css";
 
 import { useEffect, useState, type FormEvent } from "react";
 
+import { createQBasairApiClient } from "@q-basair/api-client";
+import type { ResearchSessionSummary } from "@q-basair/shared";
+
 import { BrandMarkRich } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
+import { API_BASE_URL } from "@/lib/config";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { queueStudioAsk } from "@/lib/studio-prefill";
 import { useShellMode, type ShellMode } from "@/features/shell/mode-context";
 
+const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
+
 const LAST_PAGE_KEY = "qbasair.mushaf.lastPage";
+const LAST_SURAH_KEY = "qbasair.mushaf.lastSurah";
 
 type QuickCard = {
   mode: ShellMode;
@@ -50,15 +57,37 @@ export function HomeScreen() {
 
   const [ask, setAsk] = useState("");
   const [lastPage, setLastPage] = useState<number | null>(null);
+  const [lastSurah, setLastSurah] = useState<string | null>(null);
   const [ayahIndex, setAyahIndex] = useState(0);
+  const [savedCount, setSavedCount] = useState<number | null>(null);
+  const [rootsCount, setRootsCount] = useState<number | null>(null);
+  const [recentSessions, setRecentSessions] = useState<ResearchSessionSummary[]>([]);
 
   useEffect(() => {
     try {
       const stored = Number(window.localStorage.getItem(LAST_PAGE_KEY));
       if (Number.isFinite(stored) && stored >= 1) setLastPage(stored);
+      setLastSurah(window.localStorage.getItem(LAST_SURAH_KEY));
     } catch {
       /* no last page — the continue card just won't show */
     }
+  }, []);
+
+  // Light desk stats + the latest research sessions. Each source fails silently
+  // (the row simply doesn't render) so an unreachable store can't mar the Home.
+  useEffect(() => {
+    let cancelled = false;
+    void Promise.allSettled([api.getNotebook(), api.getRoots(), api.getSessions()]).then(
+      ([notebook, roots, sessions]) => {
+        if (cancelled) return;
+        if (notebook.status === "fulfilled") setSavedCount(notebook.value.length);
+        if (roots.status === "fulfilled") setRootsCount(roots.value.length);
+        if (sessions.status === "fulfilled") setRecentSessions(sessions.value.slice(0, 3));
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -109,10 +138,28 @@ export function HomeScreen() {
           <button type="button" className="qb-home-continue" onClick={() => setMode("reading")}>
             <Icon name="book" size={16} />
             <span>
-              تابع القراءة · صفحة <strong>{formatNumber(lastPage)}</strong>
+              تابع القراءة · {lastSurah ? <>سورة <strong>{lastSurah}</strong> · </> : null}
+              صفحة <strong>{formatNumber(lastPage)}</strong>
             </span>
             <Icon name="arrowLeft" size={16} />
           </button>
+        ) : null}
+
+        {savedCount || rootsCount ? (
+          <div className="qb-home-stats" aria-label="إحصاءات المكتبة">
+            {savedCount ? (
+              <button type="button" className="stat" onClick={() => setMode("notebook")}>
+                <Icon name="bookmarkFilled" size={13} />
+                <strong>{formatNumber(savedCount)}</strong> آية محفوظة
+              </button>
+            ) : null}
+            {rootsCount ? (
+              <button type="button" className="stat" onClick={() => setMode("roots")}>
+                <Icon name="tree" size={13} />
+                <strong>{formatNumber(rootsCount)}</strong> جذر مُتابَع
+              </button>
+            ) : null}
+          </div>
         ) : null}
 
         <div className="qb-home-cards">
@@ -131,6 +178,32 @@ export function HomeScreen() {
             </button>
           ))}
         </div>
+
+        {recentSessions.length > 0 ? (
+          <div className="qb-home-recent">
+            <div className="head">
+              <span className="lbl">جلسات بحث أخيرة</span>
+              <button type="button" className="all" onClick={() => setMode("history")}>
+                الكل
+              </button>
+            </div>
+            {recentSessions.map((session) => (
+              <button
+                key={session.id}
+                type="button"
+                className="row"
+                onClick={() => setMode("history")}
+                title={session.title}
+              >
+                <Icon name="sparkles" size={13} />
+                <span className="title">{session.title}</span>
+                <span className={`mode ${session.mode}`}>
+                  {session.mode === "tafssir" ? "تفسيرية" : "القرآن وحدَه"}
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         <div className="qb-home-ayah" aria-live="polite">
           <p key={ayahIndex} className="ayah-text">

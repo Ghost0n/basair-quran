@@ -18,6 +18,9 @@ import { API_BASE_URL } from "@/lib/config";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const LAST_PAGE_KEY = "qbasair.mushaf.lastPage";
+// The surah at the top of the last-read page — display sugar for the Home
+// "continue reading" card (the page number stays the source of truth).
+const LAST_SURAH_KEY = "qbasair.mushaf.lastSurah";
 
 type LoadOptions = {
   selectedAyahId?: number | null;
@@ -95,6 +98,8 @@ function useMushafController(): MushafController {
     if (persist && data.page) {
       try {
         window.localStorage.setItem(LAST_PAGE_KEY, String(data.page));
+        const surah = data.ayahs[0]?.surah;
+        if (surah) window.localStorage.setItem(LAST_SURAH_KEY, surah);
       } catch {
         // localStorage unavailable (private mode) — last page just won't persist.
       }
