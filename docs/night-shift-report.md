@@ -129,27 +129,38 @@ sessions from the live store, mobile clean; word-walk on both renderers; window
 slide 50→72 and back with footer fidelity; stagger delays computed; glyph scroll
 correctness (scale, no wraps, morphology, streaming, fallback). No console errors.
 
+## Second follow-up pass (open issues)
+
+Four more items closed:
+
+| Commit | What |
+|---|---|
+| `79e5423` | **Glyph-swap "nudge" root-caused**: native CSS scroll anchoring (`overflow-anchor: auto`) already compensates late off-screen growth exactly (measured 0px drift both ways). A manual ResizeObserver correction was tried and removed — it DOUBLE-compensates on top of the native one. Invariant documented in `useReaderWindow` so it isn't reintroduced; the pre-paint anchor for React window mutations stays (re-verified 0px). |
+| `dfd2380` | **Home ask bar routes searches too**: same intent heuristic as the command bar; short terms run through the shared workspace (same path as the example chips), and the submit button doubles as the intent indicator (اسأل ↔ ابحث). |
+| `d6fed7d` | **Recent sessions deep-open in the Studio**: a click hydrates that saved thread as a live tab (`openSavedSession`); already-open tabs just activate. |
+| — | **Tablet (~800) pass**: Home, Studio, authentic glyph scroll, media bar — all within viewport, no overflow-x, no console errors. |
+
 ## Still not done / deferred (be honest)
 
-- **Ask heuristic is conservative** and one-directional. The command bar can miss a
-  terse question, and the **Home ask bar** treats *all* input as a question (no
-  search fallback). No "ask" mode chip to force intent either way.
+- **Vitest harness — deferred to the owner.** The repo has **no JS lockfile at all**;
+  the first `npm install -D vitest` would generate a package-lock for the entire
+  dependency tree — a tooling decision (and CI surface change) that shouldn't be
+  taken unilaterally overnight. Until then, intent routing, `useReaderWindow`,
+  `useWordNav`, and `useGlyphFitWidth` remain verified in-browser only.
+- **i18n** — same category: routing every string through `t()` is a repo-wide
+  decision (library choice, key scheme), left to the owner.
 - **Ayah mode stays Unicode by design** — per-ayah glyph rendering would need
   word-run slicing of page layouts (deliberate, documented).
-- **Recent-session rows open the history tab**, not the exact session in the Studio
-  (per-session deep-open needs load-session wiring in the Studio panel).
-- **The rotating āyah is a curated 5-item set**, not an API surface.
-- **Theme cross-fade is body-level only** — panels/surfaces still snap; a fuller
-  themed-surface transition remains out of scope.
-- **Glyph-scroll placeholder swap can nudge the view**: when a page's font lands and
-  Unicode swaps to (taller) glyphs above the viewport, the anchor compensation
-  doesn't cover it (it only guards window mutations). Rare in practice — pages
-  stream in near the edges — but real.
-- **Tablet width (~800)** stayed spot-checked, not exhaustively verified per feature.
-- **No frontend test runner** — intent routing, `useReaderWindow`, `useWordNav`, and
-  `useGlyphFitWidth` are verified in-browser only; a Vitest harness is still the
-  right next hardening step.
-- **i18n**: strings remain Arabic-literal (no `t()` layer yet).
+- **The rotating āyah is a curated 5-item set** — arguably better than a random
+  endpoint (a random verse can be mid-passage); revisit only if an editorial
+  "verse of the day" source appears.
+- **Theme cross-fade is body-level only** — panels/surfaces still snap; blanket
+  transitions on themed surfaces risk artifacts during layout, so this stays out.
+- **Reopened sessions restore text only** — assistant evidence cards don't survive
+  the store round-trip (it keeps role+content); continuing a thread re-grounds
+  through the agent as usual.
+- **The command-bar heuristic can still miss a terse question** (a deliberate bias:
+  never hijack a search).
 
 ## Future work (to finish/harden each stream)
 
