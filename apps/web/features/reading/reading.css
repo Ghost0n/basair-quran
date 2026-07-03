@@ -84,6 +84,53 @@
   font-weight: 600;
 }
 
+/* ---------- Surah progress gauge (continuous readers) ---------- */
+/* A pinned hairline under the header: how far the top of the viewport has read
+   into the CURRENT surah. Restores the sense of place the infinite scroll
+   loses, without repeating the surah name (the header carries that). RTL: the
+   fill grows from the right (inline-start = reading direction). */
+.qb-surah-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  margin-bottom: 10px;
+}
+
+.qb-surah-progress-track {
+  flex: 1;
+  min-width: 0;
+  block-size: 4px;
+  border-radius: 999px;
+  background: var(--gold-a12);
+  overflow: hidden;
+}
+
+.qb-surah-progress-fill {
+  display: block;
+  block-size: 100%;
+  border-radius: 999px;
+  background: linear-gradient(to left, var(--gold-400), var(--gold-a55));
+  /* Glide as the active page advances through the surah. */
+  transition: inline-size var(--motion-dur-base) var(--motion-ease-settle);
+}
+
+.qb-surah-progress-count {
+  flex-shrink: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Layout transition, not transform/opacity — collapse it for reduced motion. */
+@media (prefers-reduced-motion: reduce) {
+  .qb-surah-progress-fill {
+    transition: none;
+  }
+}
+
 .qb-mushaf-tools {
   display: flex;
   gap: 6px;

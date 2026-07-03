@@ -15,6 +15,7 @@ import "./reading.css";
 
 import { MushafHeader } from "./components/mushaf-header";
 import { MushafFooter } from "./components/mushaf-footer";
+import { SurahProgress } from "./components/surah-progress";
 import { type MorphTarget } from "./components/morph-popover";
 import { type GlyphSaveTarget } from "./components/glyph-page";
 import { PagedReader } from "./components/paged-reader";
@@ -302,6 +303,11 @@ export function MushafStage() {
         onJumpSurah={(surahId, ayah) => void mushaf.loadBySurah(selectedMushaf, surahId, ayah)}
         onJumpJuz={(juz) => void mushaf.loadByJuz(selectedMushaf, juz)}
       />
+
+      {/* Continuous readers stream endlessly; the gauge restores a sense of
+          place within the current surah. The paged reader has discrete page
+          navigation + the footer counter, so it needs none. */}
+      {continuousMode ? <SurahProgress pageData={pageData} surahs={surahs} /> : null}
 
       {scrollMode ? (
         <ScrollReader
