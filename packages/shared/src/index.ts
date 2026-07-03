@@ -6,21 +6,76 @@ export interface MushafItem {
   description?: string | null;
 }
 
+export type DevicePlatform = "web" | "ios" | "android" | "desktop";
+
 export interface AuthLoginRequest {
   email: string;
   password: string;
+  device_label?: string | null;
+  platform?: DevicePlatform;
+}
+
+export interface AuthSignupRequest {
+  email: string;
+  password: string;
+  name?: string | null;
+  /** Optional invite code — accepted and echoed, not enforced yet. */
+  invite_code?: string | null;
+  device_label?: string | null;
+  platform?: DevicePlatform;
+}
+
+export interface AuthProfileUpdate {
+  name?: string | null;
+  /** A calligraphic medallion character/index — NOT an image URL. */
+  avatar?: string | null;
+  onboarded?: boolean | null;
 }
 
 export interface AuthUserInfo {
   id: number;
   email: string;
   is_admin: boolean;
+  name?: string | null;
+  avatar?: string | null;
+  onboarded: boolean;
 }
 
 export interface AuthSessionResponse {
   enabled: boolean;
   authenticated: boolean;
   user?: AuthUserInfo | null;
+  /** Set only for native (bearer) clients; the web app uses the httpOnly cookie. */
+  token?: string | null;
+}
+
+export interface DeviceInfo {
+  id: number;
+  device_label?: string | null;
+  platform?: string | null;
+  created_at: number;
+  last_seen_at: number;
+  is_current: boolean;
+}
+
+export interface GuestMergeRequest {
+  notebook_ids?: number[];
+  session_ids?: string[];
+  root_ids?: number[];
+  include_preferences?: boolean;
+}
+
+export interface GuestMergeResult {
+  merged: boolean;
+  notebook_moved: number;
+  sessions_moved: number;
+  roots_moved: number;
+  preferences_moved: boolean;
+  undo_token?: string | null;
+}
+
+export interface GuestMergeUndoRequest {
+  undo_token: string;
 }
 
 export interface SuggestionItem {
@@ -282,6 +337,16 @@ export interface ResearchDefaults {
   depth: "fast" | "balanced" | "deep";
 }
 
+/** Last reading position — powers the personalized Home ayah hero. */
+export interface ReadingPosition {
+  ayah_id: number;
+  mushaf_id: number;
+  surah?: number | null;
+  ayah?: number | null;
+  page?: number | null;
+  updated_at?: number | null;
+}
+
 export interface UserPreferences {
   riwayah: number;
   mushaf_font: string;
@@ -293,6 +358,7 @@ export interface UserPreferences {
   mushaf_render: "authentic" | "simple";
   reader_layout: ReaderLayout;
   research: ResearchDefaults;
+  last_position?: ReadingPosition | null;
 }
 
 export interface RootDistributionSurah {
@@ -329,6 +395,7 @@ export interface UserPreferencesUpdate {
   mushaf_render?: "authentic" | "simple";
   reader_layout?: ReaderLayout;
   research?: Partial<ResearchDefaults>;
+  last_position?: ReadingPosition | null;
 }
 
 export interface QuranPageAyah {

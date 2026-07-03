@@ -1,9 +1,16 @@
 import type {
   AuthLoginRequest,
+  AuthProfileUpdate,
   AuthSessionResponse,
+  AuthSignupRequest,
+  AuthUserInfo,
   DeleteResult,
+  DeviceInfo,
   FollowedRoot,
   FollowedRootCreate,
+  GuestMergeRequest,
+  GuestMergeResult,
+  GuestMergeUndoRequest,
   MorphologyResponse,
   MushafItem,
   NotebookItem,
@@ -104,6 +111,7 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
         typeof window !== "undefined" &&
         !options?.suppressAuthRedirect &&
         !path.startsWith("/auth/login") &&
+        !path.startsWith("/auth/signup") &&
         !path.startsWith("/auth/session")
       ) {
         const nextPath = `${window.location.pathname}${window.location.search}`;
@@ -131,12 +139,66 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
         options,
       );
     },
+    signup(req: AuthSignupRequest, options?: RequestOptions): Promise<AuthSessionResponse> {
+      return request<AuthSessionResponse>(
+        "/auth/signup",
+        {
+          method: "POST",
+          headers: options?.headers,
+          body: JSON.stringify(req),
+        },
+        options,
+      );
+    },
     logout(options?: RequestOptions): Promise<AuthSessionResponse> {
       return request<AuthSessionResponse>(
         "/auth/logout",
         {
           method: "POST",
           headers: options?.headers,
+        },
+        options,
+      );
+    },
+    updateProfile(patch: AuthProfileUpdate, options?: RequestOptions): Promise<AuthUserInfo> {
+      return request<AuthUserInfo>(
+        "/auth/profile",
+        {
+          method: "PATCH",
+          headers: options?.headers,
+          body: JSON.stringify(patch),
+        },
+        options,
+      );
+    },
+    getDevices(options?: RequestOptions): Promise<DeviceInfo[]> {
+      return request<DeviceInfo[]>("/auth/devices", { headers: options?.headers }, options);
+    },
+    ejectDevice(sessionId: number, options?: RequestOptions): Promise<DeleteResult> {
+      return request<DeleteResult>(
+        `/auth/devices/${sessionId}`,
+        { method: "DELETE", headers: options?.headers },
+        options,
+      );
+    },
+    mergeGuestData(req: GuestMergeRequest, options?: RequestOptions): Promise<GuestMergeResult> {
+      return request<GuestMergeResult>(
+        "/auth/merge-guest-data",
+        {
+          method: "POST",
+          headers: options?.headers,
+          body: JSON.stringify(req),
+        },
+        options,
+      );
+    },
+    undoMergeGuestData(req: GuestMergeUndoRequest, options?: RequestOptions): Promise<GuestMergeResult> {
+      return request<GuestMergeResult>(
+        "/auth/merge-guest-data/undo",
+        {
+          method: "POST",
+          headers: options?.headers,
+          body: JSON.stringify(req),
         },
         options,
       );

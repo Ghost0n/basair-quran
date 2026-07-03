@@ -10,7 +10,8 @@ This document freezes the backend contract that the future frontend migration wi
 - Reader endpoints remain additive and backward-compatible.
 - `/api/research-agent` is additive and returns strict-context Quran research responses.
 - `GET /api/research-agent/settings` is additive and exposes the active Ollama provider, available models, and plan-limit guidance for the research UI.
-- `/api/auth/*` is additive and supports invite-only session authentication when enabled.
+- `/api/auth/*` provides the identity layer (signup, login, profile, devices, guest-merge) with hybrid
+  gating: reading + search stay open to guests; only the Studio/research surface requires an account.
 
 ## Canonical schema source
 
@@ -23,7 +24,13 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/health`
 - `GET /api/auth/session`
 - `POST /api/auth/login`
+- `POST /api/auth/signup`
 - `POST /api/auth/logout`
+- `PATCH /api/auth/profile`
+- `GET /api/auth/devices`
+- `DELETE /api/auth/devices/{session_id}`
+- `POST /api/auth/merge-guest-data`
+- `POST /api/auth/merge-guest-data/undo`
 - `GET /api/mushafs`
 - `GET /api/suggest`
 - `POST /api/suggest-batch`
@@ -98,17 +105,38 @@ This document freezes the backend contract that the future frontend migration wi
 ## Authentication notes
 
 - Authentication is controlled by `QBASAIR_AUTH_ENABLED`.
-- When enabled, all application API routes except `GET /api/health` and `/api/auth/*` require a valid session.
-- Sessions are stored in signed cookies. The backend expects:
+- **Hybrid gating.** When enabled, reading + search + the notebook (companions) stay **open to guests**
+  (`user_id=0`); only the Studio/research surface (`GET /api/research-agent/settings`, `POST /api/research-agent`)
+  is hard-gated. Open routers use *soft* auth: if a valid token is present the request resolves to that user,
+  otherwise it proceeds as guest. `GET /api/health` and `/api/auth/*` are always open.
+- **Gate contract.** A gated endpoint reached by a guest returns
+  `401 { "detail": { "code": "auth_required", "gate": "studio", "message": "Authentication required." } }`.
+  The frontend intercepts this code to open the on-demand auth prompt and resume the pending action.
+- **Session model — opaque tokens, cross-platform.** Identity resolves from an opaque token presented as
+  **either** an httpOnly cookie (web) **or** an `Authorization: Bearer` header (native; Bearer takes
+  precedence). Each token is one row of the `sessions` table (also the devices registry); only its sha256
+  hash is stored, and every authenticated request slides the 14-day expiry. Config env:
   - `QBASAIR_SESSION_SECRET`
   - `QBASAIR_SESSION_COOKIE_NAME`
   - `QBASAIR_SESSION_SECURE`
-- Public signup is intentionally absent in this slice. Accounts are managed through `scripts/manage_users.py`.
-- `GET /api/auth/session` returns whether auth is enabled and whether the current browser session is authenticated.
-- `POST /api/auth/login` accepts:
-  - `email`
-  - `password`
-- `POST /api/auth/logout` clears the current session.
+- **One-time re-login on deploy.** Switching the identity source from signed-cookie sessions to the token
+  table invalidates any pre-existing signed-cookie sessions — users sign in once after this ships.
+- `GET /api/auth/session` returns `{ enabled, authenticated, user }`. `user` carries `name`, `avatar`
+  (a calligraphic medallion character/index — not an image URL), and `onboarded`.
+- `POST /api/auth/login` accepts `email`, `password`, and optional `device_label` / `platform`; it mints a
+  session and returns the raw `token` (native clients keep it; the web app uses the cookie).
+- `POST /api/auth/signup` accepts `email`, `password`, optional `name`, optional `invite_code` (accepted and
+  echoed, **not enforced** yet), and optional `device_label` / `platform`. Duplicate email → `409`.
+- `POST /api/auth/logout` revokes the current session row and clears the cookie.
+- `PATCH /api/auth/profile` (auth) sets `name` / `avatar` / `onboarded` — used by the avatar picker and the
+  once-per-account onboarding.
+- `GET /api/auth/devices` (auth) lists active sessions with an `is_current` flag;
+  `DELETE /api/auth/devices/{session_id}` (auth) ejects a device (ejecting the current row == logout).
+- `POST /api/auth/merge-guest-data` (auth) re-attributes guest (`user_id=0`) rows — notebook, sessions,
+  followed roots, optionally preferences — to the account. Rows are **moved, never deleted**; the exact ids
+  are journalled under an `undo_token`. `POST /api/auth/merge-guest-data/undo` flips those exact ids back to
+  the guest, deleting nothing.
+- Accounts can also be managed offline through `scripts/manage_users.py`.
 
 ## Research agent notes
 

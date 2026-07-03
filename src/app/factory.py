@@ -24,25 +24,46 @@ async def lifespan(_app: FastAPI):
     quran_service.reset_morphology_search_index()
 
 
+def _extract_token(request: Request) -> str | None:
+    """Read the session token from a Bearer header (native) or cookie (web)."""
+    header = request.headers.get("Authorization") or request.headers.get("authorization")
+    if header and header.lower().startswith("bearer "):
+        candidate = header[7:].strip()
+        if candidate:
+            return candidate
+    return request.cookies.get(config.get_session_cookie_name()) or None
+
+
+def require_authenticated_session(request: Request) -> None:
+    """Hard gate — 401 unless a live session token is presented.
+
+    Attached to the Studio/research router only: reading + search stay open to
+    guests, but the LLM research surface requires an account.
+    """
+    resolved = auth_service.resolve_session(_extract_token(request))
+    if resolved is None:
+        raise HTTPException(
+            status_code=401,
+            detail={"code": "auth_required", "gate": "studio", "message": "Authentication required."},
+        )
+    request.state.auth_user = resolved.user
+    request.state.session_id = resolved.session_id
+
+
+def attach_optional_session(request: Request) -> None:
+    """Soft auth — resolve the token if present, never 401.
+
+    Attached to the open routers (reader, search, mushafs, companions) so an
+    authenticated user's notebook/preferences resolve to *their* user_id
+    instead of silently reading/writing as the guest (user_id=0).
+    """
+    resolved = auth_service.resolve_session(_extract_token(request))
+    if resolved is not None:
+        request.state.auth_user = resolved.user
+        request.state.session_id = resolved.session_id
+
+
 def create_app() -> FastAPI:
-    def require_authenticated_session(request: Request) -> None:
-        user_id = request.session.get("user_id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Authentication required.")
-
-        try:
-            resolved_user_id = int(user_id)
-        except (TypeError, ValueError):
-            request.session.clear()
-            raise HTTPException(status_code=401, detail="Authentication required.")
-
-        user = auth_service.get_user_by_id(resolved_user_id)
-        if user is None or not user.is_active:
-            request.session.clear()
-            raise HTTPException(status_code=401, detail="Authentication required.")
-
-        request.state.auth_user = user
-
     app = FastAPI(
         title="Q-Basair API",
         version="1.0.0",
@@ -75,14 +96,19 @@ def create_app() -> FastAPI:
     if config.is_auth_enabled():
         auth_service.ensure_auth_db()
     app_data_service.ensure_app_db()
+
+    # Hybrid gating: reading + search are open to guests (soft auth resolves the
+    # user when signed in); only the Studio/research surface is hard-gated.
+    open_dependencies = [Depends(attach_optional_session)] if config.is_auth_enabled() else []
+    gated_dependencies = [Depends(require_authenticated_session)] if config.is_auth_enabled() else []
+
     app.include_router(auth_router)
     app.include_router(health_router)
-    protected_dependencies = [Depends(require_authenticated_session)] if config.is_auth_enabled() else []
-    app.include_router(mushafs_router, dependencies=protected_dependencies)
-    app.include_router(search_router, dependencies=protected_dependencies)
-    app.include_router(research_router, dependencies=protected_dependencies)
-    app.include_router(reader_router, dependencies=protected_dependencies)
-    app.include_router(companions_router, dependencies=protected_dependencies)
+    app.include_router(mushafs_router, dependencies=open_dependencies)
+    app.include_router(search_router, dependencies=open_dependencies)
+    app.include_router(reader_router, dependencies=open_dependencies)
+    app.include_router(companions_router, dependencies=open_dependencies)
+    app.include_router(research_router, dependencies=gated_dependencies)
     return app
 
 

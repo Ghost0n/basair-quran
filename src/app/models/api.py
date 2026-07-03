@@ -8,21 +8,77 @@ class HealthResponse(BaseModel):
     timestamp: float
 
 
+Platform = Literal["web", "ios", "android", "desktop"]
+
+
 class AuthLoginRequest(BaseModel):
     email: str = Field(..., min_length=3, max_length=320)
     password: str = Field(..., min_length=8, max_length=256)
+    device_label: Optional[str] = Field(None, max_length=120)
+    platform: Optional[Platform] = "web"
+
+
+class AuthSignupRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=320)
+    password: str = Field(..., min_length=8, max_length=256)
+    name: Optional[str] = Field(None, max_length=80)
+    # Optional invite code — accepted and echoed, not enforced yet.
+    invite_code: Optional[str] = Field(None, max_length=64)
+    device_label: Optional[str] = Field(None, max_length=120)
+    platform: Optional[Platform] = "web"
+
+
+class AuthProfileUpdate(BaseModel):
+    name: Optional[str] = Field(None, max_length=80)
+    # A calligraphic medallion character/index — NOT an image URL.
+    avatar: Optional[str] = Field(None, max_length=8)
+    onboarded: Optional[bool] = None
 
 
 class AuthUserInfo(BaseModel):
     id: int
     email: str
     is_admin: bool = False
+    name: Optional[str] = None
+    avatar: Optional[str] = None
+    onboarded: bool = False
 
 
 class AuthSessionResponse(BaseModel):
     enabled: bool = False
     authenticated: bool = False
     user: Optional[AuthUserInfo] = None
+    # Set only for native clients (bearer flow); the web app uses the cookie.
+    token: Optional[str] = None
+
+
+class DeviceInfo(BaseModel):
+    id: int
+    device_label: Optional[str] = None
+    platform: Optional[str] = None
+    created_at: int
+    last_seen_at: int
+    is_current: bool = False
+
+
+class GuestMergeRequest(BaseModel):
+    notebook_ids: List[int] = Field(default_factory=list)
+    session_ids: List[str] = Field(default_factory=list)
+    root_ids: List[int] = Field(default_factory=list)
+    include_preferences: bool = False
+
+
+class GuestMergeResult(BaseModel):
+    merged: bool = False
+    notebook_moved: int = 0
+    sessions_moved: int = 0
+    roots_moved: int = 0
+    preferences_moved: bool = False
+    undo_token: Optional[str] = None
+
+
+class GuestMergeUndoRequest(BaseModel):
+    undo_token: str = Field(..., min_length=1, max_length=64)
 
 
 class MushafItem(BaseModel):
@@ -422,6 +478,15 @@ class ResearchDefaults(BaseModel):
     depth: Literal["fast", "balanced", "deep"] = "balanced"
 
 
+class ReadingPosition(BaseModel):
+    ayah_id: int
+    mushaf_id: int = 1
+    surah: Optional[int] = None
+    ayah: Optional[int] = None
+    page: Optional[int] = None
+    updated_at: Optional[int] = None
+
+
 class UserPreferences(BaseModel):
     riwayah: int = 1
     mushaf_font: str = "amiri-quran"
@@ -437,6 +502,8 @@ class UserPreferences(BaseModel):
     # "auto" resolves per viewport; the others are explicit user choices.
     reader_layout: Literal["auto", "single", "spread", "scroll", "ayah"] = "auto"
     research: ResearchDefaults = Field(default_factory=ResearchDefaults)
+    # Last reading position — powers the personalized Home ayah hero.
+    last_position: Optional[ReadingPosition] = None
 
 
 class ResearchDefaultsUpdate(BaseModel):
@@ -455,6 +522,7 @@ class UserPreferencesUpdate(BaseModel):
     mushaf_render: Optional[Literal["authentic", "simple"]] = None
     reader_layout: Optional[Literal["auto", "single", "spread", "scroll", "ayah"]] = None
     research: Optional[ResearchDefaultsUpdate] = None
+    last_position: Optional[ReadingPosition] = None
 
 
 # ---------------------------------------------------------------------------

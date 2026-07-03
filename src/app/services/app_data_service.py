@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import secrets
 import sqlite3
 import time
 
@@ -78,6 +79,14 @@ def ensure_app_db() -> None:
                 data TEXT NOT NULL,
                 updated_at INTEGER NOT NULL
             );
+
+            CREATE TABLE IF NOT EXISTS merge_log (
+                undo_token TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                moved_json TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                undone_at INTEGER
+            );
             """
         )
         connection.commit()
@@ -98,6 +107,9 @@ DEFAULT_PREFERENCES: dict = {
     "mushaf_render": "simple",
     "reader_layout": "auto",
     "research": {"default_mode": "strict", "depth": "balanced"},
+    # Last reading position — powers the personalized Home ayah hero. Snapshot,
+    # replaced wholesale on update; roams with the account (guests keep it local).
+    "last_position": None,
 }
 
 
@@ -301,3 +313,185 @@ def delete_followed_root(root_id: int, user_id: int = DEFAULT_USER_ID) -> bool:
         )
         connection.commit()
         return cursor.rowcount > 0
+
+
+# ----------------------------------------------------------------------
+# Guest -> account merge (move, never delete) with non-destructive undo
+# ----------------------------------------------------------------------
+
+
+def merge_guest_data(
+    user_id: int,
+    *,
+    notebook_ids: list[int] | None = None,
+    session_ids: list[str] | None = None,
+    root_ids: list[int] | None = None,
+    include_preferences: bool = False,
+) -> dict:
+    """Re-attribute guest (``user_id = 0``) rows to ``user_id``.
+
+    Rows are *moved*, never copied or deleted. When an id list is supplied,
+    only those guest rows move; an empty/omitted list moves all guest rows of
+    that type (single-guest deployments). Followed-roots the account already
+    follows (by ``root_text``) are left with the guest so nothing collides.
+    The exact ids moved are journalled under an ``undo_token`` so the move can
+    be reversed with zero data loss.
+    """
+    if user_id == DEFAULT_USER_ID:
+        raise ValueError("Cannot merge guest data into the guest user.")
+
+    now = int(time.time())
+    moved: dict[str, object] = {"notebook": [], "sessions": [], "roots": [], "preferences": False}
+
+    with _connect() as connection:
+        # --- notebook ---
+        if notebook_ids:
+            rows = connection.execute(
+                f"SELECT id FROM notebook_items WHERE user_id = 0 AND id IN ({_placeholders(notebook_ids)})",
+                tuple(notebook_ids),
+            ).fetchall()
+        else:
+            rows = connection.execute("SELECT id FROM notebook_items WHERE user_id = 0").fetchall()
+        note_ids = [int(row["id"]) for row in rows]
+        for note_id in note_ids:
+            connection.execute(
+                "UPDATE notebook_items SET user_id = ? WHERE id = ? AND user_id = 0",
+                (user_id, note_id),
+            )
+        moved["notebook"] = note_ids
+
+        # --- research sessions (TEXT ids) ---
+        if session_ids:
+            rows = connection.execute(
+                f"SELECT id FROM research_sessions WHERE user_id = 0 AND id IN ({_placeholders(session_ids)})",
+                tuple(session_ids),
+            ).fetchall()
+        else:
+            rows = connection.execute("SELECT id FROM research_sessions WHERE user_id = 0").fetchall()
+        sess_ids = [str(row["id"]) for row in rows]
+        for sess_id in sess_ids:
+            connection.execute(
+                "UPDATE research_sessions SET user_id = ? WHERE id = ? AND user_id = 0",
+                (user_id, sess_id),
+            )
+        moved["sessions"] = sess_ids
+
+        # --- followed roots (skip texts already followed by the account) ---
+        owned = {
+            str(row["root_text"])
+            for row in connection.execute(
+                "SELECT root_text FROM followed_roots WHERE user_id = ?",
+                (user_id,),
+            ).fetchall()
+        }
+        if root_ids:
+            rows = connection.execute(
+                f"SELECT id, root_text FROM followed_roots WHERE user_id = 0 AND id IN ({_placeholders(root_ids)})",
+                tuple(root_ids),
+            ).fetchall()
+        else:
+            rows = connection.execute(
+                "SELECT id, root_text FROM followed_roots WHERE user_id = 0"
+            ).fetchall()
+        moved_root_ids: list[int] = []
+        for row in rows:
+            if str(row["root_text"]) in owned:
+                continue
+            connection.execute(
+                "UPDATE followed_roots SET user_id = ? WHERE id = ? AND user_id = 0",
+                (user_id, int(row["id"])),
+            )
+            moved_root_ids.append(int(row["id"]))
+        moved["roots"] = moved_root_ids
+
+        # --- preferences (only if requested and the account has none yet) ---
+        if include_preferences:
+            has_account_prefs = connection.execute(
+                "SELECT 1 FROM user_preferences WHERE user_id = ?",
+                (user_id,),
+            ).fetchone()
+            guest_prefs = connection.execute(
+                "SELECT 1 FROM user_preferences WHERE user_id = 0",
+            ).fetchone()
+            if guest_prefs is not None and has_account_prefs is None:
+                connection.execute(
+                    "UPDATE user_preferences SET user_id = ? WHERE user_id = 0",
+                    (user_id,),
+                )
+                moved["preferences"] = True
+
+        undo_token = secrets.token_urlsafe(24)
+        connection.execute(
+            "INSERT INTO merge_log (undo_token, user_id, moved_json, created_at, undone_at) VALUES (?, ?, ?, ?, NULL)",
+            (undo_token, user_id, json.dumps(moved, ensure_ascii=False), now),
+        )
+        connection.commit()
+
+    return {
+        "merged": True,
+        "notebook_moved": len(moved["notebook"]),  # type: ignore[arg-type]
+        "sessions_moved": len(moved["sessions"]),  # type: ignore[arg-type]
+        "roots_moved": len(moved["roots"]),  # type: ignore[arg-type]
+        "preferences_moved": bool(moved["preferences"]),
+        "undo_token": undo_token,
+    }
+
+
+def undo_merge(user_id: int, undo_token: str) -> dict:
+    """Reverse a merge: re-attribute exactly the journalled ids back to guest.
+
+    Deletes nothing — rows are flipped from ``user_id`` back to ``0``.
+    """
+    now = int(time.time())
+    with _connect() as connection:
+        row = connection.execute(
+            "SELECT moved_json, undone_at FROM merge_log WHERE undo_token = ? AND user_id = ?",
+            (undo_token, user_id),
+        ).fetchone()
+        if row is None or row["undone_at"] is not None:
+            return {"merged": False, "notebook_moved": 0, "sessions_moved": 0, "roots_moved": 0,
+                    "preferences_moved": False, "undo_token": None}
+
+        moved = json.loads(row["moved_json"])
+        note_ids = list(moved.get("notebook") or [])
+        sess_ids = list(moved.get("sessions") or [])
+        root_ids = list(moved.get("roots") or [])
+
+        for note_id in note_ids:
+            connection.execute(
+                "UPDATE notebook_items SET user_id = 0 WHERE id = ? AND user_id = ?",
+                (int(note_id), user_id),
+            )
+        for sess_id in sess_ids:
+            connection.execute(
+                "UPDATE research_sessions SET user_id = 0 WHERE id = ? AND user_id = ?",
+                (str(sess_id), user_id),
+            )
+        for root_id in root_ids:
+            connection.execute(
+                "UPDATE followed_roots SET user_id = 0 WHERE id = ? AND user_id = ?",
+                (int(root_id), user_id),
+            )
+        if moved.get("preferences"):
+            connection.execute(
+                "UPDATE user_preferences SET user_id = 0 WHERE user_id = ?",
+                (user_id,),
+            )
+        connection.execute(
+            "UPDATE merge_log SET undone_at = ? WHERE undo_token = ?",
+            (now, undo_token),
+        )
+        connection.commit()
+
+    return {
+        "merged": False,
+        "notebook_moved": len(note_ids),
+        "sessions_moved": len(sess_ids),
+        "roots_moved": len(root_ids),
+        "preferences_moved": bool(moved.get("preferences")),
+        "undo_token": undo_token,
+    }
+
+
+def _placeholders(items: list) -> str:
+    return ", ".join("?" for _ in items)
