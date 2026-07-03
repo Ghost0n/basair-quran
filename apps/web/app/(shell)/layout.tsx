@@ -2,7 +2,6 @@ import { Suspense, type ReactNode } from "react";
 import Script from "next/script";
 
 import { YamliInit } from "@/components/yamli-init";
-import { AuthTopbar } from "@/features/auth/auth-topbar";
 import { ShellGate } from "@/features/identity/shell-gate";
 import { Shell } from "@/features/shell/shell";
 
@@ -24,11 +23,10 @@ export default function ShellLayout({ children }: { children: ReactNode }) {
       {/* qb-shell-root caps the workspace at the viewport height so the app
           feels stable: the chrome (rail, top bar, footer) stays put and each
           screen scrolls inside its own region instead of growing the whole
-          document. It also absorbs the optional auth strip above the frame. */}
+          document. (Sign-out now lives in the account menu on the rail.) */}
       <Suspense fallback={null}>
         <ShellGate>
           <div className="qb-shell-root">
-            <AuthTopbar />
             <Shell>{children}</Shell>
           </div>
         </ShellGate>

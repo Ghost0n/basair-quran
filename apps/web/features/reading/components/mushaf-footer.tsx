@@ -97,7 +97,7 @@ export function MushafFooter({
               setEditing(true);
             }}
             title="انتقل إلى صفحة"
-            aria-label={`الصفحة ${page} من ${totalPages} — اضغط للانتقال إلى صفحة أخرى`}
+            aria-label={`الصفحة ${formatNumber(page)} من ${formatNumber(totalPages)} — اضغط للانتقال إلى صفحة أخرى`}
           >
             {formatNumber(page)} / {formatNumber(totalPages)}
           </button>

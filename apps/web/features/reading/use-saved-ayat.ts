@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
 
@@ -29,6 +29,9 @@ export type SavableAyah = {
  */
 export function useSavedAyat() {
   const [byAyahId, setByAyahId] = useState<Map<number, number>>(new Map());
+  // Ayāt with a toggle in flight — a second click is ignored until it settles,
+  // so rapid taps can't race the optimistic state against the server.
+  const pendingRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -53,6 +56,21 @@ export function useSavedAyat() {
   const isSaved = useCallback((ayahId: number) => byAyahId.has(ayahId), [byAyahId]);
 
   const toggle = useCallback(
+    async (ayah: SavableAyah) => {
+      if (pendingRef.current.has(ayah.ayah_id)) return;
+      pendingRef.current.add(ayah.ayah_id);
+      try {
+        await runToggle(ayah);
+      } finally {
+        pendingRef.current.delete(ayah.ayah_id);
+      }
+    },
+    // runToggle is stable via byAyahId dep below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [byAyahId],
+  );
+
+  const runToggle = useCallback(
     async (ayah: SavableAyah) => {
       const existingId = byAyahId.get(ayah.ayah_id);
       if (existingId != null) {

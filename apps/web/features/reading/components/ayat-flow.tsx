@@ -4,8 +4,9 @@ import { Fragment } from "react";
 
 import type { QuranPageAyah } from "@q-basair/shared";
 
-import { toArabicDigits } from "@/lib/numerals";
 import { Icon } from "@/components/icon";
+import { flyToNotebook } from "@/lib/fly-to-notebook";
+import { useNumerals } from "@/lib/preferences-context";
 
 const BASMALA = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
 const AT_TAWBAH_ID = 9; // the only surah with no basmala at all.
@@ -78,6 +79,7 @@ export function AyahTokens({
   onWordKey,
   showNumber = true,
 }: AyahTokensProps) {
+  const formatNumber = useNumerals();
   const isSelected = ayah.is_selected || ayah.ayah_id === selectedAyahId;
   return (
     <span className={`qb-ayah-tok${isSelected ? " selected" : ""}`}>
@@ -108,7 +110,7 @@ export function AyahTokens({
             {word}{" "}
           </span>
         ))}
-      {showNumber ? <span className="qb-num-glyph">{`﴿${toArabicDigits(ayah.ayah)}﴾`}</span> : null}
+      {showNumber ? <span className="qb-num-glyph">{`﴿${formatNumber(ayah.ayah)}﴾`}</span> : null}
       <button
         type="button"
         className={`qb-save-ayah${isSaved(ayah.ayah_id) ? " on" : ""}`}
@@ -117,6 +119,8 @@ export function AyahTokens({
         title={isSaved(ayah.ayah_id) ? "محفوظة في الدفتر" : "حفظ في الدفتر"}
         onClick={(event) => {
           event.stopPropagation();
+          // Ghost flight to the notebook only on SAVE (not un-save).
+          if (!isSaved(ayah.ayah_id)) flyToNotebook(event.currentTarget, ayah.text.trim());
           onToggleSave(ayah);
         }}
       >

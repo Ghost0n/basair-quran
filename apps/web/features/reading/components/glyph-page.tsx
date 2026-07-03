@@ -5,6 +5,7 @@ import { Fragment } from "react";
 import type { MushafLayoutLine, MushafLayoutGlyph } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { flyToNotebook } from "@/lib/fly-to-notebook";
 
 // The basmala is rendered as compact, unambiguous Unicode text (in the display
 // font) rather than the QCF "line-filling" ligature, which spreads its segments
@@ -135,6 +136,7 @@ export function GlyphPage({
           title={saved ? "محفوظة في الدفتر" : "حفظ الآية في الدفتر"}
           onClick={(event) => {
             event.stopPropagation();
+            if (!saved) flyToNotebook(event.currentTarget, ayahTextById.get(word.ayah_id) ?? word.text ?? "");
             onToggleSave({
               ayahId: word.ayah_id,
               surahId: word.surah,

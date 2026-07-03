@@ -132,6 +132,10 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       audio.currentTime = 0;
     }
     setIsPlaying(false);
+    // Clear the active position so the media bar collapses (it renders only
+    // while `current` is set). Without this the bar was stuck open on close.
+    setCurrent(null);
+    setProgress(0);
   }, []);
 
   const next = useCallback(() => {
