@@ -13,6 +13,7 @@ import { PreferencesProvider } from "@/lib/preferences-context";
 import { LeftRail } from "./left-rail";
 import { MobileTabBar } from "./mobile-tab-bar";
 import { ShortcutsModal } from "./shortcuts-modal";
+import { ThemeSweep } from "./theme-sweep";
 import { TopBar } from "./top-bar";
 import { WorkspaceProvider } from "./workspace-context";
 
@@ -41,6 +42,7 @@ export function Shell({ children }: { children: ReactNode }) {
             </div>
             <ShortcutsModal />
             <MergeToast />
+            <ThemeSweep />
           </WorkspaceProvider>
         </RecitationProvider>
       </MushafProvider>
