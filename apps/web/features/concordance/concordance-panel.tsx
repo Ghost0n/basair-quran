@@ -207,7 +207,7 @@ export function ConcordancePanel() {
                 <div
                   key={selectionKey}
                   className={`qb-verse-row${isSelected ? " selected" : ""}`}
-                  style={{ "--i": Math.min(verseIndex, 12) } as CSSProperties}
+                  style={{ "--i": Math.min(verseIndex, 8) } as CSSProperties}
                   role="button"
                   tabIndex={0}
                   aria-pressed={isSelected}

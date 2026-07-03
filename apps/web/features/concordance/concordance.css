@@ -223,10 +223,11 @@
   position: relative;
   width: 100%;
   text-align: start;
-  /* Results mount with a staggered fade + rise. `backwards` (not forwards) so the
-     completed animation never locks `transform` and break the hover lift. */
-  animation: qbRise var(--dur) var(--ease-out) backwards;
-  animation-delay: calc(var(--i, 0) * 35ms);
+  /* Results mount with a staggered fade + rise (design: 60ms cascade, cap 8 then
+     batch — the cap is applied on --i in the component). `backwards` (not forwards)
+     so the completed animation never locks `transform` and breaks the hover lift. */
+  animation: qbRise var(--motion-dur-base) var(--motion-ease-settle) backwards;
+  animation-delay: calc(var(--i, 0) * var(--motion-stagger-base));
 }
 
 .light .qb-verse-row {
@@ -441,22 +442,22 @@
   cursor: pointer;
 }
 
+/* No spinners — loading is a pulsing skeleton (opacity 0.45↔0.9, per the design
+   motion spec), with a 120ms internal stagger across the three blocks. */
 .qb-conc-skeleton {
   height: 88px;
   border-radius: 14px;
   margin-bottom: 10px;
-  background: linear-gradient(100deg, rgba(212, 175, 55, 0.05), rgba(212, 175, 55, 0.12), rgba(212, 175, 55, 0.05));
-  background-size: 200% 100%;
-  animation: qbConcShimmer 1.4s var(--ease-in-out) infinite;
+  background: var(--gold-a08);
+  animation: qbSkeleton 1200ms ease-in-out infinite;
 }
 
-@keyframes qbConcShimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+.qb-conc-skeleton:nth-of-type(2) {
+  animation-delay: 120ms;
+}
+
+.qb-conc-skeleton:nth-of-type(3) {
+  animation-delay: 240ms;
 }
 
 /* ---------- Riwāyah selector (TopBar) ---------- */
