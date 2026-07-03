@@ -39,8 +39,12 @@ export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
     return <div className="qb-workspace-canvas">{panel ?? <MushafStage />}</div>;
   }
 
+  // "The mushaf is the room": when a panel is summoned beside it, the reader
+  // settles back (scale + dim) so the panel reads as layered above it.
+  const panelOpen = mode === "search" || mode === "studio";
+
   return (
-    <div className="qb-workspace-canvas">
+    <div className={`qb-workspace-canvas${panelOpen ? " has-panel" : ""}`}>
       {mode === "search" ? <ConcordancePanel /> : null}
       <MushafStage />
       {mode === "studio" ? <StudioPanel /> : null}

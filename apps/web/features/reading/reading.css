@@ -17,6 +17,20 @@
   /* Trim vertical chrome so the fitted page can be as large as possible. */
   padding: 12px 32px 0;
   position: relative;
+  /* Room settle: recede when a side panel is summoned (see .has-panel below).
+     Safe to transform — the stage is position:relative and its popovers are
+     position:absolute (they ride along with the room). */
+  transform-origin: center center;
+  transition: transform var(--motion-dur-slow) var(--motion-ease-settle),
+    opacity var(--motion-dur-slow) var(--motion-ease-settle);
+}
+
+/* "The mushaf is the room": a summoned panel settles the reader back 1% and dims
+   it to 0.94, never blurs. Reduced motion keeps the dim; --depth-room-scale is
+   neutralized to 1, so only the scale collapses. */
+.qb-workspace-canvas.has-panel .qb-mushaf-stage {
+  transform: scale(var(--depth-room-scale));
+  opacity: var(--depth-room-dim);
 }
 
 /* A two-page facing spread needs room for both leaves side by side. */
