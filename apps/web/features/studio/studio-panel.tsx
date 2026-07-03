@@ -2,7 +2,7 @@
 
 import "./studio.css";
 
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
 
 import type { ResearchAgentResponse, TafssirDepth } from "@q-basair/shared";
 
@@ -348,6 +348,7 @@ function BotMessage({
               key={ayah.ayah_id}
               type="button"
               className="ev-row"
+              style={{ "--i": index } as CSSProperties}
               onClick={() => onJump(ayah.ayah_id, ayah.mushaf_id, ayah.highlights ?? [])}
             >
               <span className="num">[{formatNumber(index + 1)}]</span>

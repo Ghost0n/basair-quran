@@ -177,6 +177,9 @@
   background: rgba(212, 175, 55, 0.06);
   border: 1px solid rgba(212, 175, 55, 0.22);
   padding: 14px;
+  /* Skeleton→answer crossfade: the answer arrives in place, container keeps its
+     dimensions (no pop-in). */
+  animation: qbFade var(--motion-dur-base) var(--motion-ease-settle) both;
 }
 
 .qb-msg.bot.tafssir {
@@ -251,6 +254,11 @@
   transition: border-color 180ms var(--ease-out);
   width: 100%;
   text-align: start;
+  /* Evidence cards arrive with a 90ms LOOSE stagger — slower than search results
+     on purpose; this is the hero moment. `backwards` holds opacity 0 through the
+     delay so the cascade reads cleanly. */
+  animation: qbRise var(--motion-dur-base) var(--motion-ease-settle) backwards;
+  animation-delay: calc(var(--i, 0) * var(--motion-stagger-loose));
 }
 
 .light .qb-msg.bot .ev-row {
@@ -267,6 +275,25 @@
   font-weight: 700;
   font-family: var(--font-mono);
   padding-top: 4px;
+  /* A gold light band sweeps across the [n] reference once the card has landed
+     (card delay + answer-delay). Webkit/Chromium show the gradient sweep; other
+     engines fall back to the plain gold number above. */
+  background: linear-gradient(110deg, var(--gold-text) 38%, #f2dc8a 50%, var(--gold-text) 62%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: qbShimmer var(--motion-dur-hero) var(--motion-ease-travel) both;
+  animation-delay: calc(var(--i, 0) * var(--motion-stagger-loose) + var(--motion-delay-answer));
+}
+
+/* Reduced motion: no shimmer — restore the plain gold reference number. */
+@media (prefers-reduced-motion: reduce) {
+  .qb-msg.bot .ev-row .num {
+    animation: none;
+    background: none;
+    -webkit-text-fill-color: var(--gold-text);
+  }
 }
 
 .qb-msg.bot .ev-row .ev-body {
