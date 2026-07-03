@@ -17,6 +17,7 @@ import { useWorkspace } from "@/features/shell/workspace-context";
 
 import { ExportModal } from "@/features/export/export-modal";
 
+import { StudioAuthModal } from "./studio-auth-modal";
 import { TafssirDisclaimer } from "./tafssir-disclaimer";
 import { useStudioSessions, type StudioMode } from "./use-studio-sessions";
 
@@ -54,9 +55,11 @@ export function StudioPanel() {
   const active = studio.active;
   const isTafssir = active?.mode === "tafssir";
 
-  function submit() {
+  async function submit() {
     const content = draft.trim();
     if (!content || studio.isResearching) return;
+    // Auth-gate first so a guest keeps their draft when the modal appears.
+    if (!(await studio.ensureAuth())) return;
     setDraft("");
     void studio.submit(content, state.selectedMushaf);
   }
@@ -299,6 +302,7 @@ export function StudioPanel() {
       </div>
 
       {exportOpen && active ? <ExportModal session={active} onClose={() => setExportOpen(false)} /> : null}
+      {studio.authRequired ? <StudioAuthModal onClose={studio.dismissAuthRequired} /> : null}
     </aside>
   );
 }

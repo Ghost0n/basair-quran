@@ -40,6 +40,11 @@ const MIN_SCALE = 0.3;
 
 export function useGlyphFitWidth(ref: RefObject<HTMLElement | null>) {
   const rafRef = useRef(0);
+  // The shared reference (widest printed line + chrome) is cached MONOTONICALLY
+  // across measure passes. Recomputing it from the current window subset made
+  // the scale oscillate as pages slid in/out — resizing every card. The leaves
+  // are physically identical, so the reference only ever grows, then locks.
+  const refRef = useRef<{ maxW: number; chrome: number }>({ maxW: 0, chrome: 0 });
 
   useLayoutEffect(() => {
     const container = ref.current;
@@ -124,8 +129,12 @@ export function useGlyphFitWidth(ref: RefObject<HTMLElement | null>) {
         // pages are framed short lines — they'd skew the reference).
         const fullPages = metrics.filter((m) => !m.opening);
         const reference = fullPages.length > 0 ? fullPages : metrics;
-        const refMaxW = Math.max(...reference.map((m) => m.maxW));
-        const refChrome = Math.max(...reference.map((m) => m.chromeX));
+        // Fold this window's widest line into the monotonic cache, then use the
+        // cache — so the scale is stable no matter which pages are loaded.
+        refRef.current.maxW = Math.max(refRef.current.maxW, ...reference.map((m) => m.maxW));
+        refRef.current.chrome = Math.max(refRef.current.chrome, ...reference.map((m) => m.chromeX));
+        const refMaxW = refRef.current.maxW;
+        const refChrome = refRef.current.chrome;
         let scale = (availW - refChrome - 4) / refMaxW;
         scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale));
         // One width for every full page — identical leaves, like a real mushaf.

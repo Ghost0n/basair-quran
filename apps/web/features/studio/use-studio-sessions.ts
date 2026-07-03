@@ -9,7 +9,7 @@ import type {
   TafssirDepth,
 } from "@q-basair/shared";
 
-import { API_BASE_URL } from "@/lib/config";
+import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
 import {
   buildResearchHeaders,
   DEFAULT_RESEARCH_SETTINGS,
@@ -88,6 +88,9 @@ export function useStudioSessions() {
   const [activeId, setActiveId] = useState<string>(() => sessions[0]?.id ?? "");
   const [isResearching, setIsResearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Guests hit a hard gate on the research API; instead of the silent 401→/login
+  // redirect, we pre-check and raise this so the panel can show a sign-in modal.
+  const [authRequired, setAuthRequired] = useState(false);
   const [clientSettings, setClientSettings] = useState<ClientResearchSettings>(DEFAULT_RESEARCH_SETTINGS);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const hydratedRef = useRef(false);
@@ -164,6 +167,22 @@ export function useStudioSessions() {
     [active, patchSession],
   );
 
+  // Studio is auth-gated. Returns true when the caller may proceed; raises the
+  // sign-in modal (and returns false) when a guest tries to research.
+  const ensureAuth = useCallback(async (): Promise<boolean> => {
+    if (!AUTH_ENABLED) return true;
+    try {
+      const session = await api.getAuthSession({ suppressAuthRedirect: true });
+      if (!session.authenticated) {
+        setAuthRequired(true);
+        return false;
+      }
+    } catch {
+      // Offline / probe failed — let the real call proceed and surface its error.
+    }
+    return true;
+  }, []);
+
   const submitInto = useCallback(
     async (target: StudioSession, content: string, mushaf: number) => {
       const trimmed = content.trim();
@@ -239,13 +258,14 @@ export function useStudioSessions() {
   // inherit an existing thread's mode or context. `submitInto` updates by id, so
   // submitting before the state flush is safe.
   const askInNewSession = useCallback(
-    (content: string, mushaf: number) => {
+    async (content: string, mushaf: number) => {
+      if (!(await ensureAuth())) return;
       const session = createSession();
       setSessions((current) => [...current, session]);
       setActiveId(session.id);
       return submitInto(session, content, mushaf);
     },
-    [submitInto],
+    [submitInto, ensureAuth],
   );
 
   // Re-open a saved session (from Home / the history list) as a live tab: fetch
@@ -296,6 +316,9 @@ export function useStudioSessions() {
     activeId,
     isResearching,
     error,
+    authRequired,
+    dismissAuthRequired: () => setAuthRequired(false),
+    ensureAuth,
     clientSettings,
     setClientSettings,
     setActiveId,

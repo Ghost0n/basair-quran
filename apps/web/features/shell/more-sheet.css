@@ -1,0 +1,127 @@
+/* Mobile "المزيد" overflow — a bottom sheet with account, theme, settings. */
+.qb-more {
+  position: fixed;
+  inset: 0;
+  z-index: var(--elev-drawer);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.qb-more .backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  animation: qbFade var(--motion-dur-base) both;
+}
+
+.qb-more .sheet {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+  border-top-left-radius: var(--r-xl);
+  border-top-right-radius: var(--r-xl);
+  border: 1px solid var(--border-strong);
+  border-bottom: none;
+  background: var(--bg-elev-3);
+  box-shadow: var(--shadow-3);
+  animation: qbRise var(--motion-dur-slow) var(--motion-ease-settle) both;
+}
+
+.qb-more .grip {
+  align-self: center;
+  width: 40px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--divider);
+  margin-bottom: 8px;
+}
+
+.qb-more .who {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--divider);
+  margin-bottom: 4px;
+}
+
+.qb-more .who .name {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--fg-1);
+}
+
+.qb-more .who .email {
+  font-size: 10.5px;
+  color: var(--fg-3);
+  direction: ltr;
+  text-align: start;
+}
+
+.qb-more .row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px;
+  border: none;
+  border-radius: var(--r-md);
+  background: transparent;
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-size: 13.5px;
+  cursor: pointer;
+  text-align: start;
+  text-decoration: none;
+}
+
+.qb-more .row:active {
+  background: var(--surface-soft);
+}
+
+.qb-more .row svg {
+  color: var(--gold-text);
+}
+
+.qb-more .row .chev {
+  margin-inline-start: auto;
+  color: var(--fg-3);
+}
+
+.qb-more .row.danger {
+  color: var(--danger-fg);
+}
+
+.qb-more .row.danger svg {
+  color: var(--danger-fg);
+}
+
+.qb-more .row.theme {
+  justify-content: space-between;
+}
+
+.qb-more .seg {
+  display: flex;
+  gap: 3px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  cursor: pointer;
+}
+
+.qb-more .seg > span {
+  padding: 4px 12px;
+  border-radius: var(--r-pill);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--fg-2);
+}
+
+.qb-more .seg > span.on {
+  background: linear-gradient(135deg, #eac54a, #c69e27);
+  color: #140f00;
+}
