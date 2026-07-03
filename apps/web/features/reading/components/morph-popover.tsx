@@ -3,6 +3,9 @@
 import { useEffect } from "react";
 
 import { Icon } from "@/components/icon";
+import { useShellMode } from "@/features/shell/mode-context";
+import { useWorkspace } from "@/features/shell/workspace-context";
+import { queueStudioAsk } from "@/lib/studio-prefill";
 
 import { useMorphology } from "../use-morphology";
 
@@ -40,6 +43,8 @@ export type MorphTarget = {
  */
 export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose: () => void }) {
   const { data, loading } = useMorphology(target.surah, target.ayah, target.ayahText);
+  const { setMode } = useShellMode();
+  const { actions } = useWorkspace();
 
   // B1: ESC key closes the popover.
   useEffect(() => {
@@ -88,6 +93,73 @@ export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose
       {word && word.features.length > 0 ? (
         <div className="note">السمات: {word.features.join(" · ")}</div>
       ) : null}
+
+      <div
+        className="pop-actions"
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "6px",
+          marginTop: "10px",
+          paddingTop: "10px",
+          borderTop: "1px solid var(--divider)",
+        }}
+      >
+        {word?.root ? (
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              actions.runQuickExample({ query: word.root as string, mode: "root" });
+              setMode("search");
+            }}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "8px 12px",
+              borderRadius: "var(--r-md)",
+              border: "1px solid var(--border-strong)",
+              background: "var(--gold-a08)",
+              color: "var(--gold-text)",
+              fontFamily: "var(--font-arabic-ui)",
+              fontSize: "12px",
+              fontWeight: 800,
+              cursor: "pointer",
+            }}
+          >
+            <Icon name="search" size={13} />
+            مواضع الجذر «{word.root}»
+            <span style={{ marginInlineStart: "auto" }}>←</span>
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => {
+            onClose();
+            queueStudioAsk(`ما معنى «${word?.text ?? target.word}» في القرآن؟`);
+            setMode("studio");
+          }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            padding: "8px 12px",
+            borderRadius: "var(--r-md)",
+            border: "none",
+            background: "linear-gradient(135deg, #eac54a, #c69e27)",
+            color: "#140f00",
+            fontFamily: "var(--font-arabic-ui)",
+            fontSize: "12px",
+            fontWeight: 800,
+            cursor: "pointer",
+          }}
+        >
+          <Icon name="sparkles" size={13} />
+          ابدأ جلسة
+        </button>
+      </div>
     </div>
   );
 }

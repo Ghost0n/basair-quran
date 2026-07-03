@@ -12,6 +12,26 @@ import { useShellMode } from "./mode-context";
 import { useCommandShortcut } from "./use-command-shortcut";
 import { useWorkspace } from "./workspace-context";
 
+// Live intent parsing for the command-bar chip (design spec). Ask stays aligned
+// with the Enter-routing (`looksLikeQuestion`) so the chip never contradicts what
+// pressing Enter actually does; go/search are a display distinction.
+type CommandIntent = "ask" | "go" | "search";
+const INTERROGATIVE = /^(ما|من|لماذا|كيف|هل|أين|متى)\s/;
+const NAV_LEAD = /^(صفحة|سورة|جزء)(\s|$)/;
+const INTENT_LABEL: Record<CommandIntent, string> = {
+  ask: "اسأل ✦",
+  go: "انتقال",
+  search: "جذر · ابحث",
+};
+
+function detectIntent(raw: string): CommandIntent | null {
+  const value = raw.trim();
+  if (!value) return null;
+  if (looksLikeQuestion(value) || INTERROGATIVE.test(value) || value.endsWith("؟")) return "ask";
+  if (/[٠-٩\d]/.test(value) || NAV_LEAD.test(value)) return "go";
+  return "search";
+}
+
 /**
  * The single command bar — `⌘K` / `/` opens it.
  *
@@ -85,6 +105,8 @@ export function CommandBar() {
   // In Search mode with nothing typed yet, the command bar is the focal point:
   // highlight it and surface example chips directly beneath it.
   const searchActive = mode === "search";
+  // Live intent chip — announces how the bar reads the current input as you type.
+  const intent = detectIntent(state.inputValue);
   const showSearchHint =
     searchActive &&
     !state.workspaceVisible &&
@@ -97,6 +119,30 @@ export function CommandBar() {
       <span className="qb-cmd-icon">
         <Icon name="search" size={16} />
       </span>
+      {intent ? (
+        <span
+          key={intent}
+          className="qb-cmd-intent"
+          data-intent={intent}
+          aria-hidden
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            padding: "2px 9px",
+            borderRadius: "var(--r-pill)",
+            background: "var(--gold-a12)",
+            border: "1px solid var(--border-strong)",
+            color: "var(--gold-text)",
+            fontSize: "10.5px",
+            fontWeight: 800,
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+            animation: "qbPopIn var(--motion-dur-fast) var(--motion-ease-settle)",
+          }}
+        >
+          {INTENT_LABEL[intent]}
+        </span>
+      ) : null}
       {state.searchPrefix ? <span className="qb-cmd-mode">{state.searchPrefix}</span> : null}
       <input
         id="searchInput"
