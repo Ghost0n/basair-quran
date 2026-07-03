@@ -544,6 +544,16 @@
 .qb-ayah-tok.selected {
   background: rgba(212, 175, 55, 0.18);
   box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.4);
+  /* Highlight bloom: landing on an ayah (esp. from a search-result jump) flares
+     gold and settles — the reader "answering" the jump. */
+  animation: qbBloom var(--motion-dur-hero) var(--motion-ease-settle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-ayah-tok.selected,
+  .qb-glyph-sel {
+    animation: none;
+  }
 }
 
 .qb-word {
@@ -704,6 +714,7 @@
   box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.38);
   border-radius: 6px;
   padding: 0 3px;
+  animation: qbBloom var(--motion-dur-hero) var(--motion-ease-settle);
 }
 
 /* Save-ayah affordance in the glyph reader — parity with the simple reader.
