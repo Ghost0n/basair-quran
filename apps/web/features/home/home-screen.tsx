@@ -8,7 +8,7 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type { ResearchSessionSummary } from "@q-basair/shared";
 
 import { Icon, type IconName } from "@/components/icon";
-import { API_BASE_URL } from "@/lib/config";
+import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
 import { useNumerals } from "@/lib/preferences-context";
 import { looksLikeQuestion, queueStudioAsk, queueStudioOpenSession } from "@/lib/studio-prefill";
 import { useShellMode, type ShellMode } from "@/features/shell/mode-context";
@@ -62,8 +62,27 @@ export function HomeScreen() {
   const [lastSurah, setLastSurah] = useState<string | null>(null);
   const [ayahIndex, setAyahIndex] = useState(0);
   const [savedCount, setSavedCount] = useState<number | null>(null);
-  const [rootsCount, setRootsCount] = useState<number | null>(null);
   const [recentSessions, setRecentSessions] = useState<ResearchSessionSummary[]>([]);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+
+  // Personalized greeting — only when signed in. Guests keep the anonymous
+  // rotating-āyah hero with no greeting (the merge/sign-in path lives elsewhere).
+  useEffect(() => {
+    if (!AUTH_ENABLED) return;
+    let cancelled = false;
+    void api
+      .getAuthSession({ suppressAuthRedirect: true })
+      .then((session) => {
+        if (cancelled || !session.authenticated || !session.user) return;
+        setDisplayName(session.user.name || null);
+      })
+      .catch(() => {
+        /* guest or offline — no greeting */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -85,14 +104,11 @@ export function HomeScreen() {
   // (the row simply doesn't render) so an unreachable store can't mar the Home.
   useEffect(() => {
     let cancelled = false;
-    void Promise.allSettled([api.getNotebook(), api.getRoots(), api.getSessions()]).then(
-      ([notebook, roots, sessions]) => {
-        if (cancelled) return;
-        if (notebook.status === "fulfilled") setSavedCount(notebook.value.length);
-        if (roots.status === "fulfilled") setRootsCount(roots.value.length);
-        if (sessions.status === "fulfilled") setRecentSessions(sessions.value.slice(0, 3));
-      },
-    );
+    void Promise.allSettled([api.getNotebook(), api.getSessions()]).then(([notebook, sessions]) => {
+      if (cancelled) return;
+      if (notebook.status === "fulfilled") setSavedCount(notebook.value.length);
+      if (sessions.status === "fulfilled") setRecentSessions(sessions.value.slice(0, 3));
+    });
     return () => {
       cancelled = true;
     };
@@ -131,6 +147,13 @@ export function HomeScreen() {
   return (
     <div className="qb-home">
       <div className="qb-home-inner">
+        {/* Personalized greeting — signed-in only; a quiet line above the hero. */}
+        {displayName ? (
+          <div className="qb-home-greeting">
+            أهلاً بعودتك، <strong>{displayName}</strong>
+          </div>
+        ) : null}
+
         {/* The verse holds the seat of honor; the brand is a whisper above it.
             No aria-live: a forever-rotating announcement is screen-reader noise —
             the verse stays ordinary readable (and selectable) text. */}
@@ -159,35 +182,70 @@ export function HomeScreen() {
           </button>
         </form>
 
-        {/* The desk row: continue-reading (never empty — falls back to "start
-            reading") beside the library stats, one quiet line of pills. */}
-        <div className="qb-home-deskrow">
-          <button type="button" className="qb-home-continue" onClick={() => setMode("reading")}>
-            <Icon name="book" size={15} />
-            {lastPage ? (
-              <span>
-                تابع القراءة · {lastSurah ? <>سورة <strong>{lastSurah}</strong> · </> : null}
-                صفحة <strong>{formatNumber(lastPage)}</strong>
+        {/* Your workspace — 1.5/1/1: continue-session (promoted, gold), continue-
+            reading (progress hairline), recent pins. The last active session is
+            promoted regardless of type — it's the likeliest next click. */}
+        <div className="qb-home-grid">
+          {recentSessions[0] ? (
+            <button
+              type="button"
+              className="qb-home-gridcard promoted"
+              onClick={() => {
+                queueStudioOpenSession(recentSessions[0].id);
+                setMode("studio");
+              }}
+              title={recentSessions[0].title}
+            >
+              <span className="eyebrow">
+                <Icon name="sparkles" size={13} /> تابِع من حيث توقّفت
               </span>
-            ) : (
-              <span>
-                ابدأ القراءة · سورة <strong>الفاتحة</strong>
+              <span className="lead">{recentSessions[0].title}</span>
+              <span className="meta">
+                {recentSessions[0].mode === "tafssir" ? "قراءة تفسيرية" : "القرآن وحدَه"} ·{" "}
+                {formatNumber(recentSessions[0].message_count)} رسالة
               </span>
-            )}
-            <Icon name="arrowLeft" size={15} />
+              <span className="cta">تابِع الجلسة ←</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="qb-home-gridcard promoted"
+              onClick={() => setMode("studio")}
+            >
+              <span className="eyebrow">
+                <Icon name="sparkles" size={13} /> ابدأ جلسة دراسة
+              </span>
+              <span className="lead">اسأل سؤالاً موجَّهاً في المعاني</span>
+              <span className="meta">جواب مستند على القرآن، مع شواهده</span>
+              <span className="cta">افتح الاستوديو ←</span>
+            </button>
+          )}
+
+          <button type="button" className="qb-home-gridcard" onClick={() => setMode("reading")}>
+            <span className="eyebrow">تابع القراءة</span>
+            <span className="lead sm">
+              {lastPage ? (
+                <>
+                  {lastSurah ? <>سورة {lastSurah} · </> : null}صفحة {formatNumber(lastPage)}
+                </>
+              ) : (
+                <>سورة الفاتحة</>
+              )}
+            </span>
+            <span className="hairline" aria-hidden>
+              <span style={{ width: `${Math.min(100, Math.round(((lastPage ?? 1) / 604) * 100))}%` }} />
+            </span>
           </button>
-          {savedCount ? (
-            <button type="button" className="stat" onClick={() => setMode("notebook")}>
-              <Icon name="bookmarkFilled" size={13} />
-              <strong>{formatNumber(savedCount)}</strong> آية محفوظة
-            </button>
-          ) : null}
-          {rootsCount ? (
-            <button type="button" className="stat" onClick={() => setMode("roots")}>
-              <Icon name="tree" size={13} />
-              <strong>{formatNumber(rootsCount)}</strong> جذر مُتابَع
-            </button>
-          ) : null}
+
+          <button type="button" className="qb-home-gridcard" onClick={() => setMode("notebook")}>
+            <span className="eyebrow">
+              مثبَّتات حديثة{savedCount ? <> · {formatNumber(savedCount)}</> : null}
+            </span>
+            <span className="lead sm">
+              {savedCount ? `${formatNumber(savedCount)} آية مُثبَّتة في الدفتر` : "لا مثبَّتات بعد"}
+            </span>
+            <span className="cta">افتح الدفتر ←</span>
+          </button>
         </div>
 
         <div className="qb-home-cards">
@@ -206,35 +264,6 @@ export function HomeScreen() {
           ))}
         </div>
 
-        {recentSessions.length > 0 ? (
-          <div className="qb-home-recent">
-            <div className="head">
-              <span className="lbl">جلسات بحث أخيرة</span>
-              <button type="button" className="all" onClick={() => setMode("history")}>
-                الكل
-              </button>
-            </div>
-            {recentSessions.map((session) => (
-              <button
-                key={session.id}
-                type="button"
-                className="row"
-                onClick={() => {
-                  // Deep-open THIS session as a Studio tab (hydrated from the store).
-                  queueStudioOpenSession(session.id);
-                  setMode("studio");
-                }}
-                title={session.title}
-              >
-                <Icon name="sparkles" size={13} />
-                <span className="title">{session.title}</span>
-                <span className={`mode ${session.mode}`}>
-                  {session.mode === "tafssir" ? "تفسيرية" : "القرآن وحدَه"}
-                </span>
-              </button>
-            ))}
-          </div>
-        ) : null}
       </div>
     </div>
   );

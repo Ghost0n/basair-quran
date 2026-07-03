@@ -145,68 +145,134 @@
   cursor: default;
 }
 
-/* ---------- Desk row: continue-reading + library stats, one line ---------- */
+/* ---------- Personalized greeting (signed-in) ---------- */
 
-.qb-home-deskrow {
+.qb-home-greeting {
+  font-size: var(--fs-sm);
+  color: var(--fg-3);
+  text-align: center;
+  animation: qbRise var(--motion-dur-base) var(--motion-ease-settle) both;
+}
+
+.qb-home-greeting strong {
+  color: var(--gold-text-bright);
+  font-weight: 700;
+}
+
+/* ---------- Workspace grid: 1.5 / 1 / 1 ---------- */
+
+.qb-home-grid {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  gap: var(--sp-3);
+  width: 100%;
+}
+
+.qb-home-gridcard {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--sp-4) var(--sp-4);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-soft);
+  cursor: pointer;
+  text-align: start;
+  box-shadow: var(--shadow-1);
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-settle),
+    transform var(--motion-dur-fast) var(--motion-ease-settle);
 }
 
-.qb-home-continue {
+.qb-home-gridcard:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+/* The promoted card — the last active session, gold-tinted, likeliest click. */
+.qb-home-gridcard.promoted {
+  border-color: var(--gold-a40);
+  background: linear-gradient(135deg, var(--gold-a12), var(--gold-a04));
+}
+
+.qb-home-gridcard.promoted:hover {
+  border-color: var(--gold-a55);
+}
+
+.qb-home-gridcard .eyebrow {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 16px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-pill);
-  /* The only filled pill in the row — it's the primary desk action. */
-  background: rgba(212, 175, 55, 0.08);
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--gold-text);
+}
+
+.qb-home-gridcard .eyebrow svg {
+  color: var(--gold-text);
+}
+
+.qb-home-gridcard .lead {
+  font-family: var(--font-arabic-display);
+  font-size: var(--fs-lg);
+  line-height: 1.5;
   color: var(--fg-1);
-  cursor: pointer;
-  font-family: var(--font-arabic-ui);
+  margin-top: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.qb-home-gridcard .lead.sm {
+  font-size: var(--fs-md);
+}
+
+.qb-home-gridcard .meta {
   font-size: var(--fs-xs);
-  transition: border-color var(--dur) var(--ease-out);
+  color: var(--fg-3);
+  margin-top: 2px;
 }
 
-.qb-home-continue:hover {
-  border-color: var(--border-strong);
-}
-
-.qb-home-continue strong {
-  color: var(--gold-text);
+.qb-home-gridcard .cta {
+  margin-top: var(--sp-3);
+  font-size: var(--fs-xs);
   font-weight: 700;
+  color: var(--gold-text);
 }
 
-.qb-home-deskrow .stat {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 14px;
-  border: 1px solid var(--border);
+/* On the promoted card the CTA reads as a filled action. */
+.qb-home-gridcard.promoted .cta {
+  align-self: flex-start;
+  padding: 6px 16px;
   border-radius: var(--r-pill);
-  background: transparent;
-  color: var(--fg-2);
-  font-family: var(--font-arabic-ui);
-  font-size: var(--fs-xs);
-  cursor: pointer;
-  transition: border-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out);
+  background: linear-gradient(135deg, #eac54a, #c69e27);
+  color: #140f00;
+  font-weight: 800;
 }
 
-.qb-home-deskrow .stat:hover {
-  border-color: var(--border-strong);
-  color: var(--fg-1);
+/* Reading-progress hairline. */
+.qb-home-gridcard .hairline {
+  display: block;
+  margin-top: var(--sp-3);
+  height: 3px;
+  border-radius: 2px;
+  background: var(--gold-a12);
+  overflow: hidden;
 }
 
-.qb-home-deskrow .stat svg {
-  color: var(--gold-text);
+.qb-home-gridcard .hairline > span {
+  display: block;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #eac54a, #c69e27);
 }
 
-.qb-home-deskrow .stat strong {
-  color: var(--gold-text);
-  font-weight: 700;
+@media (max-width: 760px) {
+  .qb-home-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ---------- Three doors: compact horizontal tiles ---------- */
