@@ -12,6 +12,10 @@ import { useWordNav } from "../use-word-nav";
 
 type PagedReaderProps = {
   pageData: { ayahs: QuranPageAyah[] };
+  /** Current page number — keys the Unicode reader so a page change animates. */
+  page: number;
+  /** Turn direction for the whole-page animation (RTL). */
+  navDir: "fwd" | "back";
   isLoading: boolean;
   /** Authentic Madani glyph rendering is active for this page (Hafs, fonts ready). */
   authentic: boolean;
@@ -42,6 +46,8 @@ type PagedReaderProps = {
  */
 export function PagedReader({
   pageData,
+  page,
+  navDir,
   isLoading,
   authentic,
   layout,
@@ -103,14 +109,20 @@ export function PagedReader({
           )}
         </div>
       ) : (
-        <AyatFlow
-          ayahs={pageData.ayahs}
-          selectedAyahId={selectedAyahId}
-          isSaved={isSaved}
-          onToggleSave={onToggleSave}
-          onWordClick={onWordClick}
-          onWordKey={onWordKey}
-        />
+        // Whole-page turn: the key remounts the content on page change so the
+        // qbTurnFwd/Back animation plays (RTL — next from the left, back from the
+        // right). Only the inner content remounts; the `.qb-mushaf-page` viewport
+        // (and its bodyRef) stays put.
+        <div key={page} className={`qb-page-turn ${navDir}`}>
+          <AyatFlow
+            ayahs={pageData.ayahs}
+            selectedAyahId={selectedAyahId}
+            isSaved={isSaved}
+            onToggleSave={onToggleSave}
+            onWordClick={onWordClick}
+            onWordKey={onWordKey}
+          />
+        </div>
       )}
       {morphTarget ? <MorphPopover target={morphTarget} onClose={onClearMorph} /> : null}
     </div>

@@ -47,6 +47,10 @@ export function MushafStage() {
 
   const [surahs, setSurahs] = useState<SurahListItem[]>(surahCache ?? []);
   const [morphTarget, setMorphTarget] = useState<MorphTarget | null>(null);
+  // Page-turn direction for the whole-page animation (RTL: next enters from the
+  // left, back from the right). Applied to the Unicode reader only — the glyph
+  // reader's fit engine can't survive a remount, so it stays un-animated.
+  const [navDir, setNavDir] = useState<"fwd" | "back">("fwd");
 
   const mushafRef = useRef(selectedMushaf);
   const currentPageRef = useRef<number | null>(null);
@@ -211,7 +215,10 @@ export function MushafStage() {
     }
     if (!pageData?.page) return;
     const target = showSpread && pair ? pair.right - 2 : pageData.page - 1;
-    if (target >= 1) void mushaf.loadPage(selectedMushaf, target, { persist: true });
+    if (target >= 1) {
+      setNavDir("back");
+      void mushaf.loadPage(selectedMushaf, target, { persist: true });
+    }
   }
   function goNext() {
     if (continuousMode && scrollControlsRef.current) {
@@ -220,7 +227,10 @@ export function MushafStage() {
     }
     if (!pageData?.page) return;
     const target = showSpread && pair ? pair.right + 2 : pageData.page + 1;
-    if (target <= totalPages) void mushaf.loadPage(selectedMushaf, target, { persist: true });
+    if (target <= totalPages) {
+      setNavDir("fwd");
+      void mushaf.loadPage(selectedMushaf, target, { persist: true });
+    }
   }
 
   function handleWordClick(
@@ -326,6 +336,8 @@ export function MushafStage() {
       ) : (
         <PagedReader
           pageData={pageData}
+          page={pageData.page ?? 0}
+          navDir={navDir}
           isLoading={isLoading}
           authentic={authentic}
           layout={layout}

@@ -33,6 +33,17 @@
   opacity: var(--depth-room-dim);
 }
 
+/* Whole-page turn (Unicode reader). RTL: next enters from the left, back from
+   the right — the transforms come from the neutralizable --motion-turn-* vars,
+   so reduced motion keeps the opacity fade and drops only the slide. */
+.qb-page-turn.fwd {
+  animation: qbTurnFwd var(--motion-dur-slow) var(--motion-ease-settle) both;
+}
+
+.qb-page-turn.back {
+  animation: qbTurnBack var(--motion-dur-slow) var(--motion-ease-settle) both;
+}
+
 /* A two-page facing spread needs room for both leaves side by side. */
 .qb-mushaf-stage.is-spread {
   max-width: 88rem;
