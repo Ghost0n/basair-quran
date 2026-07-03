@@ -5,6 +5,7 @@ import "./settings.css";
 import type { NumeralScript } from "@q-basair/shared";
 
 import { SelectMenu } from "@/components/select-menu";
+import { AccountSettings } from "@/features/identity/account-settings";
 import { usePreferences } from "@/lib/preferences-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
@@ -52,6 +53,8 @@ export function SettingsScreen() {
       </div>
 
       <div className="qb-settings-grid">
+        <AccountSettings />
+
         <section className="qb-setting-card">
           <h3>المصحف والرواية</h3>
           <p className="card-sub">الرواية المعتمدة في القراءة والبحث.</p>

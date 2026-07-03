@@ -1,0 +1,150 @@
+/* =====================================================================
+   Settings — Account + Devices cards. Rides on .qb-setting-card chrome.
+   ===================================================================== */
+
+.qb-account-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin-top: var(--sp-2);
+}
+
+.qb-account-card .who {
+  flex: 1;
+  min-width: 0;
+}
+
+.qb-account-card .who .name {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--fg-1);
+}
+
+.qb-account-card .who .email {
+  font-size: 11px;
+  color: var(--fg-3);
+  direction: ltr;
+  text-align: start;
+}
+
+.qb-account-change {
+  flex: none;
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--gold-text);
+  font-size: 11.5px;
+  font-weight: 700;
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-account-change:hover {
+  background: var(--gold-a08);
+}
+
+.qb-account-motifs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  animation: qbFade var(--motion-dur-base) both;
+}
+
+.qb-account-motifs .tile {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-settle),
+    background var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-account-motifs .tile.selected {
+  border: 2px solid var(--gold-a55);
+  background: var(--gold-a12);
+}
+
+/* ---------- Devices ---------- */
+
+.qb-devices {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--sp-2);
+}
+
+.qb-device-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--divider);
+}
+
+.qb-device-row:last-child {
+  border-bottom: none;
+}
+
+.qb-device-row > svg {
+  color: var(--gold-text);
+  flex: none;
+}
+
+.qb-device-row .info {
+  flex: 1;
+  min-width: 0;
+}
+
+.qb-device-row .label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--fg-1);
+}
+
+.qb-device-row .label .this {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #140f00;
+  background: linear-gradient(135deg, #eac54a, #c69e27);
+  border-radius: var(--r-pill);
+  padding: 1px 8px;
+}
+
+.qb-device-row .meta {
+  font-size: 10.5px;
+  color: var(--fg-3);
+}
+
+.qb-device-eject {
+  flex: none;
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-2);
+  font-size: 10.5px;
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-settle), color var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-device-eject:hover {
+  border-color: var(--danger-fg);
+  color: var(--danger-fg);
+}
+
+.qb-devices-empty {
+  font-size: 11.5px;
+  color: var(--fg-3);
+  padding: 10px 0;
+}

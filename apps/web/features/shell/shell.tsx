@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import "./shell.css";
 
+import { MergeToast } from "@/features/identity/merge-toast";
 import { MushafProvider } from "@/features/reading/mushaf-context";
 import { RecitationProvider } from "@/features/recitation/recitation-context";
 import { RecitationBar } from "@/features/recitation/recitation-bar";
@@ -39,6 +40,7 @@ export function Shell({ children }: { children: ReactNode }) {
               <MobileTabBar />
             </div>
             <ShortcutsModal />
+            <MergeToast />
           </WorkspaceProvider>
         </RecitationProvider>
       </MushafProvider>

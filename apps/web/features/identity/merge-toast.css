@@ -1,0 +1,110 @@
+/* =====================================================================
+   Guest→account merge toast — bottom-center, gold-bordered, 30s undo ring.
+   Elevation: toast (--elev-toast). Token-driven.
+   ===================================================================== */
+
+.qb-merge-toast {
+  position: fixed;
+  bottom: 20px;
+  inset-inline-start: 50%;
+  transform: translateX(50%);
+  width: min(560px, 92vw);
+  z-index: var(--elev-toast);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  border: 1px solid var(--gold-a40);
+  border-radius: var(--r-lg);
+  background: var(--bg-elev-3);
+  box-shadow: var(--shadow-3);
+  animation: qbRise var(--motion-dur-slow) var(--motion-ease-settle) both;
+}
+
+/* RTL: translateX(50%) centres a start-anchored box; LTR mirrors it. */
+:root:not([dir="rtl"]) .qb-merge-toast {
+  transform: translateX(-50%);
+}
+
+.qb-merge-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.qb-merge-copy .title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--fg-1);
+}
+
+.qb-merge-copy .sub {
+  font-size: 11px;
+  color: var(--fg-3);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qb-merge-undo {
+  flex: none;
+  padding: 7px 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--gold-text);
+  font-family: var(--font-arabic-ui);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-merge-undo:hover {
+  background: var(--gold-a08);
+}
+
+/* 30s countdown ring: a conic-gradient depletes behind the seconds count. */
+.qb-merge-ring {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+}
+
+.qb-merge-ring .inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--bg-elev-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 10px;
+  color: var(--fg-2);
+}
+
+.qb-merge-undone {
+  position: fixed;
+  bottom: 20px;
+  inset-inline-start: 50%;
+  transform: translateX(50%);
+  z-index: var(--elev-toast);
+  padding: 8px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-pill);
+  background: var(--bg-elev-3);
+  box-shadow: var(--shadow-2);
+  font-size: 11.5px;
+  color: var(--fg-2);
+  animation: qbFade var(--motion-dur-base) both;
+}
+
+:root:not([dir="rtl"]) .qb-merge-undone {
+  transform: translateX(-50%);
+}

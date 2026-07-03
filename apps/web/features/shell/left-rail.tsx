@@ -2,6 +2,7 @@
 
 import { BrandMark } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
+import { AccountMenu } from "@/features/identity/account-menu";
 import { useRecitation } from "@/features/recitation/recitation-context";
 
 import { useShellMode, type ShellMode } from "./mode-context";
@@ -81,6 +82,12 @@ export function LeftRail() {
         destination={{ mode: "settings", icon: "settings", label: "إعدادات" }}
         activeMode={mode}
         onSelect={setMode}
+      />
+
+      <AccountMenu
+        theme={isLight ? "light" : "dark"}
+        onToggleTheme={actions.toggleTheme}
+        onOpenSettings={() => setMode("settings")}
       />
     </aside>
   );
