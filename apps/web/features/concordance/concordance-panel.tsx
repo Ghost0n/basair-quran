@@ -9,6 +9,7 @@ import type { SearchVerse } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
+import { flyToNotebook } from "@/lib/fly-to-notebook";
 import { useNumerals } from "@/lib/preferences-context";
 import { getVerseSelectionKey, renderHighlightedVerseText } from "@/lib/quran-ui";
 import { useShellMode } from "@/features/shell/mode-context";
@@ -232,6 +233,7 @@ export function ConcordancePanel() {
                       title="ثبّت في الدفتر"
                       onClick={(event) => {
                         event.stopPropagation();
+                        if (!isPinned) flyToNotebook(event.currentTarget, verse.text.trim());
                         void pinVerse(verse);
                       }}
                     >

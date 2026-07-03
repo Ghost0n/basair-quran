@@ -111,6 +111,8 @@ function RailButton({
       title={destination.label}
       aria-label={destination.label}
       aria-current={isActive ? "page" : undefined}
+      // The notebook icon is the flight target for the pin-to-notebook ghost.
+      data-rail-notebook={destination.mode === "notebook" ? "" : undefined}
     >
       <Icon name={destination.icon} size={19} />
       <span className="qb-rail-label">{destination.label}</span>

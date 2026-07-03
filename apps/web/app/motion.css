@@ -134,6 +134,34 @@ button:not(:disabled):active {
   transform: scale(var(--motion-press-scale));
 }
 
+/* ---------- Pin-to-notebook ghost flight ---------- */
+/* A ghost copy of the pinned card flies to the rail notebook icon (qbFly, with
+   --fly-x/--fly-y set inline from geometry); the icon then pulses (qbPulseRing).
+   Spawned imperatively — see lib/fly-to-notebook.ts. */
+.qb-pin-ghost {
+  position: fixed;
+  z-index: calc(var(--elev-toast) + 10);
+  pointer-events: none;
+  max-width: 190px;
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev-3);
+  box-shadow: var(--shadow-3);
+  font-family: var(--font-arabic-display);
+  font-size: 12.5px;
+  color: var(--fg-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform-origin: top center;
+  animation: qbFly var(--motion-dur-travel) var(--motion-ease-travel) forwards;
+}
+
+.qb-notebook-pulse {
+  animation: qbPulseRing 500ms var(--motion-ease-settle) both;
+}
+
 /* =====================================================================
    Reduced motion — the designed variant.
    tokens-motion.css already neutralizes the position/turn/depth vars and
