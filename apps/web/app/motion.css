@@ -1,0 +1,176 @@
+/* =====================================================================
+   Q-Basair — Motion vocabulary (keyframes) + the designed reduced-motion
+   variant. Loaded globally after tokens-motion.css.
+   ---------------------------------------------------------------------
+   Principle: "a page settling, not a UI performing." Every transform is
+   expressed through a neutralizable var (see tokens-motion.css) so the
+   reduced-motion media query collapses position/scale/parallax in ONE
+   place while opacity choreography + staggers REMAIN. The handful of
+   effects that can't be a single var (bloom ring, shimmer, sweep, fly,
+   pop) get an explicit opacity-only / static twin in the reduced block
+   at the bottom — this is a dignified variant, never a blanket freeze.
+   ===================================================================== */
+
+:root {
+  /* Scale-based transforms collapse to identity under reduced motion. */
+  --motion-pop-scale: 0.96;     /* overlay/popover enter                */
+  --motion-press-scale: 0.97;   /* tactile button press                 */
+  --motion-travel-scale: 0.992; /* far-jump page settle-in              */
+  /* Pin ghost flight target — set inline by the component from geometry. */
+  --fly-x: 0px;
+  --fly-y: 0px;
+}
+
+/* ---------- Enters ---------- */
+
+/* Overlays & popovers: fade + gentle scale up. */
+@keyframes qbPopIn {
+  from { opacity: 0; transform: scale(var(--motion-pop-scale)); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* List items & cards: fade + rise. Pair with `animation-delay` for a stagger. */
+@keyframes qbRise {
+  from { opacity: 0; transform: var(--motion-rise); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Plain fade — backdrops, in-place crossfades (scaling would show edges). */
+@keyframes qbFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* A calm pulse for indeterminate loading (opacity only — reduced-safe). */
+@keyframes qbPulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+/* ---------- Page turns (RTL) ---------- */
+/* Forward = next page enters from the left; back = from the right. Whole
+   page block only — never per-glyph / never layout on QCF text. */
+@keyframes qbTurnFwd {
+  from { opacity: 0; transform: var(--motion-turn-fwd); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes qbTurnBack {
+  from { opacity: 0; transform: var(--motion-turn-back); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Far jump: the page lands with a soft vertical settle-in. */
+@keyframes qbTravelIn {
+  0%   { opacity: 0; transform: var(--motion-travel-rise) scale(var(--motion-travel-scale)); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* ---------- Highlight bloom (search / evidence answer) ---------- */
+/* A gold wash blooms on the matched ayah, then settles to the resting
+   highlight. Background + box-shadow ring only — never moves the text. */
+@keyframes qbBloom {
+  0%   { background-color: var(--gold-a55); box-shadow: 0 0 0 10px var(--gold-a18); }
+  100% { background-color: var(--gold-a26); box-shadow: 0 0 0 0 transparent; }
+}
+
+/* ---------- Evidence reference-number shimmer ---------- */
+/* A gold light band sweeps across the ﴿n﴾ chip. Background-position only. */
+@keyframes qbShimmer {
+  from { background-position: 140% 0; }
+  to   { background-position: -40% 0; }
+}
+
+/* ---------- Theme sweep beam ---------- */
+/* A blurred gold beam kneads the scene right→left (reading direction). */
+@keyframes qbSweep {
+  from { transform: translateX(70%); }
+  to   { transform: translateX(-280%); }
+}
+
+/* ---------- Pin-to-notebook ghost flight ---------- */
+/* A ghost copy flies toward the notebook icon and shrinks away. The
+   target offset is supplied inline as --fly-x / --fly-y. */
+@keyframes qbFly {
+  0%   { opacity: 1;    transform: translate(0, 0) scale(1); }
+  72%  { opacity: 0.85; }
+  100% { opacity: 0;    transform: translate(var(--fly-x), var(--fly-y)) scale(0.1); }
+}
+
+/* ---------- Badge pop — the ONLY overshoot in the whole app ---------- */
+/* Bounded emphasis (≤4%). Use with --motion-ease-emphasis. */
+@keyframes qbPop {
+  0%   { transform: scale(0.5); }
+  62%  { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+
+/* ---------- Notebook icon ring pulse ---------- */
+@keyframes qbPulseRing {
+  0%   { box-shadow: 0 0 0 0 var(--gold-a40); }
+  100% { box-shadow: 0 0 0 14px transparent; }
+}
+
+/* ---------- Skeleton (loading) — no spinners; blocks pulse ---------- */
+@keyframes qbSkeleton {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.9; }
+}
+
+/* ---------- Caret blink (command-bar typed preview) ---------- */
+@keyframes qbBlink {
+  0%, 55%   { opacity: 1; }
+  56%, 100% { opacity: 0; }
+}
+
+/* ---------- Auth CTA spinner (the one sanctioned spinner) ---------- */
+@keyframes qbSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Universal tactile press ---------- */
+/* Targets real <button>s only, so span-based word tokens (role=button)
+   in the reader are left alone. */
+button:not(:disabled):active {
+  transform: scale(var(--motion-press-scale));
+}
+
+/* =====================================================================
+   Reduced motion — the designed variant.
+   tokens-motion.css already neutralizes the position/turn/depth vars and
+   remaps travel/hero/emphasis. Here we (a) collapse the scale + press
+   vars to identity, (b) give the non-var keyframes an opacity-only or
+   static twin, and (c) disable smooth-scroll. Opacity fades + stagger
+   delays are deliberately preserved — the app still breathes, calmly.
+   ===================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-pop-scale: 1;
+    --motion-press-scale: 1;
+    --motion-travel-scale: 1;
+  }
+
+  /* Bloom: settle to a static highlight, no expanding ring. */
+  .qb-bloom,
+  [data-motion="bloom"] {
+    animation: none !important;
+    background-color: var(--highlight-bg);
+  }
+
+  /* Shimmer / sweep / fly / pop: no movement — final state only. */
+  [data-motion="shimmer"],
+  [data-motion="sweep"],
+  [data-motion="fly"],
+  [data-motion="pop"] {
+    animation: none !important;
+  }
+
+  /* Skeleton holds a steady dim rather than pulsing. */
+  [data-motion="skeleton"] {
+    animation: none !important;
+    opacity: 0.6;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}

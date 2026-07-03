@@ -59,6 +59,16 @@ export const ICON_PATHS = {
   mosque: "M4 21V11l8-7 8 7v10M9 21v-6h6v6M12 4v3",
   compass: "M12 3a9 9 0 1 1 0 18a9 9 0 0 1 0-18zM15 9l-2 6-4 2 2-6z",
   command: "M9 6h-3a3 3 0 1 0 3 3v0v6v0a3 3 0 1 0-3 3h3 M15 6h3a3 3 0 1 1-3 3v0v6v0a3 3 0 1 1 3 3h-3 M9 6h6v12H9z",
+  // Strict evidence (gold) — shield with check. Tafssir (copper) — flask.
+  shieldCheck:
+    "M20 13c0 5-3.5 7.5-7.7 9a.6.6 0 0 1-.6 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.2 1.2 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1ZM9 12l2 2 4-4",
+  flask: "M10 2v7.5L4.7 19a2 2 0 0 0 1.8 3h11a2 2 0 0 0 1.8-3L14 9.5V2M8.5 2h7",
+  logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
+  monitor: "M3 4h18v12H3zM8 20h8M12 16v4",
+  smartphone: "M7 3h10a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2",
+  skipBack: "M19 20L9 12l10-8v16zM5 19V5",
+  skipForward: "M5 4l10 8-10 8V4zM19 5v14",
+  repeat: "M17 2l4 4-4 4M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4M21 13v1a4 4 0 0 1-4 4H3",
 } as const;
 
 export type IconName = keyof typeof ICON_PATHS;

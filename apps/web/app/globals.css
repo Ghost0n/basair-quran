@@ -407,76 +407,12 @@ code, .mono {
   background: rgba(212, 175, 55, 0.18);
 }
 
-/* ---------- Motion primitives ---------- */
-/* A small shared vocabulary the whole app reaches for, so entrances feel of a
-   piece. All are neutralised by the reduced-motion block below (it zeroes every
-   animation/transition), so callers don't need to gate them individually. */
-
-/* Overlays & popovers: fade + gentle scale up. */
-@keyframes qbPopIn {
-  from {
-    opacity: 0;
-    transform: scale(0.96);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* List items & cards: fade + rise. Pair with `animation-delay` for a stagger. */
-@keyframes qbRise {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Plain fade — for backdrops (scaling a full-screen dim layer would show edges). */
-@keyframes qbFade {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-/* A calm pulse for indeterminate loading (an alternative to the shimmer). */
-@keyframes qbPulse {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 1;
-  }
-}
-
-/* Universal tactile press. Targets real <button>s only, so the span-based word
-   tokens (role=button) in the reader are left alone. */
-button:not(:disabled):active {
-  transform: scale(0.97);
-}
-
-/* ---------- Reduced motion (a11y) ---------- */
-/* Honour the OS "reduce motion" setting: collapse animation, skeleton
-   shimmer, and smooth-scroll get neutralised so motion-sensitive users
-   aren't subjected to movement they didn't ask for. */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
-  }
-}
+/* ---------- Motion ---------- */
+/* The shared motion vocabulary (keyframes qbRise/qbPopIn/qbFade/qbPulse/…,
+   the tactile button press) and the DESIGNED reduced-motion variant live in
+   ./motion.css, loaded globally after ./tokens-motion.css. Reduced motion is
+   a dignified variant there — transforms collapse but opacity + staggers
+   remain — NOT the blanket animation/transition freeze this file used to ship. */
 
 /* ---------- Touch / coarse-pointer refinements ---------- */
 /* On touch there's no keyboard, so the ⌘K hint is noise that steals width;
