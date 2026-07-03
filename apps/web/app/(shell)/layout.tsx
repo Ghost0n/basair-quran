@@ -3,6 +3,7 @@ import Script from "next/script";
 
 import { YamliInit } from "@/components/yamli-init";
 import { AuthTopbar } from "@/features/auth/auth-topbar";
+import { ShellGate } from "@/features/identity/shell-gate";
 import { Shell } from "@/features/shell/shell";
 
 const yamliEnabled = process.env.NEXT_PUBLIC_ENABLE_YAMLI !== "0";
@@ -24,12 +25,14 @@ export default function ShellLayout({ children }: { children: ReactNode }) {
           feels stable: the chrome (rail, top bar, footer) stays put and each
           screen scrolls inside its own region instead of growing the whole
           document. It also absorbs the optional auth strip above the frame. */}
-      <div className="qb-shell-root">
-        <AuthTopbar />
-        <Suspense fallback={null}>
-          <Shell>{children}</Shell>
-        </Suspense>
-      </div>
+      <Suspense fallback={null}>
+        <ShellGate>
+          <div className="qb-shell-root">
+            <AuthTopbar />
+            <Shell>{children}</Shell>
+          </div>
+        </ShellGate>
+      </Suspense>
       {yamliEnabled ? <Script src="https://api.yamli.com/js/yamli_api.js" strategy="afterInteractive" /> : null}
       {yamliEnabled ? <YamliInit targetId="searchInput" /> : null}
     </>

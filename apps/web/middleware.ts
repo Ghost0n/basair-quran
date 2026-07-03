@@ -11,21 +11,18 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const { pathname, search } = request.nextUrl;
+  const { pathname } = request.nextUrl;
   if (PUBLIC_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix)) || pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
 
-  const isLoginPage = pathname === "/login";
+  // Guest-first: unauthenticated visitors are NOT forced to /login. They reach
+  // the app, where the client-side ShellGate shows the Landing (create account /
+  // sign in / continue as guest); the backend hard-gates only the Studio surface.
+  // One courtesy redirect remains: an already-authenticated visitor who lands on
+  // /login is sent straight to the workspace.
   const hasSessionCookie = Boolean(request.cookies.get(sessionCookieName)?.value);
-
-  if (!hasSessionCookie && !isLoginPage) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", `${pathname}${search}`);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  if (hasSessionCookie && isLoginPage) {
+  if (hasSessionCookie && pathname === "/login") {
     return NextResponse.redirect(new URL("/", request.url));
   }
 

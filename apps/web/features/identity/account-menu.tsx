@@ -8,6 +8,7 @@ import type { AuthUserInfo } from "@q-basair/shared";
 import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-mark";
 import { Icon } from "@/components/icon";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { clearGuestChoice } from "@/features/auth/identity-flow";
 
 import "./account-menu.css";
 
@@ -79,7 +80,8 @@ export function AccountMenu({ theme, onToggleTheme, onOpenSettings }: AccountMen
     } catch {
       /* ignore */
     }
-    window.location.assign("/login");
+    clearGuestChoice();
+    window.location.assign("/");
   }
 
   return (

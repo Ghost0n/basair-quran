@@ -7,7 +7,7 @@ import { BrandMark } from "@/components/brand-mark";
 import { AUTH_ENABLED } from "@/lib/config";
 
 import "./auth.css";
-import { identityApi, routeAfterAuth, sanitizeNextPath } from "./identity-flow";
+import { continueAsGuest, identityApi, routeAfterAuth, sanitizeNextPath } from "./identity-flow";
 
 type AuthTab = "in" | "up";
 
@@ -23,7 +23,7 @@ export function LoginPageShell() {
   const searchParams = useSearchParams();
   const nextPath = useMemo(() => sanitizeNextPath(searchParams.get("next")), [searchParams]);
 
-  const [tab, setTab] = useState<AuthTab>("in");
+  const [tab, setTab] = useState<AuthTab>(searchParams.get("tab") === "signup" ? "up" : "in");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -211,8 +211,19 @@ export function LoginPageShell() {
         ) : null}
       </form>
 
+      <button
+        type="button"
+        className="qb-landing-guest"
+        onClick={() => {
+          continueAsGuest();
+          window.location.assign("/");
+        }}
+      >
+        تصفّح كضيف ←
+      </button>
+
       <div className="qb-auth-guest-note">
-        تتصفّح كضيف — عند إنشاء الحساب نضمّ محفوظاتك تلقائياً
+        عند إنشاء الحساب نضمّ محفوظاتك تلقائياً
       </div>
     </div>
   );

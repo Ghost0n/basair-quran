@@ -230,6 +230,73 @@
   animation: qbFade var(--motion-dur-base) 400ms both;
 }
 
+/* ---------- Landing (front door) ---------- */
+
+.qb-landing-tagline {
+  max-width: 440px;
+  text-align: center;
+  color: var(--fg-2);
+  font-size: var(--fs-sm);
+  line-height: 1.85;
+  animation: qbFade var(--motion-dur-base) 200ms both;
+}
+
+.qb-landing-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  width: 100%;
+  max-width: 320px;
+  animation: qbRise var(--motion-dur-slow) var(--motion-ease-settle) 260ms both;
+}
+
+.qb-landing-primary,
+.qb-landing-secondary {
+  text-align: center;
+  padding: 12px;
+  border-radius: var(--r-md);
+  font-family: var(--font-arabic-ui);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--motion-dur-instant) var(--motion-ease-settle),
+    filter var(--motion-dur-instant) var(--motion-ease-settle);
+}
+
+.qb-landing-primary {
+  background: linear-gradient(135deg, #eac54a, #c69e27);
+  color: #140f00;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.qb-landing-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+}
+
+.qb-landing-secondary {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--fg-1);
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.qb-landing-secondary:hover {
+  transform: translateY(-1px);
+}
+
+.qb-landing-guest {
+  border: none;
+  background: none;
+  color: var(--gold-text);
+  font-family: var(--font-arabic-ui);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  animation: qbFade var(--motion-dur-base) 340ms both;
+}
+
 .qb-auth-signup-name {
   animation: qbFade var(--motion-dur-base) both;
 }

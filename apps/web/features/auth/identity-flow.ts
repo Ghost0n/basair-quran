@@ -13,8 +13,33 @@ import { API_BASE_URL } from "@/lib/config";
 
 const MERGED_FLAG_PREFIX = "qb.merged.";
 const MERGE_RESULT_KEY = "qb.merge-result";
+const GUEST_KEY = "qb.guest";
 
 export const identityApi = createQBasairApiClient({ baseUrl: API_BASE_URL });
+
+/** The visitor chose to browse without an account (from the landing page). */
+export function hasChosenGuest(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(GUEST_KEY) === "1";
+}
+
+export function continueAsGuest(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(GUEST_KEY, "1");
+  } catch {
+    /* storage unavailable — the gate just re-asks next visit */
+  }
+}
+
+export function clearGuestChoice(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(GUEST_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 export function sanitizeNextPath(rawValue: string | null | undefined): string {
   if (!rawValue || !rawValue.startsWith("/") || rawValue.startsWith("//")) {
