@@ -162,6 +162,25 @@ button:not(:disabled):active {
   animation: qbPulseRing 500ms var(--motion-ease-settle) both;
 }
 
+/* ---------- Shared-element omnibar transition ---------- */
+/* The Home center ask bar and the workspace top command bar share one
+   view-transition-name, so entering/leaving Home MORPHS the search field from
+   the centre up to the top (and back) — the design's "command bar never moves"
+   made literal. They never coexist (the top bar is hidden on Home), so the name
+   is never duplicated. Progressive enhancement: a no-op where the View
+   Transitions API is unsupported (see mode-context setMode). */
+.qb-home-ask,
+.qb-cmd {
+  view-transition-name: qb-omnibar;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-home-ask,
+  .qb-cmd {
+    view-transition-name: none;
+  }
+}
+
 /* =====================================================================
    Reduced motion — the designed variant.
    tokens-motion.css already neutralizes the position/turn/depth vars and

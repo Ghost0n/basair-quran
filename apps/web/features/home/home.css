@@ -11,21 +11,19 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--sp-6) 24px var(--sp-10);
+  /* Center the stack vertically; on short viewports it still scrolls. Tight
+     padding so the whole page fits ~1080p (after the topbar is hidden on Home). */
+  justify-content: center;
+  padding: var(--sp-3) 24px var(--sp-5);
 }
 
 .qb-home-inner {
   width: 100%;
   max-width: 720px;
-  /* Scroll-safe vertical centering: the stack settles into the optical middle
-     so the verse commands the room; on short viewports the auto-margins collapse
-     to 0 and the column scrolls normally from the top (justify-content:center
-     would clip the top out of reach). */
-  margin-block: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--sp-5);
+  gap: var(--sp-4);
   animation: qbRise var(--dur-slow) var(--ease-out);
 }
 
@@ -54,7 +52,9 @@
 
 .qb-home-ayah-hero .ayah-text {
   font-family: var(--font-arabic-display);
-  font-size: var(--fs-4xl);
+  /* The personalized Home carries more furniture (greeting + grid), so the hero
+     is one step down from the guest splash — still the centerpiece, fits 1080p. */
+  font-size: var(--fs-3xl);
   line-height: var(--lh-mushaf);
   color: var(--verse-fg);
   max-width: 20ch;

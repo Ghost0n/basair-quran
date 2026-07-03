@@ -51,10 +51,20 @@ export function useShellMode(): {
       const href = query ? `/?${query}` : "/";
       // `replace` for implicit/derived switches (e.g. results auto-opening
       // Search) so Back isn't clogged with entries the user didn't choose.
-      if (options?.replace) {
-        router.replace(href, { scroll: false });
+      const navigate = () => {
+        if (options?.replace) {
+          router.replace(href, { scroll: false });
+        } else {
+          router.push(href, { scroll: false });
+        }
+      };
+      // Morph the shared omnibar (Home centre ↔ top command bar) when the View
+      // Transitions API is available; a plain navigation everywhere else.
+      const doc = document as Document & { startViewTransition?: (cb: () => void) => void };
+      if (typeof document !== "undefined" && typeof doc.startViewTransition === "function") {
+        doc.startViewTransition(navigate);
       } else {
-        router.push(href, { scroll: false });
+        navigate();
       }
     },
     [params, router],

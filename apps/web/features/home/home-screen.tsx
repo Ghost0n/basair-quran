@@ -7,30 +7,17 @@ import { useEffect, useState, type FormEvent } from "react";
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type { ResearchSessionSummary } from "@q-basair/shared";
 
-import { Icon, type IconName } from "@/components/icon";
+import { Icon } from "@/components/icon";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
 import { useNumerals } from "@/lib/preferences-context";
 import { looksLikeQuestion, queueStudioAsk, queueStudioOpenSession } from "@/lib/studio-prefill";
-import { useShellMode, type ShellMode } from "@/features/shell/mode-context";
+import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 const LAST_PAGE_KEY = "qbasair.mushaf.lastPage";
 const LAST_SURAH_KEY = "qbasair.mushaf.lastSurah";
-
-type QuickCard = {
-  mode: ShellMode;
-  icon: IconName;
-  title: string;
-  hint: string;
-};
-
-const QUICK_CARDS: QuickCard[] = [
-  { mode: "reading", icon: "book", title: "القراءة", hint: "اقرأ المصحف صفحةً صفحة" },
-  { mode: "search", icon: "search", title: "البحث", hint: "ابحث في الجذور والكلمات" },
-  { mode: "studio", icon: "feather", title: "الدراسة", hint: "بحث موجَّه في المعاني" },
-];
 
 // A small rotating set of well-known āyāt — the page's centerpiece. The text is
 // shown exactly as in the muṣḥaf; only the reference number follows the numeral
@@ -247,23 +234,6 @@ export function HomeScreen() {
             <span className="cta">افتح الدفتر ←</span>
           </button>
         </div>
-
-        <div className="qb-home-cards">
-          {QUICK_CARDS.map((card) => (
-            <button
-              key={card.mode}
-              type="button"
-              className="qb-home-card"
-              onClick={() => setMode(card.mode)}
-              title={card.hint}
-            >
-              <Icon name={card.icon} size={16} />
-              <span className="title">{card.title}</span>
-              <span className="hint">{card.hint}</span>
-            </button>
-          ))}
-        </div>
-
       </div>
     </div>
   );
