@@ -20,17 +20,16 @@ function toMotif(value?: string | null): AvatarMotif {
 }
 
 type AccountMenuProps = {
-  theme: "dark" | "light";
-  onToggleTheme: () => void;
   onOpenSettings: () => void;
 };
 
 /**
  * AccountMenu — the rail's identity affordance. A calligraphic medallion that
- * opens a popover (profile, theme, settings link, sync line, sign out). Only
- * rendered when auth is enabled; guests get a quiet sign-in link instead.
+ * opens a popover (profile, settings link, sync line, sign out) flowing to the
+ * right of the button. Theme now lives in its own top-bar button. Only rendered
+ * when auth is enabled; guests get a quiet sign-in link instead.
  */
-export function AccountMenu({ theme, onToggleTheme, onOpenSettings }: AccountMenuProps) {
+export function AccountMenu({ onOpenSettings }: AccountMenuProps) {
   const [user, setUser] = useState<AuthUserInfo | null>(null);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ bottom: number; left: number }>({ bottom: 12, left: 80 });
@@ -68,8 +67,15 @@ export function AccountMenu({ theme, onToggleTheme, onOpenSettings }: AccountMen
   function toggleOpen() {
     const rect = btnRef.current?.getBoundingClientRect();
     if (rect) {
-      // Rail sits on the RTL-right; the popover opens toward the room (left of it).
-      setPos({ bottom: Math.max(12, window.innerHeight - rect.bottom), left: Math.max(8, rect.left - 274) });
+      // The rail sits at the RTL-right edge. The popover flows out from the button
+      // into the room (to its left), hugging the rail and opening upward from the
+      // bottom-of-rail medallion. `left` is applied as insetInlineStart which, in
+      // this RTL app, resolves to `right` — so it's a distance from the viewport's
+      // right edge: seat the popover's right edge just left of the button.
+      setPos({
+        bottom: Math.max(12, window.innerHeight - rect.bottom),
+        left: Math.max(8, window.innerWidth - rect.left + 8),
+      });
     }
     setOpen((value) => !value);
   }
@@ -116,22 +122,6 @@ export function AccountMenu({ theme, onToggleTheme, onOpenSettings }: AccountMen
             </div>
 
             <div className="qb-account-body">
-              <div className="qb-account-theme">
-                السِّمة
-                <span
-                  className="seg"
-                  onClick={onToggleTheme}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") onToggleTheme();
-                  }}
-                >
-                  <span className={theme === "dark" ? "on" : ""}>داكنة</span>
-                  <span className={theme === "light" ? "on" : ""}>فاتحة</span>
-                </span>
-              </div>
-
               <button
                 type="button"
                 className="qb-account-link"

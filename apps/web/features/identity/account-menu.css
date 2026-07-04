@@ -61,38 +61,6 @@
   padding: 6px;
 }
 
-.qb-account-theme {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  font-size: 12.5px;
-  color: var(--fg-1);
-}
-
-.qb-account-theme .seg {
-  margin-inline-start: auto;
-  display: flex;
-  gap: 3px;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-pill);
-  cursor: pointer;
-}
-
-.qb-account-theme .seg > span {
-  padding: 2px 9px;
-  border-radius: var(--r-pill);
-  font-size: 10px;
-  font-weight: 800;
-  color: var(--fg-2);
-}
-
-.qb-account-theme .seg > span.on {
-  background: linear-gradient(135deg, #eac54a, #c69e27);
-  color: #140f00;
-}
-
 .qb-account-link {
   width: 100%;
   display: flex;

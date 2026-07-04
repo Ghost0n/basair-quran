@@ -93,26 +93,6 @@ export function QuickSettings() {
           <div className="qb-quick-head">إعدادات سريعة</div>
 
           <div className="qb-tweak-section">
-            <div className="qb-tweak-label">السمة</div>
-            <div className="qb-tweak-seg">
-              <button
-                type="button"
-                className={state.theme === "dark" ? "active" : ""}
-                onClick={() => state.theme !== "dark" && actions.toggleTheme()}
-              >
-                داكنة
-              </button>
-              <button
-                type="button"
-                className={state.theme === "light" ? "active" : ""}
-                onClick={() => state.theme !== "light" && actions.toggleTheme()}
-              >
-                فاتحة
-              </button>
-            </div>
-          </div>
-
-          <div className="qb-tweak-section">
             <div className="qb-tweak-label">الرواية</div>
             <SelectMenu
               className="qb-quick-menu"

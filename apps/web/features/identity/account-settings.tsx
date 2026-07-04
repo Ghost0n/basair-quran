@@ -48,6 +48,12 @@ export function AccountSettings() {
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [picking, setPicking] = useState(false);
   const [ready, setReady] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+
+  // Keep the name field seeded from the loaded profile (and after a save).
+  useEffect(() => {
+    if (user) setNameDraft(user.name || "");
+  }, [user?.name]);
 
   useEffect(() => {
     if (!AUTH_ENABLED) {
@@ -125,6 +131,17 @@ export function AccountSettings() {
     }
   }
 
+  async function saveName() {
+    const next = nameDraft.trim();
+    if (!user || !next || next === (user.name || "")) return;
+    setUser((current) => (current ? { ...current, name: next } : current));
+    try {
+      await api.updateProfile({ name: next }, { suppressAuthRedirect: true });
+    } catch {
+      /* optimistic — a failed save just reverts on next load */
+    }
+  }
+
   async function eject(sessionId: number) {
     setDevices((list) => list.filter((device) => device.id !== sessionId));
     try {
@@ -175,6 +192,32 @@ export function AccountSettings() {
             ))}
           </div>
         ) : null}
+
+        <div className="qb-account-field">
+          <label htmlFor="qb-account-name">الاسم المعروض</label>
+          <div className="qb-account-name-edit">
+            <input
+              id="qb-account-name"
+              type="text"
+              value={nameDraft}
+              onChange={(event) => setNameDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") void saveName();
+              }}
+              placeholder="اسمك المعروض"
+              maxLength={40}
+            />
+            <button
+              type="button"
+              className="save"
+              onClick={() => void saveName()}
+              disabled={!nameDraft.trim() || nameDraft.trim() === (user.name || "")}
+            >
+              حفظ
+            </button>
+          </div>
+        </div>
+
         <button type="button" className="qb-account-signout-row" onClick={signOut}>
           <Icon name="logout" size={15} />
           تسجيل الخروج

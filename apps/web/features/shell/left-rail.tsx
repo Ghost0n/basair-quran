@@ -3,7 +3,6 @@
 import { BrandMark } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
 import { AccountMenu } from "@/features/identity/account-menu";
-import { useRecitation } from "@/features/recitation/recitation-context";
 
 import { useShellMode, type ShellMode } from "./mode-context";
 import { useWorkspace } from "./workspace-context";
@@ -29,7 +28,6 @@ const SAVED_DESTINATIONS: RailDestination[] = [
 export function LeftRail() {
   const { mode, setMode } = useShellMode();
   const { actions, state } = useWorkspace();
-  const recitation = useRecitation();
 
   const handleBrandClick = () => {
     // One clean navigation to the root (resetSearch handles the route); with the
@@ -62,19 +60,9 @@ export function LeftRail() {
         <RailButton key={dest.mode} destination={dest} activeMode={mode} onSelect={setMode} />
       ))}
 
-      {/* التلاوة is no longer a screen — it summons the reciter sheet; the media
-          bar (in the shell) carries transport once a recitation is playing. */}
-      <button
-        type="button"
-        className={`qb-rail-btn${recitation.sheetOpen ? " active" : ""}`}
-        onClick={recitation.openSheet}
-        title="التلاوة"
-        aria-label="التلاوة"
-        aria-haspopup="dialog"
-      >
-        <Icon name="ear" size={19} />
-        <span className="qb-rail-label">التلاوة</span>
-      </button>
+      {/* Recitation is no longer a rail destination — it's reached from the play
+          bar (opened by the reader's footer control), where the reciter picker
+          now lives as an upward dropdown. */}
 
       <div className="qb-rail-spacer" />
 
@@ -84,11 +72,7 @@ export function LeftRail() {
         onSelect={setMode}
       />
 
-      <AccountMenu
-        theme={isLight ? "light" : "dark"}
-        onToggleTheme={actions.toggleTheme}
-        onOpenSettings={() => setMode("settings")}
-      />
+      <AccountMenu onOpenSettings={() => setMode("settings")} />
     </aside>
   );
 }
@@ -103,11 +87,19 @@ function RailButton({
   onSelect: (next: ShellMode) => void;
 }) {
   const isActive = destination.mode === activeMode;
+  // Double-effect: clicking the ACTIVE button collapses what it opened — back to
+  // the reader (the resting surface); clicking the reader when it's already
+  // active collapses one more level to Home.
+  const target: ShellMode = !isActive
+    ? destination.mode
+    : destination.mode === "reading"
+      ? "home"
+      : "reading";
   return (
     <button
       type="button"
       className={`qb-rail-btn${isActive ? " active" : ""}`}
-      onClick={() => onSelect(destination.mode)}
+      onClick={() => onSelect(target)}
       title={destination.label}
       aria-label={destination.label}
       aria-current={isActive ? "page" : undefined}

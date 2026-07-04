@@ -115,6 +115,66 @@
   background: linear-gradient(135deg, #f0cd54, #cfa62c);
 }
 
+/* ---------- Editable display name ---------- */
+
+.qb-account-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--sp-3);
+}
+
+.qb-account-field > label {
+  font-size: 12px;
+  color: var(--fg-2);
+  font-weight: 600;
+}
+
+.qb-account-name-edit {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.qb-account-name-edit input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.20);
+  border: 1px solid var(--border);
+  color: var(--fg-1);
+  font-size: 13px;
+  font-family: var(--font-arabic-ui);
+}
+
+.light .qb-account-name-edit input {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.qb-account-name-edit input:focus {
+  outline: none;
+  border-color: var(--gold-400);
+}
+
+.qb-account-name-edit .save {
+  flex: none;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #eac54a, #c69e27);
+  color: #140f00;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+}
+
+.qb-account-name-edit .save:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
 /* ---------- Sign out ---------- */
 
 .qb-account-signout-row {
