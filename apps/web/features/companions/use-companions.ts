@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type { FollowedRoot, NotebookItem, ResearchSessionSummary } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
+import { emitNotebookChange, useNotebookSync } from "@/lib/notebook-sync";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -32,6 +33,9 @@ export function useCompanions() {
   const [roots, setRoots] = useState<FollowedRoot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Mirror of the list so deletes can report the removed ayah_id in their event.
+  const notebookRef = useRef<NotebookItem[]>([]);
+  notebookRef.current = notebook;
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -56,9 +60,23 @@ export function useCompanions() {
     void refresh();
   }, [refresh]);
 
+  // Reflect notebook changes made elsewhere (e.g. saving an ayah from the reader
+  // beside this list) live, without a remount or refetch.
+  useNotebookSync((change) => {
+    if (change.kind === "added") {
+      setNotebook((current) =>
+        current.some((item) => item.id === change.item.id) ? current : [change.item, ...current],
+      );
+    } else {
+      setNotebook((current) => current.filter((item) => item.id !== change.itemId));
+    }
+  });
+
   const deleteNotebookItem = useCallback(async (itemId: number) => {
+    const ayahId = notebookRef.current.find((item) => item.id === itemId)?.ayah_id ?? null;
     await api.deleteNotebookItem(itemId);
     setNotebook((current) => current.filter((item) => item.id !== itemId));
+    emitNotebookChange({ kind: "removed", itemId, ayahId });
   }, []);
 
   const deleteSession = useCallback(async (sessionId: string) => {

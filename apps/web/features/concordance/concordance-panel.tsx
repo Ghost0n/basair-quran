@@ -10,6 +10,7 @@ import type { SearchVerse } from "@q-basair/shared";
 import { Icon } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
 import { flyToNotebook } from "@/lib/fly-to-notebook";
+import { emitNotebookChange, useNotebookSync } from "@/lib/notebook-sync";
 import { useNumerals } from "@/lib/preferences-context";
 import { getVerseSelectionKey, renderHighlightedVerseText } from "@/lib/quran-ui";
 import { useShellMode } from "@/features/shell/mode-context";
@@ -38,11 +39,28 @@ export function ConcordancePanel() {
   // B2: use the server-computed count across the full result set, not just the current page.
   const surahCount = results.reduce((sum, r) => sum + (r.total_surahs ?? 0), 0);
 
+  // Keep the pin markers honest when the same ayah is saved/removed elsewhere
+  // (the reader beside this panel, or the library).
+  useNotebookSync((change) => {
+    if (change.kind === "added") {
+      if (change.item.ayah_id != null) {
+        setPinnedAyahIds((current) => new Set(current).add(change.item.ayah_id as number));
+      }
+    } else if (change.ayahId != null) {
+      setPinnedAyahIds((current) => {
+        if (!current.has(change.ayahId as number)) return current;
+        const next = new Set(current);
+        next.delete(change.ayahId as number);
+        return next;
+      });
+    }
+  });
+
   async function pinVerse(verse: SearchVerse) {
     if (pinnedAyahIds.has(verse.ayah_id)) return;
     setPinnedAyahIds((current) => new Set(current).add(verse.ayah_id));
     try {
-      await api.addNotebookItem({
+      const created = await api.addNotebookItem({
         ayah_id: verse.ayah_id,
         mushaf_id: verse.mushaf_id,
         surah_id: verse.surah_id,
@@ -51,6 +69,7 @@ export function ConcordancePanel() {
         text: verse.text.trim(),
         collection: primary?.root,
       });
+      emitNotebookChange({ kind: "added", item: created });
     } catch {
       setPinnedAyahIds((current) => {
         const next = new Set(current);

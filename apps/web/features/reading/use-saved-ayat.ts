@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createQBasairApiClient } from "@q-basair/api-client";
 
 import { API_BASE_URL } from "@/lib/config";
+import { emitNotebookChange, useNotebookSync } from "@/lib/notebook-sync";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -53,6 +54,24 @@ export function useSavedAyat() {
     };
   }, []);
 
+  // Stay in sync when the notebook changes elsewhere (e.g. a delete from the
+  // library screen beside the reader) — clear/set the saved marker in place.
+  useNotebookSync((change) => {
+    setByAyahId((prev) => {
+      if (change.kind === "added") {
+        if (change.item.ayah_id == null || prev.get(change.item.ayah_id) === change.item.id) return prev;
+        return new Map(prev).set(change.item.ayah_id, change.item.id);
+      }
+      const next = new Map(prev);
+      if (change.ayahId != null) {
+        next.delete(change.ayahId);
+      } else {
+        for (const [ayahId, itemId] of next) if (itemId === change.itemId) next.delete(ayahId);
+      }
+      return next;
+    });
+  });
+
   const isSaved = useCallback((ayahId: number) => byAyahId.has(ayahId), [byAyahId]);
 
   const toggle = useCallback(
@@ -80,7 +99,10 @@ export function useSavedAyat() {
           return next;
         });
         try {
-          if (existingId >= 0) await api.deleteNotebookItem(existingId);
+          if (existingId >= 0) {
+            await api.deleteNotebookItem(existingId);
+            emitNotebookChange({ kind: "removed", itemId: existingId, ayahId: ayah.ayah_id });
+          }
         } catch {
           setByAyahId((prev) => new Map(prev).set(ayah.ayah_id, existingId));
         }
@@ -98,6 +120,7 @@ export function useSavedAyat() {
           text: ayah.text.trim(),
         });
         setByAyahId((prev) => new Map(prev).set(ayah.ayah_id, created.id));
+        emitNotebookChange({ kind: "added", item: created });
       } catch {
         setByAyahId((prev) => {
           const next = new Map(prev);
