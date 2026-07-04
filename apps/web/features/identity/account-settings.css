@@ -72,6 +72,74 @@
   background: var(--gold-a12);
 }
 
+/* ---------- Guest sign-in / sign-up ---------- */
+
+.qb-account-guest {
+  display: flex;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0 var(--sp-2);
+}
+
+.qb-account-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--fg-1);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-settle),
+    background var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-account-cta:hover {
+  border-color: var(--gold-a55);
+  background: var(--gold-a08);
+}
+
+.qb-account-cta.primary {
+  border: none;
+  background: linear-gradient(135deg, #eac54a, #c69e27);
+  color: #140f00;
+  font-weight: 800;
+}
+
+.qb-account-cta.primary:hover {
+  background: linear-gradient(135deg, #f0cd54, #cfa62c);
+}
+
+/* ---------- Sign out ---------- */
+
+.qb-account-signout-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--sp-3);
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--danger-fg);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-settle),
+    background var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-account-signout-row:hover {
+  border-color: var(--danger-fg);
+  background: rgba(220, 90, 80, 0.08);
+}
+
 /* ---------- Devices ---------- */
 
 .qb-devices {

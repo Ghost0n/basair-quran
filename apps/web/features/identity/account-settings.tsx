@@ -8,6 +8,7 @@ import type { AuthUserInfo, DeviceInfo } from "@q-basair/shared";
 import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-mark";
 import { Icon } from "@/components/icon";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { clearGuestChoice } from "@/features/auth/identity-flow";
 import { useNumerals } from "@/lib/preferences-context";
 
 import "./account-settings.css";
@@ -32,25 +33,37 @@ function relativeTime(epochSeconds: number, formatNumber: (n: number) => string)
 }
 
 /**
- * AccountSettings — the Account + Devices cards of the settings screen.
- * Account: medallion + email + change-medallion. Devices: the active-sessions
- * registry with a "this device" badge and per-device eject. Auth-gated.
+ * AccountSettings — the account & session home inside the Settings screen. It's
+ * the canonical place to manage the session:
+ *  • Guest → sign-in / create-account card (guest data merges on sign-up).
+ *  • Signed in → account card (medallion + name + email + change medallion),
+ *    the active-devices registry (this-device badge + per-device eject), and
+ *    sign out.
+ * Only present when auth is enabled (NEXT_PUBLIC_AUTH_ENABLED=1); with auth off
+ * there is no account concept, so it renders nothing.
  */
 export function AccountSettings() {
   const formatNumber = useNumerals();
   const [user, setUser] = useState<AuthUserInfo | null>(null);
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [picking, setPicking] = useState(false);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!AUTH_ENABLED) return;
+    if (!AUTH_ENABLED) {
+      setReady(true);
+      return;
+    }
     let cancelled = false;
     void api
       .getAuthSession({ suppressAuthRedirect: true })
       .then((session) => {
         if (!cancelled && session.authenticated) setUser(session.user ?? null);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setReady(true);
+      });
     void api
       .getDevices({ suppressAuthRedirect: true })
       .then((list) => {
@@ -62,7 +75,43 @@ export function AccountSettings() {
     };
   }, []);
 
-  if (!AUTH_ENABLED || !user) return null;
+  if (!AUTH_ENABLED) return null;
+
+  // Hold the card's place until the session check resolves, so an authenticated
+  // user never sees the guest card flash first.
+  if (!ready) {
+    return (
+      <section className="qb-setting-card" aria-busy="true">
+        <h3>الحساب</h3>
+        <p className="card-sub">جارٍ التحقّق من الجلسة…</p>
+      </section>
+    );
+  }
+
+  if (!user) {
+    const next =
+      typeof window !== "undefined"
+        ? encodeURIComponent(`${window.location.pathname}${window.location.search}`)
+        : "";
+    return (
+      <section className="qb-setting-card">
+        <h3>الحساب</h3>
+        <p className="card-sub">أنت الآن في وضع الضيف. سجّل الدخول لحفظ محفوظاتك ومزامنتها عبر أجهزتك.</p>
+        <div className="qb-account-guest">
+          <a className="qb-account-cta primary" href={`/login?next=${next}`}>
+            <Icon name="user" size={15} />
+            تسجيل الدخول
+          </a>
+          <a className="qb-account-cta" href={`/login?tab=signup&next=${next}`}>
+            أنشئ حساباً
+          </a>
+        </div>
+        <p className="card-sub">
+          محفوظات الضيف (المثبَّتات والجلسات وموضع القراءة) تُدمَج في حسابك تلقائياً عند التسجيل.
+        </p>
+      </section>
+    );
+  }
 
   const motif = toMotif(user.avatar);
 
@@ -83,6 +132,16 @@ export function AccountSettings() {
     } catch {
       /* ignore */
     }
+  }
+
+  async function signOut() {
+    try {
+      await api.logout({ suppressAuthRedirect: true });
+    } catch {
+      /* ignore */
+    }
+    clearGuestChoice();
+    window.location.assign("/");
   }
 
   return (
@@ -116,6 +175,10 @@ export function AccountSettings() {
             ))}
           </div>
         ) : null}
+        <button type="button" className="qb-account-signout-row" onClick={signOut}>
+          <Icon name="logout" size={15} />
+          تسجيل الخروج
+        </button>
       </section>
 
       <section className="qb-setting-card">

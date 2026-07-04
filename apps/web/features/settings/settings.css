@@ -130,6 +130,18 @@
   white-space: nowrap;
 }
 
+/* Wrapping grid for segmented controls with many options (page layout). */
+.qb-setting-seg.is-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.qb-setting-seg button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .qb-setting-seg button.active {
   background: linear-gradient(135deg, #eac54a, #c69e27);
   color: #140f00;
