@@ -49,6 +49,60 @@
   max-width: 88rem;
 }
 
+/* ---------- Long-jump travel flourish ---------- */
+/* A soft gold wash + a mono page-counter that scrubs from the old page toward
+   the new one when a load lands far from where the reader was. Absolute over the
+   stage (which is position:relative) — a radial gradient so the edges (header,
+   footer, new surah name) stay legible while the centre glows. Self-clearing via
+   TravelOverlay's sequencer; the settled page's target ayah blooms afterward. */
+.qb-travel {
+  position: absolute;
+  inset: 0;
+  z-index: var(--elev-drawer);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: radial-gradient(ellipse 62% 52% at center, var(--gold-a18), var(--gold-a04) 46%, transparent 72%);
+  opacity: 0;
+  transition: opacity var(--motion-dur-base) var(--motion-ease-settle);
+}
+
+.qb-travel.in {
+  opacity: 1;
+}
+
+.qb-travel.out {
+  opacity: 0;
+}
+
+.qb-travel-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  /* Subtle settle-in on the counter; the token is neutralized to 1 under
+     reduced motion, so this collapses to no scale automatically. */
+  transform: scale(var(--motion-travel-scale, 1));
+}
+
+.qb-travel-counter .k {
+  font-family: var(--font-arabic-kufi);
+  font-size: 11px;
+  letter-spacing: var(--tracking-uppercase, 0.14em);
+  color: var(--gold-text);
+}
+
+.qb-travel-counter .n {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--gold-200);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 2px 24px var(--gold-a40);
+}
+
 /* ---------- Header: surah card + nav tools ---------- */
 
 .qb-mushaf-head {

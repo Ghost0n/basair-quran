@@ -28,6 +28,20 @@ type LoadOptions = {
   persist?: boolean;
 };
 
+/**
+ * A far page jump worth a "travel" flourish — the gold wash + page-counter scrub
+ * (see TravelOverlay). Emitted by `applyResult` when a load lands ≥ FAR_JUMP_MIN
+ * pages from the last one, so every jump path (evidence, search, surah/juz,
+ * footer page jump) gets the same ceremony without touching each call site. `id`
+ * makes each jump a fresh, keyable event.
+ */
+export type TravelJump = { from: number; to: number; id: number };
+
+// A jump this many pages or more is "travel", not a page turn. Adjacent turns
+// (delta 1, or 2 for a spread) and the scroll reader's page-by-page streaming
+// stay silent; only a real leap earns the wash + counter.
+const FAR_JUMP_MIN = 5;
+
 export type MushafController = {
   pageData: QuranPageResponse | null;
   isLoading: boolean;
@@ -35,6 +49,9 @@ export type MushafController = {
   selectedAyahId: number | null;
   selectedHighlights: number[];
   pageDraft: string;
+  /** A pending far-jump flourish, or null. Cleared by the overlay when done. */
+  travel: TravelJump | null;
+  clearTravel: () => void;
   bodyRef: RefObject<HTMLDivElement | null>;
   loadPage: (mushafId: number, page: number, options?: LoadOptions) => Promise<void>;
   loadByAyah: (mushafId: number, ayahId: number, highlights?: number[]) => Promise<void>;
@@ -67,6 +84,10 @@ function useMushafController(): MushafController {
   const [selectedAyahId, setSelectedAyahId] = useState<number | null>(null);
   const [selectedHighlights, setSelectedHighlights] = useState<number[]>([]);
   const [pageDraft, setPageDraft] = useState("");
+  const [travel, setTravel] = useState<TravelJump | null>(null);
+  // The last applied page + a monotonic id, for far-jump detection in applyResult.
+  const prevPageRef = useRef<number | null>(null);
+  const travelIdRef = useRef(0);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   // Set by setActivePage so the next scroll-into-view pass is skipped (the scroll
   // reader is already positioned; auto-centring the selection would fight it).
@@ -94,6 +115,16 @@ function useMushafController(): MushafController {
   }, [pageData]);
 
   const applyResult = useCallback((data: QuranPageResponse, persist: boolean) => {
+    // Far-jump detection — the single choke-point every load path passes through.
+    // Compare where we WERE to where we're landing; a big leap earns the travel
+    // flourish. First load (prev null) and adjacent turns stay silent.
+    const nextPage = data.page ?? null;
+    const prevPage = prevPageRef.current;
+    if (nextPage != null && prevPage != null && Math.abs(nextPage - prevPage) >= FAR_JUMP_MIN) {
+      travelIdRef.current += 1;
+      setTravel({ from: prevPage, to: nextPage, id: travelIdRef.current });
+    }
+    if (nextPage != null) prevPageRef.current = nextPage;
     setPageData(data);
     if (persist && data.page) {
       try {
@@ -190,12 +221,16 @@ function useMushafController(): MushafController {
     [applyResult],
   );
 
+  const clearTravel = useCallback(() => setTravel(null), []);
+
   const reset = useCallback(() => {
     setPageData(null);
     setError(null);
     setSelectedAyahId(null);
     setSelectedHighlights([]);
     setPageDraft("");
+    setTravel(null);
+    prevPageRef.current = null;
   }, []);
 
   const readLastPage = useCallback(() => {
@@ -214,6 +249,8 @@ function useMushafController(): MushafController {
     selectedAyahId,
     selectedHighlights,
     pageDraft,
+    travel,
+    clearTravel,
     bodyRef,
     loadPage,
     loadByAyah,

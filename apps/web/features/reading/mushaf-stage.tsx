@@ -16,6 +16,7 @@ import "./reading.css";
 import { MushafHeader } from "./components/mushaf-header";
 import { MushafFooter } from "./components/mushaf-footer";
 import { SurahProgress } from "./components/surah-progress";
+import { TravelOverlay } from "./components/travel-overlay";
 import { type MorphTarget } from "./components/morph-popover";
 import { type GlyphSaveTarget } from "./components/glyph-page";
 import { PagedReader } from "./components/paged-reader";
@@ -370,6 +371,17 @@ export function MushafStage() {
         onNext={goNext}
         onJumpPage={(targetPage) => void mushaf.loadPage(selectedMushaf, targetPage, { persist: true })}
       />
+
+      {/* Long-jump flourish — a gold wash + page-counter scrub over the stage,
+          keyed so each far jump is a fresh, self-clearing overlay. */}
+      {mushaf.travel ? (
+        <TravelOverlay
+          key={mushaf.travel.id}
+          from={mushaf.travel.from}
+          to={mushaf.travel.to}
+          onDone={mushaf.clearTravel}
+        />
+      ) : null}
     </div>
   );
 }
