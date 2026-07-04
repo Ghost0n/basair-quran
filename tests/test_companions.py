@@ -112,3 +112,29 @@ def test_user_preferences_defaults_and_patch(api_client):
     reread = api_client.get("/api/user/preferences")
     assert reread.json()["numerals"] == "latin"
     assert reread.json()["reader_layout"] == "scroll"
+
+
+def test_user_preferences_saved_pages(api_client):
+    # Defaults to an empty list.
+    defaults = api_client.get("/api/user/preferences").json()
+    assert defaults["saved_pages"] == []
+
+    # Bookmark a page (wholesale-replace semantics — the client sends the array).
+    patched = api_client.patch(
+        "/api/user/preferences",
+        json={
+            "saved_pages": [
+                {"page": 50, "mushaf_id": 1, "surah": "آل عمران", "surah_id": 3, "saved_at": 1700000000}
+            ]
+        },
+    )
+    assert patched.status_code == 200
+    saved = patched.json()["saved_pages"]
+    assert len(saved) == 1
+    assert saved[0]["page"] == 50
+    assert saved[0]["surah"] == "آل عمران"
+
+    # Persisted across requests, and clearable with an empty array.
+    assert api_client.get("/api/user/preferences").json()["saved_pages"][0]["page"] == 50
+    cleared = api_client.patch("/api/user/preferences", json={"saved_pages": []})
+    assert cleared.json()["saved_pages"] == []

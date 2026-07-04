@@ -43,10 +43,14 @@ type RecitationValue = {
   prev: () => void;
   /** Jump within the current ayah's audio (0..1 of its duration). */
   seek: (ratio: number) => void;
-  /** The reciter-picker sheet opened from the media bar / rail. */
-  sheetOpen: boolean;
-  openSheet: () => void;
-  closeSheet: () => void;
+  /** The bar shown in an IDLE state (no ayah playing yet) — opened from the
+   *  reader footer so the user can pick a reciter before pressing play. */
+  idle: boolean;
+  /** Where the idle bar's play button starts from (the reader's current page). */
+  pendingStart: RecitationPosition | null;
+  openIdle: (start?: RecitationPosition | null) => void;
+  /** Start the pending ayah (idle → playing). */
+  startPending: () => void;
 };
 
 const RecitationContext = createContext<RecitationValue | null>(null);
@@ -68,7 +72,8 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   const [progress, setProgress] = useState(0);
   const [speed, setSpeedState] = useState(1);
   const [repeatAyah, setRepeatAyah] = useState(false);
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [idle, setIdle] = useState(false);
+  const [pendingStart, setPendingStart] = useState<RecitationPosition | null>(null);
 
   const reciter = useMemo(
     () => reciters.find((item) => item.id === reciterId) ?? reciters[0] ?? null,
@@ -109,6 +114,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   const playAyah = useCallback(
     (surah: number, ayah: number) => {
       setCurrent({ surah, ayah });
+      setIdle(false); // a real ayah takes over from the idle bar
       loadAndPlay({ surah, ayah }, reciter);
     },
     [loadAndPlay, reciter],
@@ -132,10 +138,13 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       audio.currentTime = 0;
     }
     setIsPlaying(false);
-    // Clear the active position so the media bar collapses (it renders only
-    // while `current` is set). Without this the bar was stuck open on close.
+    // Clear the active position AND the idle state so the media bar collapses
+    // fully (it renders while `current` OR `idle`). Without this the bar was
+    // stuck open on close.
     setCurrent(null);
     setProgress(0);
+    setIdle(false);
+    setPendingStart(null);
   }, []);
 
   const next = useCallback(() => {
@@ -187,8 +196,14 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
 
   const toggleRepeat = useCallback(() => setRepeatAyah((value) => !value), []);
 
-  const openSheet = useCallback(() => setSheetOpen(true), []);
-  const closeSheet = useCallback(() => setSheetOpen(false), []);
+  const openIdle = useCallback((start?: RecitationPosition | null) => {
+    setPendingStart(start ?? null);
+    setIdle(true);
+  }, []);
+
+  const startPending = useCallback(() => {
+    if (pendingStart) playAyah(pendingStart.surah, pendingStart.ayah);
+  }, [pendingStart, playAyah]);
 
   // Audio element event wiring.
   const handleEnded = useCallback(() => {
@@ -218,9 +233,10 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       next,
       prev,
       seek,
-      sheetOpen,
-      openSheet,
-      closeSheet,
+      idle,
+      pendingStart,
+      openIdle,
+      startPending,
     }),
     [
       reciters,
@@ -240,9 +256,10 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       next,
       prev,
       seek,
-      sheetOpen,
-      openSheet,
-      closeSheet,
+      idle,
+      pendingStart,
+      openIdle,
+      startPending,
     ],
   );
 

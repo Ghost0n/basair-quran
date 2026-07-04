@@ -29,6 +29,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   mushaf_render: "simple",
   reader_layout: "auto",
   research: { default_mode: "strict", depth: "balanced" },
+  saved_pages: [],
 };
 
 type TweaksPatch = Partial<Omit<UserPreferences, "research">>;

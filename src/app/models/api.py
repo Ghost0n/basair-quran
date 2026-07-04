@@ -487,6 +487,16 @@ class ReadingPosition(BaseModel):
     updated_at: Optional[int] = None
 
 
+class SavedPageEntry(BaseModel):
+    """A bookmarked muṣḥaf page — surfaced on Home to reopen the reader there."""
+
+    page: int
+    mushaf_id: int = 1
+    surah: Optional[str] = None
+    surah_id: Optional[int] = None
+    saved_at: Optional[int] = None
+
+
 class UserPreferences(BaseModel):
     riwayah: int = 1
     mushaf_font: str = "amiri-quran"
@@ -504,6 +514,8 @@ class UserPreferences(BaseModel):
     research: ResearchDefaults = Field(default_factory=ResearchDefaults)
     # Last reading position — powers the personalized Home ayah hero.
     last_position: Optional[ReadingPosition] = None
+    # Bookmarked muṣḥaf pages, listed on Home to reopen the reader there.
+    saved_pages: List[SavedPageEntry] = Field(default_factory=list)
 
 
 class ResearchDefaultsUpdate(BaseModel):
@@ -523,6 +535,7 @@ class UserPreferencesUpdate(BaseModel):
     reader_layout: Optional[Literal["auto", "single", "spread", "scroll", "ayah"]] = None
     research: Optional[ResearchDefaultsUpdate] = None
     last_position: Optional[ReadingPosition] = None
+    saved_pages: Optional[List[SavedPageEntry]] = None
 
 
 # ---------------------------------------------------------------------------

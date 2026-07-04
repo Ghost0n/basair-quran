@@ -110,6 +110,9 @@ DEFAULT_PREFERENCES: dict = {
     # Last reading position — powers the personalized Home ayah hero. Snapshot,
     # replaced wholesale on update; roams with the account (guests keep it local).
     "last_position": None,
+    # Bookmarked muṣḥaf pages (page + mushaf + surah label), listed on Home.
+    # Replaced wholesale on update (client sends the full array).
+    "saved_pages": [],
 }
 
 

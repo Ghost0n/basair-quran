@@ -998,6 +998,62 @@
   background: var(--divider);
 }
 
+/* Footer control that opens the play bar idle (pick reciter, then play). */
+.qb-foot-reciter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out),
+    background var(--dur) var(--ease-out);
+}
+
+.qb-foot-reciter:hover {
+  border-color: var(--border-strong);
+  color: var(--gold-text);
+  background: var(--gold-a08);
+}
+
+.qb-foot-reciter > svg {
+  color: var(--gold-text);
+}
+
+/* Bookmark-this-page toggle. */
+.qb-foot-savepage {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-3);
+  cursor: pointer;
+  transition: border-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out),
+    background var(--dur) var(--ease-out);
+}
+
+.qb-foot-savepage:hover {
+  border-color: var(--border-strong);
+  color: var(--gold-text);
+}
+
+.qb-foot-savepage.on {
+  color: var(--gold-text);
+  border-color: var(--gold-a40);
+  background: var(--gold-a12);
+}
+
 .qb-mushaf-foot .pager {
   margin-inline-start: auto;
   display: flex;

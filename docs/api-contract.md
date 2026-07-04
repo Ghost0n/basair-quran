@@ -86,6 +86,16 @@ This document freezes the backend contract that the future frontend migration wi
   reader endpoint changes shape. Unknown/off-Hafs combinations degrade gracefully
   on the client (e.g. `spread` → `single`).
 
+## Saved pages
+
+- `saved_pages` is an account preference on `GET/PATCH /api/user/preferences`: a
+  list of bookmarked muṣḥaf pages, each `{ page, mushaf_id, surah?, surah_id?,
+  saved_at? }`. Defaults to `[]`. It uses **wholesale-replace** semantics like
+  `last_position` — the client sends the full array on every change (add/remove),
+  so PATCHing `[]` clears it. Stored in the `user_preferences` JSON, so it roams
+  with the account and merges from guest on sign-up. The Home screen lists them to
+  reopen the reader at that page; the reader footer toggles the current page.
+
 ## Morphology notes
 
 - `GET /api/morphology?surah=N&ayah=M` returns per-word morphology (root, lemma,

@@ -5,12 +5,13 @@ import "./home.css";
 import { useEffect, useState, type FormEvent } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { ResearchSessionSummary } from "@q-basair/shared";
+import type { ResearchSessionSummary, SavedPageEntry } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
-import { useNumerals } from "@/lib/preferences-context";
+import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { looksLikeQuestion, queueStudioAsk, queueStudioOpenSession } from "@/lib/studio-prefill";
+import { useMushaf } from "@/features/reading/mushaf-context";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
@@ -43,6 +44,14 @@ export function HomeScreen() {
   const { setMode } = useShellMode();
   const formatNumber = useNumerals();
   const { actions } = useWorkspace();
+  const { preferences } = usePreferences();
+  const mushaf = useMushaf();
+  const savedPages = preferences.saved_pages ?? [];
+
+  function openSavedPage(entry: SavedPageEntry) {
+    void mushaf.loadPage(entry.mushaf_id || 1, entry.page, { persist: true });
+    setMode("reading");
+  }
 
   const [ask, setAsk] = useState("");
   const [lastPage, setLastPage] = useState<number | null>(null);
@@ -234,6 +243,28 @@ export function HomeScreen() {
             <span className="cta">افتح الدفتر ←</span>
           </button>
         </div>
+
+        {/* Saved muṣḥaf pages — reopen the reader exactly where you bookmarked. */}
+        {savedPages.length > 0 ? (
+          <div className="qb-home-saved">
+            <div className="lbl">صفحات محفوظة</div>
+            <div className="chips">
+              {savedPages.slice(0, 10).map((entry) => (
+                <button
+                  key={`${entry.mushaf_id}-${entry.page}`}
+                  type="button"
+                  className="chip"
+                  onClick={() => openSavedPage(entry)}
+                  title={`${entry.surah ?? "المصحف"} · صفحة ${entry.page}`}
+                >
+                  <Icon name="bookmarkFilled" size={12} />
+                  <span className="s">{entry.surah ?? "المصحف"}</span>
+                  <span className="p">صفحة {formatNumber(entry.page)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );

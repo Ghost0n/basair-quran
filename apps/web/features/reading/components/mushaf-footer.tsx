@@ -5,7 +5,8 @@ import { useState } from "react";
 import type { QuranPageResponse } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
-import { useNumerals } from "@/lib/preferences-context";
+import { useNumerals, usePreferences } from "@/lib/preferences-context";
+import { useRecitation } from "@/features/recitation/recitation-context";
 
 import { AudioMiniPlayer } from "./audio-mini-player";
 
@@ -25,8 +26,31 @@ export function MushafFooter({
   onJumpPage: (page: number) => void;
 }) {
   const formatNumber = useNumerals();
+  const recitation = useRecitation();
+  const { preferences, updateAccount } = usePreferences();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
+  const firstAyah = pageData.ayahs[0];
+  const mushafId = pageData.mushaf_id ?? 0;
+  const savedPages = preferences.saved_pages ?? [];
+  const pageSaved = savedPages.some((entry) => entry.page === (pageData.page ?? 1) && entry.mushaf_id === mushafId);
+
+  function toggleSavePage() {
+    const page = pageData.page ?? 1;
+    const next = pageSaved
+      ? savedPages.filter((entry) => !(entry.page === page && entry.mushaf_id === mushafId))
+      : [
+          {
+            page,
+            mushaf_id: mushafId,
+            surah: firstAyah?.surah ?? null,
+            surah_id: firstAyah?.surah_id ?? null,
+            saved_at: Math.floor(Date.now() / 1000),
+          },
+          ...savedPages,
+        ];
+    void updateAccount({ saved_pages: next });
+  }
   const juzLabel =
     pageData.juz != null
       ? pageData.juz_secondary != null
@@ -58,6 +82,35 @@ export function MushafFooter({
         surah={pageData.ayahs[0]?.surah_id}
         ayah={pageData.ayahs[0]?.ayah}
       />
+
+      {/* Open the play bar in an IDLE state — pick a reciter first, then press
+          play — without starting playback immediately. */}
+      <button
+        type="button"
+        className="qb-foot-reciter"
+        onClick={() =>
+          recitation.openIdle(
+            firstAyah ? { surah: firstAyah.surah_id, ayah: firstAyah.ayah } : null,
+          )
+        }
+        title="افتح شريط التلاوة — اختر قارئاً ثم شغّل"
+        aria-label="افتح شريط التلاوة"
+      >
+        <Icon name="ear" size={13} />
+        التلاوة
+      </button>
+
+      {/* Bookmark this page — surfaced on Home to reopen the reader here. */}
+      <button
+        type="button"
+        className={`qb-foot-savepage${pageSaved ? " on" : ""}`}
+        onClick={toggleSavePage}
+        title={pageSaved ? "إزالة الصفحة من المحفوظات" : "احفظ هذه الصفحة"}
+        aria-label={pageSaved ? "إزالة الصفحة من المحفوظات" : "احفظ هذه الصفحة"}
+        aria-pressed={pageSaved}
+      >
+        <Icon name={pageSaved ? "bookmarkFilled" : "bookmark"} size={13} />
+      </button>
 
       <div className="pager">
         <button

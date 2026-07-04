@@ -255,82 +255,61 @@
   background: rgba(212, 175, 55, 0.1);
 }
 
-/* ---------- Reciter sheet (opened from the bar / rail) ---------- */
-
-.qb-reciter-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 90;
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  animation: qbFade var(--dur) var(--ease-out);
+/* Disabled transport (idle bar — no ayah loaded yet) + idle seek. */
+.qb-media-transport .nav:disabled,
+.qb-media-transport .play:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
-.qb-reciter-sheet {
-  width: min(560px, 100%);
-  max-height: 72vh;
+.qb-media-seek.is-idle {
+  cursor: default;
+  opacity: 0.5;
+}
+
+/* The reciter chip carries a chevron now (it toggles the dropdown). */
+.qb-media-reciter > svg {
+  flex-shrink: 0;
+  color: var(--fg-3);
+  transition: transform var(--dur) var(--ease-out);
+}
+
+.qb-media-reciter.open > svg {
+  transform: rotate(180deg);
+}
+
+/* ---------- Reciter dropdown (upward, attached to the play bar) ---------- */
+
+.qb-reciter-dd {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.qb-reciter-dd-panel {
+  position: absolute;
+  /* Opens UPWARD — the bar is pinned to the bottom of the screen. */
+  bottom: calc(100% + 10px);
+  inset-inline-start: 0;
+  z-index: calc(var(--elev-popover) + 5);
+  width: 320px;
+  max-width: 78vw;
+  max-height: 340px;
   display: flex;
   flex-direction: column;
   background: var(--bg-elev-1);
   border: 1px solid var(--border-strong);
-  border-bottom: none;
-  border-radius: var(--r-2xl) var(--r-2xl) 0 0;
+  border-radius: var(--r-lg);
   box-shadow: var(--shadow-3);
-  padding: 16px 18px 22px;
-  animation: qbSheetUp var(--dur) var(--ease-out);
+  padding: 12px;
+  transform-origin: bottom;
+  animation: qbRise var(--motion-dur-base) var(--motion-ease-settle) both;
 }
 
-@keyframes qbSheetUp {
-  from {
-    opacity: 0;
-    transform: translateY(26px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.qb-reciter-sheet-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.qb-reciter-sheet-head .kicker {
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--gold-text);
-  text-transform: uppercase;
-}
-
-.qb-reciter-sheet-head .x {
-  display: inline-flex;
-  width: 30px;
-  height: 30px;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--fg-2);
-  cursor: pointer;
-}
-
-.qb-reciter-sheet-head .x:hover {
-  color: var(--fg-1);
-  border-color: var(--border-strong);
-}
-
-.qb-reciter-search {
+.qb-reciter-dd-search {
   width: 100%;
-  height: 40px;
+  height: 38px;
   padding: 0 14px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -339,25 +318,83 @@
   font-size: 14px;
 }
 
-.light .qb-reciter-search {
+.light .qb-reciter-dd-search {
   background: rgba(255, 255, 255, 0.7);
 }
 
-.qb-reciter-search:focus {
+.qb-reciter-dd-search:focus {
   outline: none;
   border-color: var(--gold-400);
 }
 
-.qb-reciter-sheet-list {
+.qb-reciter-dd-list {
   overflow-y: auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
-.qb-reciter-empty {
-  padding: 24px;
+.qb-reciter-dd-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  text-align: start;
+  width: 100%;
+  transition: border-color 140ms var(--ease-out), background 140ms var(--ease-out);
+}
+
+.qb-reciter-dd-row:hover {
+  background: var(--surface-soft);
+}
+
+.qb-reciter-dd-row.active {
+  background: var(--gold-a12);
+  border-color: var(--gold-a40);
+}
+
+.qb-reciter-dd-row .avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--gold-300), var(--gold-600));
+  color: #1a1207;
+}
+
+.qb-reciter-dd-row .info {
+  flex: 1;
+  min-width: 0;
+}
+
+.qb-reciter-dd-row .info .name {
+  font-family: var(--font-arabic-display);
+  font-size: 15px;
+  color: var(--fg-1);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.qb-reciter-dd-row .info .meta {
+  font-size: 11px;
+  color: var(--fg-3);
+  unicode-bidi: isolate;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.qb-reciter-dd-empty {
+  padding: 20px;
   text-align: center;
   color: var(--fg-3);
   font-size: 13px;
@@ -371,12 +408,8 @@
   }
 
   /* On the tightest screens, drop the speed/repeat chips to keep transport,
-     reciter, and seek usable; they remain reachable from the reciter sheet. */
+     reciter, and seek usable. */
   .qb-media-tools .chip:not(.icon) {
     display: none;
-  }
-
-  .qb-reciter-sheet {
-    max-height: 80vh;
   }
 }

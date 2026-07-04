@@ -347,6 +347,15 @@ export interface ReadingPosition {
   updated_at?: number | null;
 }
 
+/** A bookmarked muṣḥaf page — surfaced on Home to reopen the reader there. */
+export interface SavedPageEntry {
+  page: number;
+  mushaf_id: number;
+  surah?: string | null;
+  surah_id?: number | null;
+  saved_at?: number | null;
+}
+
 export interface UserPreferences {
   riwayah: number;
   mushaf_font: string;
@@ -359,6 +368,7 @@ export interface UserPreferences {
   reader_layout: ReaderLayout;
   research: ResearchDefaults;
   last_position?: ReadingPosition | null;
+  saved_pages?: SavedPageEntry[] | null;
 }
 
 export interface RootDistributionSurah {
@@ -396,6 +406,7 @@ export interface UserPreferencesUpdate {
   reader_layout?: ReaderLayout;
   research?: Partial<ResearchDefaults>;
   last_position?: ReadingPosition | null;
+  saved_pages?: SavedPageEntry[] | null;
 }
 
 export interface QuranPageAyah {
