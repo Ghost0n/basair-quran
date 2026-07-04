@@ -5,9 +5,11 @@
  * lib/fly-to-notebook.ts): a fire-and-forget SVG overlay, not React state.
  *
  * The target ayah renders asynchronously (the click triggers loadByAyah), so we
- * capture the source rect now and POLL for the reader's freshly-selected ayah,
- * then draw once it's on screen. Drawn on a fixed, viewport-space SVG so it can
- * span the studio panel and the reader regardless of their scroll containers.
+ * POLL for the reader's freshly-selected ayah — matched by data-ayah-id so a
+ * stale selection from the outgoing page is never hit — then draw once it's on
+ * screen, recapturing BOTH endpoints at that moment (the panel may have scrolled
+ * during the wait). Drawn on a fixed, viewport-space SVG so it can span the
+ * studio panel and the reader regardless of their scroll containers.
  *
  * Guards:
  *  • Co-visibility — the reader and the studio panel only sit side-by-side above
@@ -38,31 +40,23 @@ export function drawEvidenceThread(sourceEl: HTMLElement | null, ayahId: number)
   const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   if (reduce) return;
 
-  // Capture the citation's position immediately — the panel doesn't move on jump.
-  const src = sourceEl.getBoundingClientRect();
-  const x1 = src.left + src.width / 2;
-  const y1 = src.top + src.height / 2;
-
+  const onScreen = (r: DOMRect) => r.width > 0 && r.bottom > 0 && r.top < window.innerHeight;
   const startedAt = performance.now();
   const poll = () => {
-    // Prefer the freshly-loaded target by id (both readers tag the selected
-    // ayah with data-ayah-id), so a stale selection from the outgoing page —
-    // which can linger for a frame while the new page loads — is never hit.
-    // Fall back to whatever is selected only once the id match times out.
-    const byId = document.querySelector<HTMLElement>(
+    // Match the freshly-loaded target strictly by id (both readers tag the
+    // selected ayah with data-ayah-id). No unqualified fallback: a stale
+    // ".selected" from the outgoing page (lingering while a slow load settles)
+    // must never be drawn to — better no thread than a thread to the wrong ayah.
+    const target = document.querySelector<HTMLElement>(
       `.qb-ayah-tok.selected[data-ayah-id="${ayahId}"], .qb-glyph-sel[data-ayah-id="${ayahId}"]`,
     );
-    const elapsed = performance.now() - startedAt;
-    const target =
-      byId ??
-      (elapsed > POLL_BUDGET_MS * 0.6
-        ? document.querySelector<HTMLElement>(".qb-ayah-tok.selected, .qb-glyph-sel")
-        : null);
     if (target) {
       const t = target.getBoundingClientRect();
-      const onScreen = t.width > 0 && t.bottom > 0 && t.top < window.innerHeight;
-      if (onScreen) {
-        drawThread(x1, y1, t.left + t.width / 2, t.top + t.height / 2, ayahId);
+      // Recapture the source now too — the panel may have scrolled during the
+      // wait, so the click-time rect could be stale.
+      const s = sourceEl.getBoundingClientRect();
+      if (onScreen(t) && onScreen(s)) {
+        drawThread(s.left + s.width / 2, s.top + s.height / 2, t.left + t.width / 2, t.top + t.height / 2, ayahId);
         return;
       }
     }
@@ -73,6 +67,8 @@ export function drawEvidenceThread(sourceEl: HTMLElement | null, ayahId: number)
 
 function drawThread(x1: number, y1: number, x2: number, y2: number, ayahId: number): void {
   const NS = "http://www.w3.org/2000/svg";
+  // One thread at a time — a rapid second citation click supersedes the first.
+  document.querySelectorAll(".qb-evidence-thread").forEach((el) => el.remove());
   const svg = document.createElementNS(NS, "svg");
   svg.setAttribute("class", "qb-evidence-thread");
   svg.dataset.ayahId = String(ayahId);
@@ -103,6 +99,13 @@ function drawThread(x1: number, y1: number, x2: number, y2: number, ayahId: numb
 
   path.style.strokeDasharray = String(len);
   path.style.strokeDashoffset = String(len);
+
+  const HOLD_MS = 640;
+  const FADE_MS = 520;
+  // Guaranteed removal even if a WAAPI callback never fires (tab backgrounded,
+  // animation cancelled) — cleared when the normal chain completes.
+  const hardStop = window.setTimeout(() => svg.remove(), drawMs + HOLD_MS + FADE_MS + 400);
+
   const draw = path.animate([{ strokeDashoffset: len }, { strokeDashoffset: 0 }], {
     duration: drawMs,
     easing: ease,
@@ -114,11 +117,14 @@ function drawThread(x1: number, y1: number, x2: number, y2: number, ayahId: numb
     dot(x1, y1, "qb-evidence-thread-dot");
     dot(x2, y2, "qb-evidence-thread-dot target");
     const fade = svg.animate([{ opacity: 1 }, { opacity: 0 }], {
-      duration: 520,
-      delay: 640,
+      duration: FADE_MS,
+      delay: HOLD_MS,
       easing: "ease-out",
       fill: "forwards",
     });
-    fade.onfinish = () => svg.remove();
+    fade.onfinish = () => {
+      window.clearTimeout(hardStop);
+      svg.remove();
+    };
   };
 }

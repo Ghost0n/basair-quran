@@ -58,7 +58,9 @@
 .qb-travel {
   position: absolute;
   inset: 0;
-  z-index: var(--elev-drawer);
+  /* Above the morph popover (30) so a far jump's wash covers an open popover;
+     the evidence thread (calc(toast+10)) still draws above the wash. */
+  z-index: var(--elev-overlay);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -865,7 +867,7 @@
   padding: 10px 14px 14px;
   box-shadow: var(--shadow-3), 0 0 0 1px rgba(212, 175, 55, 0.10);
   backdrop-filter: blur(20px);
-  z-index: 30;
+  z-index: var(--elev-popover);
   animation: qbPopIn var(--dur-fast) var(--ease-out);
   transform-origin: top;
 }
