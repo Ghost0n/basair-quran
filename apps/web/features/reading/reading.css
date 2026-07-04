@@ -864,7 +864,9 @@
   border: 1px solid rgba(212, 175, 55, 0.32);
   border-radius: 14px;
   width: 320px;
-  padding: 10px 14px 14px;
+  /* Extra top room so a display-font word with tall stacked marks (e.g. the
+     high rounded-zero on ٱدْعُوا۟) can't paint above the card onto the mushaf. */
+  padding: 16px 14px 14px;
   box-shadow: var(--shadow-3), 0 0 0 1px rgba(212, 175, 55, 0.10);
   backdrop-filter: blur(20px);
   z-index: var(--elev-popover);
@@ -889,7 +891,9 @@
   font-family: var(--font-arabic-display);
   font-size: 32px;
   color: var(--gold-text);
-  line-height: 1;
+  /* Comfortable leading — tall vocalized words (waṣla + high marks) overflow a
+     line-height:1 box and bleed over the card edge; this contains the ink. */
+  line-height: 1.6;
   margin-bottom: 4px;
 }
 
