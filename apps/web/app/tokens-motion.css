@@ -13,6 +13,7 @@
   --motion-dur-base:    240ms;  /* standard state changes              */
   --motion-dur-slow:    380ms;  /* panel enter, mode transitions       */
   --motion-dur-travel:  640ms;  /* long jumps, theme sweep             */
+  --motion-dur-thread:  420ms;  /* evidence thread draw (citation→ayah) */
   --motion-dur-hero:    900ms;  /* first-run reveal, highlight bloom   */
 
   /* ---------- Easing vocabulary ---------- */

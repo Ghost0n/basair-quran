@@ -82,7 +82,7 @@ export function AyahTokens({
   const formatNumber = useNumerals();
   const isSelected = ayah.is_selected || ayah.ayah_id === selectedAyahId;
   return (
-    <span className={`qb-ayah-tok${isSelected ? " selected" : ""}`}>
+    <span className={`qb-ayah-tok${isSelected ? " selected" : ""}`} data-ayah-id={ayah.ayah_id}>
       {ayah.text
         .trim()
         .split(/\s+/)

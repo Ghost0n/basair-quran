@@ -162,6 +162,40 @@ button:not(:disabled):active {
   animation: qbPulseRing 500ms var(--motion-ease-settle) both;
 }
 
+/* ---------- Evidence thread (citation ﴿n﴾ → target ayah) ---------- */
+/* A fine gold line drawn from a Studio evidence citation to the ayah it lands on
+   in the reader, tying evidence to its place in the muṣḥaf. Spawned imperatively
+   on a fixed, viewport-space SVG (see lib/draw-evidence-thread.ts); the draw is a
+   WAAPI stroke-dashoffset animation. Only appears where the panel + reader are
+   co-visible (desktop); skipped under reduced motion. */
+.qb-evidence-thread {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  /* Above panels (10), popovers (30), overlays (40), toasts (50) so the line is
+     never occluded by a summoned surface. */
+  z-index: calc(var(--elev-toast) + 10);
+}
+
+.qb-evidence-thread-path {
+  fill: none;
+  stroke: var(--gold-400);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px var(--gold-a40));
+}
+
+.qb-evidence-thread-dot {
+  fill: var(--gold-400);
+  filter: drop-shadow(0 0 5px var(--gold-a55));
+}
+
+.qb-evidence-thread-dot.target {
+  fill: var(--gold-200);
+}
+
 /* ---------- Shared-element omnibar transition ---------- */
 /* The Home center ask bar and the workspace top command bar share one
    view-transition-name, so entering/leaving Home MORPHS the search field from

@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } f
 import type { ResearchAgentResponse, TafssirDepth } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { drawEvidenceThread } from "@/lib/draw-evidence-thread";
 import { useNumerals } from "@/lib/preferences-context";
 import { renderHighlightedVerseText } from "@/lib/quran-ui";
 import { STUDIO_ASK_EVENT, drainStudioAsk, drainStudioOpenSession } from "@/lib/studio-prefill";
@@ -353,7 +354,13 @@ function BotMessage({
               type="button"
               className="ev-row"
               style={{ "--i": index } as CSSProperties}
-              onClick={() => onJump(ayah.ayah_id, ayah.mushaf_id, ayah.highlights ?? [])}
+              onClick={(event) => {
+                // Draw the thread from the citation chip to where the ayah lands
+                // in the reader, then perform the jump (which selects + blooms it).
+                const chip = event.currentTarget.querySelector<HTMLElement>(".num");
+                drawEvidenceThread(chip ?? event.currentTarget, ayah.ayah_id);
+                onJump(ayah.ayah_id, ayah.mushaf_id, ayah.highlights ?? []);
+              }}
             >
               <span className="num">[{formatNumber(index + 1)}]</span>
               <span className="ev-body">

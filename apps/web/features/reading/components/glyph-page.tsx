@@ -201,7 +201,9 @@ export function GlyphPage({
                 </Fragment>
               ));
               const node = segment.selected ? (
-                <span className="qb-glyph-sel">{inner}</span>
+                <span className="qb-glyph-sel" data-ayah-id={segment.words[0]?.ayah_id}>
+                  {inner}
+                </span>
               ) : (
                 inner
               );
