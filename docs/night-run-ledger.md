@@ -45,7 +45,7 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T4.4 wire `research.default_mode`/`depth` into `createSession` — done `57259dd` (web build green; new sessions inherit the saved default mode/depth via a prefs ref)
 - [x] T4.5 wire `reciter` pref into recitation-context — done `04cca60` (web build green; saved reciter pref seeds the player until the user overrides it that session)
 - [ ] T4.6 Studio thread auto-scroll — todo
-- [ ] T4.7 BrandMark hydration fix — todo
+- [x] T4.7 BrandMark hydration fix — done `<pending>` (clean web build + vitest green; CSS-var `themed` BrandMark follows the body theme class so the shell seal renders identical SSR/client markup; standalone screens keep the explicit `light` prop). Decision: surgical `themed` opt-in rather than a full CSS-driven rewrite of BrandMarkRich — flagged for design review.
 - [ ] T4.8 `rootFollowed` reset/seed + pin-state seeding — todo
 - [ ] T4.9 dead-state purge — todo
 - [ ] T4.10 extend error sanitization to Studio + Concordance — todo

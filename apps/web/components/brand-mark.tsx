@@ -5,6 +5,13 @@ type ThemeOpt = { light?: boolean };
 type BrandMarkProps = ThemeOpt & {
   size?: number;
   withWordmark?: boolean;
+  /**
+   * Follow the active theme via CSS variables instead of the JS `light` prop.
+   * Use this in themed surfaces (e.g. the shell rail) so the seal renders
+   * identical SSR/client markup — the `light` prop is client-state-derived and
+   * caused a hydration mismatch (dark on the server, light on the client).
+   */
+  themed?: boolean;
 };
 
 /**
@@ -12,15 +19,22 @@ type BrandMarkProps = ThemeOpt & {
  * Gold-bordered circle with the Arabic ب inside + two concentric
  * outer rings. Scales cleanly from 28px (rail) to 64px (header).
  */
-export function BrandMark({ size = 44, withWordmark = false, light = false }: BrandMarkProps) {
-  const goldStroke = light ? "#8a6a0c" : "#d4af37";
-  const goldFill = light ? "#8a6a0c" : "#e9cf73";
-  const glowFrom = light ? "rgba(212,175,55,0.18)" : "rgba(212,175,55,0.22)";
+export function BrandMark({ size = 44, withWordmark = false, light = false, themed = false }: BrandMarkProps) {
+  // In `themed` mode colors come from theme-aware CSS variables (resolved at
+  // paint time from the body theme class), so the markup is theme-independent.
+  const goldStroke = themed ? "var(--brand-mark-stroke)" : light ? "#8a6a0c" : "#d4af37";
+  const goldFill = themed ? "var(--brand-mark-fill)" : light ? "#8a6a0c" : "#e9cf73";
+  const glowFrom = themed ? "var(--brand-mark-glow)" : light ? "rgba(212,175,55,0.18)" : "rgba(212,175,55,0.22)";
+  const markFilter = themed
+    ? "var(--brand-mark-filter)"
+    : light
+      ? "none"
+      : "drop-shadow(0 4px 14px rgba(212,175,55,0.18))";
   const vb = 80;
   const cx = 40;
   const cy = 40;
   const rMain = 24;
-  const gid = `bm-glow-${size}-${light ? "l" : "d"}`;
+  const gid = `bm-glow-${size}-${themed ? "t" : light ? "l" : "d"}`;
 
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: withWordmark ? 12 : 0 }}>
@@ -31,29 +45,27 @@ export function BrandMark({ size = 44, withWordmark = false, light = false }: Br
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden
-        style={{
-          flexShrink: 0,
-          filter: light ? "none" : "drop-shadow(0 4px 14px rgba(212,175,55,0.18))",
-        }}
+        style={{ flexShrink: 0, filter: markFilter }}
       >
-        <circle cx={cx} cy={cy} r={rMain + 10} stroke={goldStroke} strokeWidth="0.5" strokeDasharray="1 3" opacity="0.45" />
-        <circle cx={cx} cy={cy} r={rMain + 6} stroke={goldStroke} strokeWidth="0.8" opacity="0.55" />
+        {/* Colors are applied via `style` (CSS) so `var()` resolves — SVG
+            presentation attributes do not support CSS custom properties. */}
+        <circle cx={cx} cy={cy} r={rMain + 10} style={{ stroke: goldStroke }} strokeWidth="0.5" strokeDasharray="1 3" opacity="0.45" />
+        <circle cx={cx} cy={cy} r={rMain + 6} style={{ stroke: goldStroke }} strokeWidth="0.8" opacity="0.55" />
         <circle cx={cx} cy={cy} r={rMain} fill={`url(#${gid})`} />
-        <circle cx={cx} cy={cy} r={rMain} stroke={goldStroke} strokeWidth="1.6" />
+        <circle cx={cx} cy={cy} r={rMain} style={{ stroke: goldStroke }} strokeWidth="1.6" />
         <text
           x={cx}
           y={cy + rMain * 0.36}
           textAnchor="middle"
           fontFamily="'Amiri Quran','Amiri',serif"
           fontSize={rMain * 1.55}
-          fill={goldFill}
-          style={{ fontWeight: 400 }}
+          style={{ fontWeight: 400, fill: goldFill }}
         >
           ب
         </text>
         <defs>
           <radialGradient id={gid} cx="50%" cy="40%" r="60%">
-            <stop offset="0%" stopColor={glowFrom} />
+            <stop offset="0%" style={{ stopColor: glowFrom }} />
             <stop offset="100%" stopColor="rgba(20,16,8,0)" />
           </radialGradient>
         </defs>
