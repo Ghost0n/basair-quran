@@ -131,19 +131,23 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 | **T2 Test harness** | 1 | 1 | **100%** — Vitest + 17 tests |
 | **T3 Backend correctness/perf** | 8 | 8 | **100%** — all shipped + tested |
 | **T4 Frontend correctness/perf** | 11 | 9 | **~82% shipped** (T4.1 URL-writer half partial); T4.2 + T4.9 = design notes |
-| **T5 UX remainder** | 8 | 2 | **~25%** — T5.2, T5.3 shipped; T5.1/4/5/6/7/8 unreached |
+| **T5 UX remainder** | 8 | 3 | **~38%** — T5.2, T5.3, T5.5 shipped; T5.1/4/6/7/8 unreached (large multi-file features) |
 | **T6 Identity completion** | 4 | 0 | unreached |
 | **T7 Hardening artifacts** | 7 | 0 | unreached |
 | **T8 Product bets** | 5 | 0 | unreached |
 
-**Gates at close:** `pytest -q` = **129 passed**. Web build = **green** (clean full build). Vitest = **17 passed**. `docs/api-contract.md` updated for every touched contract (SSRF headers, rate-limit/invite/409/timing, guest-id merge, storage caps, `/api/ready`, endpoint list, SuggestionItem).
+**Gates at close:** `pytest -q` = **129 passed**. Web build = **green** (authoritative `rm -rf .next` full clean build — the whole branch type-checks from scratch). Vitest = **17 passed**. `docs/api-contract.md` updated for every touched contract (SSRF headers, rate-limit/invite/409/timing, guest-id merge, storage caps, `/api/ready`, endpoint list, SuggestionItem).
+
+**Gate-reliability note:** Next.js incremental type-checking (webpack cache + `.tsbuildinfo`) masked two latent TS errors across the run (a partial merge type in T4.3, a duplicate attribute in T5.5). Both were caught by a full clean build and fixed. The authoritative frontend gate is `rm -rf apps/web/.next` before `scripts/build_web.ps1`. The final full-clean build proves every committed change compiles.
+
+**Where the night stopped & why:** T1–T3 are 100% and independently the load-bearing production risks from the review. T4 is substantially done. T5's remaining items (T5.1 compact-tap + `workspaceView` deletion, T5.4 server-side evidence persistence = shared-type + backend contract change, T5.6 guest onboarding, T5.7 form chips = new backend endpoint, T5.8 pinned-context [stretch]) and all of T6/T7/T8 are large multi-file features better done as dedicated, individually-reviewable slices. Stopping here keeps every shipped item verified and green rather than trading quality for coverage.
 
 ### Commits (in order)
 T1: `1ed1ec1` `c1e6f67` `505b947` `079b632` `cd86954` `df27774` `ac4072e` `a45948c` `c91ec31` `e6f9cc8` `5b1888d`
 T2: `4e4d17f`
 T3: `e958081` `a6f9bb8` `b9fad21` `4728581` `722b309` `c1c7cac` `99fa70e` `7742477`
 T4: `57259dd` `04cca60` `0dd4d9e` `0490d22` `2336e81` `9a96da6` `d1a3386` `eb17361` `c24fad7` `9aab418`
-T5: `da029fa` `aa4ee1f`
+T5: `da029fa` `aa4ee1f` `19a07d1`
 
 ### Blocked / design-noted / partial
 - **T4.1** — sequence guard shipped; single-URL-writer unification left as a design note (non-competing writers; regression risk).
