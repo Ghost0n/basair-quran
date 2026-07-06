@@ -22,8 +22,8 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T1.6 (0.9) guest_id merge scoping (additive migration) — done `df27774` (pytest 115 green; isolation+idempotency tests; web build green; api-contract updated)
 - [x] T1.7 (0.12) Storage caps on `ResearchSessionSave.messages` — done `ac4072e` (pytest 116 green; 422 on >500 msgs or >512 KB; api-contract updated)
 - [x] T1.8 (0.7) `/api/ready` (DB SELECT 1 + commit SHA) — done `a45948c` (pytest 118 green; 503 when DB down; ops-only, no client method)
-- [x] T1.9 (0.5) ci.yml + requirements-dev.txt + pinned deps — [artifact] done `<pending>` (authored + locally verified: pip install resolves, pytest green, web build green; activation = merge, see phase-0-rollout §2)
-- [ ] T1.10 (0.3+0.2+0.6) deploy reorder + untrack commit + backup script + rollout runbook — [artifact], todo
+- [x] T1.9 (0.5) ci.yml + requirements-dev.txt + pinned deps — [artifact] done `c91ec31` (authored + locally verified: pip install resolves, pytest green, web build green; activation = merge, see phase-0-rollout §2)
+- [x] T1.10 (0.3+0.2+0.6) deploy reorder + untrack commit + backup script + rollout runbook — [artifact] done (two commits for safe sequencing: `<pending-a>` reorder+backup+runbook, `<pending-b>` untrack `[rebuild-db]`)
 
 ## T2 — Test harness bootstrap
 - [ ] T2.1 Vitest + config in apps/web; tests: sanitizeNextPath, looksLikeQuestion, numerals, suggestion dedupe — todo
@@ -93,6 +93,12 @@ Ledger is updated immediately after each item; on restart, resume from here and 
   auth 20/min, research 60/min (env-tunable `QBASAIR_RATE_LIMIT_*`). In-memory per-IP (single-process
   uvicorn), reset between tests via an autouse conftest fixture. 409/403/timing messages are all static
   Arabic (no email reflection). Invite enforced only when `QBASAIR_INVITE_CODES` is set.
+- T1.10: split into TWO commits deliberately (deviates from one-item-one-commit) so the human can
+  sequence per §10.4b correction 2 — deploy reorder must merge before the quran.db untrack. Commit A
+  = deploy.yml reorder + backup script + rollout runbook (safe). Commit B = `git rm --cached
+  data/quran.db` carrying `[rebuild-db]` (dangerous working-tree transition on the server). Neither
+  pushed/merged; activation steps in docs/phase-0-rollout.md §3.
 
 ## Log (chronological)
 - Ledger created; T1 starting.
+- T1 complete (10/10 items). T2 next.

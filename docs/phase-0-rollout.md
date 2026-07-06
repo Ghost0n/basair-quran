@@ -46,7 +46,48 @@ Escape hatch: put `[skip-expensive-ci]` in a commit message to skip the frontend
 
 ---
 
-## 3. (reserved) Deploy reorder + quran.db untrack + backups (T1.10)
+## 3. Deploy reorder + quran.db untrack + backups (T1.10)
 
-Filled in when T1.10 lands. These are the highest-risk, human-supervised steps
-(server working-tree transition for `data/quran.db`); never run overnight.
+Highest-risk group — human-supervised, never run overnight. Do the sub-steps **in this order**.
+
+### 3a. Deploy reorder (`.github/workflows/deploy.yml`) — merge FIRST
+
+The workflow was reordered so the image is **built before** any rebuild step (previously the
+`[rebuild-db]`/`[rebuild-index]` scripts ran against a stale image), the `api` container is
+restarted after a DB/index rebuild so it reopens the regenerated file, and the health gate now
+polls **`/api/ready`** (DB `SELECT 1`) with a retry loop instead of `/api/health`.
+
+**Action:** get this deploy.yml onto `main` **before** the untrack commit below. A normal deploy
+with no rebuild tag is unaffected.
+
+### 3b. Untrack `data/quran.db` — a SEPARATE commit carrying `[rebuild-db]`
+
+`data/quran.db` is already in `.gitignore` but was still tracked (ignore does not untrack). The
+untrack commit runs `git rm --cached data/quran.db` (file kept on disk). **It carries
+`[rebuild-db]`** so the deploy regenerates the DB in the same run.
+
+⚠️ **Landmine:** when this commit reaches the server, `git reset --hard origin/main` transitions
+`data/quran.db` from tracked→absent and **deletes it from the server working tree** while
+containers may hold it open. Mitigations, all already in place:
+- 3a (deploy reorder) must be live first, so the build+rebuild ordering is correct.
+- The untrack commit carries `[rebuild-db]`, so `build_db.py` regenerates the file.
+- `QBASAIR_BUILD_DB_ON_START=auto` is a second safety net that rebuilds on boot if the file is
+  missing.
+
+**Action:** merge 3a, confirm a clean deploy, THEN merge the untrack commit (with `[rebuild-db]`).
+Watch the deploy logs; confirm `/api/ready` returns `"db":true` afterward. Consider taking a
+manual `data/*.db` copy on the host before this deploy.
+
+### 3c. Nightly backups (`scripts/backup_databases.sh`)
+
+Consistent SQLite `.backup` of `auth.db` + `app_data.db` (irreplaceable user data) and, best-effort,
+`research_agent.db`. Retention-pruned, gzip-archived. Locally smoke-tested (the consistent-copy
+path); it targets the Linux host.
+
+**Action (one-time, on the Hetzner host):** install a cron entry, e.g.
+```
+15 3 * * *  /srv/q-basair/scripts/backup_databases.sh >> /var/log/qbasair-backup.log 2>&1
+```
+Ensure `sqlite3` is installed on the host (else it falls back to `cp`). Backups land in
+`/srv/q-basair/backups` (override via `QBASAIR_BACKUP_DIR`).
+
