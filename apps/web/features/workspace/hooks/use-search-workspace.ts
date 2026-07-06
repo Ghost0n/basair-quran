@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 
 import { useRouter, useSearchParams } from "next/navigation";
@@ -144,6 +144,29 @@ export function useSearchWorkspace() {
   // results when responses resolve out of order (stale-response race).
   const runSearchIdRef = useRef(0);
   const phraseSuggestionTimerRef = useRef<number | null>(null);
+  // Handler-scoped one-shot timeouts, tracked so they can be cleared on unmount
+  // (avoids a setState on an unmounted component).
+  const pendingTimeoutsRef = useRef<Set<number>>(new Set());
+
+  const scheduleTimeout = useCallback((fn: () => void, ms: number) => {
+    const pending = pendingTimeoutsRef.current;
+    let id = 0;
+    id = window.setTimeout(() => {
+      pending.delete(id);
+      fn();
+    }, ms);
+    pending.add(id);
+  }, []);
+
+  useEffect(() => {
+    const pending = pendingTimeoutsRef.current;
+    const phraseTimerRef = phraseSuggestionTimerRef;
+    return () => {
+      for (const id of pending) window.clearTimeout(id);
+      pending.clear();
+      if (phraseTimerRef.current !== null) window.clearTimeout(phraseTimerRef.current);
+    };
+  }, []);
   const deferredQuery = useDeferredValue(query);
 
   const inputValue = previewValue ?? query;
@@ -948,7 +971,7 @@ export function useSearchWorkspace() {
     // there's no window where another effect can re-derive Search mode.
     if (!toReading && workspaceVisible) {
       setIsWorkspaceCollapsing(true);
-      window.setTimeout(finalizeReset, 240);
+      scheduleTimeout(finalizeReset, 240);
       return;
     }
 
@@ -1126,7 +1149,7 @@ export function useSearchWorkspace() {
       },
       closeSuggestions() {
         setIsInputFocused(false);
-        window.setTimeout(() => setSuggestionsOpen(false), 120);
+        scheduleTimeout(() => setSuggestionsOpen(false), 120);
       },
       previewSuggestion(index: number) {
         setActiveSuggestionIndex(index);
