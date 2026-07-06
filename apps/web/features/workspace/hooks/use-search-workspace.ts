@@ -27,6 +27,7 @@ import {
   removeChakl,
 } from "@/lib/quran-ui";
 import { generateArabicQueryCandidates } from "@/lib/arabic-transliteration";
+import { dedupeSuggestionItems } from "@/features/workspace/lib/dedupe-suggestions";
 import { usePreferences } from "@/lib/preferences-context";
 import { useMushaf } from "@/features/reading/mushaf-context";
 
@@ -55,18 +56,6 @@ function getSuggestionContext(query: string) {
     sourceQuery: tokens[tokens.length - 1] ?? "",
     prefixQuery: tokens.slice(0, -1).join(" "),
   };
-}
-
-function dedupeSuggestionItems(items: SuggestionItem[]) {
-  const seen = new Set<string>();
-  return items.filter((item) => {
-    const key = `${item.type}::${item.text}`;
-    if (seen.has(key)) {
-      return false;
-    }
-    seen.add(key);
-    return true;
-  });
 }
 
 function pickBestSuggestionForMode(items: SuggestionItem[], mode: SearchMode) {

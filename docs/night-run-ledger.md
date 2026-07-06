@@ -23,10 +23,10 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T1.7 (0.12) Storage caps on `ResearchSessionSave.messages` — done `ac4072e` (pytest 116 green; 422 on >500 msgs or >512 KB; api-contract updated)
 - [x] T1.8 (0.7) `/api/ready` (DB SELECT 1 + commit SHA) — done `a45948c` (pytest 118 green; 503 when DB down; ops-only, no client method)
 - [x] T1.9 (0.5) ci.yml + requirements-dev.txt + pinned deps — [artifact] done `c91ec31` (authored + locally verified: pip install resolves, pytest green, web build green; activation = merge, see phase-0-rollout §2)
-- [x] T1.10 (0.3+0.2+0.6) deploy reorder + untrack commit + backup script + rollout runbook — [artifact] done (two commits for safe sequencing: `<pending-a>` reorder+backup+runbook, `<pending-b>` untrack `[rebuild-db]`)
+- [x] T1.10 (0.3+0.2+0.6) deploy reorder + untrack commit + backup script + rollout runbook — [artifact] done (two commits for safe sequencing: `e6f9cc8` reorder+backup+runbook, `5b1888d` untrack `[rebuild-db]`)
 
 ## T2 — Test harness bootstrap
-- [ ] T2.1 Vitest + config in apps/web; tests: sanitizeNextPath, looksLikeQuestion, numerals, suggestion dedupe — todo
+- [x] T2.1 Vitest + config in apps/web; tests: sanitizeNextPath, looksLikeQuestion, numerals, suggestion dedupe — done `<pending>` (16 vitest tests green; dedupe extracted to a pure module; web build green; `scripts/test_web.ps1` + CI vitest step added)
 
 ## T3 — Backend correctness/perf
 - [ ] T3.1 Phrase-metadata cache + kill double scan — todo
@@ -102,3 +102,5 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 ## Log (chronological)
 - Ledger created; T1 starting.
 - T1 complete (10/10 items). T2 next.
+- T2: Vitest 2.1.9 installed via pnpm (network available). Frontend gate is now web build + Vitest.
+  Run locally: `scripts/test_web.ps1`. T3 (backend correctness/perf) next.

@@ -45,5 +45,7 @@ jobs:
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Unit tests (Vitest)
+        run: pnpm --filter @q-basair/web test
       - name: Build web
         run: pnpm --filter @q-basair/web build
