@@ -88,18 +88,18 @@ function RailButton({
 }) {
   const isActive = destination.mode === activeMode;
   // Double-effect: clicking the ACTIVE button collapses what it opened — back to
-  // the reader (the resting surface); clicking the reader when it's already
-  // active collapses one more level to Home.
-  const target: ShellMode = !isActive
+  // the reader (the resting surface). The reader is the resting surface itself,
+  // so clicking it while active does nothing (null = no navigation).
+  const target: ShellMode | null = !isActive
     ? destination.mode
     : destination.mode === "reading"
-      ? "home"
+      ? null
       : "reading";
   return (
     <button
       type="button"
       className={`qb-rail-btn${isActive ? " active" : ""}`}
-      onClick={() => onSelect(target)}
+      onClick={() => target && onSelect(target)}
       title={destination.label}
       aria-label={destination.label}
       aria-current={isActive ? "page" : undefined}
