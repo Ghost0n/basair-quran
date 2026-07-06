@@ -366,3 +366,15 @@ def test_root_distribution_aggregates_by_surah(api_client):
     assert body["surahs"][0]["surah_id"] == 1
     assert body["surahs"][0]["count"] == body["total"]
     assert body["total"] > 0
+
+
+def test_session_save_rejects_oversized_messages(api_client):
+    """Storage caps (T1.7): guests reach /api/sessions, so bound the payload."""
+    too_many = {"id": "cap-count", "messages": [{"role": "user", "content": "x"} for _ in range(501)]}
+    assert api_client.post("/api/sessions", json=too_many).status_code == 422
+
+    huge = {"id": "cap-bytes", "messages": [{"role": "user", "content": "x" * (600 * 1024)}]}
+    assert api_client.post("/api/sessions", json=huge).status_code == 422
+
+    ok = {"id": "cap-ok", "messages": [{"role": "user", "content": "hello"}]}
+    assert api_client.post("/api/sessions", json=ok).status_code == 200

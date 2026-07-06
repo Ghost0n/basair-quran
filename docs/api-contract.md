@@ -160,6 +160,9 @@ This document freezes the backend contract that the future frontend migration wi
   data stays claimable. `POST /api/auth/merge-guest-data/undo` flips those exact ids back to the guest,
   deleting nothing.
 - Accounts can also be managed offline through `scripts/manage_users.py`.
+- **Storage caps.** `POST /api/sessions` (`ResearchSessionSave`) bounds `messages` to at most
+  `500` entries and `512 KB` serialized; oversized payloads are rejected with `422` (guests reach this
+  endpoint, so the cap protects the shared `app_data.db`).
 
 ## Research agent notes
 

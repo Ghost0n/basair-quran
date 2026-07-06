@@ -1,6 +1,12 @@
+import json
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+# Storage caps for persisted research sessions — guests reach this endpoint, so
+# an unbounded messages payload would let anyone bloat the shared app_data.db.
+MAX_SESSION_MESSAGES = 500
+MAX_SESSION_MESSAGES_BYTES = 512 * 1024
 
 
 class HealthResponse(BaseModel):
@@ -424,7 +430,17 @@ class ResearchSessionSave(BaseModel):
     id: str = Field(..., min_length=1, max_length=120)
     title: str = Field("جلسة بحث", max_length=200)
     mode: Literal["strict", "tafssir"] = "strict"
-    messages: List[Dict[str, Any]] = Field(default_factory=list)
+    messages: List[Dict[str, Any]] = Field(default_factory=list, max_length=MAX_SESSION_MESSAGES)
+
+    @field_validator("messages")
+    @classmethod
+    def _bound_messages_size(cls, value: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        serialized = json.dumps(value, ensure_ascii=False).encode("utf-8")
+        if len(serialized) > MAX_SESSION_MESSAGES_BYTES:
+            raise ValueError(
+                f"Session messages exceed the {MAX_SESSION_MESSAGES_BYTES // 1024} KB limit."
+            )
+        return value
 
 
 class FollowedRoot(BaseModel):
