@@ -21,8 +21,8 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T1.5 (0.11) Invite + rate limit + 409 de-reflection + timing fix + device-eject surfacing — done `cd86954` (pytest 114 green; web build green; api-contract updated)
 - [x] T1.6 (0.9) guest_id merge scoping (additive migration) — done `df27774` (pytest 115 green; isolation+idempotency tests; web build green; api-contract updated)
 - [x] T1.7 (0.12) Storage caps on `ResearchSessionSave.messages` — done `ac4072e` (pytest 116 green; 422 on >500 msgs or >512 KB; api-contract updated)
-- [x] T1.8 (0.7) `/api/ready` (DB SELECT 1 + commit SHA) — done `<pending>` (pytest 118 green; 503 when DB down; ops-only, no client method)
-- [ ] T1.9 (0.5) ci.yml + requirements-dev.txt + pinned deps — [artifact], todo
+- [x] T1.8 (0.7) `/api/ready` (DB SELECT 1 + commit SHA) — done `a45948c` (pytest 118 green; 503 when DB down; ops-only, no client method)
+- [x] T1.9 (0.5) ci.yml + requirements-dev.txt + pinned deps — [artifact] done `<pending>` (authored + locally verified: pip install resolves, pytest green, web build green; activation = merge, see phase-0-rollout §2)
 - [ ] T1.10 (0.3+0.2+0.6) deploy reorder + untrack commit + backup script + rollout runbook — [artifact], todo
 
 ## T2 — Test harness bootstrap
