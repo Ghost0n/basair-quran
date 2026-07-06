@@ -113,7 +113,21 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   const pendingPatchRef = useRef<UserPreferencesUpdate>({});
 
   const updateAccountDebounced = useCallback((patch: UserPreferencesUpdate) => {
-    setAccount((current) => ({ ...current, ...patch }));
+    setAccount((current) => {
+      // Type-safe optimistic merge: skip null/undefined and merge nested research
+      // (mirrors the backend's update_preferences), keeping the result a full
+      // UserPreferences rather than loosening it with the partial/nullable patch.
+      const next: Record<string, unknown> = { ...current };
+      for (const [key, value] of Object.entries(patch)) {
+        if (value === null || value === undefined) continue;
+        if (key === "research" && typeof value === "object") {
+          next.research = { ...current.research, ...(value as object) };
+        } else {
+          next[key] = value;
+        }
+      }
+      return next as unknown as UserPreferences;
+    });
     pendingPatchRef.current = { ...pendingPatchRef.current, ...patch };
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(() => {
