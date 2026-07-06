@@ -39,14 +39,14 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T3.8 api-contract stable-list completion + `SuggestionItem` drift — done `<pending>` (web build + vitest green; dropped unused `label` from shared SuggestionItem; added catalog+companions endpoints to stable list)
 
 ## T4 — Frontend correctness/perf
-- [x] T4.1 `runSearch` sequence guard + single URL writer — done `<pending>` (clean web build green; monotonic runSearchIdRef drops stale responses + guards the spinner). PARTIAL: the two URL writers (`reflectSearchUrl` set vs `resetSearch` clear) are non-competing (different ops), not a race; consolidating them risks URL-state regressions I can't verify overnight → left as a design note, not unified.
-- [ ] T4.2 context memoization/split + kill 120 ms poll — todo
+- [x] T4.1 `runSearch` sequence guard + single URL writer — done `eb17361` (clean web build green; monotonic runSearchIdRef drops stale responses + guards the spinner). PARTIAL: the two URL writers (`reflectSearchUrl` set vs `resetSearch` clear) are non-competing (different ops), not a race; consolidating them risks URL-state regressions I can't verify overnight → left as a design note, not unified.
+- [~] T4.2 context memoization/split + kill 120 ms poll — **design note** (see below). Downgraded: the payoff requires React-profiler verification (explicitly asked for by the plan) which this headless env can't run, and the 120 ms poll is a Yamli-IME input-sync workaround whose removal risks silent input regressions. Shipping it blind would be a badly-done item.
 - [x] T4.3 font-size PATCH debounce — done `0dd4d9e` (+ type-safety follow-up; web build green; `updateAccountDebounced` = optimistic local + 400ms coalesced PATCH). NOTE: a latent TS error in the optimistic merge was masked by Next incremental type-check; caught + fixed via a clean full build.
 - [x] T4.4 wire `research.default_mode`/`depth` into `createSession` — done `57259dd` (web build green; new sessions inherit the saved default mode/depth via a prefs ref)
 - [x] T4.5 wire `reciter` pref into recitation-context — done `04cca60` (web build green; saved reciter pref seeds the player until the user overrides it that session)
 - [x] T4.6 Studio thread auto-scroll — done `9a96da6` (clean web build green; thread scrolls to newest message on send/grow/tab-switch/pending)
 - [x] T4.7 BrandMark hydration fix — done `2336e81` (clean web build + vitest green; CSS-var `themed` BrandMark follows the body theme class so the shell seal renders identical SSR/client markup; standalone screens keep the explicit `light` prop). Decision: surgical `themed` opt-in rather than a full CSS-driven rewrite of BrandMarkRich — flagged for design review.
-- [ ] T4.8 `rootFollowed` reset/seed + pin-state seeding — todo
+- [x] T4.8 `rootFollowed` reset/seed + pin-state seeding — done `<pending>` (clean web build + vitest green; concordance seeds pin markers from the notebook on mount and re-seeds rootFollowed whenever the primary root changes)
 - [ ] T4.9 dead-state purge — todo
 - [x] T4.10 extend error sanitization to Studio + Concordance — done `d1a3386` (clean web build + vitest green; wrapped raw `err.message` leaks in the search workspace (feeds concordance via state.errorMessage) + Studio submit with sanitize + reportError diagnostics)
 - [ ] T4.11 remaining timer/listener cleanups + filled icons — todo
@@ -98,6 +98,18 @@ Ledger is updated immediately after each item; on restart, resume from here and 
   = deploy.yml reorder + backup script + rollout runbook (safe). Commit B = `git rm --cached
   data/quran.db` carrying `[rebuild-db]` (dangerous working-tree transition on the server). Neither
   pushed/merged; activation steps in docs/phase-0-rollout.md §3.
+
+## Design notes (downgraded items)
+- **T4.2 context split + kill 120 ms poll.** `WorkspaceProvider` provides `useSearchWorkspace()`'s
+  return object directly (`workspace-context.tsx:21`); the hook returns a fresh `{refs,state,actions}`
+  each render, so every consumer re-renders on any state change. Fix: split into a `state` context and a
+  stable `actions`/`refs` context, each with a memoized value, and give action-only consumers
+  (`home-screen`, `morph-popover`) a `useWorkspaceActions()` that subscribes to the stable context.
+  Memoizing the combined value alone is useless (state churns). The 120 ms focus poll
+  (`use-search-workspace.ts:666-683`) exists to catch Yamli's direct DOM writes to the input; replace it
+  with a native `input`-event listener on `inputRef.current` **only after** confirming Yamli dispatches
+  `input` events (else keep the poll). Verify the whole change with the React profiler (re-render counts
+  before/after) — that measurement is the acceptance gate and needs a browser, so it was not shipped blind.
 
 ## Log (chronological)
 - Ledger created; T1 starting.

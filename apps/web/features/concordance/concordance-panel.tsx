@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -38,6 +38,46 @@ export function ConcordancePanel() {
   const totalVerses = results.reduce((sum, r) => sum + r.total_verses, 0);
   // B2: use the server-computed count across the full result set, not just the current page.
   const surahCount = results.reduce((sum, r) => sum + (r.total_surahs ?? 0), 0);
+
+  // Seed the pin markers from the notebook on mount so already-saved verses show
+  // as pinned (previously the set started empty and lied until a live change).
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getNotebook()
+      .then((items) => {
+        if (cancelled) return;
+        const ids = new Set<number>();
+        for (const item of items) if (item.ayah_id != null) ids.add(item.ayah_id);
+        setPinnedAyahIds(ids);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Reset + re-seed the "followed" state whenever the primary root changes, so it
+  // reflects the CURRENT root rather than staying stale from the previous search.
+  const primaryRoot = primary?.root;
+  useEffect(() => {
+    if (!primaryRoot) {
+      setRootFollowed(false);
+      return;
+    }
+    let cancelled = false;
+    setRootFollowed(false);
+    api
+      .getRoots()
+      .then((roots) => {
+        if (cancelled) return;
+        setRootFollowed(roots.some((r) => r.root_text === primaryRoot));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [primaryRoot]);
 
   // Keep the pin markers honest when the same ayah is saved/removed elsewhere
   // (the reader beside this panel, or the library).
