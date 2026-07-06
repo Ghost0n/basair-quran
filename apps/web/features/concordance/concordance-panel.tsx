@@ -11,6 +11,7 @@ import { Icon } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
 import { flyToNotebook } from "@/lib/fly-to-notebook";
 import { emitNotebookChange, useNotebookSync } from "@/lib/notebook-sync";
+import { useIsMobile } from "@/lib/use-is-mobile";
 import { useNumerals } from "@/lib/preferences-context";
 import { getVerseSelectionKey, renderHighlightedVerseText } from "@/lib/quran-ui";
 import { useShellMode } from "@/features/shell/mode-context";
@@ -28,6 +29,15 @@ export function ConcordancePanel() {
   const { setMode } = useShellMode();
   const formatNumber = useNumerals();
   const router = useRouter();
+  // At ≤1000 px the reader isn't mounted beside the results, so a verse tap must
+  // switch the shell to the reader surface (Back returns to the results). At wide
+  // widths the reader is already visible beside the panel — no mode switch needed.
+  const isCompact = useIsMobile(1000);
+
+  function openVerse(verse: SearchVerse, resultKey: string) {
+    void actions.selectVerse(verse, resultKey);
+    if (isCompact) setMode("reading");
+  }
 
   const [pinnedAyahIds, setPinnedAyahIds] = useState<Set<number>>(new Set());
   const [rootFollowed, setRootFollowed] = useState(false);
@@ -271,11 +281,11 @@ export function ConcordancePanel() {
                   role="button"
                   tabIndex={0}
                   aria-pressed={isSelected}
-                  onClick={() => void actions.selectVerse(verse, result.result_key)}
+                  onClick={() => openVerse(verse, result.result_key)}
                   onKeyDown={(event) => {
                     if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
                       event.preventDefault();
-                      void actions.selectVerse(verse, result.result_key);
+                      openVerse(verse, result.result_key);
                     }
                   }}
                 >

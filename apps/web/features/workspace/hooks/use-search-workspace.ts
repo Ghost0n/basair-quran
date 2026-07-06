@@ -43,7 +43,7 @@ function toUserError(scope: string, error: unknown, fallback: string): string {
 import { usePreferences } from "@/lib/preferences-context";
 import { useMushaf } from "@/features/reading/mushaf-context";
 
-import type { ThemeMode, WorkspaceView } from "../types";
+import type { ThemeMode } from "../types";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const MAX_SUGGESTIONS = 10;
@@ -115,7 +115,6 @@ export function useSearchWorkspace() {
   const [results, setResults] = useState<PaginatedSearchResult[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [didYouMean, setDidYouMean] = useState<DidYouMeanSuggestion | null>(null);
-  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>("results");
   const [resultPageDrafts, setResultPageDrafts] = useState<Record<string, string>>({});
   const [selectedVerseKey, setSelectedVerseKey] = useState<string | null>(null);
   const [searchContext, setSearchContext] = useState<{ q: string; mode: SearchMode; mushaf: number } | null>(null);
@@ -336,7 +335,6 @@ export function useSearchWorkspace() {
     setResults([]);
     mushaf.reset();
     setResultPageDrafts({});
-    setWorkspaceView("results");
     setSelectedVerseKey(null);
     setSearchContext(null);
   }
@@ -739,7 +737,6 @@ export function useSearchWorkspace() {
     setDidYouMean(null);
     setIsSearching(true);
     setDrawerOpen(false);
-    setWorkspaceView("results");
     inputRef.current?.blur();
 
     try {
@@ -801,7 +798,7 @@ export function useSearchWorkspace() {
       const firstResult = response.results.find((result) => result.verses.length > 0);
       const firstVerse = firstResult?.verses[0];
       if (firstResult && firstVerse) {
-        await selectVerse(firstVerse, firstResult.result_key, false);
+        await selectVerse(firstVerse, firstResult.result_key);
       }
     } catch (error) {
       if (requestId !== runSearchIdRef.current) return;
@@ -814,12 +811,9 @@ export function useSearchWorkspace() {
     }
   }
 
-  async function selectVerse(verse: SearchVerse, resultKey: string, switchToReader = true) {
+  async function selectVerse(verse: SearchVerse, resultKey: string) {
     const selectionKey = getVerseSelectionKey(resultKey, verse);
     setSelectedVerseKey(selectionKey);
-    if (switchToReader) {
-      setWorkspaceView("reader");
-    }
     await mushaf.loadByAyah(
       verse.mushaf_id || selectedMushaf,
       verse.ayah_id,
@@ -1093,7 +1087,6 @@ export function useSearchWorkspace() {
       isWorkspaceCollapsing,
       errorMessage,
       didYouMean,
-      workspaceView,
       workspaceVisible,
       workspaceActive,
       results,
@@ -1113,7 +1106,6 @@ export function useSearchWorkspace() {
       },
       setDrawerOpen,
       setSelectedMushaf,
-      setWorkspaceView,
       setResultPageDraft(resultKey: string, value: string) {
         setResultPageDrafts((current) => ({ ...current, [resultKey]: value }));
       },
