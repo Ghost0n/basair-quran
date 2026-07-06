@@ -163,8 +163,17 @@ def is_auth_enabled() -> bool:
     return read_bool_env("QBASAIR_AUTH_ENABLED")
 
 
+# The insecure default used for local http dev. Production (auth enabled) must
+# override it — create_app() refuses to start otherwise.
+DEV_SESSION_SECRET = "qbasair-dev-session-secret"
+
+
 def get_session_secret() -> str:
-    return os.environ.get("QBASAIR_SESSION_SECRET", "qbasair-dev-session-secret").strip()
+    return os.environ.get("QBASAIR_SESSION_SECRET", DEV_SESSION_SECRET).strip()
+
+
+def is_default_session_secret() -> bool:
+    return get_session_secret() == DEV_SESSION_SECRET
 
 
 def get_session_cookie_name() -> str:

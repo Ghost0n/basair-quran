@@ -64,6 +64,14 @@ def attach_optional_session(request: Request) -> None:
 
 
 def create_app() -> FastAPI:
+    # Fail hard rather than run production auth on the shared dev secret: a known
+    # session secret means forgeable/predictable session state once any code path
+    # relies on it. Local http dev (auth disabled) keeps the dev default.
+    if config.is_auth_enabled() and config.is_default_session_secret():
+        raise RuntimeError(
+            "QBASAIR_SESSION_SECRET must be overridden with a strong secret when "
+            "QBASAIR_AUTH_ENABLED=1; refusing to start with the dev default."
+        )
     app = FastAPI(
         title="Q-Basair API",
         version="1.0.0",
