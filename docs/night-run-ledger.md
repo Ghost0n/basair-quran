@@ -39,7 +39,7 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T3.8 api-contract stable-list completion + `SuggestionItem` drift — done `<pending>` (web build + vitest green; dropped unused `label` from shared SuggestionItem; added catalog+companions endpoints to stable list)
 
 ## T4 — Frontend correctness/perf
-- [ ] T4.1 `runSearch` sequence guard + single URL writer — todo
+- [x] T4.1 `runSearch` sequence guard + single URL writer — done `<pending>` (clean web build green; monotonic runSearchIdRef drops stale responses + guards the spinner). PARTIAL: the two URL writers (`reflectSearchUrl` set vs `resetSearch` clear) are non-competing (different ops), not a race; consolidating them risks URL-state regressions I can't verify overnight → left as a design note, not unified.
 - [ ] T4.2 context memoization/split + kill 120 ms poll — todo
 - [x] T4.3 font-size PATCH debounce — done `0dd4d9e` (+ type-safety follow-up; web build green; `updateAccountDebounced` = optimistic local + 400ms coalesced PATCH). NOTE: a latent TS error in the optimistic merge was masked by Next incremental type-check; caught + fixed via a clean full build.
 - [x] T4.4 wire `research.default_mode`/`depth` into `createSession` — done `57259dd` (web build green; new sessions inherit the saved default mode/depth via a prefs ref)
@@ -48,7 +48,7 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T4.7 BrandMark hydration fix — done `2336e81` (clean web build + vitest green; CSS-var `themed` BrandMark follows the body theme class so the shell seal renders identical SSR/client markup; standalone screens keep the explicit `light` prop). Decision: surgical `themed` opt-in rather than a full CSS-driven rewrite of BrandMarkRich — flagged for design review.
 - [ ] T4.8 `rootFollowed` reset/seed + pin-state seeding — todo
 - [ ] T4.9 dead-state purge — todo
-- [x] T4.10 extend error sanitization to Studio + Concordance — done `<pending>` (clean web build + vitest green; wrapped raw `err.message` leaks in the search workspace (feeds concordance via state.errorMessage) + Studio submit with sanitize + reportError diagnostics)
+- [x] T4.10 extend error sanitization to Studio + Concordance — done `d1a3386` (clean web build + vitest green; wrapped raw `err.message` leaks in the search workspace (feeds concordance via state.errorMessage) + Studio submit with sanitize + reportError diagnostics)
 - [ ] T4.11 remaining timer/listener cleanups + filled icons — todo
 
 ## T5 — UX remainder

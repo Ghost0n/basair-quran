@@ -140,6 +140,9 @@ export function useSearchWorkspace() {
   const toolsDrawerRef = useRef<HTMLDivElement | null>(null);
   const previousMushafRef = useRef(selectedMushaf);
   const yamliRequestIdRef = useRef(0);
+  // Monotonic id so an earlier (slower) runSearch can't overwrite a newer one's
+  // results when responses resolve out of order (stale-response race).
+  const runSearchIdRef = useRef(0);
   const phraseSuggestionTimerRef = useRef<number | null>(null);
   const deferredQuery = useDeferredValue(query);
 
@@ -703,6 +706,7 @@ export function useSearchWorkspace() {
     let trimmedQuery = nextQuery.trim();
     if (!trimmedQuery) return;
     const requestedMode = nextMode ?? (searchModeInitialized ? searchMode : "exact");
+    const requestId = ++runSearchIdRef.current;
 
     setIsInputFocused(false);
     setPreviewValue(null);
@@ -754,6 +758,8 @@ export function useSearchWorkspace() {
       setSearchModeInitialized(true);
 
       const response = await api.searchV2(effectiveQuery, effectiveMode, selectedMushaf, ITEMS_PER_PAGE);
+      // Drop a stale response — a newer search has superseded this one.
+      if (requestId !== runSearchIdRef.current) return;
       if (!response.found) {
         startTransition(() => {
           clearWorkspaceState();
@@ -775,10 +781,13 @@ export function useSearchWorkspace() {
         await selectVerse(firstVerse, firstResult.result_key, false);
       }
     } catch (error) {
+      if (requestId !== runSearchIdRef.current) return;
       clearWorkspaceState();
       setErrorMessage(toUserError("search:run", error, "حدث خطأ في الاتصال بالخادم."));
     } finally {
-      setIsSearching(false);
+      // Only the latest search controls the spinner; a stale one finishing must
+      // not clear it while a newer search is still in flight.
+      if (requestId === runSearchIdRef.current) setIsSearching(false);
     }
   }
 
