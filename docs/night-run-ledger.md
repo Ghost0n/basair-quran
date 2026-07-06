@@ -1,0 +1,90 @@
+# Night-run ledger — feat/Q-Basair-7-nuit-production
+
+Autonomous all-phases run over the master backlog in `docs/production-review-2026-07.md` §10.4c.
+Branch: `feat/Q-Basair-7-nuit-production` off `develop`. One item = one commit. Never push/merge
+to `main`/`develop`. No server ops, no history rewrite, no docker, no DB rebuilds.
+
+Status legend: `done <sha>` · `skipped <reason>` · `blocked <reason>` · `todo`.
+Ledger is updated immediately after each item; on restart, resume from here and never redo green items.
+
+## Baseline
+- Start branch created off `develop` at commit `5cf8f42`.
+- Working tree carried a modified `data/quran.db` (generated artifact) — never staged.
+- pytest baseline: **green** — 102 passed.
+- web build baseline: **green** (next build, all routes compiled).
+
+## T1 — Security & pipeline
+- [x] T1.1 (0.10) Open-redirect fix (`sanitizeNextPath` backslash/control bypass) — done `<pending>` (web build green)
+- [ ] T1.2 (0.8) Client research settings default to `""` — todo
+- [ ] T1.3 (0.1) SSRF closure (allowlist + no server-key fallback + truncate reflected bodies) — todo
+- [ ] T1.4 (0.4) Secret/cookie hardening (fail-hard on default secret when auth on) — todo
+- [ ] T1.5 (0.11) Invite + rate limit + 409 de-reflection + timing fix + device-eject surfacing — todo
+- [ ] T1.6 (0.9) guest_id merge scoping (additive migration) — todo
+- [ ] T1.7 (0.12) Storage caps on `ResearchSessionSave.messages` — todo
+- [ ] T1.8 (0.7) `/api/ready` (DB SELECT 1 + commit SHA) — todo
+- [ ] T1.9 (0.5) ci.yml + requirements-dev.txt + pinned deps — [artifact], todo
+- [ ] T1.10 (0.3+0.2+0.6) deploy reorder + untrack commit + backup script + rollout runbook — [artifact], todo
+
+## T2 — Test harness bootstrap
+- [ ] T2.1 Vitest + config in apps/web; tests: sanitizeNextPath, looksLikeQuestion, numerals, suggestion dedupe — todo
+
+## T3 — Backend correctness/perf
+- [ ] T3.1 Phrase-metadata cache + kill double scan — todo
+- [ ] T3.2 `QBASAIR_DB_PATH` read — todo
+- [ ] T3.3 cache/connection locking (per-thread read-only connections) — todo
+- [ ] T3.4 expand/plan JSON fallbacks + `filter_ayahs_by_review` empty-set fix — todo
+- [ ] T3.5 bound did-you-mean caches + low-memory cache-not-skip — todo
+- [ ] T3.6 catalog scrape off request path — todo
+- [ ] T3.7 stop sending `source_path` to the LLM — todo
+- [ ] T3.8 api-contract stable-list completion + `SuggestionItem` drift — todo
+
+## T4 — Frontend correctness/perf
+- [ ] T4.1 `runSearch` sequence guard + single URL writer — todo
+- [ ] T4.2 context memoization/split + kill 120 ms poll — todo
+- [ ] T4.3 font-size PATCH debounce — todo
+- [ ] T4.4 wire `research.default_mode`/`depth` into `createSession` — todo
+- [ ] T4.5 wire `reciter` pref into recitation-context — todo
+- [ ] T4.6 Studio thread auto-scroll — todo
+- [ ] T4.7 BrandMark hydration fix — todo
+- [ ] T4.8 `rootFollowed` reset/seed + pin-state seeding — todo
+- [ ] T4.9 dead-state purge — todo
+- [ ] T4.10 extend error sanitization to Studio + Concordance — todo
+- [ ] T4.11 remaining timer/listener cleanups + filled icons — todo
+
+## T5 — UX remainder
+- [ ] T5.1 Compact verse/evidence tap → setMode("reading") + back affordance — todo
+- [ ] T5.2 tafssir-safety trio (copy «آلية», forced export disclaimer, default-mode confirmation) — todo
+- [ ] T5.3 intent rule softening (6-word rule requires interrogative or ؟; SR-visible chip) — todo
+- [ ] T5.4 evidence persistence server-side (versioned StoredMessage) — todo
+- [ ] T5.5 dialog a11y (useDialog) + aria-pressed + settings segments + MoreSheet keyboard — todo
+- [ ] T5.6 guest onboarding variant + skip affordance — todo
+- [ ] T5.7 form chips (backend form-grouping endpoint + concordance chips) — todo
+- [ ] T5.8 pinned-context handoff — [stretch], todo
+
+## T6 — Identity completion
+- [ ] T6.1 Password reset (token flow; console/manual delivery, UI wired) — todo
+- [ ] T6.2 account deletion (erase user rows + sessions; confirmation modal) — todo
+- [ ] T6.3 unified session probe (one context; rename refreshes rail) — todo
+- [ ] T6.4 error-report URL → pathname strip — todo
+
+## T7 — Hardening artifacts
+- [ ] T7.1 compose log-rotation + resource limits — [artifact], todo
+- [ ] T7.2 deploy image tagging + rollback runbook — [artifact], todo
+- [ ] T7.3 Sentry-shaped error hook behind env flag (no real DSN) — todo
+- [ ] T7.4 self-host Cairo/Reem Kufi/Amiri (woff2, replace @import) — todo
+- [ ] T7.5 CSP (verify theme pre-paint inline script survives; nonce/hash) — todo
+- [ ] T7.6 repo cleanup commit (GEMINI.md, tracked logs, quran narrations relocation) — todo
+- [ ] T7.7 ESLint + minimal config, fix errors only — [stretch], todo
+
+## T8 — Product bets
+- [ ] T8.1 (4.1) follow-along recitation (reader highlights + autoscroll; verse markers on seek) — todo
+- [ ] T8.2 (4.5) riwayah-mismatch notice in التلاوة — todo
+- [ ] T8.3 (4.2) PDF export — [stretch], todo
+- [ ] T8.4 (4.3) ḥifẓ-mode MVP behind a flag — [stretch], todo
+- [ ] T8.5 (4.4) i18n foundation — [stretch], todo
+
+## Decisions taken (beyond §10.4b pre-mades)
+- _(recorded as they occur)_
+
+## Log (chronological)
+- Ledger created; T1 starting.

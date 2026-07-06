@@ -42,10 +42,17 @@ export function clearGuestChoice(): void {
 }
 
 export function sanitizeNextPath(rawValue: string | null | undefined): string {
-  if (!rawValue || !rawValue.startsWith("/") || rawValue.startsWith("//")) {
-    return "/";
-  }
-  return rawValue;
+  if (!rawValue) return "/";
+  // Only same-origin absolute paths are allowed. Browsers strip tab/newline
+  // characters from URLs before parsing, so `/\t/evil.com` would normalize into
+  // a protocol-relative URL — strip them before validating.
+  const value = rawValue.replace(/[\t\n\r]/g, "");
+  // Reject anything a browser could normalize into a protocol-relative
+  // (`//host`) or scheme-relative (`/\host`) URL: the path must start with a
+  // single slash that is not followed by another slash or a backslash.
+  if (value[0] !== "/") return "/";
+  if (value[1] === "/" || value[1] === "\\") return "/";
+  return value;
 }
 
 /**
