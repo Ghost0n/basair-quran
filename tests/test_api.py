@@ -449,3 +449,13 @@ def test_get_db_is_per_thread_and_reopens_after_close(api_client):
     reopened = quran_service.get_db()
     assert reopened is not main_conn
     assert reopened.execute("SELECT 1").fetchone()[0] == 1
+
+
+def test_phrase_metadata_is_memoized_per_mushaf(api_client):
+    """T3.1: the per-mushaf phrase metadata is cached (no repeated full scan)."""
+    from src.app.services import quran_service
+
+    cursor = quran_service.get_db().cursor()
+    first = quran_service.get_mushaf_phrase_metadata(cursor, 1)
+    second = quran_service.get_mushaf_phrase_metadata(cursor, 1)
+    assert first is second

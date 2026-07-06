@@ -29,12 +29,12 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T2.1 Vitest + config in apps/web; tests: sanitizeNextPath, looksLikeQuestion, numerals, suggestion dedupe — done `4e4d17f` (16 vitest tests green; dedupe extracted to a pure module; web build green; `scripts/test_web.ps1` + CI vitest step added)
 
 ## T3 — Backend correctness/perf
-- [ ] T3.1 Phrase-metadata cache + kill double scan — todo
+- [x] T3.1 Phrase-metadata cache + kill double scan — done `<pending>` (pytest 129 green; memoized per-mushaf phrase metadata, eliminates the repeated full-mushaf scan)
 - [x] T3.2 `QBASAIR_DB_PATH` read — done `e958081` (pytest 119 green; env now honored, was ignored)
 - [x] T3.3 cache/connection locking (per-thread read-only connections) — done `c1c7cac` (pytest 126 green; threading.local + generation counter; cross-thread close reopens cleanly)
 - [x] T3.4 expand/plan JSON fallbacks + `filter_ayahs_by_review` empty-set fix — done `<pending>` (pytest 124 green; garbage JSON → deterministic plan; discard-only reviews now honored)
 - [x] T3.5 bound did-you-mean caches + low-memory cache-not-skip — done `4728581` (pytest 125 green; normal-mode query cache now bounded to 2048; low-memory caches populate bounded instead of skipping)
-- [x] T3.6 catalog scrape off request path — done `<pending>` (pytest 128 green; stale-while-revalidate: serves cache immediately, refreshes ollama.com catalog in a daemon thread)
+- [x] T3.6 catalog scrape off request path — done `99fa70e` (pytest 128 green; stale-while-revalidate: serves cache immediately, refreshes ollama.com catalog in a daemon thread)
 - [x] T3.7 stop sending `source_path` to the LLM — done `<pending>` (pytest 120 green; removed from all 4 prompt payloads; leak test added)
 - [x] T3.8 api-contract stable-list completion + `SuggestionItem` drift — done `<pending>` (web build + vitest green; dropped unused `label` from shared SuggestionItem; added catalog+companions endpoints to stable list)
 
@@ -104,3 +104,4 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - T1 complete (10/10 items). T2 next.
 - T2: Vitest 2.1.9 installed via pnpm (network available). Frontend gate is now web build + Vitest.
   Run locally: `scripts/test_web.ps1`. T3 (backend correctness/perf) next.
+- T3 complete (8/8 items). pytest 129 green. T4 (frontend correctness/perf) next.

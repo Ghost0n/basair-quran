@@ -29,6 +29,7 @@ _mushaf_page_index_cache = OrderedDict()
 _mushaf_latin_word_index_cache = OrderedDict()
 _mushaf_latin_root_index_cache = OrderedDict()
 _mushaf_word_suggestion_candidates_cache = OrderedDict()
+_mushaf_phrase_metadata_cache = OrderedDict()
 _phrase_did_you_mean_cache = OrderedDict()
 _word_did_you_mean_cache = OrderedDict()
 _mushaf_layout_index_cache = OrderedDict()
@@ -61,6 +62,7 @@ def close_db_connection():
     """Close every per-thread SQLite connection and reset the in-process caches."""
     global _open_connections, _connection_generation, _mushaf_page_index_cache
     global _mushaf_latin_word_index_cache, _mushaf_latin_root_index_cache, _mushaf_word_suggestion_candidates_cache
+    global _mushaf_phrase_metadata_cache
     global _phrase_did_you_mean_cache, _word_did_you_mean_cache, _mushaf_layout_index_cache
     with _connections_lock:
         for connection in _open_connections:
@@ -76,6 +78,7 @@ def close_db_connection():
     _mushaf_latin_word_index_cache = OrderedDict()
     _mushaf_latin_root_index_cache = OrderedDict()
     _mushaf_word_suggestion_candidates_cache = OrderedDict()
+    _mushaf_phrase_metadata_cache = OrderedDict()
     _phrase_did_you_mean_cache = OrderedDict()
     _word_did_you_mean_cache = OrderedDict()
     _mushaf_layout_index_cache = OrderedDict()
@@ -1275,7 +1278,18 @@ def fetch_mushaf_ayah_tokens(cursor, mushaf):
 
 
 def get_mushaf_phrase_metadata(cursor, mushaf):
-    """Return cached phrase-search metadata for one mushaf."""
+    """Return phrase-search metadata for one mushaf, memoized per mushaf.
+
+    Building it scans every ayah token against the candidate phrase records — an
+    expensive full-mushaf pass that was previously repeated on every phrase
+    search (and twice within a single request path). It is deterministic per
+    mushaf, so it is cached like the other per-mushaf indexes.
+    """
+    cache_key = (config.get_db_path(), mushaf)
+    cached = get_cache_entry(_mushaf_phrase_metadata_cache, cache_key)
+    if cached is not None:
+        return cached
+
     ayahs = fetch_mushaf_ayah_tokens(cursor, mushaf)
     phrase_forms = set()
     positions_by_form = defaultdict(list)
@@ -1292,11 +1306,15 @@ def get_mushaf_phrase_metadata(cursor, mushaf):
                 seen_positions.add(position_key)
                 positions_by_form[form].append((ayah_index, token_index))
 
-    return {
+    metadata = {
         "ayahs": ayahs,
         "phrase_forms": phrase_forms,
         "positions_by_form": dict(positions_by_form),
     }
+    put_cache_entry(
+        _mushaf_phrase_metadata_cache, cache_key, metadata, config.get_runtime_mushaf_cache_limit()
+    )
+    return metadata
 
 
 def has_consecutive_word_positions(window):
