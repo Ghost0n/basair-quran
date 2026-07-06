@@ -132,8 +132,8 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 | **T3 Backend correctness/perf** | 8 | 8 | **100%** — all shipped + tested |
 | **T4 Frontend correctness/perf** | 11 | 9 | **~82% shipped** (T4.1 URL-writer half partial); T4.2 + T4.9 = design notes |
 | **T5 UX remainder** | 8 | 6 | **~75%** — T5.1/2/3/4/5/6 shipped; T5.7 + T5.8 design notes |
-| **T6 Identity completion** | 4 | 2 | **~50%** — T6.2, T6.4 shipped; T6.1/T6.3 in progress (/loop) |
-| **T7 Hardening artifacts** | 7 | 0 | in progress (/loop) |
+| **T6 Identity completion** | 4 | 4 | **100%** — T6.1/2/3/4 all shipped |
+| **T7 Hardening artifacts** | 7 | 4 | **~57%** — T7.1/2/3/6 shipped; T7.4/5/7 design notes (browser-verification / lint churn) |
 | **T8 Product bets** | 5 | 0 | in progress (/loop) |
 
 _The run continued past the initial report under `/loop` — the per-item ledger above is authoritative;
