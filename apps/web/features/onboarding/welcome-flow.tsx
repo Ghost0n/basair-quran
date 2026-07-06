@@ -121,6 +121,14 @@ export function WelcomeFlow() {
         <button type="button" className="qb-welcome-cta step-avatar" onClick={() => setStep("onboard")}>
           متابعة ←
         </button>
+        <button
+          type="button"
+          className="qb-welcome-skip"
+          onClick={finish}
+          disabled={saving}
+        >
+          تخطّي والبدء مباشرةً
+        </button>
       </div>
     );
   }
