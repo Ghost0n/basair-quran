@@ -554,5 +554,23 @@ def undo_merge(user_id: int, undo_token: str) -> dict:
     }
 
 
+def delete_user_data(user_id: int) -> int:
+    """Erase all user-generated content for ``user_id`` (account deletion).
+
+    Removes notebook items, research sessions, followed roots, preferences, and
+    merge-log rows. Never touches guest (``user_id = 0``) data. Returns the total
+    number of rows deleted.
+    """
+    if user_id == DEFAULT_USER_ID:
+        raise ValueError("Refusing to delete guest data via account deletion.")
+    total = 0
+    with _connect() as connection:
+        for table in ("notebook_items", "research_sessions", "followed_roots", "user_preferences", "merge_log"):
+            cursor = connection.execute(f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
+            total += cursor.rowcount if cursor.rowcount and cursor.rowcount > 0 else 0
+        connection.commit()
+    return total
+
+
 def _placeholders(items: list) -> str:
     return ", ".join("?" for _ in items)

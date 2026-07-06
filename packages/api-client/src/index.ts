@@ -172,6 +172,13 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
         options,
       );
     },
+    deleteAccount(options?: RequestOptions): Promise<DeleteResult> {
+      return request<DeleteResult>(
+        "/auth/account",
+        { method: "DELETE", headers: options?.headers },
+        options,
+      );
+    },
     updateProfile(patch: AuthProfileUpdate, options?: RequestOptions): Promise<AuthUserInfo> {
       return request<AuthUserInfo>(
         "/auth/profile",

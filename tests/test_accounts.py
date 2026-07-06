@@ -265,3 +265,33 @@ def test_merge_cannot_claim_another_guests_rows(tmp_path, monkeypatch):
         assert len(app_data_service.list_notebook_items(0)) == 2
     finally:
         finalize()
+
+
+def test_account_deletion_erases_user_sessions_and_data(tmp_path, monkeypatch):
+    """T6.2: DELETE /api/auth/account removes the user, sessions, and app data."""
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        signup = client.post(
+            "/api/auth/signup",
+            json={"email": "gone@example.com", "password": "hidayah8"},
+        )
+        assert signup.status_code == 200
+        user_id = signup.json()["user"]["id"]
+
+        # Seed some owned app data.
+        app_data_service.add_notebook_item({"ayah_id": 5}, user_id)
+        assert len(app_data_service.list_notebook_items(user_id)) == 1
+
+        # Session is live before deletion.
+        assert client.get("/api/auth/session").json()["authenticated"] is True
+
+        deleted = client.delete("/api/auth/account")
+        assert deleted.status_code == 200
+        assert deleted.json()["deleted"] is True
+
+        # Session no longer authenticates; app data and user row are gone.
+        assert client.get("/api/auth/session").json()["authenticated"] is False
+        assert app_data_service.list_notebook_items(user_id) == []
+        assert auth_service.get_user_by_id(user_id) is None
+    finally:
+        finalize()

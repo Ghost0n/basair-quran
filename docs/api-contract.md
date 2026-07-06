@@ -31,6 +31,7 @@ This document freezes the backend contract that the future frontend migration wi
 - `POST /api/auth/login`
 - `POST /api/auth/signup`
 - `POST /api/auth/logout`
+- `DELETE /api/auth/account`
 - `PATCH /api/auth/profile`
 - `GET /api/auth/devices`
 - `DELETE /api/auth/devices/{session_id}`
@@ -157,6 +158,9 @@ This document freezes the backend contract that the future frontend migration wi
   when unset, registration stays open. Login runs a constant-time hash on unknown emails to avoid an
   enumeration timing oracle.
 - `POST /api/auth/logout` revokes the current session row and clears the cookie.
+- `DELETE /api/auth/account` (auth) permanently deletes the account: all app data (notebook, sessions,
+  followed roots, preferences, merge log), then the user row and **every** session (all devices), and clears
+  the cookie. Returns `{ deleted }`. Irreversible; guest (`user_id=0`) data is never touched.
 - `PATCH /api/auth/profile` (auth) sets `name` / `avatar` / `onboarded` — used by the avatar picker and the
   once-per-account onboarding.
 - `GET /api/auth/devices` (auth) lists active sessions with an `is_current` flag;

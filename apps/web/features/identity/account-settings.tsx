@@ -50,6 +50,8 @@ export function AccountSettings() {
   const [ready, setReady] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [deviceError, setDeviceError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Keep the name field seeded from the loaded profile (and after a save).
   useEffect(() => {
@@ -171,6 +173,19 @@ export function AccountSettings() {
     window.location.assign("/");
   }
 
+  async function deleteAccount() {
+    setDeleting(true);
+    try {
+      await api.deleteAccount({ suppressAuthRedirect: true });
+      clearGuestChoice();
+      window.location.assign("/");
+    } catch {
+      setDeleting(false);
+      setDeviceError("تعذّر حذف الحساب. حاول مرة أخرى.");
+      setConfirmDelete(false);
+    }
+  }
+
   return (
     <>
       <section className="qb-setting-card">
@@ -232,6 +247,34 @@ export function AccountSettings() {
           <Icon name="logout" size={15} />
           تسجيل الخروج
         </button>
+
+        {!confirmDelete ? (
+          <button
+            type="button"
+            className="qb-account-delete-row"
+            onClick={() => {
+              setDeviceError(null);
+              setConfirmDelete(true);
+            }}
+          >
+            حذف الحساب نهائياً
+          </button>
+        ) : (
+          <div className="qb-account-delete-confirm" role="alertdialog" aria-label="تأكيد حذف الحساب">
+            <p>
+              سيُحذف حسابك وكل محفوظاتك (المثبَّتات والجلسات والجذور والإعدادات) نهائياً على كل الأجهزة.
+              لا يمكن التراجع.
+            </p>
+            <div className="qb-account-delete-actions">
+              <button type="button" className="danger" onClick={deleteAccount} disabled={deleting}>
+                {deleting ? "جارٍ الحذف…" : "احذف نهائياً"}
+              </button>
+              <button type="button" onClick={() => setConfirmDelete(false)} disabled={deleting}>
+                إلغاء
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="qb-setting-card">

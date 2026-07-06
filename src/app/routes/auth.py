@@ -146,6 +146,17 @@ def auth_logout(request: Request, response: Response) -> AuthSessionResponse:
     return AuthSessionResponse(enabled=config.is_auth_enabled(), authenticated=False, user=None)
 
 
+@router.delete("/account", response_model=DeleteResult)
+def auth_delete_account(request: Request, response: Response) -> DeleteResult:
+    """Permanently delete the current account: all app data, then the user +
+    every session (all devices), and clear the cookie. Irreversible."""
+    resolved = _require_user(request)
+    app_data_service.delete_user_data(resolved.user.id)
+    deleted = auth_service.delete_user(resolved.user.id)
+    _clear_session_cookie(response)
+    return DeleteResult(deleted=deleted)
+
+
 # --------------------------------------------------------------------------
 # Profile — display name, medallion avatar, onboarding flag
 # --------------------------------------------------------------------------

@@ -471,6 +471,20 @@ def revoke_session(session_id: int, user_id: int) -> bool:
         return cursor.rowcount > 0
 
 
+def delete_user(user_id: int) -> bool:
+    """Erase an account: its sessions (all devices) and the user row itself.
+
+    App-data rows (notebook, sessions, roots, preferences) are removed separately
+    by ``app_data_service.delete_user_data``. Returns True if the user existed.
+    """
+    ensure_auth_db()
+    with _connect() as connection:
+        connection.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+        cursor = connection.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        connection.commit()
+        return cursor.rowcount > 0
+
+
 def revoke_session_by_token(raw_token: str | None) -> bool:
     """Revoke the session identified by a raw token (logout of current device)."""
     if not raw_token:
