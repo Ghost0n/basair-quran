@@ -82,7 +82,6 @@ export interface SuggestionItem {
   type: "word" | "root" | "phrase";
   text: string;
   root_id?: number | null;
-  label?: string;
 }
 
 export interface DidYouMeanSuggestion {

@@ -37,6 +37,9 @@ This document freezes the backend contract that the future frontend migration wi
 - `POST /api/auth/merge-guest-data`
 - `POST /api/auth/merge-guest-data/undo`
 - `GET /api/mushafs`
+- `GET /api/surahs`
+- `GET /api/reciters`
+- `GET /api/root-distribution`
 - `GET /api/suggest`
 - `POST /api/suggest-batch`
 - `GET /api/search`
@@ -49,6 +52,10 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/quran-page`
 - `GET /api/mushaf-page-layout`
 - `GET /api/morphology`
+- `GET /api/notebook` · `POST /api/notebook` · `DELETE /api/notebook/{item_id}`
+- `GET /api/sessions` · `GET /api/sessions/{session_id}` · `POST /api/sessions` · `DELETE /api/sessions/{session_id}`
+- `GET /api/roots` · `POST /api/roots` · `DELETE /api/roots/{root_id}`
+- `GET /api/user/preferences` · `PATCH /api/user/preferences`
 
 ## Authentic Madani layout notes
 

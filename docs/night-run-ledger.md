@@ -33,10 +33,10 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T3.2 `QBASAIR_DB_PATH` read — done `e958081` (pytest 119 green; env now honored, was ignored)
 - [ ] T3.3 cache/connection locking (per-thread read-only connections) — todo
 - [x] T3.4 expand/plan JSON fallbacks + `filter_ayahs_by_review` empty-set fix — done `<pending>` (pytest 124 green; garbage JSON → deterministic plan; discard-only reviews now honored)
-- [x] T3.5 bound did-you-mean caches + low-memory cache-not-skip — done `<pending>` (pytest 125 green; normal-mode query cache now bounded to 2048; low-memory caches populate bounded instead of skipping)
+- [x] T3.5 bound did-you-mean caches + low-memory cache-not-skip — done `4728581` (pytest 125 green; normal-mode query cache now bounded to 2048; low-memory caches populate bounded instead of skipping)
 - [ ] T3.6 catalog scrape off request path — todo
 - [x] T3.7 stop sending `source_path` to the LLM — done `<pending>` (pytest 120 green; removed from all 4 prompt payloads; leak test added)
-- [ ] T3.8 api-contract stable-list completion + `SuggestionItem` drift — todo
+- [x] T3.8 api-contract stable-list completion + `SuggestionItem` drift — done `<pending>` (web build + vitest green; dropped unused `label` from shared SuggestionItem; added catalog+companions endpoints to stable list)
 
 ## T4 — Frontend correctness/perf
 - [ ] T4.1 `runSearch` sequence guard + single URL writer — todo
