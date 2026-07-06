@@ -38,6 +38,22 @@ jobs:
           cd /srv/q-basair
           docker compose --env-file .env.production up -d --build --remove-orphans
 
+      - name: Tag images with the deployed commit (for fast rollback)
+        run: |
+          cd /srv/q-basair
+          SHA="$(git rev-parse --short HEAD)"
+          # Best-effort: tag the freshly built api/web images with the commit so a
+          # rollback can retag a prior image without rebuilding. See
+          # docs/rollback-runbook.md. Never fail the deploy on a tagging hiccup.
+          for svc in api web; do
+            img="$(docker compose --env-file .env.production images -q "$svc" 2>/dev/null || true)"
+            if [ -n "$img" ]; then
+              docker tag "$img" "qbasair-${svc}:${SHA}" || true
+              docker tag "$img" "qbasair-${svc}:previous-$(cat /srv/q-basair/.last_deploy_sha 2>/dev/null || echo none)" || true
+            fi
+          done
+          echo "$SHA" > /srv/q-basair/.last_deploy_sha || true
+
       - name: Rebuild quran.db if requested
         run: |
           cd /srv/q-basair
