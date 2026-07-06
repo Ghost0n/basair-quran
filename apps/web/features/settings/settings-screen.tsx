@@ -107,6 +107,7 @@ export function SettingsScreen() {
                   key={option.value}
                   type="button"
                   className={preferences.mushaf_render === option.value ? "active" : ""}
+                  aria-pressed={preferences.mushaf_render === option.value}
                   onClick={() => void updateAccount({ mushaf_render: option.value })}
                 >
                   {option.label}
@@ -163,6 +164,7 @@ export function SettingsScreen() {
               <button
                 type="button"
                 className={state.theme === "dark" ? "active" : ""}
+                aria-pressed={state.theme === "dark"}
                 onClick={() => state.theme !== "dark" && actions.toggleTheme()}
               >
                 داكنة
@@ -170,6 +172,7 @@ export function SettingsScreen() {
               <button
                 type="button"
                 className={state.theme === "light" ? "active" : ""}
+                aria-pressed={state.theme === "light"}
                 onClick={() => state.theme !== "light" && actions.toggleTheme()}
               >
                 فاتحة
@@ -184,6 +187,7 @@ export function SettingsScreen() {
                   key={option.value}
                   type="button"
                   className={preferences.numerals === option.value ? "active" : ""}
+                  aria-pressed={preferences.numerals === option.value}
                   onClick={() => void updateAccount({ numerals: option.value })}
                 >
                   {option.label}
@@ -202,6 +206,7 @@ export function SettingsScreen() {
               <button
                 type="button"
                 className={account.research.default_mode === "strict" ? "active" : ""}
+                aria-pressed={account.research.default_mode === "strict"}
                 onClick={() => void updateAccount({ research: { default_mode: "strict" } })}
               >
                 القرآن وحدَه
@@ -209,6 +214,7 @@ export function SettingsScreen() {
               <button
                 type="button"
                 className={account.research.default_mode === "tafssir" ? "active copper" : ""}
+                aria-pressed={account.research.default_mode === "tafssir"}
                 onClick={() => {
                   if (account.research.default_mode === "tafssir") return;
                   setConfirmTafssirDefault(true);
@@ -249,6 +255,7 @@ export function SettingsScreen() {
                   key={option.value}
                   type="button"
                   className={account.research.depth === option.value ? "active" : ""}
+                  aria-pressed={account.research.depth === option.value}
                   onClick={() => void updateAccount({ research: { depth: option.value } })}
                 >
                   {option.label}

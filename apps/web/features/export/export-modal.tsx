@@ -5,6 +5,7 @@ import "./export.css";
 import { useMemo, useState } from "react";
 
 import { Icon } from "@/components/icon";
+import { useDialog } from "@/lib/use-dialog";
 import { TAFSSIR_DISCLAIMER_TEXT } from "@/features/studio/tafssir-disclaimer";
 import type { StudioSession } from "@/features/studio/use-studio-sessions";
 
@@ -29,6 +30,7 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
   // without its caveat).
   const isTafssir = session.mode === "tafssir";
   const disclaimerIncluded = isTafssir ? true : includeDisclaimer;
+  const dialogRef = useDialog<HTMLDivElement>(onClose);
 
   const content = useMemo(
     () => buildExport(session, format, { includeEvidence, includeDisclaimer: disclaimerIncluded }),
@@ -50,7 +52,15 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
 
   return (
     <div className="qb-export-backdrop" onClick={onClose}>
-      <div className="qb-export-modal" role="dialog" aria-label="تصدير الجلسة" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="qb-export-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="تصدير الجلسة"
+        ref={dialogRef}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="qb-export-head">
           <div>
             <div className="kicker">التصدير · EXPORT</div>

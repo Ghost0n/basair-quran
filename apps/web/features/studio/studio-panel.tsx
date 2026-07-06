@@ -188,6 +188,7 @@ export function StudioPanel() {
           <button
             type="button"
             className={`qb-mode-tab strict${active?.mode === "strict" ? " active" : ""}`}
+            aria-pressed={active?.mode === "strict"}
             onClick={() => studio.setMode("strict" as StudioMode)}
           >
             <Icon name="scale" size={12} /> القرآن وحدَه
@@ -195,6 +196,7 @@ export function StudioPanel() {
           <button
             type="button"
             className={`qb-mode-tab tafssir${active?.mode === "tafssir" ? " active" : ""}`}
+            aria-pressed={active?.mode === "tafssir"}
             onClick={() => studio.setMode("tafssir" as StudioMode)}
           >
             <Icon name="feather" size={12} /> قراءة تفسيرية
