@@ -73,7 +73,7 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T7.3 Sentry-shaped error hook behind env flag (no real DSN) — done `<pending>` (clean build green). `installGlobalErrorHooks()` wires `window.error` + `unhandledrejection` into the existing `reportError` pipeline (breadcrumbs + console, POST when `NEXT_PUBLIC_ERROR_REPORTING=1`); idempotent, opt-in via the same flag, no vendor SDK/DSN. Installed once from the Shell mount.
 - [ ] T7.4 self-host Cairo/Reem Kufi/Amiri (woff2, replace @import) — todo
 - [ ] T7.5 CSP (verify theme pre-paint inline script survives; nonce/hash) — todo
-- [ ] T7.6 repo cleanup commit (GEMINI.md, tracked logs, quran narrations relocation) — todo
+- [x] T7.6 repo cleanup commit (GEMINI.md, tracked logs, quran narrations relocation) — done `<pending>`. Untracked `server.err.log`/`server.out.log` (already `*.log`-gitignored, kept on disk). `git mv "quran narrations" data/quran-narrations` (space removed, history preserved) + `PROVENANCE.md` (per AGENTS.md's corpus-relocation rule; no code references the old path). **GEMINI.md kept** (decision): it's a functional per-assistant entry that mirrors CLAUDE.md and defers to AGENTS.md via `@./AGENTS.md` — deleting it would drop Gemini-CLI support; it's not stray junk. Flagged for the owner if removal is truly intended.
 - [ ] T7.7 ESLint + minimal config, fix errors only — [stretch], todo
 
 ## T8 — Product bets
