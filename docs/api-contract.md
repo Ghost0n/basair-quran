@@ -156,6 +156,11 @@ This document freezes the backend contract that the future frontend migration wi
   - `X-QBasair-Ollama-Embed-Model`
   - `X-QBasair-Ollama-Base-Url`
 - The intended browser flow is session-scoped user keys supplied by the frontend. The backend should use the headers for the current request only and must not persist them.
+- **`X-QBasair-Ollama-Base-Url` is treated as an untrusted client override** (SSRF closure):
+  - It must be `https://` and its host must be on the allowlist (`ollama.com` by default, extendable via `QBASAIR_OLLAMA_ALLOWED_HOSTS`). Otherwise the request fails with `503` and a sanitized detail.
+  - When a client supplies a base-URL override, the server's own Ollama key is **never** attached — only a client-supplied `X-QBasair-Ollama-Key` is honored for that request.
+  - The server's own `QBASAIR_OLLAMA_BASE_URL` (no client override) is trusted and not subject to the allowlist.
+  - Upstream provider error details reflected back to the client are collapsed and capped (≤200 chars) so a 5xx cannot become an exfiltration oracle.
 - `POST /api/research-agent` may now include:
   - provider metadata
   - per-request usage metrics

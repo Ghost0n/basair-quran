@@ -567,3 +567,67 @@ def test_research_agent_filters_displayed_ayahs_from_final_review(api_client):
     assert body["answer"] == "Filtered answer."
     assert len(body["ayahs"]) == 1
     assert body["ayahs"][0]["ayah_id"] == provider.answer_ayahs[-1].ayah_id
+
+
+# --- SSRF / server-key-exfil closure (T1.3) -------------------------------
+
+
+def test_client_base_url_override_never_carries_server_key(monkeypatch):
+    """A client base_url override must not inherit the server's Ollama key."""
+    monkeypatch.setenv("OLLAMA_API_KEY", "server-secret-key")
+
+    runtime = research_agent_service.build_runtime_settings(
+        api_key=None, base_url="https://ollama.com"
+    )
+
+    assert runtime.base_url == "https://ollama.com"
+    assert runtime.api_key == ""  # server key withheld from the override endpoint
+
+
+def test_client_base_url_override_honors_client_key(monkeypatch):
+    monkeypatch.setenv("OLLAMA_API_KEY", "server-secret-key")
+
+    runtime = research_agent_service.build_runtime_settings(
+        api_key="client-key", base_url="https://ollama.com"
+    )
+
+    assert runtime.api_key == "client-key"
+
+
+def test_no_override_still_uses_server_key(monkeypatch):
+    """The trusted env path (no client override) keeps the server key."""
+    monkeypatch.setenv("OLLAMA_API_KEY", "server-secret-key")
+    monkeypatch.setenv("QBASAIR_OLLAMA_BASE_URL", "https://ollama.com")
+
+    runtime = research_agent_service.build_runtime_settings(api_key=None, base_url=None)
+
+    assert runtime.api_key == "server-secret-key"
+
+
+def test_client_base_url_override_rejects_http_and_non_allowlisted():
+    for bad in (
+        "http://ollama.com",  # non-https
+        "https://169.254.169.254/latest/meta-data",  # SSRF to metadata
+        "https://evil.example.com",  # not allowlisted
+        "https://notollama.com",  # not a suffix match
+    ):
+        with pytest.raises(research_agent_service.ResearchProviderUnavailable):
+            research_agent_service.build_runtime_settings(base_url=bad)
+
+
+def test_client_base_url_override_allows_extra_allowlisted_host(monkeypatch):
+    monkeypatch.setenv("QBASAIR_OLLAMA_ALLOWED_HOSTS", "my-ollama.internal")
+
+    runtime = research_agent_service.build_runtime_settings(
+        base_url="https://my-ollama.internal", api_key="k"
+    )
+
+    assert runtime.base_url == "https://my-ollama.internal"
+
+
+def test_bounded_provider_error_caps_reflected_body():
+    huge = "leaked-secret " * 200
+    bounded = research_agent_service._bounded_provider_error(
+        f"Ollama request failed with HTTP 500: {huge}"
+    )
+    assert len(bounded) <= research_agent_service.MAX_PROVIDER_ERROR_CHARS

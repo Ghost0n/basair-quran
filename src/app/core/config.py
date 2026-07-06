@@ -126,6 +126,23 @@ def get_ollama_base_url() -> str:
     return os.environ.get("QBASAIR_OLLAMA_BASE_URL", "https://ollama.com").strip().rstrip("/")
 
 
+# Hosts a client-supplied `X-QBasair-Ollama-Base-Url` override may target. The
+# server's own `QBASAIR_OLLAMA_BASE_URL` is trusted and NOT subject to this list;
+# only client overrides are checked, to close the SSRF / server-key-exfil surface.
+DEFAULT_OLLAMA_ALLOWED_HOSTS = ("ollama.com",)
+
+
+def get_ollama_allowed_hosts() -> set[str]:
+    """Return the lower-cased host allowlist for client base-URL overrides."""
+    hosts = set(DEFAULT_OLLAMA_ALLOWED_HOSTS)
+    raw = os.environ.get("QBASAIR_OLLAMA_ALLOWED_HOSTS", "")
+    for part in raw.split(","):
+        cleaned = part.strip().lower()
+        if cleaned:
+            hosts.add(cleaned)
+    return hosts
+
+
 def get_llm_chat_model() -> str:
     return os.environ.get("QBASAIR_LLM_CHAT_MODEL", "gemma4:31b-cloud").strip()
 

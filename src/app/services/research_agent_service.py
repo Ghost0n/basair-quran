@@ -9,6 +9,7 @@ import sqlite3
 import time
 from typing import Any, Iterable
 from urllib import error, request
+from urllib.parse import urlsplit
 
 from src.app.core import config
 from src.app.models.api import (
@@ -267,9 +268,13 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
                 return parsed
         except error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")
-            raise ResearchProviderUnavailable(f"Ollama request failed with HTTP {exc.code}: {detail}") from exc
+            raise ResearchProviderUnavailable(
+                _bounded_provider_error(f"Ollama request failed with HTTP {exc.code}: {detail}")
+            ) from exc
         except (error.URLError, TimeoutError, OSError) as exc:
-            raise ResearchProviderUnavailable(f"Ollama is unavailable at {self.base_url}: {exc}") from exc
+            raise ResearchProviderUnavailable(
+                _bounded_provider_error(f"Ollama is unavailable at {self.base_url}: {exc}")
+            ) from exc
         except json.JSONDecodeError as exc:
             raise ResearchProviderResponseError("Ollama returned invalid JSON.") from exc
 
@@ -324,9 +329,13 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
                 return json.loads(response.read().decode("utf-8"))
         except error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")
-            raise ResearchProviderUnavailable(f"Ollama request failed with HTTP {exc.code}: {detail}") from exc
+            raise ResearchProviderUnavailable(
+                _bounded_provider_error(f"Ollama request failed with HTTP {exc.code}: {detail}")
+            ) from exc
         except (error.URLError, TimeoutError, OSError) as exc:
-            raise ResearchProviderUnavailable(f"Ollama is unavailable at {self.base_url}: {exc}") from exc
+            raise ResearchProviderUnavailable(
+                _bounded_provider_error(f"Ollama is unavailable at {self.base_url}: {exc}")
+            ) from exc
         except json.JSONDecodeError as exc:
             raise ResearchProviderResponseError("Ollama returned invalid JSON.") from exc
 
@@ -817,6 +826,39 @@ def set_llm_provider_for_tests(provider: ResearchLlmProvider | None) -> None:
     _provider_override = provider
 
 
+MAX_PROVIDER_ERROR_CHARS = 200
+
+
+def _bounded_provider_error(message: str) -> str:
+    """Collapse whitespace and cap a provider error so a reflected upstream body
+    (or client-supplied host) can't turn a 5xx detail into an exfiltration oracle."""
+    collapsed = " ".join(message.split())
+    if len(collapsed) <= MAX_PROVIDER_ERROR_CHARS:
+        return collapsed
+    return collapsed[: MAX_PROVIDER_ERROR_CHARS - 1] + "…"
+
+
+def _host_allowed(host: str, allowed: set[str]) -> bool:
+    return any(host == entry or host.endswith("." + entry) for entry in allowed)
+
+
+def _validate_client_base_url(raw: str) -> str:
+    """Validate a client-supplied Ollama base URL override.
+
+    Only https:// URLs whose host is on the allowlist are honored — this closes
+    the SSRF surface (internal/metadata endpoints) opened by the override header.
+    The server's own env base URL bypasses this and is never validated here.
+    """
+    candidate = raw.strip().rstrip("/")
+    parsed = urlsplit(candidate)
+    if parsed.scheme != "https":
+        raise ResearchProviderUnavailable("Custom Ollama base URL must use https://.")
+    host = (parsed.hostname or "").lower()
+    if not host or not _host_allowed(host, config.get_ollama_allowed_hosts()):
+        raise ResearchProviderUnavailable("The requested Ollama host is not allowed.")
+    return candidate
+
+
 def build_runtime_settings(
     *,
     api_key: str | None = None,
@@ -825,13 +867,24 @@ def build_runtime_settings(
     base_url: str | None = None,
     timeout: float | None = None,
 ) -> ResearchRuntimeSettings:
+    # A non-empty client `base_url` is an explicit override: validate it against
+    # the allowlist and NEVER attach the server key to that client-directed
+    # endpoint (only a client-supplied key is honored). An absent/blank override
+    # falls back to the trusted server env config, which may carry the server key.
+    client_override = bool(base_url and base_url.strip())
+    if client_override:
+        resolved_base_url = _validate_client_base_url(base_url)  # type: ignore[arg-type]
+        resolved_api_key = (api_key or "").strip()
+    else:
+        resolved_base_url = config.get_ollama_base_url().strip().rstrip("/")
+        resolved_api_key = (api_key if api_key is not None else config.get_ollama_api_key()).strip()
     return ResearchRuntimeSettings(
         provider_name=config.get_llm_provider(),
-        base_url=(base_url or config.get_ollama_base_url()).strip().rstrip("/"),
+        base_url=resolved_base_url,
         chat_model=(chat_model or config.get_llm_chat_model()).strip(),
         embed_model=(embed_model or config.get_llm_embed_model()).strip(),
         timeout=timeout if timeout is not None else config.get_llm_timeout_seconds(),
-        api_key=(api_key if api_key is not None else config.get_ollama_api_key()).strip(),
+        api_key=resolved_api_key,
     )
 
 
