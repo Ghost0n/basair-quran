@@ -3,7 +3,13 @@ import sqlite3
 import pytest
 
 from src.app.core import config
-from src.app.models.api import ResearchAgentAyah, ResearchRelatedTerm, ResearchSearchItem, TafssirStructuredAnswer
+from src.app.models.api import (
+    ResearchAgentAyah,
+    ResearchAgentMessage,
+    ResearchRelatedTerm,
+    ResearchSearchItem,
+    TafssirStructuredAnswer,
+)
 from src.app.services import quran_service, research_agent_service
 
 
@@ -631,3 +637,31 @@ def test_bounded_provider_error_caps_reflected_body():
         f"Ollama request failed with HTTP 500: {huge}"
     )
     assert len(bounded) <= research_agent_service.MAX_PROVIDER_ERROR_CHARS
+
+
+def test_source_path_is_never_sent_to_the_llm(monkeypatch):
+    """T3.7: corpus source_path must not leak into any LLM prompt."""
+    runtime = research_agent_service.build_runtime_settings()
+    provider = research_agent_service.OllamaResearchLlmProvider(runtime)
+
+    captured: list[str] = []
+
+    def fake_chat(messages, *args, **kwargs):
+        captured.append(research_agent_service.json.dumps(messages, ensure_ascii=False))
+        return '{"related_terms":[],"searches":[]}'
+
+    monkeypatch.setattr(provider, "_chat", fake_chat)
+
+    chunk = research_agent_service.SourceChunk(
+        id=1, title="Note", source_path="/srv/secret/internal/note.txt", content="نص", score=1.0
+    )
+    provider.expand_search_candidates(
+        messages=[ResearchAgentMessage(role="user", content="سؤال")],
+        source_chunks=[chunk],
+        quran_terms=[],
+        answer_language="ar",
+    )
+
+    assert captured, "expected the provider to build an LLM prompt"
+    assert "secret/internal" not in captured[0]
+    assert "source_path" not in captured[0]

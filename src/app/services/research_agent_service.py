@@ -351,7 +351,6 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
             "retrieved_source_chunks": [
                 {
                     "title": chunk.title,
-                    "source_path": chunk.source_path,
                     "content": chunk.content[:1800],
                 }
                 for chunk in source_chunks[:6]
@@ -398,7 +397,6 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
             "retrieved_source_chunks": [
                 {
                     "title": chunk.title,
-                    "source_path": chunk.source_path,
                     "content": chunk.content[:1800],
                 }
                 for chunk in source_chunks[:6]
@@ -507,7 +505,6 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
             "source_chunks": [
                 {
                     "title": chunk.title,
-                    "source_path": chunk.source_path,
                     "content": chunk.content[:1400],
                 }
                 for chunk in source_chunks[:5]
@@ -613,7 +610,6 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
             "source_chunks": [
                 {
                     "title": chunk.title,
-                    "source_path": chunk.source_path,
                     "content": chunk.content[:chunk_chars],
                 }
                 for chunk in source_chunks[:chunk_count]

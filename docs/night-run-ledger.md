@@ -30,12 +30,12 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 
 ## T3 — Backend correctness/perf
 - [ ] T3.1 Phrase-metadata cache + kill double scan — todo
-- [x] T3.2 `QBASAIR_DB_PATH` read — done `<pending>` (pytest 119 green; env now honored, was ignored)
+- [x] T3.2 `QBASAIR_DB_PATH` read — done `e958081` (pytest 119 green; env now honored, was ignored)
 - [ ] T3.3 cache/connection locking (per-thread read-only connections) — todo
 - [ ] T3.4 expand/plan JSON fallbacks + `filter_ayahs_by_review` empty-set fix — todo
 - [ ] T3.5 bound did-you-mean caches + low-memory cache-not-skip — todo
 - [ ] T3.6 catalog scrape off request path — todo
-- [ ] T3.7 stop sending `source_path` to the LLM — todo
+- [x] T3.7 stop sending `source_path` to the LLM — done `<pending>` (pytest 120 green; removed from all 4 prompt payloads; leak test added)
 - [ ] T3.8 api-contract stable-list completion + `SuggestionItem` drift — todo
 
 ## T4 — Frontend correctness/perf
