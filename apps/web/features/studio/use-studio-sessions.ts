@@ -10,6 +10,7 @@ import type {
 } from "@q-basair/shared";
 
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { isTechnicalMessage, reportError } from "@/lib/error-report";
 import { usePreferences } from "@/lib/preferences-context";
 import {
   buildResearchHeaders,
@@ -254,7 +255,9 @@ export function useStudioSessions() {
           // A failed save must not break the chat — the session stays in memory.
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "تعذّر الاتصال بخدمة الباحث الذكي.");
+        reportError("studio:submit", err);
+        const raw = err instanceof Error ? err.message : "";
+        setError(isTechnicalMessage(raw) ? "تعذّر الاتصال بخدمة الباحث الذكي." : raw);
       } finally {
         setIsResearching(false);
       }

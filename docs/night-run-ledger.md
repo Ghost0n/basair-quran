@@ -44,11 +44,11 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T4.3 font-size PATCH debounce — done `0dd4d9e` (+ type-safety follow-up; web build green; `updateAccountDebounced` = optimistic local + 400ms coalesced PATCH). NOTE: a latent TS error in the optimistic merge was masked by Next incremental type-check; caught + fixed via a clean full build.
 - [x] T4.4 wire `research.default_mode`/`depth` into `createSession` — done `57259dd` (web build green; new sessions inherit the saved default mode/depth via a prefs ref)
 - [x] T4.5 wire `reciter` pref into recitation-context — done `04cca60` (web build green; saved reciter pref seeds the player until the user overrides it that session)
-- [x] T4.6 Studio thread auto-scroll — done `<pending>` (clean web build green; thread scrolls to newest message on send/grow/tab-switch/pending)
+- [x] T4.6 Studio thread auto-scroll — done `9a96da6` (clean web build green; thread scrolls to newest message on send/grow/tab-switch/pending)
 - [x] T4.7 BrandMark hydration fix — done `2336e81` (clean web build + vitest green; CSS-var `themed` BrandMark follows the body theme class so the shell seal renders identical SSR/client markup; standalone screens keep the explicit `light` prop). Decision: surgical `themed` opt-in rather than a full CSS-driven rewrite of BrandMarkRich — flagged for design review.
 - [ ] T4.8 `rootFollowed` reset/seed + pin-state seeding — todo
 - [ ] T4.9 dead-state purge — todo
-- [ ] T4.10 extend error sanitization to Studio + Concordance — todo
+- [x] T4.10 extend error sanitization to Studio + Concordance — done `<pending>` (clean web build + vitest green; wrapped raw `err.message` leaks in the search workspace (feeds concordance via state.errorMessage) + Studio submit with sanitize + reportError diagnostics)
 - [ ] T4.11 remaining timer/listener cleanups + filled icons — todo
 
 ## T5 — UX remainder

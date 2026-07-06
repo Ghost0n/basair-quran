@@ -27,7 +27,19 @@ import {
   removeChakl,
 } from "@/lib/quran-ui";
 import { generateArabicQueryCandidates } from "@/lib/arabic-transliteration";
+import { isTechnicalMessage, reportError, sanitizeErrorMessage } from "@/lib/error-report";
 import { dedupeSuggestionItems } from "@/features/workspace/lib/dedupe-suggestions";
+
+/**
+ * Never surface a raw technical error string. Logs the real error for
+ * diagnostics and returns the friendly message: a non-technical error message
+ * as-is, otherwise the context-specific Arabic fallback.
+ */
+function toUserError(scope: string, error: unknown, fallback: string): string {
+  reportError(scope, error);
+  const raw = error instanceof Error ? error.message : "";
+  return isTechnicalMessage(raw) ? fallback : raw;
+}
 import { usePreferences } from "@/lib/preferences-context";
 import { useMushaf } from "@/features/reading/mushaf-context";
 
@@ -434,7 +446,7 @@ export function useSearchWorkspace() {
         });
       } catch (error) {
         if (!cancelled) {
-          setErrorMessage(error instanceof Error ? error.message : "تعذر تحميل الروايات.");
+          setErrorMessage(toUserError("search:riwayat", error, "تعذر تحميل الروايات."));
         }
       } finally {
         if (!cancelled) {
@@ -745,7 +757,7 @@ export function useSearchWorkspace() {
       if (!response.found) {
         startTransition(() => {
           clearWorkspaceState();
-          setErrorMessage(response.message ?? "لم يتم العثور على نتائج.");
+          setErrorMessage(sanitizeErrorMessage(response.message ?? "لم يتم العثور على نتائج."));
           setDidYouMean(response.did_you_mean ?? null);
         });
         return;
@@ -764,7 +776,7 @@ export function useSearchWorkspace() {
       }
     } catch (error) {
       clearWorkspaceState();
-      setErrorMessage(error instanceof Error ? error.message : "حدث خطأ في الاتصال بالخادم.");
+      setErrorMessage(toUserError("search:run", error, "حدث خطأ في الاتصال بالخادم."));
     } finally {
       setIsSearching(false);
     }
@@ -814,7 +826,7 @@ export function useSearchWorkspace() {
         }
       });
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "حدث خطأ في جلب الصفحة المطلوبة.");
+      setErrorMessage(toUserError("search:page", error, "حدث خطأ في جلب الصفحة المطلوبة."));
     }
   }
 
