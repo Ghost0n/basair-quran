@@ -15,8 +15,13 @@ describe("looksLikeQuestion", () => {
     expect(looksLikeQuestion("what is mercy?")).toBe(true);
   });
 
-  it("is true for a long natural-language phrase (>= 6 words)", () => {
+  it("is true for a long phrase that carries an interrogative", () => {
     expect(looksLikeQuestion("ما معنى الرحمة في سياق آيات القرآن الكريم")).toBe(true);
+  });
+
+  it("is false for a long phrase with no interrogative cue (softened 6-word rule)", () => {
+    // A 7-word ayah fragment / phrase search must stay a search, not the Studio.
+    expect(looksLikeQuestion("الحمد لله رب العالمين الرحمن الرحيم مالك")).toBe(false);
   });
 
   it("is true when it opens with an Arabic interrogative (>= 3 words)", () => {

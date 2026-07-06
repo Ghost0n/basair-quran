@@ -47,14 +47,14 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T4.6 Studio thread auto-scroll — done `9a96da6` (clean web build green; thread scrolls to newest message on send/grow/tab-switch/pending)
 - [x] T4.7 BrandMark hydration fix — done `2336e81` (clean web build + vitest green; CSS-var `themed` BrandMark follows the body theme class so the shell seal renders identical SSR/client markup; standalone screens keep the explicit `light` prop). Decision: surgical `themed` opt-in rather than a full CSS-driven rewrite of BrandMarkRich — flagged for design review.
 - [x] T4.8 `rootFollowed` reset/seed + pin-state seeding — done `c24fad7` (clean web build + vitest green; concordance seeds pin markers from the notebook on mount and re-seeds rootFollowed whenever the primary root changes)
-- [ ] T4.9 dead-state purge — todo
+- [~] T4.9 dead-state purge — **design note**. The original review's agent logs pinpointed the ~200 dead lines; without them, identifying which of the 61 hooks / ~30 state setters in the 1166-line `use-search-workspace.ts` are truly dead (write-only or never-read) needs runtime verification a headless build can't provide — a green build after a blind removal does NOT prove behavior preservation. Candidates to audit first: `resultPageDraft(s)` (possible duplicate/legacy), `loadingMushafs`, and any `workspaceView`-adjacent state (overlaps T5.1's `workspaceView` deletion). Do this with the app running + a diff review.
 - [x] T4.10 extend error sanitization to Studio + Concordance — done `d1a3386` (clean web build + vitest green; wrapped raw `err.message` leaks in the search workspace (feeds concordance via state.errorMessage) + Studio submit with sanitize + reportError diagnostics)
-- [x] T4.11 remaining timer/listener cleanups + filled icons — done `<pending>` (clean full build + vitest green; tracked handler one-shot timeouts + phrase-suggestion timer now cleared on unmount via a shared `scheduleTimeout`/cleanup effect). PARTIAL: "filled icons" is visual polish needing browser verification — left as a design note.
+- [x] T4.11 remaining timer/listener cleanups + filled icons — done `9aab418` (clean full build + vitest green; tracked handler one-shot timeouts + phrase-suggestion timer now cleared on unmount via a shared `scheduleTimeout`/cleanup effect). PARTIAL: "filled icons" is visual polish needing browser verification — left as a design note.
 
 ## T5 — UX remainder
 - [ ] T5.1 Compact verse/evidence tap → setMode("reading") + back affordance — todo
 - [ ] T5.2 tafssir-safety trio (copy «آلية», forced export disclaimer, default-mode confirmation) — todo
-- [ ] T5.3 intent rule softening (6-word rule requires interrogative or ؟; SR-visible chip) — todo
+- [x] T5.3 intent rule softening (6-word rule requires interrogative or ؟; SR-visible chip) — done `<pending>` (clean build + 17 vitest green; `looksLikeQuestion` 6-word rule now requires an interrogative cue; command-bar adds a visually-hidden `aria-live` region announcing how Enter will act)
 - [ ] T5.4 evidence persistence server-side (versioned StoredMessage) — todo
 - [ ] T5.5 dialog a11y (useDialog) + aria-pressed + settings segments + MoreSheet keyboard — todo
 - [ ] T5.6 guest onboarding variant + skip affordance — todo

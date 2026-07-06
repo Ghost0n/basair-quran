@@ -23,6 +23,13 @@ const INTENT_LABEL: Record<CommandIntent, string> = {
   go: "انتقال",
   search: "جذر · ابحث",
 };
+// Screen-reader announcement of how Enter will act (the visual chip is
+// decorative/aria-hidden; this live region gives SR users the same cue).
+const INTENT_SR_LABEL: Record<CommandIntent, string> = {
+  ask: "سيُفتح الإدخال كسؤال في الدراسة عند الضغط على Enter.",
+  go: "سيُنفَّذ الإدخال كانتقال عند الضغط على Enter.",
+  search: "سيُنفَّذ الإدخال كبحث عند الضغط على Enter.",
+};
 
 function detectIntent(raw: string): CommandIntent | null {
   const value = raw.trim();
@@ -118,6 +125,23 @@ export function CommandBar() {
     <div className={`qb-cmd${searchActive ? " is-search-active" : ""}`}>
       <span className="qb-cmd-icon">
         <Icon name="search" size={16} />
+      </span>
+      <span
+        role="status"
+        aria-live="polite"
+        style={{
+          position: "absolute",
+          width: 1,
+          height: 1,
+          padding: 0,
+          margin: -1,
+          overflow: "hidden",
+          clip: "rect(0, 0, 0, 0)",
+          whiteSpace: "nowrap",
+          border: 0,
+        }}
+      >
+        {intent ? INTENT_SR_LABEL[intent] : ""}
       </span>
       {intent ? (
         <span
