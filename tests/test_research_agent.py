@@ -665,3 +665,37 @@ def test_source_path_is_never_sent_to_the_llm(monkeypatch):
     assert captured, "expected the provider to build an LLM prompt"
     assert "secret/internal" not in captured[0]
     assert "source_path" not in captured[0]
+
+
+def _ayah(i: int) -> ResearchAgentAyah:
+    return ResearchAgentAyah(
+        ayah_id=i, mushaf_id=1, surah="س", surah_id=1, ayah=i, text=f"v{i}", global_index=i
+    )
+
+
+def test_filter_ayahs_by_review_respects_discard_only_review():
+    """T3.4: a discard-only review must actually drop the discarded ayahs."""
+    ayahs = [_ayah(i) for i in (1, 2, 3)]
+    review = research_agent_service.AnswerReview(answer="a", keep_ayah_ids=[], discard_ayah_ids=[1])
+    kept = research_agent_service.filter_ayahs_by_review(ayahs, review)
+    assert [a.ayah_id for a in kept] == [2, 3]
+
+
+def test_filter_ayahs_by_review_no_signal_keeps_all():
+    ayahs = [_ayah(i) for i in (1, 2)]
+    review = research_agent_service.AnswerReview(answer="a", keep_ayah_ids=[], discard_ayah_ids=[])
+    assert research_agent_service.filter_ayahs_by_review(ayahs, review) == ayahs
+
+
+def test_parse_search_plan_falls_back_on_garbage_json():
+    """T3.4: malformed LLM output degrades to a deterministic plan, not a 502."""
+    fallback = [research_agent_service.QuranTermCandidate(type="root", text="ر ح م", root_id=1, score=1.0)]
+    plan = research_agent_service.parse_search_plan("not json at all", fallback)
+    assert plan.status == "search"
+    assert plan.searches  # populated from the fallback candidates
+
+
+def test_parse_candidate_expansion_falls_back_on_garbage_json():
+    fallback = [research_agent_service.QuranTermCandidate(type="root", text="ر ح م", root_id=1, score=1.0)]
+    expansion = research_agent_service.parse_candidate_expansion("<<broken>>", fallback)
+    assert expansion.searches

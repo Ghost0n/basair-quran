@@ -32,7 +32,7 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [ ] T3.1 Phrase-metadata cache + kill double scan — todo
 - [x] T3.2 `QBASAIR_DB_PATH` read — done `e958081` (pytest 119 green; env now honored, was ignored)
 - [ ] T3.3 cache/connection locking (per-thread read-only connections) — todo
-- [ ] T3.4 expand/plan JSON fallbacks + `filter_ayahs_by_review` empty-set fix — todo
+- [x] T3.4 expand/plan JSON fallbacks + `filter_ayahs_by_review` empty-set fix — done `<pending>` (pytest 124 green; garbage JSON → deterministic plan; discard-only reviews now honored)
 - [ ] T3.5 bound did-you-mean caches + low-memory cache-not-skip — todo
 - [ ] T3.6 catalog scrape off request path — todo
 - [x] T3.7 stop sending `source_path` to the LLM — done `<pending>` (pytest 120 green; removed from all 4 prompt payloads; leak test added)

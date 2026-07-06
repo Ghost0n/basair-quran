@@ -945,7 +945,12 @@ def parse_json_object(text: str) -> dict[str, Any]:
 
 
 def parse_search_plan(text: str, fallback_terms: list[QuranTermCandidate], answer_language: str = "english") -> SearchPlan:
-    parsed = parse_json_object(text)
+    try:
+        parsed = parse_json_object(text)
+    except ResearchProviderResponseError:
+        # Malformed LLM output must not surface as a 502 — degrade to a
+        # deterministic search plan built from the retrieved term candidates.
+        parsed = {}
     status = "needs_clarification" if parsed.get("status") == "needs_clarification" else "search"
     clarifying_question = coerce_optional_text(parsed.get("clarifying_question"))
 
@@ -1016,7 +1021,11 @@ def parse_search_plan(text: str, fallback_terms: list[QuranTermCandidate], answe
 
 
 def parse_candidate_expansion(text: str, fallback_terms: list[QuranTermCandidate]) -> CandidateExpansion:
-    parsed = parse_json_object(text)
+    try:
+        parsed = parse_json_object(text)
+    except ResearchProviderResponseError:
+        # Malformed LLM output → fall back to deterministic candidates below.
+        parsed = {}
 
     related_terms = []
     for item in coerce_list(parsed.get("related_terms")):
@@ -1668,7 +1677,19 @@ def filter_ayahs_by_review(ayahs: list[ResearchAgentAyah], review: AnswerReview)
 
     keep_ids = set(review.keep_ayah_ids)
     discard_ids = set(review.discard_ayah_ids)
-    filtered = [ayah for ayah in ayahs if ayah.ayah_id in keep_ids and ayah.ayah_id not in discard_ids]
+
+    # No review signal at all → keep the full evidence set.
+    if not keep_ids and not discard_ids:
+        return ayahs
+
+    if keep_ids:
+        filtered = [ayah for ayah in ayahs if ayah.ayah_id in keep_ids and ayah.ayah_id not in discard_ids]
+    else:
+        # Only discards were provided — keep everything not explicitly discarded
+        # (the old code silently ignored a discard-only review and kept all).
+        filtered = [ayah for ayah in ayahs if ayah.ayah_id not in discard_ids]
+
+    # Never end with zero evidence: an over-aggressive keep list falls back to all.
     return filtered or ayahs
 
 
