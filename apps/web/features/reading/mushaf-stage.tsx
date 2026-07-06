@@ -277,6 +277,7 @@ export function MushafStage() {
       <div className="qb-mushaf-state error">
         <ErrorState
           message={error}
+          reportScope="reader"
           onRetry={() => void mushaf.loadPage(selectedMushaf, mushaf.readLastPage(), { persist: true })}
         />
       </div>

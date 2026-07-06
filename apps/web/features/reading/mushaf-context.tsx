@@ -15,6 +15,7 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type { QuranPageResponse } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
+import { reportError } from "@/lib/error-report";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const LAST_PAGE_KEY = "qbasair.mushaf.lastPage";
@@ -148,6 +149,7 @@ function useMushafController(): MushafController {
         if (!data.found) throw new Error(NOT_FOUND);
         applyResult(data, options.persist ?? false);
       } catch (err) {
+        reportError("reader", err);
         setError(err instanceof Error ? err.message : READER_ERROR);
       } finally {
         setIsLoading(false);
@@ -167,6 +169,7 @@ function useMushafController(): MushafController {
         if (!data.found) throw new Error(NOT_FOUND);
         applyResult(data, false);
       } catch (err) {
+        reportError("reader", err);
         setError(err instanceof Error ? err.message : READER_ERROR);
       } finally {
         setIsLoading(false);
@@ -186,6 +189,7 @@ function useMushafController(): MushafController {
         setSelectedAyahId(data.selected_ayah_id ?? null);
         applyResult(data, true);
       } catch (err) {
+        reportError("reader", err);
         setError(err instanceof Error ? err.message : READER_ERROR);
       } finally {
         setIsLoading(false);
@@ -205,6 +209,7 @@ function useMushafController(): MushafController {
         setSelectedAyahId(data.selected_ayah_id ?? null);
         applyResult(data, true);
       } catch (err) {
+        reportError("reader", err);
         setError(err instanceof Error ? err.message : READER_ERROR);
       } finally {
         setIsLoading(false);

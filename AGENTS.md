@@ -163,6 +163,22 @@ cd C:\Users\<user>\Projects\Q-Basair\apps\web
 C:\Users\<user>\Projects\Q-Basair\.runtime\node-v22.22.0-win-x64\node.exe .\node_modules\next\dist\bin\next start --hostname 127.0.0.1 --port 3000
 ```
 
+### Local troubleshooting
+
+- **The reader (or any screen) shows a 500 / "تعذّر إتمام الطلب"**: this almost
+  always means the FastAPI backend isn't running. The Next server only proxies
+  `/api/*` to it (`QBASAIR_API_ORIGIN`, default `http://127.0.0.1:8001`), so a
+  dead backend surfaces as a 500 through the proxy — it is **not** a code
+  regression. Fix: restart the API (`python scripts\start_api.py`), confirm
+  `GET /api/health` returns 200, then reload the page. The local API is a plain
+  process, not a service — it can stop between sessions.
+- **Accounts, sign-in, the account menu, or the Studio gate are all missing**:
+  the web must be **built** with `NEXT_PUBLIC_AUTH_ENABLED=1` (it's baked at build
+  time). Without it the app runs single-user/local with no account concept.
+  Pair it with a backend started with `QBASAIR_AUTH_ENABLED=1`.
+- Raw technical error strings are never shown to users — see
+  `docs/error-reporting.md` (sanitized messages + the scaffolded report pipeline).
+
 ## Required Task Close-Out
 
 At the end of a non-trivial task, provide:
