@@ -68,7 +68,7 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T6.4 error-report URL → pathname strip — done `d296be0` (clean build green; diagnostic bundle now records `window.location.pathname` only — never the query string, which can carry the user's search text).
 
 ## T7 — Hardening artifacts
-- [ ] T7.1 compose log-rotation + resource limits — [artifact], todo
+- [x] T7.1 compose log-rotation + resource limits — [artifact] done `<pending>` (YAML validated; activates on next `docker compose up`). Added `logging` (json-file, max-size 10m × 3 files) + env-tunable `mem_limit`/`cpus` to api (1g/1.5 — generous for in-container DB/index rebuilds), web (512m/1.0), nginx (128m/0.5). Overridable via `QBASAIR_{API,WEB,NGINX}_{MEM_LIMIT,CPUS}`.
 - [ ] T7.2 deploy image tagging + rollback runbook — [artifact], todo
 - [ ] T7.3 Sentry-shaped error hook behind env flag (no real DSN) — todo
 - [ ] T7.4 self-host Cairo/Reem Kufi/Amiri (woff2, replace @import) — todo
