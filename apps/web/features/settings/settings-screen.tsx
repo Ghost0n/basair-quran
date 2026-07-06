@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import "./settings.css";
 
 import type { NumeralScript, ReaderLayout } from "@q-basair/shared";
@@ -55,6 +57,8 @@ const DEPTH_OPTIONS: { value: "fast" | "balanced" | "deep"; label: string }[] = 
  */
 export function SettingsScreen() {
   const { preferences, account, updateAccount, updateAccountDebounced } = usePreferences();
+  // Confirm before making the experimental tafssir mode the account default.
+  const [confirmTafssirDefault, setConfirmTafssirDefault] = useState(false);
   const { state, actions } = useWorkspace();
 
   // "صفحتان" (spread) only renders on the authentic Madani glyph page, served
@@ -205,12 +209,38 @@ export function SettingsScreen() {
               <button
                 type="button"
                 className={account.research.default_mode === "tafssir" ? "active copper" : ""}
-                onClick={() => void updateAccount({ research: { default_mode: "tafssir" } })}
+                onClick={() => {
+                  if (account.research.default_mode === "tafssir") return;
+                  setConfirmTafssirDefault(true);
+                }}
               >
                 تفسيرية
               </button>
             </div>
           </div>
+          {confirmTafssirDefault ? (
+            <div className="qb-setting-confirm" role="alertdialog" aria-label="تأكيد الوضع الافتراضي">
+              <p>
+                الوضع التفسيري <strong>تجريبي</strong>: قراءة بشرية مُولَّدة من نموذج لغوي، ليست حُجَّة
+                شرعية. هل تجعله الوضع الافتراضي؟
+              </p>
+              <div className="qb-setting-confirm-actions">
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => {
+                    void updateAccount({ research: { default_mode: "tafssir" } });
+                    setConfirmTafssirDefault(false);
+                  }}
+                >
+                  تأكيد
+                </button>
+                <button type="button" onClick={() => setConfirmTafssirDefault(false)}>
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          ) : null}
           <div className="qb-setting-row">
             <label>عُمق القراءة التفسيرية</label>
             <div className="qb-setting-seg">

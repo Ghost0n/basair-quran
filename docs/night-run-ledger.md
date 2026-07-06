@@ -53,8 +53,8 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 
 ## T5 — UX remainder
 - [ ] T5.1 Compact verse/evidence tap → setMode("reading") + back affordance — todo
-- [ ] T5.2 tafssir-safety trio (copy «آلية», forced export disclaimer, default-mode confirmation) — todo
-- [x] T5.3 intent rule softening (6-word rule requires interrogative or ؟; SR-visible chip) — done `<pending>` (clean build + 17 vitest green; `looksLikeQuestion` 6-word rule now requires an interrogative cue; command-bar adds a visually-hidden `aria-live` region announcing how Enter will act)
+- [x] T5.2 tafssir-safety trio (copy «آلية», forced export disclaimer, default-mode confirmation) — done `<pending>` (clean build green). Forced export disclaimer: a tafssir session's disclaimer toggle is now checked+disabled+«إلزامي» and always travels. Default-mode confirmation: switching the account default to tafssir now shows an in-app «تجريبي» alertdialog requiring confirmation. **«آلية» copy: NOT done** — no `آلية` string exists in the web app and the exact target/replacement is unspecified; guessing product copy would be wrong → left as a copy note for the owner.
+- [x] T5.3 intent rule softening (6-word rule requires interrogative or ؟; SR-visible chip) — done `da029fa` (clean build + 17 vitest green; `looksLikeQuestion` 6-word rule now requires an interrogative cue; command-bar adds a visually-hidden `aria-live` region announcing how Enter will act)
 - [ ] T5.4 evidence persistence server-side (versioned StoredMessage) — todo
 - [ ] T5.5 dialog a11y (useDialog) + aria-pressed + settings segments + MoreSheet keyboard — todo
 - [ ] T5.6 guest onboarding variant + skip affordance — todo

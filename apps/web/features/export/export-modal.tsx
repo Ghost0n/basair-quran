@@ -24,9 +24,15 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
   const [includeEvidence, setIncludeEvidence] = useState(true);
   const [includeDisclaimer, setIncludeDisclaimer] = useState(true);
 
+  // The experimental Tafssir disclaimer is MANDATORY on a tafssir export — the
+  // user cannot opt out of it (safety: a tafssir reading must never travel
+  // without its caveat).
+  const isTafssir = session.mode === "tafssir";
+  const disclaimerIncluded = isTafssir ? true : includeDisclaimer;
+
   const content = useMemo(
-    () => buildExport(session, format, { includeEvidence, includeDisclaimer }),
-    [session, format, includeEvidence, includeDisclaimer],
+    () => buildExport(session, format, { includeEvidence, includeDisclaimer: disclaimerIncluded }),
+    [session, format, includeEvidence, disclaimerIncluded],
   );
 
   function download() {
@@ -90,14 +96,21 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
               />
               تضمين الآيات المُستدَل بها
             </label>
-            <label className="qb-export-toggle">
-              <input
-                type="checkbox"
-                checked={includeDisclaimer}
-                onChange={(e) => setIncludeDisclaimer(e.target.checked)}
-              />
-              تضمين تنبيه الوضع التفسيري
-            </label>
+            {isTafssir ? (
+              <label className="qb-export-toggle" title="إلزامي في الوضع التفسيري">
+                <input type="checkbox" checked disabled />
+                تنبيه الوضع التفسيري (إلزامي)
+              </label>
+            ) : (
+              <label className="qb-export-toggle">
+                <input
+                  type="checkbox"
+                  checked={includeDisclaimer}
+                  onChange={(e) => setIncludeDisclaimer(e.target.checked)}
+                />
+                تضمين تنبيه الوضع التفسيري
+              </label>
+            )}
           </div>
 
           <div className="qb-export-section-label">معاينة</div>
