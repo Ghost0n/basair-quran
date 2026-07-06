@@ -6,6 +6,7 @@ import math
 from pathlib import Path
 import re
 import sqlite3
+import threading
 import time
 from typing import Any, Iterable
 from urllib import error, request
@@ -797,21 +798,45 @@ def fetch_public_ollama_cloud_catalog(timeout: float = 10.0) -> list[OllamaModel
     return sort_model_catalog(merge_model_catalogs(items))
 
 
+_public_ollama_cloud_catalog_lock = threading.Lock()
+_public_ollama_cloud_refresh_in_progress = False
+
+
+def _refresh_public_ollama_cloud_catalog(timeout: float) -> None:
+    global _public_ollama_cloud_catalog_cache, _public_ollama_cloud_refresh_in_progress
+    try:
+        catalog = fetch_public_ollama_cloud_catalog(timeout=timeout)
+        _public_ollama_cloud_catalog_cache = (time.time(), catalog)
+    except (error.HTTPError, error.URLError, TimeoutError, OSError):
+        pass  # keep the previous (stale) cache on failure
+    finally:
+        with _public_ollama_cloud_catalog_lock:
+            _public_ollama_cloud_refresh_in_progress = False
+
+
 def get_public_ollama_cloud_catalog(timeout: float = 10.0) -> list[OllamaModelItem]:
-    global _public_ollama_cloud_catalog_cache
+    """Stale-while-revalidate: never block the request on the ollama.com scrape.
+
+    Returns whatever is cached immediately (empty on a cold start) and refreshes
+    in a background thread when the cache is missing or older than the TTL.
+    """
+    global _public_ollama_cloud_refresh_in_progress
 
     cached = _public_ollama_cloud_catalog_cache
     now = time.time()
-    if cached and now - cached[0] < PUBLIC_OLLAMA_CLOUD_CACHE_TTL_SECONDS:
-        return cached[1]
+    is_fresh = bool(cached) and now - cached[0] < PUBLIC_OLLAMA_CLOUD_CACHE_TTL_SECONDS
 
-    try:
-        catalog = fetch_public_ollama_cloud_catalog(timeout=timeout)
-    except (error.HTTPError, error.URLError, TimeoutError, OSError):
-        return cached[1] if cached else []
+    if not is_fresh:
+        with _public_ollama_cloud_catalog_lock:
+            if not _public_ollama_cloud_refresh_in_progress:
+                _public_ollama_cloud_refresh_in_progress = True
+                threading.Thread(
+                    target=_refresh_public_ollama_cloud_catalog,
+                    args=(timeout,),
+                    daemon=True,
+                ).start()
 
-    _public_ollama_cloud_catalog_cache = (now, catalog)
-    return catalog
+    return cached[1] if cached else []
 
 
 _provider_override: ResearchLlmProvider | None = None

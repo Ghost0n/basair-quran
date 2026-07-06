@@ -699,3 +699,40 @@ def test_parse_candidate_expansion_falls_back_on_garbage_json():
     fallback = [research_agent_service.QuranTermCandidate(type="root", text="ر ح م", root_id=1, score=1.0)]
     expansion = research_agent_service.parse_candidate_expansion("<<broken>>", fallback)
     assert expansion.searches
+
+
+def test_public_catalog_serves_fresh_cache_without_scraping(monkeypatch):
+    """T3.6: a fresh cache is served without touching the network."""
+    calls = []
+    monkeypatch.setattr(
+        research_agent_service,
+        "fetch_public_ollama_cloud_catalog",
+        lambda timeout=10.0: calls.append(timeout) or [],
+    )
+    previous = research_agent_service._public_ollama_cloud_catalog_cache
+    try:
+        cached_item = research_agent_service.make_model_item("cached-model")
+        research_agent_service._public_ollama_cloud_catalog_cache = (
+            research_agent_service.time.time(),
+            [cached_item],
+        )
+        result = research_agent_service.get_public_ollama_cloud_catalog()
+        assert [m.name for m in result] == ["cached-model"]
+        assert calls == []  # fresh cache ⇒ no scrape on the request path
+    finally:
+        research_agent_service._public_ollama_cloud_catalog_cache = previous
+
+
+def test_public_catalog_background_refresh_populates_cache(monkeypatch):
+    fetched = [research_agent_service.make_model_item("fetched-model")]
+    monkeypatch.setattr(
+        research_agent_service, "fetch_public_ollama_cloud_catalog", lambda timeout=10.0: fetched
+    )
+    previous = research_agent_service._public_ollama_cloud_catalog_cache
+    try:
+        research_agent_service._refresh_public_ollama_cloud_catalog(1.0)
+        cache = research_agent_service._public_ollama_cloud_catalog_cache
+        assert cache is not None
+        assert [m.name for m in cache[1]] == ["fetched-model"]
+    finally:
+        research_agent_service._public_ollama_cloud_catalog_cache = previous
