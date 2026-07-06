@@ -1,8 +1,10 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 
 import "./shell.css";
+
+import { installGlobalErrorHooks } from "@/lib/error-report";
 
 import { MergeToast } from "@/features/identity/merge-toast";
 import { MushafProvider } from "@/features/reading/mushaf-context";
@@ -27,6 +29,11 @@ import { WorkspaceProvider } from "./workspace-context";
  * reader to useMushaf.
  */
 export function Shell({ children }: { children: ReactNode }) {
+  // Install the Sentry-shaped global error capture (no-op unless the env flag is on).
+  useEffect(() => {
+    installGlobalErrorHooks();
+  }, []);
+
   return (
     <AuthSessionProvider>
     <PreferencesProvider>

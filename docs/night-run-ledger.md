@@ -70,7 +70,7 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 ## T7 — Hardening artifacts
 - [x] T7.1 compose log-rotation + resource limits — [artifact] done `<pending>` (YAML validated; activates on next `docker compose up`). Added `logging` (json-file, max-size 10m × 3 files) + env-tunable `mem_limit`/`cpus` to api (1g/1.5 — generous for in-container DB/index rebuilds), web (512m/1.0), nginx (128m/0.5). Overridable via `QBASAIR_{API,WEB,NGINX}_{MEM_LIMIT,CPUS}`.
 - [x] T7.2 deploy image tagging + rollback runbook — [artifact] done `<pending>` (deploy.yml YAML validated; activates on next deploy). Added a best-effort image-tag step (tags built api/web images `qbasair-{svc}:<sha>` + records `.last_deploy_sha`, never fails the deploy) and `docs/rollback-runbook.md` covering git rollback (primary) + image rollback (fast) + a post-rollback checklist.
-- [ ] T7.3 Sentry-shaped error hook behind env flag (no real DSN) — todo
+- [x] T7.3 Sentry-shaped error hook behind env flag (no real DSN) — done `<pending>` (clean build green). `installGlobalErrorHooks()` wires `window.error` + `unhandledrejection` into the existing `reportError` pipeline (breadcrumbs + console, POST when `NEXT_PUBLIC_ERROR_REPORTING=1`); idempotent, opt-in via the same flag, no vendor SDK/DSN. Installed once from the Shell mount.
 - [ ] T7.4 self-host Cairo/Reem Kufi/Amiri (woff2, replace @import) — todo
 - [ ] T7.5 CSP (verify theme pre-paint inline script survives; nonce/hash) — todo
 - [ ] T7.6 repo cleanup commit (GEMINI.md, tracked logs, quran narrations relocation) — todo
