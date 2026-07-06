@@ -6,6 +6,7 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type {
   ResearchAgentMessage,
   ResearchAgentResponse,
+  StoredMessage,
   TafssirDepth,
 } from "@q-basair/shared";
 
@@ -249,7 +250,15 @@ export function useStudioSessions() {
             id: target.id,
             title: titleFromFirst,
             mode: target.mode,
-            messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+            // Persist the assistant's research response too, so restoring a saved
+            // session rebuilds its evidence cards (bounded by the server's
+            // per-session storage caps).
+            messages: nextMessages.map((m): StoredMessage => ({
+              v: 1,
+              role: m.role,
+              content: m.content,
+              response: m.role === "assistant" ? m.response : undefined,
+            })),
           });
         } catch {
           // A failed save must not break the chat — the session stays in memory.
@@ -289,9 +298,8 @@ export function useStudioSessions() {
 
   // Re-open a saved session (from Home / the history list) as a live tab: fetch
   // the stored thread and hydrate it. If the tab is already open, just activate.
-  // Stored messages carry role+content only — assistant evidence cards don't
-  // survive the round-trip (the store keeps text), which is fine for review;
-  // continuing the thread re-grounds through the agent as usual.
+  // Assistant messages restore their persisted `response`, so evidence cards
+  // rebuild; legacy rows (role+content only) restore as plain text.
   const openSavedSession = useCallback(
     async (id: string) => {
       let alreadyOpen = false;
@@ -309,6 +317,7 @@ export function useStudioSessions() {
           .map((m) => ({
             role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
             content: typeof m.content === "string" ? m.content : "",
+            response: m.role === "assistant" ? m.response : undefined,
           }))
           .filter((m) => m.content);
         const session: StudioSession = {

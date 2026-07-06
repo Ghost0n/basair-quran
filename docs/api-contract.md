@@ -175,6 +175,10 @@ This document freezes the backend contract that the future frontend migration wi
 - **Storage caps.** `POST /api/sessions` (`ResearchSessionSave`) bounds `messages` to at most
   `500` entries and `512 KB` serialized; oversized payloads are rejected with `422` (guests reach this
   endpoint, so the cap protects the shared `app_data.db`).
+- **Persisted messages** use the versioned `StoredMessage` shape (`{ v?, role, content, response? }`).
+  Assistant messages carry their full research `response`, so restoring a saved session rebuilds its
+  evidence cards; legacy rows without `response` restore as plain text. The backend stores `messages` as
+  opaque JSON (`List[Dict[str, Any]]`) — the shape is a frontend contract, bounded by the caps above.
 
 ## Research agent notes
 

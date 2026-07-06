@@ -278,15 +278,28 @@ export interface ResearchSessionSummary {
   updated_at: number;
 }
 
+/**
+ * One persisted Studio message. Versioned so the restore path can evolve the
+ * shape without breaking older stored sessions (`v` absent ⇒ legacy role+content
+ * only). Assistant messages keep the full research `response` so evidence cards
+ * rebuild on restore instead of being lost to the round-trip.
+ */
+export interface StoredMessage {
+  v?: 1;
+  role: "user" | "assistant";
+  content: string;
+  response?: ResearchAgentResponse;
+}
+
 export interface ResearchSessionDetail extends ResearchSessionSummary {
-  messages: Array<Record<string, unknown>>;
+  messages: StoredMessage[];
 }
 
 export interface ResearchSessionSave {
   id: string;
   title: string;
   mode: "strict" | "tafssir";
-  messages: Array<Record<string, unknown>>;
+  messages: StoredMessage[];
 }
 
 export interface FollowedRoot {
