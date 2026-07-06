@@ -32,11 +32,11 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T3.1 Phrase-metadata cache + kill double scan — done `7742477` (pytest 129 green; memoized per-mushaf phrase metadata, eliminates the repeated full-mushaf scan)
 - [x] T3.2 `QBASAIR_DB_PATH` read — done `e958081` (pytest 119 green; env now honored, was ignored)
 - [x] T3.3 cache/connection locking (per-thread read-only connections) — done `c1c7cac` (pytest 126 green; threading.local + generation counter; cross-thread close reopens cleanly)
-- [x] T3.4 expand/plan JSON fallbacks + `filter_ayahs_by_review` empty-set fix — done `<pending>` (pytest 124 green; garbage JSON → deterministic plan; discard-only reviews now honored)
+- [x] T3.4 expand/plan JSON fallbacks + `filter_ayahs_by_review` empty-set fix — done `b9fad21` (pytest 124 green; garbage JSON → deterministic plan; discard-only reviews now honored)
 - [x] T3.5 bound did-you-mean caches + low-memory cache-not-skip — done `4728581` (pytest 125 green; normal-mode query cache now bounded to 2048; low-memory caches populate bounded instead of skipping)
 - [x] T3.6 catalog scrape off request path — done `99fa70e` (pytest 128 green; stale-while-revalidate: serves cache immediately, refreshes ollama.com catalog in a daemon thread)
-- [x] T3.7 stop sending `source_path` to the LLM — done `<pending>` (pytest 120 green; removed from all 4 prompt payloads; leak test added)
-- [x] T3.8 api-contract stable-list completion + `SuggestionItem` drift — done `<pending>` (web build + vitest green; dropped unused `label` from shared SuggestionItem; added catalog+companions endpoints to stable list)
+- [x] T3.7 stop sending `source_path` to the LLM — done `a6f9bb8` (pytest 120 green; removed from all 4 prompt payloads; leak test added)
+- [x] T3.8 api-contract stable-list completion + `SuggestionItem` drift — done `722b309` (web build + vitest green; dropped unused `label` from shared SuggestionItem; added catalog+companions endpoints to stable list)
 
 ## T4 — Frontend correctness/perf
 - [x] T4.1 `runSearch` sequence guard + single URL writer — done `eb17361` (clean web build green; monotonic runSearchIdRef drops stale responses + guards the spinner). PARTIAL: the two URL writers (`reflectSearchUrl` set vs `resetSearch` clear) are non-competing (different ops), not a race; consolidating them risks URL-state regressions I can't verify overnight → left as a design note, not unified.
@@ -56,16 +56,16 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T5.2 tafssir-safety trio (copy «آلية», forced export disclaimer, default-mode confirmation) — done `aa4ee1f` (clean build green). Forced export disclaimer: a tafssir session's disclaimer toggle is now checked+disabled+«إلزامي» and always travels. Default-mode confirmation: switching the account default to tafssir now shows an in-app «تجريبي» alertdialog requiring confirmation. **«آلية» copy: NOT done** — no `آلية` string exists in the web app and the exact target/replacement is unspecified; guessing product copy would be wrong → left as a copy note for the owner.
 - [x] T5.3 intent rule softening (6-word rule requires interrogative or ؟; SR-visible chip) — done `da029fa` (clean build + 17 vitest green; `looksLikeQuestion` 6-word rule now requires an interrogative cue; command-bar adds a visually-hidden `aria-live` region announcing how Enter will act)
 - [x] T5.4 evidence persistence server-side (versioned StoredMessage) — done `bc06b2e` (clean build + backend 42 + 17 vitest green; api-contract updated). New versioned `StoredMessage` shape in shared (`{v?,role,content,response?}`); Studio saves the assistant `response` and restore rebuilds evidence cards; legacy rows restore as plain text; bounded by the T1.7 storage caps; backend stays permissive (`List[Dict]`).
-- [x] T5.5 dialog a11y (useDialog) + aria-pressed + settings segments + MoreSheet keyboard — done `<pending>` (full `rm -rf .next` clean build + 17 vitest green). New `useDialog` hook (focus trap + Escape + focus restore) applied to ExportModal, StudioAuthModal, MoreSheet; `aria-pressed` on strict/tafssir tabs + all settings segments; MoreSheet theme-toggle span now keyboard-activatable (Enter/Space). NOTE: switched gate builds to `rm -rf .next` — tsbuildinfo-only clearing masked a duplicate-attribute type error; the full clean build is authoritative and the whole branch type-checks from scratch.
-- [x] T5.6 guest onboarding variant + skip affordance — done `<pending>` (clean build green). **Skip affordance shipped**: the welcome flow's avatar step now has a «تخطّي والبدء مباشرةً» link that marks onboarded + proceeds. **Guest-variant = design note**: guests currently go straight from Landing («تصفّح كضيف») into the app; a first-run guest intro (lightweight 3-card variant, no avatar/name, `qb.guest.onboarded` flag) needs a product decision on the entry point + copy before building — flagged rather than shipped speculatively.
+- [x] T5.5 dialog a11y (useDialog) + aria-pressed + settings segments + MoreSheet keyboard — done `19a07d1` (full `rm -rf .next` clean build + 17 vitest green). New `useDialog` hook (focus trap + Escape + focus restore) applied to ExportModal, StudioAuthModal, MoreSheet; `aria-pressed` on strict/tafssir tabs + all settings segments; MoreSheet theme-toggle span now keyboard-activatable (Enter/Space). NOTE: switched gate builds to `rm -rf .next` — tsbuildinfo-only clearing masked a duplicate-attribute type error; the full clean build is authoritative and the whole branch type-checks from scratch.
+- [x] T5.6 guest onboarding variant + skip affordance — done `2c59832` (clean build green). **Skip affordance shipped**: the welcome flow's avatar step now has a «تخطّي والبدء مباشرةً» link that marks onboarded + proceeds. **Guest-variant = design note**: guests currently go straight from Landing («تصفّح كضيف») into the app; a first-run guest intro (lightweight 3-card variant, no avatar/name, `qb.guest.onboarded` flag) needs a product decision on the entry point + copy before building — flagged rather than shipped speculatively.
 - [~] T5.7 form chips (backend form-grouping endpoint + concordance chips) — **design note**. New feature spanning backend + UI + visual verification, best as a dedicated slice. Spec: add `GET /api/root-forms?root_id=&mushaf=` → `{ root_text, forms: [{ text, count }] }` from `SELECT word_text, COUNT(*) FROM word_occurrences WHERE root_id=? GROUP BY word_text ORDER BY 2 DESC` (mushaf-scoped via the ayah join); mirror the shape in `packages/shared` + `api-client` + `docs/api-contract.md` + a `tests/test_api.py` case. Frontend: render the forms as filter chips atop the concordance results (`concordance-panel.tsx`), toggling a client-side filter of `state.results` verses by surface form. Needs the app running to verify chip layout + filter behavior.
 - [~] T5.8 pinned-context handoff — [stretch] **design note**. Let a user pin ayahs/roots as persistent context that travels into a new Studio session's prompt. Spec: a small pinned-context store (reuse the notebook or a `qb.pinned` client store), a chip tray in the command bar / studio header, and `askInNewSession` prefixes the pinned references into the first message. Deferred as a stretch bet needing product shaping.
 
 ## T6 — Identity completion
 - [ ] T6.1 Password reset (token flow; console/manual delivery, UI wired) — todo
-- [x] T6.2 account deletion (erase user rows + sessions; confirmation modal) — done `<pending>` (backend test + clean build green). `DELETE /api/auth/account` erases all app data (notebook/sessions/roots/prefs/merge-log) + the user row + every session, clears the cookie; guest data untouched. Account-settings danger zone with an in-card confirmation. api-client `deleteAccount` + api-contract updated.
+- [x] T6.2 account deletion (erase user rows + sessions; confirmation modal) — done `4064059` (backend test + clean build green). `DELETE /api/auth/account` erases all app data (notebook/sessions/roots/prefs/merge-log) + the user row + every session, clears the cookie; guest data untouched. Account-settings danger zone with an in-card confirmation. api-client `deleteAccount` + api-contract updated.
 - [ ] T6.3 unified session probe (one context; rename refreshes rail) — todo
-- [x] T6.4 error-report URL → pathname strip — done `<pending>` (clean build green; diagnostic bundle now records `window.location.pathname` only — never the query string, which can carry the user's search text).
+- [x] T6.4 error-report URL → pathname strip — done `d296be0` (clean build green; diagnostic bundle now records `window.location.pathname` only — never the query string, which can carry the user's search text).
 
 ## T7 — Hardening artifacts
 - [ ] T7.1 compose log-rotation + resource limits — [artifact], todo
@@ -131,10 +131,13 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 | **T2 Test harness** | 1 | 1 | **100%** — Vitest + 17 tests |
 | **T3 Backend correctness/perf** | 8 | 8 | **100%** — all shipped + tested |
 | **T4 Frontend correctness/perf** | 11 | 9 | **~82% shipped** (T4.1 URL-writer half partial); T4.2 + T4.9 = design notes |
-| **T5 UX remainder** | 8 | 3 | **~38%** — T5.2, T5.3, T5.5 shipped; T5.1/4/6/7/8 unreached (large multi-file features) |
-| **T6 Identity completion** | 4 | 0 | unreached |
-| **T7 Hardening artifacts** | 7 | 0 | unreached |
-| **T8 Product bets** | 5 | 0 | unreached |
+| **T5 UX remainder** | 8 | 6 | **~75%** — T5.1/2/3/4/5/6 shipped; T5.7 + T5.8 design notes |
+| **T6 Identity completion** | 4 | 2 | **~50%** — T6.2, T6.4 shipped; T6.1/T6.3 in progress (/loop) |
+| **T7 Hardening artifacts** | 7 | 0 | in progress (/loop) |
+| **T8 Product bets** | 5 | 0 | in progress (/loop) |
+
+_The run continued past the initial report under `/loop` — the per-item ledger above is authoritative;
+this table is a running snapshot._
 
 **Gates at close:** `pytest -q` = **129 passed**. Web build = **green** (authoritative `rm -rf .next` full clean build — the whole branch type-checks from scratch). Vitest = **17 passed**. `docs/api-contract.md` updated for every touched contract (SSRF headers, rate-limit/invite/409/timing, guest-id merge, storage caps, `/api/ready`, endpoint list, SuggestionItem).
 
