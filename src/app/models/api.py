@@ -22,7 +22,8 @@ class AuthSignupRequest(BaseModel):
     email: str = Field(..., min_length=3, max_length=320)
     password: str = Field(..., min_length=8, max_length=256)
     name: Optional[str] = Field(None, max_length=80)
-    # Optional invite code — accepted and echoed, not enforced yet.
+    # Optional invite code — enforced only when QBASAIR_INVITE_CODES is set
+    # (otherwise registration stays open).
     invite_code: Optional[str] = Field(None, max_length=64)
     device_label: Optional[str] = Field(None, max_length=120)
     platform: Optional[Platform] = "web"

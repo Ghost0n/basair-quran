@@ -105,17 +105,32 @@ def auth_login(req: AuthLoginRequest, request: Request, response: Response) -> A
     return AuthSessionResponse(enabled=True, authenticated=True, user=_user_info(user), token=raw_token)
 
 
+def _enforce_invite(invite_code: str | None) -> None:
+    """Gate signup behind an invite code when QBASAIR_INVITE_CODES is configured.
+
+    Unset ⇒ open registration (unchanged). Set ⇒ a wrong/missing code is 403.
+    """
+    codes = config.get_invite_codes()
+    if not codes:
+        return
+    if (invite_code or "").strip() not in codes:
+        raise HTTPException(status_code=403, detail="رمز الدعوة غير صالح.")
+
+
 @router.post("/signup", response_model=AuthSessionResponse)
 def auth_signup(req: AuthSignupRequest, request: Request, response: Response) -> AuthSessionResponse:
     if not config.is_auth_enabled():
         raise HTTPException(status_code=400, detail="Authentication is disabled.")
 
+    _enforce_invite(req.invite_code)
+
     try:
         user = auth_service.create_user(req.email, req.password, name=req.name)
+    except auth_service.EmailAlreadyExistsError as exc:
+        # Static message — never reflect whether the email exists (enumeration).
+        raise HTTPException(status_code=409, detail="تعذّر إنشاء الحساب بهذه البيانات.") from exc
     except auth_service.AuthError as exc:
-        message = str(exc)
-        status = 409 if "already exists" in message else 422
-        raise HTTPException(status_code=status, detail=message) from exc
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     raw_token, _ = auth_service.create_session(
         user.id, device_label=req.device_label, platform=req.platform

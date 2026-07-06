@@ -202,6 +202,18 @@
 
 /* ---------- Devices ---------- */
 
+.qb-devices-error {
+  margin-top: var(--sp-2);
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--danger-fg);
+  background: rgba(220, 90, 80, 0.08);
+  color: var(--danger-fg);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-arabic-ui);
+}
+
 .qb-devices {
   display: flex;
   flex-direction: column;

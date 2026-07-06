@@ -17,8 +17,8 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T1.1 (0.10) Open-redirect fix (`sanitizeNextPath` backslash/control bypass) — done `1ed1ec1` (web build green)
 - [x] T1.2 (0.8) Client research settings default to `""` — done `c1e6f67` (web build green; blank defaults ⇒ no override headers)
 - [x] T1.3 (0.1) SSRF closure (allowlist + no server-key fallback + truncate reflected bodies) — done `505b947` (pytest 108 green; 6 new tests; api-contract updated)
-- [x] T1.4 (0.4) Secret/cookie hardening (fail-hard on default secret when auth on) — done `<pending>` (pytest 110 green; compose now requires secret + SECURE:-1)
-- [ ] T1.5 (0.11) Invite + rate limit + 409 de-reflection + timing fix + device-eject surfacing — todo
+- [x] T1.4 (0.4) Secret/cookie hardening (fail-hard on default secret when auth on) — done `079b632` (pytest 110 green; compose now requires secret + SECURE:-1)
+- [x] T1.5 (0.11) Invite + rate limit + 409 de-reflection + timing fix + device-eject surfacing — done `<pending>` (pytest 114 green; web build green; api-contract updated)
 - [ ] T1.6 (0.9) guest_id merge scoping (additive migration) — todo
 - [ ] T1.7 (0.12) Storage caps on `ResearchSessionSave.messages` — todo
 - [ ] T1.8 (0.7) `/api/ready` (DB SELECT 1 + commit SHA) — todo
@@ -89,6 +89,10 @@ Ledger is updated immediately after each item; on restart, resume from here and 
   stays `0` (local http dev). **Human rollout**: ensure `.env.production` defines a strong
   `QBASAIR_SESSION_SECRET` before the next deploy or `docker compose up` will refuse to start.
   → recorded for docs/phase-0-rollout.md.
+- T1.5: rate-limit defaults chosen conservatively to avoid breaking legit use — window 60s,
+  auth 20/min, research 60/min (env-tunable `QBASAIR_RATE_LIMIT_*`). In-memory per-IP (single-process
+  uvicorn), reset between tests via an autouse conftest fixture. 409/403/timing messages are all static
+  Arabic (no email reflection). Invite enforced only when `QBASAIR_INVITE_CODES` is set.
 
 ## Log (chronological)
 - Ledger created; T1 starting.

@@ -185,6 +185,36 @@ def is_session_secure() -> bool:
     return read_bool_env("QBASAIR_SESSION_SECURE")
 
 
+def get_invite_codes() -> set[str]:
+    """Signup invite codes. Empty set ⇒ open registration (current behavior)."""
+    raw = os.environ.get("QBASAIR_INVITE_CODES", "")
+    return {part.strip() for part in raw.split(",") if part.strip()}
+
+
+def _read_int_env(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw.strip())
+    except ValueError:
+        return default
+
+
+def get_rate_limit(bucket: str) -> tuple[float, int]:
+    """Return ``(window_seconds, max_requests)`` for a rate-limit bucket.
+
+    A non-positive ``max_requests`` disables limiting for that bucket. Limits are
+    per-IP sliding windows (single-process uvicorn); tune via env in production.
+    """
+    window = float(max(1, _read_int_env("QBASAIR_RATE_LIMIT_WINDOW_SECONDS", 60)))
+    if bucket == "auth":
+        return window, _read_int_env("QBASAIR_RATE_LIMIT_AUTH_MAX", 20)
+    if bucket == "research":
+        return window, _read_int_env("QBASAIR_RATE_LIMIT_RESEARCH_MAX", 60)
+    return window, 0
+
+
 def is_low_memory_mode() -> bool:
     """Return True when runtime caches should favor lower memory usage."""
     return read_bool_env("QBASAIR_LOW_MEMORY_MODE")

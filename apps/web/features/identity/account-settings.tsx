@@ -49,6 +49,7 @@ export function AccountSettings() {
   const [picking, setPicking] = useState(false);
   const [ready, setReady] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
+  const [deviceError, setDeviceError] = useState<string | null>(null);
 
   // Keep the name field seeded from the loaded profile (and after a save).
   useEffect(() => {
@@ -143,11 +144,20 @@ export function AccountSettings() {
   }
 
   async function eject(sessionId: number) {
+    // Optimistic removal, but never leave a false success: if the server does
+    // not actually revoke the session, restore the row and surface the failure.
+    setDeviceError(null);
+    const previous = devices;
     setDevices((list) => list.filter((device) => device.id !== sessionId));
     try {
-      await api.ejectDevice(sessionId, { suppressAuthRedirect: true });
+      const result = await api.ejectDevice(sessionId, { suppressAuthRedirect: true });
+      if (!result.deleted) {
+        setDevices(previous);
+        setDeviceError("تعذّر إخراج الجهاز. حاول مرة أخرى.");
+      }
     } catch {
-      /* ignore */
+      setDevices(previous);
+      setDeviceError("تعذّر إخراج الجهاز. تحقّق من اتصالك وأعد المحاولة.");
     }
   }
 
@@ -227,6 +237,11 @@ export function AccountSettings() {
       <section className="qb-setting-card">
         <h3>الأجهزة النشطة{devices.length ? ` · ${formatNumber(devices.length)}` : ""}</h3>
         <p className="card-sub">الجلسات المتصلة بحسابك — يمكنك إخراج أيّ جهاز.</p>
+        {deviceError ? (
+          <div className="qb-devices-error" role="alert">
+            {deviceError}
+          </div>
+        ) : null}
         <div className="qb-devices">
           {devices.map((device) => (
             <div key={device.id} className="qb-device-row">

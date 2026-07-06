@@ -54,6 +54,15 @@ class AuthError(ValueError):
     """Raised when auth management input is invalid."""
 
 
+class EmailAlreadyExistsError(AuthError):
+    """Raised when signup targets an email that is already registered."""
+
+
+# A fixed salt used only to burn an equivalent scrypt on the login miss path, so
+# an unknown email costs the same wall-clock as a known one (no enumeration oracle).
+_DUMMY_PASSWORD_SALT_HEX = "00" * 16
+
+
 def normalize_email(email: str) -> str:
     normalized = email.strip().lower()
     if not normalized or "@" not in normalized:
@@ -195,7 +204,7 @@ def create_user(email: str, password: str, *, name: str | None = None, is_admin:
             connection.commit()
             user_id = int(cursor.lastrowid)
     except sqlite3.IntegrityError as exc:
-        raise AuthError(f"User '{normalized_email}' already exists.") from exc
+        raise EmailAlreadyExistsError(f"User '{normalized_email}' already exists.") from exc
 
     return AuthUser(
         id=user_id,
@@ -329,6 +338,9 @@ def authenticate_user(email: str, password: str) -> AuthUser | None:
         ).fetchone()
 
     if row is None or not bool(row["is_active"]):
+        # Burn an equivalent scrypt so a missing/inactive account is not
+        # distinguishable from a wrong password by response time.
+        _hash_password(password, _DUMMY_PASSWORD_SALT_HEX)
         return None
 
     _, candidate_hash = _hash_password(password, str(row["password_salt"]))

@@ -126,17 +126,24 @@ This document freezes the backend contract that the future frontend migration wi
   **either** an httpOnly cookie (web) **or** an `Authorization: Bearer` header (native; Bearer takes
   precedence). Each token is one row of the `sessions` table (also the devices registry); only its sha256
   hash is stored, and every authenticated request slides the 14-day expiry. Config env:
-  - `QBASAIR_SESSION_SECRET`
+  - `QBASAIR_SESSION_SECRET` (required when auth is enabled — the app refuses to start on the dev default)
   - `QBASAIR_SESSION_COOKIE_NAME`
   - `QBASAIR_SESSION_SECURE`
+- **Rate limiting.** `POST /api/auth/login`, `POST /api/auth/signup`, and `POST /api/research-agent` carry a
+  per-IP sliding-window throttle (in-memory, single-process). Exhausting a window returns
+  `429 { "detail": "…" }`. Tunable via `QBASAIR_RATE_LIMIT_WINDOW_SECONDS`, `QBASAIR_RATE_LIMIT_AUTH_MAX`
+  (default 20), and `QBASAIR_RATE_LIMIT_RESEARCH_MAX` (default 60).
 - **One-time re-login on deploy.** Switching the identity source from signed-cookie sessions to the token
   table invalidates any pre-existing signed-cookie sessions — users sign in once after this ships.
 - `GET /api/auth/session` returns `{ enabled, authenticated, user }`. `user` carries `name`, `avatar`
   (a calligraphic medallion character/index — not an image URL), and `onboarded`.
 - `POST /api/auth/login` accepts `email`, `password`, and optional `device_label` / `platform`; it mints a
   session and returns the raw `token` (native clients keep it; the web app uses the cookie).
-- `POST /api/auth/signup` accepts `email`, `password`, optional `name`, optional `invite_code` (accepted and
-  echoed, **not enforced** yet), and optional `device_label` / `platform`. Duplicate email → `409`.
+- `POST /api/auth/signup` accepts `email`, `password`, optional `name`, optional `invite_code`, and optional
+  `device_label` / `platform`. Duplicate email → `409` with a **static** detail (never reflects whether the
+  email exists). When `QBASAIR_INVITE_CODES` (comma-separated) is set, a missing/wrong `invite_code` → `403`;
+  when unset, registration stays open. Login runs a constant-time hash on unknown emails to avoid an
+  enumeration timing oracle.
 - `POST /api/auth/logout` revokes the current session row and clears the cookie.
 - `PATCH /api/auth/profile` (auth) sets `name` / `avatar` / `onboarded` — used by the avatar picker and the
   once-per-account onboarding.

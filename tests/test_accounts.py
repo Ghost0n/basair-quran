@@ -5,6 +5,77 @@ from test_auth import build_auth_client
 from src.app.services import app_data_service, auth_service
 
 
+# --- Auth hardening (T1.5): invite gate, 409 de-reflection, timing, rate limit ---
+
+
+def test_signup_conflict_does_not_reflect_email(tmp_path, monkeypatch):
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        client.post(
+            "/api/auth/signup",
+            json={"email": "reflect@example.com", "password": "hidayah8"},
+        )
+        duplicate = client.post(
+            "/api/auth/signup",
+            json={"email": "reflect@example.com", "password": "hidayah8"},
+        )
+        assert duplicate.status_code == 409
+        assert "reflect@example.com" not in duplicate.json()["detail"]
+    finally:
+        finalize()
+
+
+def test_signup_requires_invite_when_configured(tmp_path, monkeypatch):
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        monkeypatch.setenv("QBASAIR_INVITE_CODES", "letmein, second-code")
+
+        missing = client.post(
+            "/api/auth/signup",
+            json={"email": "guest@example.com", "password": "hidayah8"},
+        )
+        assert missing.status_code == 403
+
+        wrong = client.post(
+            "/api/auth/signup",
+            json={"email": "guest@example.com", "password": "hidayah8", "invite_code": "nope"},
+        )
+        assert wrong.status_code == 403
+
+        ok = client.post(
+            "/api/auth/signup",
+            json={"email": "guest@example.com", "password": "hidayah8", "invite_code": "second-code"},
+        )
+        assert ok.status_code == 200
+    finally:
+        finalize()
+
+
+def test_unknown_email_login_returns_401(tmp_path, monkeypatch):
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        response = client.post(
+            "/api/auth/login",
+            json={"email": "ghost@example.com", "password": "whatever8"},
+        )
+        assert response.status_code == 401
+    finally:
+        finalize()
+
+
+def test_login_is_rate_limited_after_threshold(tmp_path, monkeypatch):
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        monkeypatch.setenv("QBASAIR_RATE_LIMIT_AUTH_MAX", "2")
+        payload = {"email": "ghost@example.com", "password": "whatever8"}
+        assert client.post("/api/auth/login", json=payload).status_code == 401
+        assert client.post("/api/auth/login", json=payload).status_code == 401
+        throttled = client.post("/api/auth/login", json=payload)
+        assert throttled.status_code == 429
+    finally:
+        finalize()
+
+
 def test_signup_creates_account_and_session(tmp_path, monkeypatch):
     client, finalize = build_auth_client(tmp_path, monkeypatch)
     try:
