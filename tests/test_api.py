@@ -459,3 +459,19 @@ def test_phrase_metadata_is_memoized_per_mushaf(api_client):
     first = quran_service.get_mushaf_phrase_metadata(cursor, 1)
     second = quran_service.get_mushaf_phrase_metadata(cursor, 1)
     assert first is second
+
+
+def test_mushafs_expose_normalized_riwayah(api_client):
+    """T8.2: each mushaf carries a normalized riwāyah key for mismatch detection."""
+    from src.app.routes.mushafs import _riwayah_for_mushaf
+
+    assert _riwayah_for_mushaf("حفص") == "hafs"
+    assert _riwayah_for_mushaf("ورش") == "warsh"
+    assert _riwayah_for_mushaf("قالون") == "qaloun"
+    assert _riwayah_for_mushaf("السوسي") == "sousi"
+    assert _riwayah_for_mushaf("unknown name") == "hafs"
+
+    response = api_client.get("/api/mushafs")
+    assert response.status_code == 200
+    for mushaf in response.json():
+        assert "riwayah" in mushaf and mushaf["riwayah"]

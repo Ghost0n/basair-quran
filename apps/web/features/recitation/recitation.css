@@ -413,3 +413,18 @@
     display: none;
   }
 }
+
+/* Riwāyah mismatch notice (reciter's riwāyah ≠ displayed mushaf) */
+.qb-media-riwayah-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+  color: var(--danger-fg);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: var(--font-arabic-ui);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

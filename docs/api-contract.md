@@ -39,7 +39,8 @@ This document freezes the backend contract that the future frontend migration wi
 - `DELETE /api/auth/devices/{session_id}`
 - `POST /api/auth/merge-guest-data`
 - `POST /api/auth/merge-guest-data/undo`
-- `GET /api/mushafs`
+- `GET /api/mushafs` — each `MushafItem` now includes a normalized `riwayah` key (matches
+  `ReciterItem.riwayah`), so the UI can flag a reciter/mushaf riwāyah mismatch during recitation.
 - `GET /api/surahs`
 - `GET /api/reciters`
 - `GET /api/root-distribution`

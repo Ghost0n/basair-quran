@@ -115,6 +115,9 @@ class MushafItem(BaseModel):
     id: int
     name: str
     description: Optional[str] = None
+    # Normalized riwāyah key (matches ReciterItem.riwayah), for reciter/mushaf
+    # mismatch detection. Defaults to hafs when unknown.
+    riwayah: str = "hafs"
 
 
 class SuggestionItem(BaseModel):

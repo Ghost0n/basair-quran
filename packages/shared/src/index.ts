@@ -4,6 +4,8 @@ export interface MushafItem {
   id: number;
   name: string;
   description?: string | null;
+  /** Normalized riwāyah key (matches ReciterItem.riwayah). */
+  riwayah?: string;
 }
 
 export type DevicePlatform = "web" | "ios" | "android" | "desktop";

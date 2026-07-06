@@ -12,7 +12,7 @@ import {
 } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { ReciterItem, SurahListItem } from "@q-basair/shared";
+import type { MushafItem, ReciterItem, SurahListItem } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
 import { usePreferences } from "@/lib/preferences-context";
@@ -27,6 +27,8 @@ export type RecitationPosition = { surah: number; ayah: number };
 
 type RecitationValue = {
   reciters: ReciterItem[];
+  /** Mushaf catalogue (with riwāyah), for reciter/mushaf mismatch detection. */
+  mushafs: MushafItem[];
   reciterId: string;
   reciter: ReciterItem | null;
   current: RecitationPosition | null;
@@ -67,6 +69,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   const { preferences } = usePreferences();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [reciters, setReciters] = useState<ReciterItem[]>([]);
+  const [mushafs, setMushafs] = useState<MushafItem[]>([]);
   const [surahs, setSurahs] = useState<SurahListItem[]>([]);
   const [reciterId, setReciterId] = useState<string>(() => preferences.reciter || "alafasy");
   // Once the user picks a reciter this session, stop auto-seeding from the pref.
@@ -86,11 +89,12 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([api.getReciters(), api.getSurahs()])
-      .then(([reciterList, surahList]) => {
+    Promise.all([api.getReciters(), api.getSurahs(), api.getMushafs()])
+      .then(([reciterList, surahList, mushafList]) => {
         if (cancelled) return;
         setReciters(reciterList);
         setSurahs(surahList);
+        setMushafs(mushafList);
         if (reciterList[0]) setReciterId((current) => (reciterList.some((r) => r.id === current) ? current : reciterList[0].id));
       })
       .catch(() => {
@@ -232,6 +236,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   const value = useMemo<RecitationValue>(
     () => ({
       reciters,
+      mushafs,
       reciterId,
       reciter,
       current,
@@ -255,6 +260,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     }),
     [
       reciters,
+      mushafs,
       reciterId,
       reciter,
       current,

@@ -6,6 +6,7 @@ import type { KeyboardEvent, MouseEvent } from "react";
 
 import { Icon } from "@/components/icon";
 import { useNumerals } from "@/lib/preferences-context";
+import { useMushaf } from "@/features/reading/mushaf-context";
 
 import { ReciterDropdown } from "./reciter-dropdown";
 import { RECITATION_SPEEDS, useRecitation } from "./recitation-context";
@@ -24,8 +25,17 @@ import { RECITATION_SPEEDS, useRecitation } from "./recitation-context";
  */
 export function RecitationBar() {
   const recitation = useRecitation();
+  const mushaf = useMushaf();
   const formatNumber = useNumerals();
   const { current } = recitation;
+
+  // Riwāyah mismatch: the audio (reciter's riwāyah) won't match the displayed
+  // text when the reader is on a different riwāyah's mushaf.
+  const reciterRiwayah = recitation.reciter?.riwayah;
+  const readerRiwayah = recitation.mushafs.find((m) => m.id === mushaf.pageData?.mushaf_id)?.riwayah;
+  const riwayahMismatch = Boolean(
+    reciterRiwayah && readerRiwayah && reciterRiwayah !== readerRiwayah,
+  );
 
   // Seek by clicking (or arrowing) along the track. RTL: the fill grows from the
   // inline-start (right) edge, so ratio 0 is the right edge, 1 the left.
@@ -102,6 +112,13 @@ export function RecitationBar() {
             )
           }
         />
+
+        {riwayahMismatch ? (
+          <div className="qb-media-riwayah-warn" role="note">
+            <Icon name="alert" size={12} />
+            رواية القارئ تختلف عن رواية المصحف المعروض
+          </div>
+        ) : null}
 
         <div
           className={`qb-media-seek${current ? "" : " is-idle"}`}
