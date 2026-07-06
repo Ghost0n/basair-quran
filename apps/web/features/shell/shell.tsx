@@ -8,6 +8,7 @@ import { MergeToast } from "@/features/identity/merge-toast";
 import { MushafProvider } from "@/features/reading/mushaf-context";
 import { RecitationProvider } from "@/features/recitation/recitation-context";
 import { RecitationBar } from "@/features/recitation/recitation-bar";
+import { AuthSessionProvider } from "@/lib/auth-session-context";
 import { PreferencesProvider } from "@/lib/preferences-context";
 
 import { LeftRail } from "./left-rail";
@@ -27,6 +28,7 @@ import { WorkspaceProvider } from "./workspace-context";
  */
 export function Shell({ children }: { children: ReactNode }) {
   return (
+    <AuthSessionProvider>
     <PreferencesProvider>
       <MushafProvider>
         <RecitationProvider>
@@ -47,5 +49,6 @@ export function Shell({ children }: { children: ReactNode }) {
         </RecitationProvider>
       </MushafProvider>
     </PreferencesProvider>
+    </AuthSessionProvider>
   );
 }

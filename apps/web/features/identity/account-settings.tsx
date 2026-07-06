@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { AuthUserInfo, DeviceInfo } from "@q-basair/shared";
+import type { DeviceInfo } from "@q-basair/shared";
 
 import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-mark";
 import { Icon } from "@/components/icon";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { useAuthSession } from "@/lib/auth-session-context";
 import { clearGuestChoice } from "@/features/auth/identity-flow";
 import { useNumerals } from "@/lib/preferences-context";
 
@@ -44,10 +45,10 @@ function relativeTime(epochSeconds: number, formatNumber: (n: number) => string)
  */
 export function AccountSettings() {
   const formatNumber = useNumerals();
-  const [user, setUser] = useState<AuthUserInfo | null>(null);
+  // Shared session probe — a rename here propagates to the rail menu via patchUser.
+  const { user, ready, patchUser } = useAuthSession();
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [picking, setPicking] = useState(false);
-  const [ready, setReady] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [deviceError, setDeviceError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -59,20 +60,8 @@ export function AccountSettings() {
   }, [user?.name]);
 
   useEffect(() => {
-    if (!AUTH_ENABLED) {
-      setReady(true);
-      return;
-    }
+    if (!AUTH_ENABLED) return;
     let cancelled = false;
-    void api
-      .getAuthSession({ suppressAuthRedirect: true })
-      .then((session) => {
-        if (!cancelled && session.authenticated) setUser(session.user ?? null);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setReady(true);
-      });
     void api
       .getDevices({ suppressAuthRedirect: true })
       .then((list) => {
@@ -126,7 +115,7 @@ export function AccountSettings() {
 
   async function chooseMotif(next: AvatarMotif) {
     setPicking(false);
-    setUser((current) => (current ? { ...current, avatar: next } : current));
+    patchUser({ avatar: next });
     try {
       await api.updateProfile({ avatar: next }, { suppressAuthRedirect: true });
     } catch {
@@ -137,7 +126,7 @@ export function AccountSettings() {
   async function saveName() {
     const next = nameDraft.trim();
     if (!user || !next || next === (user.name || "")) return;
-    setUser((current) => (current ? { ...current, name: next } : current));
+    patchUser({ name: next });
     try {
       await api.updateProfile({ name: next }, { suppressAuthRedirect: true });
     } catch {

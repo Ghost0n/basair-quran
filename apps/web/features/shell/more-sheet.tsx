@@ -1,12 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-import type { AuthUserInfo } from "@q-basair/shared";
-
 import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-mark";
 import { Icon } from "@/components/icon";
 import { AUTH_ENABLED } from "@/lib/config";
+import { useAuthSession } from "@/lib/auth-session-context";
 import { useDialog } from "@/lib/use-dialog";
 import { clearGuestChoice, identityApi } from "@/features/auth/identity-flow";
 
@@ -30,22 +27,8 @@ type MoreSheetProps = {
  * The mobile counterpart of the desktop rail's account menu + settings button.
  */
 export function MoreSheet({ onClose, onOpenSettings, theme, onToggleTheme }: MoreSheetProps) {
-  const [user, setUser] = useState<AuthUserInfo | null>(null);
+  const { user } = useAuthSession();
   const sheetRef = useDialog<HTMLDivElement>(onClose);
-
-  useEffect(() => {
-    if (!AUTH_ENABLED) return;
-    let cancelled = false;
-    identityApi
-      .getAuthSession({ suppressAuthRedirect: true })
-      .then((session) => {
-        if (!cancelled && session.authenticated) setUser(session.user ?? null);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   async function signOut() {
     try {

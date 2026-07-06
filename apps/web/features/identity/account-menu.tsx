@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { AuthUserInfo } from "@q-basair/shared";
 
 import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-mark";
 import { Icon } from "@/components/icon";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { useAuthSession } from "@/lib/auth-session-context";
 import { clearGuestChoice } from "@/features/auth/identity-flow";
 
 import "./account-menu.css";
@@ -30,26 +30,10 @@ type AccountMenuProps = {
  * when auth is enabled; guests get a quiet sign-in link instead.
  */
 export function AccountMenu({ onOpenSettings }: AccountMenuProps) {
-  const [user, setUser] = useState<AuthUserInfo | null>(null);
+  const { user } = useAuthSession();
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ bottom: number; left: number }>({ bottom: 12, left: 80 });
   const btnRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!AUTH_ENABLED) return;
-    let cancelled = false;
-    api
-      .getAuthSession({ suppressAuthRedirect: true })
-      .then((session) => {
-        if (!cancelled && session.authenticated) setUser(session.user ?? null);
-      })
-      .catch(() => {
-        /* guest / offline */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   if (!AUTH_ENABLED) return null;
 
