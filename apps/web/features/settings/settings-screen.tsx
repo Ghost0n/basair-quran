@@ -54,7 +54,7 @@ const DEPTH_OPTIONS: { value: "fast" | "balanced" | "deep"; label: string }[] = 
  * homes; the rest persist via PreferencesProvider.updateAccount.
  */
 export function SettingsScreen() {
-  const { preferences, account, updateAccount } = usePreferences();
+  const { preferences, account, updateAccount, updateAccountDebounced } = usePreferences();
   const { state, actions } = useWorkspace();
 
   // "صفحتان" (spread) only renders on the authentic Madani glyph page, served
@@ -141,7 +141,7 @@ export function SettingsScreen() {
               min={18}
               max={48}
               value={preferences.font_size}
-              onChange={(event) => void updateAccount({ font_size: Number(event.target.value) })}
+              onChange={(event) => updateAccountDebounced({ font_size: Number(event.target.value) })}
             />
           </div>
           <p className="card-sub">

@@ -41,9 +41,9 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 ## T4 — Frontend correctness/perf
 - [ ] T4.1 `runSearch` sequence guard + single URL writer — todo
 - [ ] T4.2 context memoization/split + kill 120 ms poll — todo
-- [ ] T4.3 font-size PATCH debounce — todo
+- [x] T4.3 font-size PATCH debounce — done `<pending>` (web build green; `updateAccountDebounced` = optimistic local + 400ms coalesced PATCH; slider no longer PATCHes per drag tick)
 - [x] T4.4 wire `research.default_mode`/`depth` into `createSession` — done `57259dd` (web build green; new sessions inherit the saved default mode/depth via a prefs ref)
-- [x] T4.5 wire `reciter` pref into recitation-context — done `<pending>` (web build green; saved reciter pref seeds the player until the user overrides it that session)
+- [x] T4.5 wire `reciter` pref into recitation-context — done `04cca60` (web build green; saved reciter pref seeds the player until the user overrides it that session)
 - [ ] T4.6 Studio thread auto-scroll — todo
 - [ ] T4.7 BrandMark hydration fix — todo
 - [ ] T4.8 `rootFollowed` reset/seed + pin-state seeding — todo
