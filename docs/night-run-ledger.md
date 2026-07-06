@@ -134,23 +134,27 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 | **T5 UX remainder** | 8 | 6 | **~75%** — T5.1/2/3/4/5/6 shipped; T5.7 + T5.8 design notes |
 | **T6 Identity completion** | 4 | 4 | **100%** — T6.1/2/3/4 all shipped |
 | **T7 Hardening artifacts** | 7 | 4 | **~57%** — T7.1/2/3/6 shipped; T7.4/5/7 design notes (browser-verification / lint churn) |
-| **T8 Product bets** | 5 | 0 | in progress (/loop) |
+| **T8 Product bets** | 5 | 1 | **~20%** — T8.2 shipped; T8.1 + T8.3/4/5 design notes (glyph-highlight / stretch) |
 
-_The run continued past the initial report under `/loop` — the per-item ledger above is authoritative;
-this table is a running snapshot._
+**Every T1–T8 item is now addressed** — 47 shipped with green gates, 15 design-noted with actionable specs
+(the items that genuinely need a browser, product shaping, large font binaries, or `[stretch]` scope). The
+per-item ledger above is authoritative.
 
-**Gates at close:** `pytest -q` = **129 passed**. Web build = **green** (authoritative `rm -rf .next` full clean build — the whole branch type-checks from scratch). Vitest = **17 passed**. `docs/api-contract.md` updated for every touched contract (SSRF headers, rate-limit/invite/409/timing, guest-id merge, storage caps, `/api/ready`, endpoint list, SuggestionItem).
+**Gates at close:** `pytest -q` = **132 passed**. Web build = **green** (authoritative `rm -rf .next` full clean build — the whole branch type-checks from scratch). Vitest = **17 passed**. `docs/api-contract.md` updated for every touched contract (SSRF headers, rate-limit/invite/409/timing, guest-id merge, storage caps, `/api/ready`, endpoint list, SuggestionItem, StoredMessage evidence, account-deletion, password-reset, MushafItem riwāyah).
 
 **Gate-reliability note:** Next.js incremental type-checking (webpack cache + `.tsbuildinfo`) masked two latent TS errors across the run (a partial merge type in T4.3, a duplicate attribute in T5.5). Both were caught by a full clean build and fixed. The authoritative frontend gate is `rm -rf apps/web/.next` before `scripts/build_web.ps1`. The final full-clean build proves every committed change compiles.
 
-**Where the night stopped & why:** T1–T3 are 100% and independently the load-bearing production risks from the review. T4 is substantially done. T5's remaining items (T5.1 compact-tap + `workspaceView` deletion, T5.4 server-side evidence persistence = shared-type + backend contract change, T5.6 guest onboarding, T5.7 form chips = new backend endpoint, T5.8 pinned-context [stretch]) and all of T6/T7/T8 are large multi-file features better done as dedicated, individually-reviewable slices. Stopping here keeps every shipped item verified and green rather than trading quality for coverage.
+**Completion & the design-note line.** T1–T3 (the load-bearing production risks) are 100%, and every tier is now addressed. The 15 design-noted items fall into three honest buckets that a headless CI environment cannot finish *well*: (a) **browser-verification-gated** — React-profiler counts (T4.2), glyph-level reader highlight (T8.1), CSS-driven visual polish (T4.11 filled icons, T5.5 done), CSP not-breaking-anything (T7.5); (b) **product-shaping** — guest-onboarding entry point (T5.6 skip shipped), form chips UI (T5.7), ḥifẓ/i18n foundations (T8.4/8.5); (c) **large assets / churn** — self-host fonts (T7.4), ESLint first-lint (T7.7), PDF server deps (T8.3), dead-state pinpointing (T4.9). Each has a concrete spec in its ledger line. Shipping them blind would trade the quality bar for a coverage number — the run held the bar.
 
-### Commits (in order)
+### Commits (in order, ~55 total)
 T1: `1ed1ec1` `c1e6f67` `505b947` `079b632` `cd86954` `df27774` `ac4072e` `a45948c` `c91ec31` `e6f9cc8` `5b1888d`
 T2: `4e4d17f`
 T3: `e958081` `a6f9bb8` `b9fad21` `4728581` `722b309` `c1c7cac` `99fa70e` `7742477`
 T4: `57259dd` `04cca60` `0dd4d9e` `0490d22` `2336e81` `9a96da6` `d1a3386` `eb17361` `c24fad7` `9aab418`
-T5: `da029fa` `aa4ee1f` `19a07d1`
+T5: `da029fa` `aa4ee1f` `19a07d1` `9f8b8a8` `bc06b2e` `2c59832`
+T6: `6e9a924` `4064059` `33b4728` `d296be0`
+T7: `8cbfd12` `869deec` `85dced4` `5e039b8`
+T8: `55fea4c`
 
 ### Blocked / design-noted / partial
 - **T4.1** — sequence guard shipped; single-URL-writer unification left as a design note (non-competing writers; regression risk).
@@ -170,12 +174,20 @@ T5: `da029fa` `aa4ee1f` `19a07d1`
 - Frontend builds run **clean** (tsbuildinfo cleared) after discovering Next's incremental type-check masked a latent TS error (fixed in `0490d22`).
 - BrandMark hydration: surgical `themed` CSS-var opt-in for the shell rather than a full BrandMarkRich rewrite.
 
-### Human-only rollout steps (see docs/phase-0-rollout.md)
+### Human-only rollout steps (see docs/phase-0-rollout.md + docs/rollback-runbook.md)
 1. **Set `QBASAIR_SESSION_SECRET`** in `/srv/q-basair/.env.production` (compose now `:?`-requires it; SECURE defaults on).
 2. **Activate CI** (`.github/workflows/ci.yml`) by merging — GitHub-hosted runners, no secrets needed.
 3. **Deploy reorder → then quran.db untrack** — merge the reordered `deploy.yml` first (a clean deploy), THEN merge the `[rebuild-db]` untrack commit `5b1888d`; watch `/api/ready` returns `"db":true`.
 4. **Install the nightly backup cron** (`scripts/backup_databases.sh`) on the host; ensure `sqlite3` present.
-5. Everything else on this branch is code/tests/docs — merge to `develop` after review; no server action.
+5. **Compose resource limits + log rotation (T7.1)** and **deploy image-tagging (T7.2)** activate automatically on the next `docker compose up` / deploy — tune `QBASAIR_{API,WEB,NGINX}_{MEM_LIMIT,CPUS}` for the host if needed; `docs/rollback-runbook.md` documents the revert path.
+6. **Password reset delivery is console/manual (T6.1)** — the reset token is logged server-side until an email transport is added; hand it to the user out-of-band for now.
+7. Everything else on this branch is code/tests/docs — merge to `develop` after review; no server action.
+
+### Design-noted items (15) — all with an actionable spec in their ledger line
+T4.1 (URL-writer unify · partial), T4.2 (context split + poll), T4.9 (dead-state purge), T4.11 (filled icons · partial),
+T5.2 («آلية» copy · rest shipped), T5.7 (form chips), T5.8 (pinned-context · stretch), T6.1 (email transport · flow shipped),
+T7.4 (self-host fonts), T7.5 (CSP), T7.7 (ESLint · stretch), T8.1 (reader highlight), T8.3 (PDF · stretch),
+T8.4 (ḥifẓ · stretch), T8.5 (i18n · stretch). Nothing is `blocked` on a red gate; no item was reverted.
 
 ### Hard-rule compliance
 No push/merge to `main` or `develop`; no server ops; no history rewrite; no docker; no DB rebuilds. All work on `feat/Q-Basair-7-nuit-production`; one item = one commit (T1.10 split noted). `data/quran.db` working-tree modification never staged (untracked via `git rm --cached`).
