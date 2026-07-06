@@ -53,7 +53,7 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 
 ## T5 — UX remainder
 - [ ] T5.1 Compact verse/evidence tap → setMode("reading") + back affordance — todo
-- [x] T5.2 tafssir-safety trio (copy «آلية», forced export disclaimer, default-mode confirmation) — done `<pending>` (clean build green). Forced export disclaimer: a tafssir session's disclaimer toggle is now checked+disabled+«إلزامي» and always travels. Default-mode confirmation: switching the account default to tafssir now shows an in-app «تجريبي» alertdialog requiring confirmation. **«آلية» copy: NOT done** — no `آلية` string exists in the web app and the exact target/replacement is unspecified; guessing product copy would be wrong → left as a copy note for the owner.
+- [x] T5.2 tafssir-safety trio (copy «آلية», forced export disclaimer, default-mode confirmation) — done `aa4ee1f` (clean build green). Forced export disclaimer: a tafssir session's disclaimer toggle is now checked+disabled+«إلزامي» and always travels. Default-mode confirmation: switching the account default to tafssir now shows an in-app «تجريبي» alertdialog requiring confirmation. **«آلية» copy: NOT done** — no `آلية` string exists in the web app and the exact target/replacement is unspecified; guessing product copy would be wrong → left as a copy note for the owner.
 - [x] T5.3 intent rule softening (6-word rule requires interrogative or ؟; SR-visible chip) — done `da029fa` (clean build + 17 vitest green; `looksLikeQuestion` 6-word rule now requires an interrogative cue; command-bar adds a visually-hidden `aria-live` region announcing how Enter will act)
 - [ ] T5.4 evidence persistence server-side (versioned StoredMessage) — todo
 - [ ] T5.5 dialog a11y (useDialog) + aria-pressed + settings segments + MoreSheet keyboard — todo
@@ -117,3 +117,58 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - T2: Vitest 2.1.9 installed via pnpm (network available). Frontend gate is now web build + Vitest.
   Run locally: `scripts/test_web.ps1`. T3 (backend correctness/perf) next.
 - T3 complete (8/8 items). pytest 129 green. T4 (frontend correctness/perf) next.
+- T4 addressed (9/11 shipped, 2 design notes). T5 started.
+- T5: T5.2 + T5.3 shipped. Night ended here gracefully — final report below.
+
+---
+
+## FINAL REPORT — feat/Q-Basair-7-nuit-production (night run)
+
+### Per-tier completion
+| Tier | Scope | Shipped | Status |
+|---|---|---|---|
+| **T1 Security & pipeline** | 10 | 10 | **100%** — all shipped + verified |
+| **T2 Test harness** | 1 | 1 | **100%** — Vitest + 17 tests |
+| **T3 Backend correctness/perf** | 8 | 8 | **100%** — all shipped + tested |
+| **T4 Frontend correctness/perf** | 11 | 9 | **~82% shipped** (T4.1 URL-writer half partial); T4.2 + T4.9 = design notes |
+| **T5 UX remainder** | 8 | 2 | **~25%** — T5.2, T5.3 shipped; T5.1/4/5/6/7/8 unreached |
+| **T6 Identity completion** | 4 | 0 | unreached |
+| **T7 Hardening artifacts** | 7 | 0 | unreached |
+| **T8 Product bets** | 5 | 0 | unreached |
+
+**Gates at close:** `pytest -q` = **129 passed**. Web build = **green** (clean full build). Vitest = **17 passed**. `docs/api-contract.md` updated for every touched contract (SSRF headers, rate-limit/invite/409/timing, guest-id merge, storage caps, `/api/ready`, endpoint list, SuggestionItem).
+
+### Commits (in order)
+T1: `1ed1ec1` `c1e6f67` `505b947` `079b632` `cd86954` `df27774` `ac4072e` `a45948c` `c91ec31` `e6f9cc8` `5b1888d`
+T2: `4e4d17f`
+T3: `e958081` `a6f9bb8` `b9fad21` `4728581` `722b309` `c1c7cac` `99fa70e` `7742477`
+T4: `57259dd` `04cca60` `0dd4d9e` `0490d22` `2336e81` `9a96da6` `d1a3386` `eb17361` `c24fad7` `9aab418`
+T5: `da029fa` `aa4ee1f`
+
+### Blocked / design-noted / partial
+- **T4.1** — sequence guard shipped; single-URL-writer unification left as a design note (non-competing writers; regression risk).
+- **T4.2** — design note (context split + Yamli poll removal need React-profiler verification a headless env can't run).
+- **T4.9** — design note (dead-state purge needs the review's line pinpointing + a running app to verify safely).
+- **T4.11** — timer cleanups shipped; "filled icons" left as a visual-polish note.
+- **T5.2** — forced disclaimer + default-mode confirmation shipped; the «آلية» copy tweak has no target string in the code and was left as an owner copy note.
+- Nothing is `blocked` on a red gate. No item was reverted.
+
+### Decisions taken
+- §10.4b pre-mades used as-is (SSRF allowlist, invite-when-configured, in-memory rate-limit, fail-hard secret, static 409).
+- Rate-limit defaults: window 60s, auth 20/min, research 60/min (env-tunable); reset per test via autouse conftest fixture.
+- Guest-merge: `guest_id` device-token scoping (per §10.4b correction 1); the `qb.merged.{userId}` localStorage flag deleted (merge now idempotent).
+- Storage caps: 500 messages / 512 KB per session save.
+- `/api/ready`: ops-only endpoint; `shared`/`api-client` intentionally not touched (no frontend caller).
+- T1.10 split into two commits for safe human sequencing (deploy reorder before quran.db untrack).
+- Frontend builds run **clean** (tsbuildinfo cleared) after discovering Next's incremental type-check masked a latent TS error (fixed in `0490d22`).
+- BrandMark hydration: surgical `themed` CSS-var opt-in for the shell rather than a full BrandMarkRich rewrite.
+
+### Human-only rollout steps (see docs/phase-0-rollout.md)
+1. **Set `QBASAIR_SESSION_SECRET`** in `/srv/q-basair/.env.production` (compose now `:?`-requires it; SECURE defaults on).
+2. **Activate CI** (`.github/workflows/ci.yml`) by merging — GitHub-hosted runners, no secrets needed.
+3. **Deploy reorder → then quran.db untrack** — merge the reordered `deploy.yml` first (a clean deploy), THEN merge the `[rebuild-db]` untrack commit `5b1888d`; watch `/api/ready` returns `"db":true`.
+4. **Install the nightly backup cron** (`scripts/backup_databases.sh`) on the host; ensure `sqlite3` present.
+5. Everything else on this branch is code/tests/docs — merge to `develop` after review; no server action.
+
+### Hard-rule compliance
+No push/merge to `main` or `develop`; no server ops; no history rewrite; no docker; no DB rebuilds. All work on `feat/Q-Basair-7-nuit-production`; one item = one commit (T1.10 split noted). `data/quran.db` working-tree modification never staged (untracked via `git rm --cached`).
