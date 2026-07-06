@@ -26,11 +26,11 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T1.10 (0.3+0.2+0.6) deploy reorder + untrack commit + backup script + rollout runbook — [artifact] done (two commits for safe sequencing: `e6f9cc8` reorder+backup+runbook, `5b1888d` untrack `[rebuild-db]`)
 
 ## T2 — Test harness bootstrap
-- [x] T2.1 Vitest + config in apps/web; tests: sanitizeNextPath, looksLikeQuestion, numerals, suggestion dedupe — done `<pending>` (16 vitest tests green; dedupe extracted to a pure module; web build green; `scripts/test_web.ps1` + CI vitest step added)
+- [x] T2.1 Vitest + config in apps/web; tests: sanitizeNextPath, looksLikeQuestion, numerals, suggestion dedupe — done `4e4d17f` (16 vitest tests green; dedupe extracted to a pure module; web build green; `scripts/test_web.ps1` + CI vitest step added)
 
 ## T3 — Backend correctness/perf
 - [ ] T3.1 Phrase-metadata cache + kill double scan — todo
-- [ ] T3.2 `QBASAIR_DB_PATH` read — todo
+- [x] T3.2 `QBASAIR_DB_PATH` read — done `<pending>` (pytest 119 green; env now honored, was ignored)
 - [ ] T3.3 cache/connection locking (per-thread read-only connections) — todo
 - [ ] T3.4 expand/plan JSON fallbacks + `filter_ayahs_by_review` empty-set fix — todo
 - [ ] T3.5 bound did-you-mean caches + low-memory cache-not-skip — todo

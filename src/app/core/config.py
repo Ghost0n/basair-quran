@@ -41,7 +41,10 @@ def read_bool_env(name: str, default: bool = False) -> bool:
 
 
 def get_db_path() -> str:
-    return str(_db_path)
+    # Honor QBASAIR_DB_PATH when set (matches the other path getters); the
+    # module-global set via set_db_path is the fallback used by tests/startup.
+    raw_path = os.environ.get("QBASAIR_DB_PATH")
+    return str(Path(raw_path) if raw_path else _db_path)
 
 
 def set_db_path(path: str) -> None:

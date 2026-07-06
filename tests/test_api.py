@@ -395,3 +395,20 @@ def test_health_endpoint_stays_pure_liveness(api_client):
     response = api_client.get("/api/health")
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+
+
+def test_get_db_path_honors_env(monkeypatch):
+    """T3.2: QBASAIR_DB_PATH must actually be read (was previously ignored)."""
+    from pathlib import Path
+
+    from src.app.core import config
+
+    original = config.get_db_path()
+    try:
+        monkeypatch.setenv("QBASAIR_DB_PATH", "custom-quran.db")
+        assert config.get_db_path() == str(Path("custom-quran.db"))
+        monkeypatch.delenv("QBASAIR_DB_PATH", raising=False)
+        config.set_db_path("fallback-quran.db")
+        assert config.get_db_path() == str(Path("fallback-quran.db"))
+    finally:
+        config.set_db_path(original)
