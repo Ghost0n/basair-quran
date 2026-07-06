@@ -118,7 +118,9 @@ export async function sendDiagnosticReport(
     scope,
     user_message: input.userMessage,
     detail: input.detail,
-    url: typeof window !== "undefined" ? window.location.href : undefined,
+    // Pathname only — never the query string, which can carry the user's search
+    // text or other sensitive params into the diagnostic bundle.
+    url: typeof window !== "undefined" ? window.location.pathname : undefined,
     user_agent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
     at: Date.now(),
     breadcrumbs: [...breadcrumbs],
