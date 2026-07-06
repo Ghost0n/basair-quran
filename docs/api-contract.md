@@ -12,6 +12,10 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/research-agent/settings` is additive and exposes the active Ollama provider, available models, and plan-limit guidance for the research UI.
 - `/api/auth/*` provides the identity layer (signup, login, profile, devices, guest-merge) with hybrid
   gating: reading + search stay open to guests; only the Studio/research surface requires an account.
+- `GET /api/health` is pure liveness (never touches the DB; used by the container healthcheck).
+  `GET /api/ready` is the deploy gate: `{ status, db, commit, timestamp }` — runs `SELECT 1` against the
+  Quran DB and reports the running commit (`QBASAIR_COMMIT_SHA`); returns `503` when the DB is unreachable.
+  It is an ops endpoint with no frontend client method.
 
 ## Canonical schema source
 
@@ -22,6 +26,7 @@ This document freezes the backend contract that the future frontend migration wi
 ## Stable endpoints
 
 - `GET /api/health`
+- `GET /api/ready`
 - `GET /api/auth/session`
 - `POST /api/auth/login`
 - `POST /api/auth/signup`

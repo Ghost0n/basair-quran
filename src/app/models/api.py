@@ -14,6 +14,16 @@ class HealthResponse(BaseModel):
     timestamp: float
 
 
+class ReadyResponse(BaseModel):
+    """Deploy-gate readiness: DB reachable + running commit. Distinct from the
+    pure-liveness `/api/health` used by the container healthcheck."""
+
+    status: str
+    db: bool
+    commit: str
+    timestamp: float
+
+
 Platform = Literal["web", "ios", "android", "desktop"]
 
 

@@ -378,3 +378,20 @@ def test_session_save_rejects_oversized_messages(api_client):
 
     ok = {"id": "cap-ok", "messages": [{"role": "user", "content": "hello"}]}
     assert api_client.post("/api/sessions", json=ok).status_code == 200
+
+
+def test_ready_endpoint_reports_db_and_commit(api_client, monkeypatch):
+    """/api/ready (T1.8): DB SELECT 1 + commit SHA for the deploy gate."""
+    monkeypatch.setenv("QBASAIR_COMMIT_SHA", "abc1234")
+    response = api_client.get("/api/ready")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ready"
+    assert body["db"] is True
+    assert body["commit"] == "abc1234"
+
+
+def test_health_endpoint_stays_pure_liveness(api_client):
+    response = api_client.get("/api/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"

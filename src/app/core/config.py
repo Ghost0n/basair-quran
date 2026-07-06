@@ -114,6 +114,11 @@ def get_hafs_mushaf_id() -> int:
     return HAFS_MUSHAF_ID
 
 
+def get_commit_sha() -> str:
+    """The running commit, surfaced by /api/ready for the deploy gate."""
+    return os.environ.get("QBASAIR_COMMIT_SHA", "unknown").strip() or "unknown"
+
+
 def get_llm_provider() -> str:
     return os.environ.get("QBASAIR_LLM_PROVIDER", "ollama").strip().lower()
 
