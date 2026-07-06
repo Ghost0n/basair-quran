@@ -29,7 +29,7 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [x] T2.1 Vitest + config in apps/web; tests: sanitizeNextPath, looksLikeQuestion, numerals, suggestion dedupe — done `4e4d17f` (16 vitest tests green; dedupe extracted to a pure module; web build green; `scripts/test_web.ps1` + CI vitest step added)
 
 ## T3 — Backend correctness/perf
-- [x] T3.1 Phrase-metadata cache + kill double scan — done `<pending>` (pytest 129 green; memoized per-mushaf phrase metadata, eliminates the repeated full-mushaf scan)
+- [x] T3.1 Phrase-metadata cache + kill double scan — done `7742477` (pytest 129 green; memoized per-mushaf phrase metadata, eliminates the repeated full-mushaf scan)
 - [x] T3.2 `QBASAIR_DB_PATH` read — done `e958081` (pytest 119 green; env now honored, was ignored)
 - [x] T3.3 cache/connection locking (per-thread read-only connections) — done `c1c7cac` (pytest 126 green; threading.local + generation counter; cross-thread close reopens cleanly)
 - [x] T3.4 expand/plan JSON fallbacks + `filter_ayahs_by_review` empty-set fix — done `<pending>` (pytest 124 green; garbage JSON → deterministic plan; discard-only reviews now honored)
@@ -42,7 +42,7 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - [ ] T4.1 `runSearch` sequence guard + single URL writer — todo
 - [ ] T4.2 context memoization/split + kill 120 ms poll — todo
 - [ ] T4.3 font-size PATCH debounce — todo
-- [ ] T4.4 wire `research.default_mode`/`depth` into `createSession` — todo
+- [x] T4.4 wire `research.default_mode`/`depth` into `createSession` — done `<pending>` (web build green; new sessions inherit the saved default mode/depth via a prefs ref)
 - [ ] T4.5 wire `reciter` pref into recitation-context — todo
 - [ ] T4.6 Studio thread auto-scroll — todo
 - [ ] T4.7 BrandMark hydration fix — todo
