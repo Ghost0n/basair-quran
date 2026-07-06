@@ -9,11 +9,17 @@ export interface ClientResearchSettings {
 
 export const RESEARCH_SETTINGS_STORAGE_KEY = "qbasair.research.ollama";
 
+// All fields default to empty so an unconfigured client sends NO override
+// headers (`buildResearchHeaders` skips blank values). The backend then uses its
+// own env config — including the server-side Ollama key — instead of treating
+// the client's hard-coded defaults as an explicit `base_url` override, which
+// would (post-SSRF-closure) strip the server key from the request. The settings
+// inputs surface the server fallback via placeholders.
 export const DEFAULT_RESEARCH_SETTINGS: ClientResearchSettings = {
   apiKey: "",
-  baseUrl: "https://ollama.com",
-  chatModel: "gemma4:31b-cloud",
-  embedModel: "nomic-embed-text",
+  baseUrl: "",
+  chatModel: "",
+  embedModel: "",
 };
 
 export function loadClientResearchSettings(): ClientResearchSettings {

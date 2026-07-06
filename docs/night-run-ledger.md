@@ -14,8 +14,8 @@ Ledger is updated immediately after each item; on restart, resume from here and 
 - web build baseline: **green** (next build, all routes compiled).
 
 ## T1 — Security & pipeline
-- [x] T1.1 (0.10) Open-redirect fix (`sanitizeNextPath` backslash/control bypass) — done `<pending>` (web build green)
-- [ ] T1.2 (0.8) Client research settings default to `""` — todo
+- [x] T1.1 (0.10) Open-redirect fix (`sanitizeNextPath` backslash/control bypass) — done `1ed1ec1` (web build green)
+- [x] T1.2 (0.8) Client research settings default to `""` — done `<pending>` (web build green; blank defaults ⇒ no override headers)
 - [ ] T1.3 (0.1) SSRF closure (allowlist + no server-key fallback + truncate reflected bodies) — todo
 - [ ] T1.4 (0.4) Secret/cookie hardening (fail-hard on default secret when auth on) — todo
 - [ ] T1.5 (0.11) Invite + rate limit + 409 de-reflection + timing fix + device-eject surfacing — todo
