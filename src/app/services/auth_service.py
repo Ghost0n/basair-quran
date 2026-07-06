@@ -128,6 +128,16 @@ def ensure_auth_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions (token_hash);
             CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id, last_seen_at);
+
+            CREATE TABLE IF NOT EXISTS password_resets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE,
+                created_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL,
+                used_at INTEGER
+            );
+            CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets (token_hash);
             """
         )
         # Idempotent identity-column migration (name / avatar medallion / onboarded).
@@ -469,6 +479,78 @@ def revoke_session(session_id: int, user_id: int) -> bool:
         )
         connection.commit()
         return cursor.rowcount > 0
+
+
+# A reset token lives 1 hour and is single-use.
+PASSWORD_RESET_TTL_SECONDS = 60 * 60
+
+
+def create_password_reset(email: str) -> str | None:
+    """Mint a single-use password-reset token for ``email``.
+
+    Returns the raw token (delivered out-of-band — logged for manual delivery)
+    when the account exists, else ``None``. Only the token's sha256 hash is
+    stored. Callers must NOT reveal to the client whether the email existed.
+    """
+    ensure_auth_db()
+    try:
+        normalized_email = normalize_email(email)
+    except AuthError:
+        return None
+    with _connect() as connection:
+        row = connection.execute(
+            "SELECT id FROM users WHERE email = ? AND is_active = 1",
+            (normalized_email,),
+        ).fetchone()
+        if row is None:
+            return None
+        raw_token = secrets.token_urlsafe(32)
+        now = int(time.time())
+        connection.execute(
+            """
+            INSERT INTO password_resets (user_id, token_hash, created_at, expires_at, used_at)
+            VALUES (?, ?, ?, ?, NULL)
+            """,
+            (int(row["id"]), _hash_token(raw_token), now, now + PASSWORD_RESET_TTL_SECONDS),
+        )
+        connection.commit()
+    return raw_token
+
+
+def reset_password_with_token(raw_token: str, new_password: str) -> bool:
+    """Consume a reset token and set the user's password. Returns success.
+
+    Raises AuthError for a weak password (so the route can 422). A missing,
+    expired, or already-used token returns False (invalid). All the user's
+    sessions are revoked so a compromised password can't keep a live session.
+    """
+    if not raw_token:
+        return False
+    validated_password = validate_password(new_password)  # may raise AuthError
+    ensure_auth_db()
+    token_hash = _hash_token(raw_token)
+    now = int(time.time())
+    salt_hex, password_hash = _hash_password(validated_password)
+    with _connect() as connection:
+        row = connection.execute(
+            "SELECT id, user_id, used_at, expires_at FROM password_resets WHERE token_hash = ?",
+            (token_hash,),
+        ).fetchone()
+        if row is None or row["used_at"] is not None or int(row["expires_at"]) <= now:
+            return False
+        user_id = int(row["user_id"])
+        connection.execute(
+            "UPDATE users SET password_salt = ?, password_hash = ?, updated_at = ? WHERE id = ?",
+            (salt_hex, password_hash, now, user_id),
+        )
+        connection.execute(
+            "UPDATE password_resets SET used_at = ? WHERE id = ?",
+            (now, int(row["id"])),
+        )
+        # Invalidate every live session for this user.
+        connection.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+        connection.commit()
+    return True
 
 
 def delete_user(user_id: int) -> bool:

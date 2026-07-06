@@ -1,5 +1,6 @@
 import type {
   AuthLoginRequest,
+  AuthOkResponse,
   AuthProfileUpdate,
   AuthSessionResponse,
   AuthSignupRequest,
@@ -176,6 +177,20 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
       return request<DeleteResult>(
         "/auth/account",
         { method: "DELETE", headers: options?.headers },
+        options,
+      );
+    },
+    forgotPassword(email: string, options?: RequestOptions): Promise<AuthOkResponse> {
+      return request<AuthOkResponse>(
+        "/auth/forgot-password",
+        { method: "POST", headers: options?.headers, body: JSON.stringify({ email }) },
+        options,
+      );
+    },
+    resetPassword(token: string, password: string, options?: RequestOptions): Promise<AuthOkResponse> {
+      return request<AuthOkResponse>(
+        "/auth/reset-password",
+        { method: "POST", headers: options?.headers, body: JSON.stringify({ token, password }) },
         options,
       );
     },

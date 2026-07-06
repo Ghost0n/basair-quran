@@ -49,6 +49,10 @@ export interface AuthSessionResponse {
   token?: string | null;
 }
 
+export interface AuthOkResponse {
+  ok: boolean;
+}
+
 export interface DeviceInfo {
   id: number;
   device_label?: string | null;

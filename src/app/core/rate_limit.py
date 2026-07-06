@@ -11,6 +11,8 @@ from src.app.core import config
 _LIMITED_PATHS = {
     "/api/auth/login": "auth",
     "/api/auth/signup": "auth",
+    "/api/auth/forgot-password": "auth",
+    "/api/auth/reset-password": "auth",
     "/api/research-agent": "research",
 }
 

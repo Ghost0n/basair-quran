@@ -295,3 +295,32 @@ def test_account_deletion_erases_user_sessions_and_data(tmp_path, monkeypatch):
         assert auth_service.get_user_by_id(user_id) is None
     finally:
         finalize()
+
+
+def test_password_reset_flow(tmp_path, monkeypatch):
+    """T6.1: forgot-password mints a token; reset-password sets a new password."""
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        client.post("/api/auth/signup", json={"email": "forgot@example.com", "password": "oldpass12"})
+
+        # Forgot-password never reveals whether the account exists.
+        assert client.post("/api/auth/forgot-password", json={"email": "forgot@example.com"}).status_code == 200
+        assert client.post("/api/auth/forgot-password", json={"email": "nobody@example.com"}).status_code == 200
+
+        token = auth_service.create_password_reset("forgot@example.com")
+        assert token
+
+        # Wrong token → 400; weak password → 422.
+        assert client.post("/api/auth/reset-password", json={"token": "bad-token-xxxx", "password": "newpass12"}).status_code == 400
+        assert client.post("/api/auth/reset-password", json={"token": token, "password": "short"}).status_code == 422
+
+        # Valid reset → 200, old password no longer works, new one does.
+        ok = client.post("/api/auth/reset-password", json={"token": token, "password": "newpass12"})
+        assert ok.status_code == 200
+        assert auth_service.authenticate_user("forgot@example.com", "oldpass12") is None
+        assert auth_service.authenticate_user("forgot@example.com", "newpass12") is not None
+
+        # Token is single-use.
+        assert client.post("/api/auth/reset-password", json={"token": token, "password": "newpass12"}).status_code == 400
+    finally:
+        finalize()

@@ -31,6 +31,10 @@ export function LoginPageShell() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [checkingSession, setCheckingSession] = useState(true);
+  // Password-reset sub-flow (console/manual token delivery for now).
+  const [view, setView] = useState<"auth" | "forgot" | "reset">("auth");
+  const [resetToken, setResetToken] = useState("");
+  const [notice, setNotice] = useState("");
 
   const isSignup = tab === "up";
 
@@ -67,6 +71,50 @@ export function LoginPageShell() {
   function switchTab(next: AuthTab) {
     setTab(next);
     setError("");
+  }
+
+  async function requestReset() {
+    if (!email.trim()) {
+      setError("أدخل بريدك الإلكتروني أولاً.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      await identityApi.forgotPassword(email, { suppressAuthRedirect: true });
+    } catch {
+      // Deliberately ignore — never reveal whether the email exists.
+    }
+    setLoading(false);
+    setNotice("إن كان البريد مُسجَّلاً، فقد أُنشئ رمز إعادة تعيين. أدخِله مع كلمة مرور جديدة.");
+    setView("reset");
+  }
+
+  async function submitReset(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!resetToken.trim() || !password.trim()) {
+      setError("أدخل الرمز وكلمة المرور الجديدة (ثمانية أحرف فأكثر).");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      await identityApi.resetPassword(resetToken.trim(), password, { suppressAuthRedirect: true });
+      setNotice("تم تغيير كلمة المرور. سجّل الدخول بها الآن.");
+      setView("auth");
+      setPassword("");
+      setResetToken("");
+    } catch (err) {
+      const text = err instanceof Error ? err.message : "";
+      setError(text.includes(" 422") ? "كلمة المرور قصيرة (ثمانية أحرف فأكثر)." : "الرمز غير صالح أو منتهٍ.");
+    }
+    setLoading(false);
+  }
+
+  function backToAuth() {
+    setView("auth");
+    setError("");
+    setNotice("");
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -118,6 +166,67 @@ export function LoginPageShell() {
         <div className="qb-auth-sub">BASAIR · THE SCHOLAR&apos;S ROOM</div>
       </div>
 
+      {notice ? <div className="qb-auth-notice" role="status">{notice}</div> : null}
+
+      {view === "forgot" ? (
+        <div className="qb-auth-card" style={{ animation: "qbRise 500ms var(--motion-ease-settle) 160ms both" }}>
+          <div className="qb-auth-reset-title">إعادة تعيين كلمة المرور</div>
+          <label className="qb-auth-field">
+            <span className="label">البريد الإلكتروني</span>
+            <input
+              className="qb-auth-input ltr"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="name@example.com"
+              autoComplete="username"
+            />
+          </label>
+          {error ? <div className="qb-auth-error" role="alert">{error}</div> : null}
+          <button type="button" className="qb-auth-cta" onClick={requestReset} disabled={loading}>
+            {loading ? "لحظة…" : "أرسِل رمز إعادة التعيين"}
+          </button>
+          <button type="button" className="forgot" onClick={backToAuth}>
+            ← العودة لتسجيل الدخول
+          </button>
+        </div>
+      ) : view === "reset" ? (
+        <form
+          className="qb-auth-card"
+          onSubmit={submitReset}
+          style={{ animation: "qbRise 500ms var(--motion-ease-settle) 160ms both" }}
+        >
+          <div className="qb-auth-reset-title">أدخِل الرمز وكلمة المرور الجديدة</div>
+          <label className="qb-auth-field">
+            <span className="label">رمز إعادة التعيين</span>
+            <input
+              className="qb-auth-input ltr"
+              value={resetToken}
+              onChange={(event) => setResetToken(event.target.value)}
+              placeholder="RESET-TOKEN"
+              autoComplete="one-time-code"
+            />
+          </label>
+          <label className="qb-auth-field">
+            <span className="label">كلمة المرور الجديدة</span>
+            <input
+              className="qb-auth-input"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="ثمانية أحرف فأكثر"
+              autoComplete="new-password"
+            />
+          </label>
+          {error ? <div className="qb-auth-error" role="alert">{error}</div> : null}
+          <button type="submit" className="qb-auth-cta" disabled={loading}>
+            {loading ? "لحظة…" : "غيّر كلمة المرور"}
+          </button>
+          <button type="button" className="forgot" onClick={backToAuth}>
+            ← العودة لتسجيل الدخول
+          </button>
+        </form>
+      ) : (
       <form
         className="qb-auth-card"
         onSubmit={handleSubmit}
@@ -173,7 +282,15 @@ export function LoginPageShell() {
           <span className="label-row">
             <span className="label">كلمة المرور</span>
             {!isSignup ? (
-              <button type="button" className="forgot">
+              <button
+                type="button"
+                className="forgot"
+                onClick={() => {
+                  setError("");
+                  setNotice("");
+                  setView("forgot");
+                }}
+              >
                 نسيتها؟
               </button>
             ) : null}
@@ -210,6 +327,7 @@ export function LoginPageShell() {
           </div>
         ) : null}
       </form>
+      )}
 
       <button
         type="button"

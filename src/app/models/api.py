@@ -45,6 +45,19 @@ class AuthSignupRequest(BaseModel):
     platform: Optional[Platform] = "web"
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=320)
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., min_length=10, max_length=512)
+    password: str = Field(..., min_length=8, max_length=256)
+
+
+class AuthOkResponse(BaseModel):
+    ok: bool = True
+
+
 class AuthProfileUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=80)
     # A calligraphic medallion character/index — NOT an image URL.

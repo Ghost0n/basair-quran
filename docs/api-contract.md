@@ -32,6 +32,8 @@ This document freezes the backend contract that the future frontend migration wi
 - `POST /api/auth/signup`
 - `POST /api/auth/logout`
 - `DELETE /api/auth/account`
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
 - `PATCH /api/auth/profile`
 - `GET /api/auth/devices`
 - `DELETE /api/auth/devices/{session_id}`
@@ -158,6 +160,11 @@ This document freezes the backend contract that the future frontend migration wi
   when unset, registration stays open. Login runs a constant-time hash on unknown emails to avoid an
   enumeration timing oracle.
 - `POST /api/auth/logout` revokes the current session row and clears the cookie.
+- `POST /api/auth/forgot-password` `{ email }` always returns `{ ok: true }` (no account enumeration).
+  When the account exists it mints a single-use, 1-hour reset token — **delivery is console/manual for now**
+  (the token is logged server-side; email transport is a future step). Rate-limited (auth bucket).
+- `POST /api/auth/reset-password` `{ token, password }` consumes the token, sets the new password, and
+  **revokes all sessions**. `400` on invalid/expired/used token, `422` on a weak password. Rate-limited.
 - `DELETE /api/auth/account` (auth) permanently deletes the account: all app data (notebook, sessions,
   followed roots, preferences, merge log), then the user row and **every** session (all devices), and clears
   the cookie. Returns `{ deleted }`. Irreversible; guest (`user_id=0`) data is never touched.

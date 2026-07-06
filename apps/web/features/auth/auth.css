@@ -487,3 +487,27 @@
   opacity: 0.5;
   cursor: default;
 }
+
+/* Password-reset sub-flow */
+.qb-auth-notice {
+  max-width: 340px;
+  margin: 8px auto 0;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-strong);
+  background: var(--gold-a08, rgba(212,175,55,0.08));
+  color: var(--fg-1);
+  font-size: 12px;
+  line-height: 1.7;
+  font-family: var(--font-arabic-ui);
+  text-align: center;
+}
+
+.qb-auth-reset-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  margin-bottom: 4px;
+  text-align: center;
+}

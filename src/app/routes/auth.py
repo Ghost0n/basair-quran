@@ -5,17 +5,24 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from src.app.core import config
 from src.app.models.api import (
     AuthLoginRequest,
+    AuthOkResponse,
     AuthProfileUpdate,
     AuthSessionResponse,
     AuthSignupRequest,
     AuthUserInfo,
     DeleteResult,
     DeviceInfo,
+    ForgotPasswordRequest,
     GuestMergeRequest,
     GuestMergeResult,
     GuestMergeUndoRequest,
+    ResetPasswordRequest,
 )
+import logging
+
 from src.app.services import app_data_service, auth_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -144,6 +151,34 @@ def auth_logout(request: Request, response: Response) -> AuthSessionResponse:
     auth_service.revoke_session_by_token(_extract_token(request))
     _clear_session_cookie(response)
     return AuthSessionResponse(enabled=config.is_auth_enabled(), authenticated=False, user=None)
+
+
+@router.post("/forgot-password", response_model=AuthOkResponse)
+def auth_forgot_password(req: ForgotPasswordRequest) -> AuthOkResponse:
+    """Request a password-reset token. Always returns ok (no account
+    enumeration). Delivery is console/manual for now — the token is logged."""
+    if not config.is_auth_enabled():
+        raise HTTPException(status_code=400, detail="Authentication is disabled.")
+    raw_token = auth_service.create_password_reset(req.email)
+    if raw_token is not None:
+        # Manual delivery: surface the token in the server log until an email
+        # transport lands. Never returned to the client.
+        logger.info("Password reset requested — token for delivery: %s", raw_token)
+    return AuthOkResponse(ok=True)
+
+
+@router.post("/reset-password", response_model=AuthOkResponse)
+def auth_reset_password(req: ResetPasswordRequest) -> AuthOkResponse:
+    """Consume a reset token and set a new password. Invalidates all sessions."""
+    if not config.is_auth_enabled():
+        raise HTTPException(status_code=400, detail="Authentication is disabled.")
+    try:
+        ok = auth_service.reset_password_with_token(req.token, req.password)
+    except auth_service.AuthError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not ok:
+        raise HTTPException(status_code=400, detail="رمز إعادة التعيين غير صالح أو منتهٍ.")
+    return AuthOkResponse(ok=True)
 
 
 @router.delete("/account", response_model=DeleteResult)
