@@ -11,6 +11,7 @@ DEFAULT_SQLITE_CACHE_PAGES = 10000
 LOW_MEMORY_SQLITE_CACHE_PAGES = 2000
 LOW_MEMORY_MUSHAF_CACHE_LIMIT = 1
 LOW_MEMORY_QUERY_CACHE_LIMIT = 32
+DEFAULT_QUERY_CACHE_LIMIT = 2048
 SUPPORTED_PREFIX_LEMMAS = {"\u0648", "\u0641", "\u0628", "\u0643", "\u0644"}
 ARTICLE_LEMMA = "\u0627\u0644"
 PHRASE_SUGGESTION_MIN_CONFIDENCE = 0.88
@@ -242,11 +243,15 @@ def get_runtime_mushaf_cache_limit() -> int | None:
     return None
 
 
-def get_runtime_query_cache_limit() -> int | None:
-    """Return the did-you-mean cache entry limit, or None when unlimited."""
+def get_runtime_query_cache_limit() -> int:
+    """Return the did-you-mean cache entry limit.
+
+    These caches are keyed by arbitrary user query strings, so they must always
+    be bounded (previously unlimited in normal mode → unbounded memory growth).
+    """
     if is_low_memory_mode():
         return LOW_MEMORY_QUERY_CACHE_LIMIT
-    return None
+    return DEFAULT_QUERY_CACHE_LIMIT
 
 
 def get_cors_origins() -> list[str]:

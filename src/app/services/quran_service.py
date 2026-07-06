@@ -846,8 +846,9 @@ def get_mushaf_latin_root_index(cursor, mushaf):
             continue
         items.append({"text": row["root_text"], "variants": variants})
 
-    if not config.is_low_memory_mode():
-        put_cache_entry(_mushaf_latin_root_index_cache, cache_key, items, config.get_runtime_mushaf_cache_limit())
+    # Cache even in low-memory mode: the runtime limit (1 entry) already bounds
+    # memory, and skipping entirely would rebuild this index on every request.
+    put_cache_entry(_mushaf_latin_root_index_cache, cache_key, items, config.get_runtime_mushaf_cache_limit())
     return items
 
 
@@ -939,8 +940,7 @@ def get_mushaf_latin_word_index(cursor, mushaf):
             }
         )
 
-    if not config.is_low_memory_mode():
-        put_cache_entry(_mushaf_latin_word_index_cache, cache_key, items, config.get_runtime_mushaf_cache_limit())
+    put_cache_entry(_mushaf_latin_word_index_cache, cache_key, items, config.get_runtime_mushaf_cache_limit())
     return items
 
 
@@ -1491,13 +1491,12 @@ def collect_word_suggestion_candidates(cursor, mushaf):
                 }
 
     candidate_list = list(candidates.values())
-    if not config.is_low_memory_mode():
-        put_cache_entry(
-            _mushaf_word_suggestion_candidates_cache,
-            cache_key,
-            candidate_list,
-            config.get_runtime_mushaf_cache_limit(),
-        )
+    put_cache_entry(
+        _mushaf_word_suggestion_candidates_cache,
+        cache_key,
+        candidate_list,
+        config.get_runtime_mushaf_cache_limit(),
+    )
     return candidate_list
 
 

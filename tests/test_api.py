@@ -412,3 +412,12 @@ def test_get_db_path_honors_env(monkeypatch):
         assert config.get_db_path() == str(Path("fallback-quran.db"))
     finally:
         config.set_db_path(original)
+
+
+def test_query_cache_limit_is_bounded_in_normal_mode(monkeypatch):
+    """T3.5: the did-you-mean caches must be bounded even in normal mode."""
+    from src.app.core import config
+
+    monkeypatch.delenv("QBASAIR_LOW_MEMORY_MODE", raising=False)
+    limit = config.get_runtime_query_cache_limit()
+    assert isinstance(limit, int) and limit > 0
