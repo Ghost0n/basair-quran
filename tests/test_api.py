@@ -421,3 +421,31 @@ def test_query_cache_limit_is_bounded_in_normal_mode(monkeypatch):
     monkeypatch.delenv("QBASAIR_LOW_MEMORY_MODE", raising=False)
     limit = config.get_runtime_query_cache_limit()
     assert isinstance(limit, int) and limit > 0
+
+
+def test_get_db_is_per_thread_and_reopens_after_close(api_client):
+    """T3.3: each thread gets its own read-only connection; close reopens cleanly."""
+    import threading
+
+    from src.app.services import quran_service
+
+    main_conn = quran_service.get_db()
+    worker_conn = {}
+
+    def grab():
+        worker_conn["conn"] = quran_service.get_db()
+
+    thread = threading.Thread(target=grab)
+    thread.start()
+    thread.join()
+
+    # Distinct connection objects per thread (no shared cross-thread handle).
+    assert worker_conn["conn"] is not main_conn
+    # Same thread reuses its own handle.
+    assert quran_service.get_db() is main_conn
+
+    # After a close, the next get_db reopens a working connection.
+    quran_service.close_db_connection()
+    reopened = quran_service.get_db()
+    assert reopened is not main_conn
+    assert reopened.execute("SELECT 1").fetchone()[0] == 1
