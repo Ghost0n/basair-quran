@@ -15,6 +15,8 @@ import type { UserPreferences, UserPreferencesUpdate } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
 import { formatNumber } from "@/lib/numerals";
+// Side-effect: registers the guest-id header provider on the api-client.
+import "@/lib/guest-id";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 

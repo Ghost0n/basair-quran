@@ -44,6 +44,16 @@ export interface RequestOptions {
   suppressAuthRedirect?: boolean;
 }
 
+// A per-device guest token, injected on every request as `X-QBasair-Guest-Id`
+// so guest (user_id=0) writes are stamped and a later guest→account merge can be
+// scoped to the caller's own rows. The web app registers a provider that reads
+// (and lazily creates) the token; server-side / unregistered ⇒ no header.
+let guestIdProvider: (() => string | null | undefined) | null = null;
+
+export function setGuestIdProvider(provider: (() => string | null | undefined) | null): void {
+  guestIdProvider = provider;
+}
+
 function formatErrorDetail(detail: unknown): string {
   if (typeof detail === "string") {
     return detail;
@@ -78,9 +88,11 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
   const baseUrl = options.baseUrl.replace(/\/$/, "");
 
   async function request<T>(path: string, init?: RequestInit, options?: RequestOptions): Promise<T> {
+    const guestId = guestIdProvider?.();
     const mergedHeaders = {
       Accept: "application/json",
       ...(init?.body ? { "Content-Type": "application/json" } : {}),
+      ...(guestId ? { "X-QBasair-Guest-Id": guestId } : {}),
       ...(init?.headers ?? {}),
     };
 

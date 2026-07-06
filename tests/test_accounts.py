@@ -191,10 +191,11 @@ def test_devices_list_current_and_eject(tmp_path, monkeypatch):
 def test_guest_merge_moves_rows_and_undo_restores_them(tmp_path, monkeypatch):
     client, finalize = build_auth_client(tmp_path, monkeypatch)
     try:
-        # Seed guest (user_id=0) data as if browsed before signing up.
-        app_data_service.add_notebook_item({"ayah_id": 104, "surah": "الأنعام", "ayah": 104}, 0)
-        app_data_service.add_notebook_item({"ayah_id": 203, "surah": "الأعراف", "ayah": 203}, 0)
-        app_data_service.add_followed_root({"root_text": "ب ص ر", "occurrences": 148}, 0)
+        # Seed guest (user_id=0) data stamped with this device's guest token.
+        gid = "guest-token-A"
+        app_data_service.add_notebook_item({"ayah_id": 104, "surah": "الأنعام", "ayah": 104}, 0, gid)
+        app_data_service.add_notebook_item({"ayah_id": 203, "surah": "الأعراف", "ayah": 203}, 0, gid)
+        app_data_service.add_followed_root({"root_text": "ب ص ر", "occurrences": 148}, 0, gid)
         guest_notebook_before = app_data_service.list_notebook_items(0)
         assert len(guest_notebook_before) == 2
 
@@ -204,7 +205,9 @@ def test_guest_merge_moves_rows_and_undo_restores_them(tmp_path, monkeypatch):
         )
         user_id = signup.json()["user"]["id"]
 
-        merge = client.post("/api/auth/merge-guest-data", json={})
+        merge = client.post(
+            "/api/auth/merge-guest-data", json={}, headers={"X-QBasair-Guest-Id": gid}
+        )
         assert merge.status_code == 200
         result = merge.json()
         assert result["merged"] is True
@@ -217,16 +220,48 @@ def test_guest_merge_moves_rows_and_undo_restores_them(tmp_path, monkeypatch):
         assert app_data_service.list_notebook_items(0) == []
         assert len(app_data_service.list_notebook_items(user_id)) == 2
 
-        # Total notebook rows never changed — nothing was deleted.
-        total_notebook = len(app_data_service.list_notebook_items(0)) + len(
-            app_data_service.list_notebook_items(user_id)
+        # Re-running the merge is idempotent — nothing left to move.
+        again = client.post(
+            "/api/auth/merge-guest-data", json={}, headers={"X-QBasair-Guest-Id": gid}
         )
-        assert total_notebook == 2
+        assert again.json()["notebook_moved"] == 0
 
         undo = client.post("/api/auth/merge-guest-data/undo", json={"undo_token": undo_token})
         assert undo.status_code == 200
         # Rows are back on the guest — still nothing deleted.
         assert len(app_data_service.list_notebook_items(0)) == 2
         assert app_data_service.list_notebook_items(user_id) == []
+    finally:
+        finalize()
+
+
+def test_merge_cannot_claim_another_guests_rows(tmp_path, monkeypatch):
+    """The HIGH-severity fix: an account may only claim its OWN guest token's rows."""
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        # Two distinct guest devices seed data.
+        app_data_service.add_notebook_item({"ayah_id": 1}, 0, "guest-A")
+        app_data_service.add_notebook_item({"ayah_id": 2}, 0, "guest-B")
+        app_data_service.add_notebook_item({"ayah_id": 3}, 0, "guest-B")
+
+        signup = client.post(
+            "/api/auth/signup",
+            json={"email": "attacker@example.com", "password": "hidayah8"},
+        )
+        user_id = signup.json()["user"]["id"]
+
+        # The account presents guest-A's token: it must NOT sweep guest-B's rows.
+        merge = client.post(
+            "/api/auth/merge-guest-data", json={}, headers={"X-QBasair-Guest-Id": "guest-A"}
+        )
+        assert merge.json()["notebook_moved"] == 1
+        assert len(app_data_service.list_notebook_items(user_id)) == 1
+        # guest-B's two rows are untouched on the guest.
+        assert len(app_data_service.list_notebook_items(0)) == 2
+
+        # A merge with no token harvests nothing at all.
+        empty = client.post("/api/auth/merge-guest-data", json={})
+        assert empty.json()["notebook_moved"] == 0
+        assert len(app_data_service.list_notebook_items(0)) == 2
     finally:
         finalize()

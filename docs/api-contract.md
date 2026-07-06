@@ -149,10 +149,16 @@ This document freezes the backend contract that the future frontend migration wi
   once-per-account onboarding.
 - `GET /api/auth/devices` (auth) lists active sessions with an `is_current` flag;
   `DELETE /api/auth/devices/{session_id}` (auth) ejects a device (ejecting the current row == logout).
-- `POST /api/auth/merge-guest-data` (auth) re-attributes guest (`user_id=0`) rows — notebook, sessions,
-  followed roots, optionally preferences — to the account. Rows are **moved, never deleted**; the exact ids
-  are journalled under an `undo_token`. `POST /api/auth/merge-guest-data/undo` flips those exact ids back to
-  the guest, deleting nothing.
+- **Guest identity header.** Guest (`user_id=0`) writes to the notebook, sessions, roots, and preferences
+  are stamped with the per-device `X-QBasair-Guest-Id` token the web app sends on every request. This scopes
+  the merge to the caller's own device rows.
+- `POST /api/auth/merge-guest-data` (auth) re-attributes **only the caller's own** guest (`user_id=0`) rows —
+  those whose `guest_id` matches the presented `X-QBasair-Guest-Id` header — to the account (notebook,
+  sessions, followed roots, optionally preferences). A missing token merges nothing (fail-safe; no
+  cross-guest harvesting). Rows are **moved, never deleted**; the exact ids are journalled under an
+  `undo_token`. The merge is idempotent and re-runnable (moved rows leave the guest scope), so later guest
+  data stays claimable. `POST /api/auth/merge-guest-data/undo` flips those exact ids back to the guest,
+  deleting nothing.
 - Accounts can also be managed offline through `scripts/manage_users.py`.
 
 ## Research agent notes

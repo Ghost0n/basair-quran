@@ -202,6 +202,7 @@ def auth_merge_guest_data(req: GuestMergeRequest, request: Request) -> GuestMerg
     resolved = _require_user(request)
     result = app_data_service.merge_guest_data(
         resolved.user.id,
+        guest_id=request.headers.get("X-QBasair-Guest-Id"),
         notebook_ids=req.notebook_ids,
         session_ids=req.session_ids,
         root_ids=req.root_ids,

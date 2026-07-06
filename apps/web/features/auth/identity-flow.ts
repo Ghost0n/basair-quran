@@ -4,6 +4,8 @@ import type { AuthSessionResponse, GuestMergeResult } from "@q-basair/shared";
 import { createQBasairApiClient } from "@q-basair/api-client";
 
 import { API_BASE_URL } from "@/lib/config";
+// Side-effect: registers the guest-id header provider on the api-client.
+import "@/lib/guest-id";
 
 /**
  * Shared identity-flow plumbing: guest→account merge (run once per account),
@@ -11,7 +13,6 @@ import { API_BASE_URL } from "@/lib/config";
  * and the post-auth routing decision (first-run → /welcome, else resume).
  */
 
-const MERGED_FLAG_PREFIX = "qb.merged.";
 const MERGE_RESULT_KEY = "qb.merge-result";
 const GUEST_KEY = "qb.guest";
 
@@ -56,17 +57,17 @@ export function sanitizeNextPath(rawValue: string | null | undefined): string {
 }
 
 /**
- * Move guest (user_id=0) data into the account — at most once per account
- * (guarded by a localStorage flag). Returns the result only when something
- * actually moved, so the caller can decide whether to raise the toast.
+ * Move this device's guest (user_id=0) data into the account. The merge is
+ * scoped server-side to the device's guest token and is naturally idempotent
+ * (moved rows leave the guest scope), so it is safe to call on every sign-in —
+ * no client-side once-per-account flag, and guest data created later is still
+ * claimable. Returns the result only when something actually moved, so the
+ * caller can decide whether to raise the toast.
  */
-export async function maybeMergeGuestData(userId: number): Promise<GuestMergeResult | null> {
+export async function maybeMergeGuestData(): Promise<GuestMergeResult | null> {
   if (typeof window === "undefined") return null;
-  const flagKey = `${MERGED_FLAG_PREFIX}${userId}`;
-  if (window.localStorage.getItem(flagKey) === "1") return null;
   try {
     const result = await identityApi.mergeGuestData({}, { suppressAuthRedirect: true });
-    window.localStorage.setItem(flagKey, "1");
     const moved = result.notebook_moved + result.sessions_moved + result.roots_moved;
     if (moved > 0) {
       window.sessionStorage.setItem(MERGE_RESULT_KEY, JSON.stringify(result));
@@ -103,7 +104,7 @@ export async function routeAfterAuth(session: AuthSessionResponse, nextPath: str
     return;
   }
   if (user) {
-    await maybeMergeGuestData(user.id);
+    await maybeMergeGuestData();
   }
   window.location.assign(nextPath);
 }
