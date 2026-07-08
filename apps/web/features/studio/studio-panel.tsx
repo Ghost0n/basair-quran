@@ -52,9 +52,17 @@ export function StudioPanel() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const threadRef = useRef<HTMLDivElement | null>(null);
 
   const active = studio.active;
   const isTafssir = active?.mode === "tafssir";
+
+  // Keep the newest message (and the "analyzing…" pending row) in view as the
+  // thread grows, on send, and when switching tabs.
+  useEffect(() => {
+    const el = threadRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [active?.id, active?.messages.length, studio.isResearching]);
 
   async function submit() {
     const content = draft.trim();
@@ -180,6 +188,7 @@ export function StudioPanel() {
           <button
             type="button"
             className={`qb-mode-tab strict${active?.mode === "strict" ? " active" : ""}`}
+            aria-pressed={active?.mode === "strict"}
             onClick={() => studio.setMode("strict" as StudioMode)}
           >
             <Icon name="scale" size={12} /> القرآن وحدَه
@@ -187,6 +196,7 @@ export function StudioPanel() {
           <button
             type="button"
             className={`qb-mode-tab tafssir${active?.mode === "tafssir" ? " active" : ""}`}
+            aria-pressed={active?.mode === "tafssir"}
             onClick={() => studio.setMode("tafssir" as StudioMode)}
           >
             <Icon name="feather" size={12} /> قراءة تفسيرية
@@ -230,7 +240,7 @@ export function StudioPanel() {
         {studio.error ? <div className="qb-studio-error">{studio.error}</div> : null}
 
         {active && active.messages.length > 0 ? (
-          <div className="qb-thread">
+          <div className="qb-thread" ref={threadRef}>
             {active.messages.map((message, index) =>
               message.role === "user" ? (
                 <div key={`${active.id}-${index}`} className="qb-msg user">

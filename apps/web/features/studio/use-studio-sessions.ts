@@ -6,10 +6,13 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type {
   ResearchAgentMessage,
   ResearchAgentResponse,
+  StoredMessage,
   TafssirDepth,
 } from "@q-basair/shared";
 
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { isTechnicalMessage, reportError } from "@/lib/error-report";
+import { usePreferences } from "@/lib/preferences-context";
 import {
   buildResearchHeaders,
   DEFAULT_RESEARCH_SETTINGS,
@@ -56,14 +59,14 @@ function loadPersistedSessions(): PersistedStudioState | null {
 }
 
 let sessionCounter = 0;
-function createSession(): StudioSession {
+function createSession(defaults?: { mode?: StudioMode; depth?: TafssirDepth }): StudioSession {
   sessionCounter += 1;
   return {
     id: `studio-${Date.now()}-${sessionCounter}`,
     title: "جلسة جديدة",
     messages: [],
-    mode: "strict",
-    depth: "balanced",
+    mode: defaults?.mode ?? "strict",
+    depth: defaults?.depth ?? "balanced",
   };
 }
 
@@ -84,7 +87,22 @@ function assistantText(response: ResearchAgentResponse): string {
  * will persist them to the backend via /api/sessions.
  */
 export function useStudioSessions() {
-  const [sessions, setSessions] = useState<StudioSession[]>(() => [createSession()]);
+  // A new research session inherits the user's saved default mode/depth (written
+  // by Settings). The ref keeps the latest values so callbacks created once still
+  // read fresh prefs; the initial session is seeded from prefs available at mount.
+  const { preferences } = usePreferences();
+  const researchDefaultsRef = useRef<{ mode: StudioMode; depth: TafssirDepth }>({
+    mode: preferences.research.default_mode,
+    depth: preferences.research.depth,
+  });
+  researchDefaultsRef.current = {
+    mode: preferences.research.default_mode,
+    depth: preferences.research.depth,
+  };
+
+  const [sessions, setSessions] = useState<StudioSession[]>(() => [
+    createSession(researchDefaultsRef.current),
+  ]);
   const [activeId, setActiveId] = useState<string>(() => sessions[0]?.id ?? "");
   const [isResearching, setIsResearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -134,7 +152,7 @@ export function useStudioSessions() {
   }, []);
 
   const newSession = useCallback(() => {
-    const session = createSession();
+    const session = createSession(researchDefaultsRef.current);
     setSessions((current) => [...current, session]);
     setActiveId(session.id);
   }, []);
@@ -143,7 +161,7 @@ export function useStudioSessions() {
     (id: string) => {
       setSessions((current) => {
         const remaining = current.filter((session) => session.id !== id);
-        const next = remaining.length > 0 ? remaining : [createSession()];
+        const next = remaining.length > 0 ? remaining : [createSession(researchDefaultsRef.current)];
         setActiveId((currentActive) =>
           currentActive === id ? next[next.length - 1]?.id ?? "" : currentActive,
         );
@@ -232,13 +250,23 @@ export function useStudioSessions() {
             id: target.id,
             title: titleFromFirst,
             mode: target.mode,
-            messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+            // Persist the assistant's research response too, so restoring a saved
+            // session rebuilds its evidence cards (bounded by the server's
+            // per-session storage caps).
+            messages: nextMessages.map((m): StoredMessage => ({
+              v: 1,
+              role: m.role,
+              content: m.content,
+              response: m.role === "assistant" ? m.response : undefined,
+            })),
           });
         } catch {
           // A failed save must not break the chat — the session stays in memory.
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "تعذّر الاتصال بخدمة الباحث الذكي.");
+        reportError("studio:submit", err);
+        const raw = err instanceof Error ? err.message : "";
+        setError(isTechnicalMessage(raw) ? "تعذّر الاتصال بخدمة الباحث الذكي." : raw);
       } finally {
         setIsResearching(false);
       }
@@ -260,7 +288,7 @@ export function useStudioSessions() {
   const askInNewSession = useCallback(
     async (content: string, mushaf: number) => {
       if (!(await ensureAuth())) return;
-      const session = createSession();
+      const session = createSession(researchDefaultsRef.current);
       setSessions((current) => [...current, session]);
       setActiveId(session.id);
       return submitInto(session, content, mushaf);
@@ -270,9 +298,8 @@ export function useStudioSessions() {
 
   // Re-open a saved session (from Home / the history list) as a live tab: fetch
   // the stored thread and hydrate it. If the tab is already open, just activate.
-  // Stored messages carry role+content only — assistant evidence cards don't
-  // survive the round-trip (the store keeps text), which is fine for review;
-  // continuing the thread re-grounds through the agent as usual.
+  // Assistant messages restore their persisted `response`, so evidence cards
+  // rebuild; legacy rows (role+content only) restore as plain text.
   const openSavedSession = useCallback(
     async (id: string) => {
       let alreadyOpen = false;
@@ -290,6 +317,7 @@ export function useStudioSessions() {
           .map((m) => ({
             role: m.role === "assistant" ? ("assistant" as const) : ("user" as const),
             content: typeof m.content === "string" ? m.content : "",
+            response: m.role === "assistant" ? m.response : undefined,
           }))
           .filter((m) => m.content);
         const session: StudioSession = {

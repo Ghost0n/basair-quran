@@ -12,6 +12,10 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/research-agent/settings` is additive and exposes the active Ollama provider, available models, and plan-limit guidance for the research UI.
 - `/api/auth/*` provides the identity layer (signup, login, profile, devices, guest-merge) with hybrid
   gating: reading + search stay open to guests; only the Studio/research surface requires an account.
+- `GET /api/health` is pure liveness (never touches the DB; used by the container healthcheck).
+  `GET /api/ready` is the deploy gate: `{ status, db, commit, timestamp }` — runs `SELECT 1` against the
+  Quran DB and reports the running commit (`QBASAIR_COMMIT_SHA`); returns `503` when the DB is unreachable.
+  It is an ops endpoint with no frontend client method.
 
 ## Canonical schema source
 
@@ -22,16 +26,24 @@ This document freezes the backend contract that the future frontend migration wi
 ## Stable endpoints
 
 - `GET /api/health`
+- `GET /api/ready`
 - `GET /api/auth/session`
 - `POST /api/auth/login`
 - `POST /api/auth/signup`
 - `POST /api/auth/logout`
+- `DELETE /api/auth/account`
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
 - `PATCH /api/auth/profile`
 - `GET /api/auth/devices`
 - `DELETE /api/auth/devices/{session_id}`
 - `POST /api/auth/merge-guest-data`
 - `POST /api/auth/merge-guest-data/undo`
-- `GET /api/mushafs`
+- `GET /api/mushafs` — each `MushafItem` now includes a normalized `riwayah` key (matches
+  `ReciterItem.riwayah`), so the UI can flag a reciter/mushaf riwāyah mismatch during recitation.
+- `GET /api/surahs`
+- `GET /api/reciters`
+- `GET /api/root-distribution`
 - `GET /api/suggest`
 - `POST /api/suggest-batch`
 - `GET /api/search`
@@ -44,6 +56,10 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/quran-page`
 - `GET /api/mushaf-page-layout`
 - `GET /api/morphology`
+- `GET /api/notebook` · `POST /api/notebook` · `DELETE /api/notebook/{item_id}`
+- `GET /api/sessions` · `GET /api/sessions/{session_id}` · `POST /api/sessions` · `DELETE /api/sessions/{session_id}`
+- `GET /api/roots` · `POST /api/roots` · `DELETE /api/roots/{root_id}`
+- `GET /api/user/preferences` · `PATCH /api/user/preferences`
 
 ## Authentic Madani layout notes
 
@@ -126,27 +142,55 @@ This document freezes the backend contract that the future frontend migration wi
   **either** an httpOnly cookie (web) **or** an `Authorization: Bearer` header (native; Bearer takes
   precedence). Each token is one row of the `sessions` table (also the devices registry); only its sha256
   hash is stored, and every authenticated request slides the 14-day expiry. Config env:
-  - `QBASAIR_SESSION_SECRET`
+  - `QBASAIR_SESSION_SECRET` (required when auth is enabled — the app refuses to start on the dev default)
   - `QBASAIR_SESSION_COOKIE_NAME`
   - `QBASAIR_SESSION_SECURE`
+- **Rate limiting.** `POST /api/auth/login`, `POST /api/auth/signup`, and `POST /api/research-agent` carry a
+  per-IP sliding-window throttle (in-memory, single-process). Exhausting a window returns
+  `429 { "detail": "…" }`. Tunable via `QBASAIR_RATE_LIMIT_WINDOW_SECONDS`, `QBASAIR_RATE_LIMIT_AUTH_MAX`
+  (default 20), and `QBASAIR_RATE_LIMIT_RESEARCH_MAX` (default 60).
 - **One-time re-login on deploy.** Switching the identity source from signed-cookie sessions to the token
   table invalidates any pre-existing signed-cookie sessions — users sign in once after this ships.
 - `GET /api/auth/session` returns `{ enabled, authenticated, user }`. `user` carries `name`, `avatar`
   (a calligraphic medallion character/index — not an image URL), and `onboarded`.
 - `POST /api/auth/login` accepts `email`, `password`, and optional `device_label` / `platform`; it mints a
   session and returns the raw `token` (native clients keep it; the web app uses the cookie).
-- `POST /api/auth/signup` accepts `email`, `password`, optional `name`, optional `invite_code` (accepted and
-  echoed, **not enforced** yet), and optional `device_label` / `platform`. Duplicate email → `409`.
+- `POST /api/auth/signup` accepts `email`, `password`, optional `name`, optional `invite_code`, and optional
+  `device_label` / `platform`. Duplicate email → `409` with a **static** detail (never reflects whether the
+  email exists). When `QBASAIR_INVITE_CODES` (comma-separated) is set, a missing/wrong `invite_code` → `403`;
+  when unset, registration stays open. Login runs a constant-time hash on unknown emails to avoid an
+  enumeration timing oracle.
 - `POST /api/auth/logout` revokes the current session row and clears the cookie.
+- `POST /api/auth/forgot-password` `{ email }` always returns `{ ok: true }` (no account enumeration).
+  When the account exists it mints a single-use, 1-hour reset token — **delivery is console/manual for now**
+  (the token is logged server-side; email transport is a future step). Rate-limited (auth bucket).
+- `POST /api/auth/reset-password` `{ token, password }` consumes the token, sets the new password, and
+  **revokes all sessions**. `400` on invalid/expired/used token, `422` on a weak password. Rate-limited.
+- `DELETE /api/auth/account` (auth) permanently deletes the account: all app data (notebook, sessions,
+  followed roots, preferences, merge log), then the user row and **every** session (all devices), and clears
+  the cookie. Returns `{ deleted }`. Irreversible; guest (`user_id=0`) data is never touched.
 - `PATCH /api/auth/profile` (auth) sets `name` / `avatar` / `onboarded` — used by the avatar picker and the
   once-per-account onboarding.
 - `GET /api/auth/devices` (auth) lists active sessions with an `is_current` flag;
   `DELETE /api/auth/devices/{session_id}` (auth) ejects a device (ejecting the current row == logout).
-- `POST /api/auth/merge-guest-data` (auth) re-attributes guest (`user_id=0`) rows — notebook, sessions,
-  followed roots, optionally preferences — to the account. Rows are **moved, never deleted**; the exact ids
-  are journalled under an `undo_token`. `POST /api/auth/merge-guest-data/undo` flips those exact ids back to
-  the guest, deleting nothing.
+- **Guest identity header.** Guest (`user_id=0`) writes to the notebook, sessions, roots, and preferences
+  are stamped with the per-device `X-QBasair-Guest-Id` token the web app sends on every request. This scopes
+  the merge to the caller's own device rows.
+- `POST /api/auth/merge-guest-data` (auth) re-attributes **only the caller's own** guest (`user_id=0`) rows —
+  those whose `guest_id` matches the presented `X-QBasair-Guest-Id` header — to the account (notebook,
+  sessions, followed roots, optionally preferences). A missing token merges nothing (fail-safe; no
+  cross-guest harvesting). Rows are **moved, never deleted**; the exact ids are journalled under an
+  `undo_token`. The merge is idempotent and re-runnable (moved rows leave the guest scope), so later guest
+  data stays claimable. `POST /api/auth/merge-guest-data/undo` flips those exact ids back to the guest,
+  deleting nothing.
 - Accounts can also be managed offline through `scripts/manage_users.py`.
+- **Storage caps.** `POST /api/sessions` (`ResearchSessionSave`) bounds `messages` to at most
+  `500` entries and `512 KB` serialized; oversized payloads are rejected with `422` (guests reach this
+  endpoint, so the cap protects the shared `app_data.db`).
+- **Persisted messages** use the versioned `StoredMessage` shape (`{ v?, role, content, response? }`).
+  Assistant messages carry their full research `response`, so restoring a saved session rebuilds its
+  evidence cards; legacy rows without `response` restore as plain text. The backend stores `messages` as
+  opaque JSON (`List[Dict[str, Any]]`) — the shape is a frontend contract, bounded by the caps above.
 
 ## Research agent notes
 
@@ -156,6 +200,11 @@ This document freezes the backend contract that the future frontend migration wi
   - `X-QBasair-Ollama-Embed-Model`
   - `X-QBasair-Ollama-Base-Url`
 - The intended browser flow is session-scoped user keys supplied by the frontend. The backend should use the headers for the current request only and must not persist them.
+- **`X-QBasair-Ollama-Base-Url` is treated as an untrusted client override** (SSRF closure):
+  - It must be `https://` and its host must be on the allowlist (`ollama.com` by default, extendable via `QBASAIR_OLLAMA_ALLOWED_HOSTS`). Otherwise the request fails with `503` and a sanitized detail.
+  - When a client supplies a base-URL override, the server's own Ollama key is **never** attached — only a client-supplied `X-QBasair-Ollama-Key` is honored for that request.
+  - The server's own `QBASAIR_OLLAMA_BASE_URL` (no client override) is trusted and not subject to the allowlist.
+  - Upstream provider error details reflected back to the client are collapsed and capped (≤200 chars) so a 5xx cannot become an exfiltration oracle.
 - `POST /api/research-agent` may now include:
   - provider metadata
   - per-request usage metrics

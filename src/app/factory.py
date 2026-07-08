@@ -2,9 +2,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from src.app.core import config
+from src.app.core import config, rate_limit
 from src.app.routes import (
     auth_router,
     companions_router,
@@ -50,6 +52,25 @@ def require_authenticated_session(request: Request) -> None:
     request.state.session_id = resolved.session_id
 
 
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Per-IP sliding-window throttle on abuse-prone POST endpoints.
+
+    In-memory (single-process uvicorn); limits are configurable via env. Returns
+    429 with a sanitized Arabic detail when a bucket's window is exhausted.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        bucket = rate_limit.bucket_for_path(request.url.path)
+        if bucket is not None and request.method == "POST":
+            client_ip = request.client.host if request.client else "unknown"
+            if not rate_limit.check_and_record(client_ip, bucket):
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "طلبات كثيرة جدًا. الرجاء المحاولة بعد قليل."},
+                )
+        return await call_next(request)
+
+
 def attach_optional_session(request: Request) -> None:
     """Soft auth — resolve the token if present, never 401.
 
@@ -64,6 +85,14 @@ def attach_optional_session(request: Request) -> None:
 
 
 def create_app() -> FastAPI:
+    # Fail hard rather than run production auth on the shared dev secret: a known
+    # session secret means forgeable/predictable session state once any code path
+    # relies on it. Local http dev (auth disabled) keeps the dev default.
+    if config.is_auth_enabled() and config.is_default_session_secret():
+        raise RuntimeError(
+            "QBASAIR_SESSION_SECRET must be overridden with a strong secret when "
+            "QBASAIR_AUTH_ENABLED=1; refusing to start with the dev default."
+        )
     app = FastAPI(
         title="Q-Basair API",
         version="1.0.0",
@@ -86,6 +115,8 @@ def create_app() -> FastAPI:
         https_only=config.is_session_secure(),
         max_age=60 * 60 * 24 * 14,
     )
+    # Added before CORS so CORS stays the outermost layer and decorates 429s too.
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.get_cors_origins(),

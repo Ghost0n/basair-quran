@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import "./settings.css";
 
 import type { NumeralScript, ReaderLayout } from "@q-basair/shared";
@@ -54,7 +56,9 @@ const DEPTH_OPTIONS: { value: "fast" | "balanced" | "deep"; label: string }[] = 
  * homes; the rest persist via PreferencesProvider.updateAccount.
  */
 export function SettingsScreen() {
-  const { preferences, account, updateAccount } = usePreferences();
+  const { preferences, account, updateAccount, updateAccountDebounced } = usePreferences();
+  // Confirm before making the experimental tafssir mode the account default.
+  const [confirmTafssirDefault, setConfirmTafssirDefault] = useState(false);
   const { state, actions } = useWorkspace();
 
   // "صفحتان" (spread) only renders on the authentic Madani glyph page, served
@@ -103,6 +107,7 @@ export function SettingsScreen() {
                   key={option.value}
                   type="button"
                   className={preferences.mushaf_render === option.value ? "active" : ""}
+                  aria-pressed={preferences.mushaf_render === option.value}
                   onClick={() => void updateAccount({ mushaf_render: option.value })}
                 >
                   {option.label}
@@ -141,7 +146,7 @@ export function SettingsScreen() {
               min={18}
               max={48}
               value={preferences.font_size}
-              onChange={(event) => void updateAccount({ font_size: Number(event.target.value) })}
+              onChange={(event) => updateAccountDebounced({ font_size: Number(event.target.value) })}
             />
           </div>
           <p className="card-sub">
@@ -159,6 +164,7 @@ export function SettingsScreen() {
               <button
                 type="button"
                 className={state.theme === "dark" ? "active" : ""}
+                aria-pressed={state.theme === "dark"}
                 onClick={() => state.theme !== "dark" && actions.toggleTheme()}
               >
                 داكنة
@@ -166,6 +172,7 @@ export function SettingsScreen() {
               <button
                 type="button"
                 className={state.theme === "light" ? "active" : ""}
+                aria-pressed={state.theme === "light"}
                 onClick={() => state.theme !== "light" && actions.toggleTheme()}
               >
                 فاتحة
@@ -180,6 +187,7 @@ export function SettingsScreen() {
                   key={option.value}
                   type="button"
                   className={preferences.numerals === option.value ? "active" : ""}
+                  aria-pressed={preferences.numerals === option.value}
                   onClick={() => void updateAccount({ numerals: option.value })}
                 >
                   {option.label}
@@ -198,6 +206,7 @@ export function SettingsScreen() {
               <button
                 type="button"
                 className={account.research.default_mode === "strict" ? "active" : ""}
+                aria-pressed={account.research.default_mode === "strict"}
                 onClick={() => void updateAccount({ research: { default_mode: "strict" } })}
               >
                 القرآن وحدَه
@@ -205,12 +214,39 @@ export function SettingsScreen() {
               <button
                 type="button"
                 className={account.research.default_mode === "tafssir" ? "active copper" : ""}
-                onClick={() => void updateAccount({ research: { default_mode: "tafssir" } })}
+                aria-pressed={account.research.default_mode === "tafssir"}
+                onClick={() => {
+                  if (account.research.default_mode === "tafssir") return;
+                  setConfirmTafssirDefault(true);
+                }}
               >
                 تفسيرية
               </button>
             </div>
           </div>
+          {confirmTafssirDefault ? (
+            <div className="qb-setting-confirm" role="alertdialog" aria-label="تأكيد الوضع الافتراضي">
+              <p>
+                الوضع التفسيري <strong>تجريبي</strong>: قراءة بشرية مُولَّدة من نموذج لغوي، ليست حُجَّة
+                شرعية. هل تجعله الوضع الافتراضي؟
+              </p>
+              <div className="qb-setting-confirm-actions">
+                <button
+                  type="button"
+                  className="primary"
+                  onClick={() => {
+                    void updateAccount({ research: { default_mode: "tafssir" } });
+                    setConfirmTafssirDefault(false);
+                  }}
+                >
+                  تأكيد
+                </button>
+                <button type="button" onClick={() => setConfirmTafssirDefault(false)}>
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          ) : null}
           <div className="qb-setting-row">
             <label>عُمق القراءة التفسيرية</label>
             <div className="qb-setting-seg">
@@ -219,6 +255,7 @@ export function SettingsScreen() {
                   key={option.value}
                   type="button"
                   className={account.research.depth === option.value ? "active" : ""}
+                  aria-pressed={account.research.depth === option.value}
                   onClick={() => void updateAccount({ research: { depth: option.value } })}
                 >
                   {option.label}

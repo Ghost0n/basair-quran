@@ -366,3 +366,112 @@ def test_root_distribution_aggregates_by_surah(api_client):
     assert body["surahs"][0]["surah_id"] == 1
     assert body["surahs"][0]["count"] == body["total"]
     assert body["total"] > 0
+
+
+def test_session_save_rejects_oversized_messages(api_client):
+    """Storage caps (T1.7): guests reach /api/sessions, so bound the payload."""
+    too_many = {"id": "cap-count", "messages": [{"role": "user", "content": "x"} for _ in range(501)]}
+    assert api_client.post("/api/sessions", json=too_many).status_code == 422
+
+    huge = {"id": "cap-bytes", "messages": [{"role": "user", "content": "x" * (600 * 1024)}]}
+    assert api_client.post("/api/sessions", json=huge).status_code == 422
+
+    ok = {"id": "cap-ok", "messages": [{"role": "user", "content": "hello"}]}
+    assert api_client.post("/api/sessions", json=ok).status_code == 200
+
+
+def test_ready_endpoint_reports_db_and_commit(api_client, monkeypatch):
+    """/api/ready (T1.8): DB SELECT 1 + commit SHA for the deploy gate."""
+    monkeypatch.setenv("QBASAIR_COMMIT_SHA", "abc1234")
+    response = api_client.get("/api/ready")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ready"
+    assert body["db"] is True
+    assert body["commit"] == "abc1234"
+
+
+def test_health_endpoint_stays_pure_liveness(api_client):
+    response = api_client.get("/api/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+
+
+def test_get_db_path_honors_env(monkeypatch):
+    """T3.2: QBASAIR_DB_PATH must actually be read (was previously ignored)."""
+    from pathlib import Path
+
+    from src.app.core import config
+
+    original = config.get_db_path()
+    try:
+        monkeypatch.setenv("QBASAIR_DB_PATH", "custom-quran.db")
+        assert config.get_db_path() == str(Path("custom-quran.db"))
+        monkeypatch.delenv("QBASAIR_DB_PATH", raising=False)
+        config.set_db_path("fallback-quran.db")
+        assert config.get_db_path() == str(Path("fallback-quran.db"))
+    finally:
+        config.set_db_path(original)
+
+
+def test_query_cache_limit_is_bounded_in_normal_mode(monkeypatch):
+    """T3.5: the did-you-mean caches must be bounded even in normal mode."""
+    from src.app.core import config
+
+    monkeypatch.delenv("QBASAIR_LOW_MEMORY_MODE", raising=False)
+    limit = config.get_runtime_query_cache_limit()
+    assert isinstance(limit, int) and limit > 0
+
+
+def test_get_db_is_per_thread_and_reopens_after_close(api_client):
+    """T3.3: each thread gets its own read-only connection; close reopens cleanly."""
+    import threading
+
+    from src.app.services import quran_service
+
+    main_conn = quran_service.get_db()
+    worker_conn = {}
+
+    def grab():
+        worker_conn["conn"] = quran_service.get_db()
+
+    thread = threading.Thread(target=grab)
+    thread.start()
+    thread.join()
+
+    # Distinct connection objects per thread (no shared cross-thread handle).
+    assert worker_conn["conn"] is not main_conn
+    # Same thread reuses its own handle.
+    assert quran_service.get_db() is main_conn
+
+    # After a close, the next get_db reopens a working connection.
+    quran_service.close_db_connection()
+    reopened = quran_service.get_db()
+    assert reopened is not main_conn
+    assert reopened.execute("SELECT 1").fetchone()[0] == 1
+
+
+def test_phrase_metadata_is_memoized_per_mushaf(api_client):
+    """T3.1: the per-mushaf phrase metadata is cached (no repeated full scan)."""
+    from src.app.services import quran_service
+
+    cursor = quran_service.get_db().cursor()
+    first = quran_service.get_mushaf_phrase_metadata(cursor, 1)
+    second = quran_service.get_mushaf_phrase_metadata(cursor, 1)
+    assert first is second
+
+
+def test_mushafs_expose_normalized_riwayah(api_client):
+    """T8.2: each mushaf carries a normalized riwāyah key for mismatch detection."""
+    from src.app.routes.mushafs import _riwayah_for_mushaf
+
+    assert _riwayah_for_mushaf("حفص") == "hafs"
+    assert _riwayah_for_mushaf("ورش") == "warsh"
+    assert _riwayah_for_mushaf("قالون") == "qaloun"
+    assert _riwayah_for_mushaf("السوسي") == "sousi"
+    assert _riwayah_for_mushaf("unknown name") == "hafs"
+
+    response = api_client.get("/api/mushafs")
+    assert response.status_code == 200
+    for mushaf in response.json():
+        assert "riwayah" in mushaf and mushaf["riwayah"]

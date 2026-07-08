@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 
 import { useRouter, useSearchParams } from "next/navigation";
@@ -27,10 +27,23 @@ import {
   removeChakl,
 } from "@/lib/quran-ui";
 import { generateArabicQueryCandidates } from "@/lib/arabic-transliteration";
+import { isTechnicalMessage, reportError, sanitizeErrorMessage } from "@/lib/error-report";
+import { dedupeSuggestionItems } from "@/features/workspace/lib/dedupe-suggestions";
+
+/**
+ * Never surface a raw technical error string. Logs the real error for
+ * diagnostics and returns the friendly message: a non-technical error message
+ * as-is, otherwise the context-specific Arabic fallback.
+ */
+function toUserError(scope: string, error: unknown, fallback: string): string {
+  reportError(scope, error);
+  const raw = error instanceof Error ? error.message : "";
+  return isTechnicalMessage(raw) ? fallback : raw;
+}
 import { usePreferences } from "@/lib/preferences-context";
 import { useMushaf } from "@/features/reading/mushaf-context";
 
-import type { ThemeMode, WorkspaceView } from "../types";
+import type { ThemeMode } from "../types";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const MAX_SUGGESTIONS = 10;
@@ -55,18 +68,6 @@ function getSuggestionContext(query: string) {
     sourceQuery: tokens[tokens.length - 1] ?? "",
     prefixQuery: tokens.slice(0, -1).join(" "),
   };
-}
-
-function dedupeSuggestionItems(items: SuggestionItem[]) {
-  const seen = new Set<string>();
-  return items.filter((item) => {
-    const key = `${item.type}::${item.text}`;
-    if (seen.has(key)) {
-      return false;
-    }
-    seen.add(key);
-    return true;
-  });
 }
 
 function pickBestSuggestionForMode(items: SuggestionItem[], mode: SearchMode) {
@@ -114,7 +115,6 @@ export function useSearchWorkspace() {
   const [results, setResults] = useState<PaginatedSearchResult[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [didYouMean, setDidYouMean] = useState<DidYouMeanSuggestion | null>(null);
-  const [workspaceView, setWorkspaceView] = useState<WorkspaceView>("results");
   const [resultPageDrafts, setResultPageDrafts] = useState<Record<string, string>>({});
   const [selectedVerseKey, setSelectedVerseKey] = useState<string | null>(null);
   const [searchContext, setSearchContext] = useState<{ q: string; mode: SearchMode; mushaf: number } | null>(null);
@@ -139,7 +139,33 @@ export function useSearchWorkspace() {
   const toolsDrawerRef = useRef<HTMLDivElement | null>(null);
   const previousMushafRef = useRef(selectedMushaf);
   const yamliRequestIdRef = useRef(0);
+  // Monotonic id so an earlier (slower) runSearch can't overwrite a newer one's
+  // results when responses resolve out of order (stale-response race).
+  const runSearchIdRef = useRef(0);
   const phraseSuggestionTimerRef = useRef<number | null>(null);
+  // Handler-scoped one-shot timeouts, tracked so they can be cleared on unmount
+  // (avoids a setState on an unmounted component).
+  const pendingTimeoutsRef = useRef<Set<number>>(new Set());
+
+  const scheduleTimeout = useCallback((fn: () => void, ms: number) => {
+    const pending = pendingTimeoutsRef.current;
+    let id = 0;
+    id = window.setTimeout(() => {
+      pending.delete(id);
+      fn();
+    }, ms);
+    pending.add(id);
+  }, []);
+
+  useEffect(() => {
+    const pending = pendingTimeoutsRef.current;
+    const phraseTimerRef = phraseSuggestionTimerRef;
+    return () => {
+      for (const id of pending) window.clearTimeout(id);
+      pending.clear();
+      if (phraseTimerRef.current !== null) window.clearTimeout(phraseTimerRef.current);
+    };
+  }, []);
   const deferredQuery = useDeferredValue(query);
 
   const inputValue = previewValue ?? query;
@@ -309,7 +335,6 @@ export function useSearchWorkspace() {
     setResults([]);
     mushaf.reset();
     setResultPageDrafts({});
-    setWorkspaceView("results");
     setSelectedVerseKey(null);
     setSearchContext(null);
   }
@@ -445,7 +470,7 @@ export function useSearchWorkspace() {
         });
       } catch (error) {
         if (!cancelled) {
-          setErrorMessage(error instanceof Error ? error.message : "تعذر تحميل الروايات.");
+          setErrorMessage(toUserError("search:riwayat", error, "تعذر تحميل الروايات."));
         }
       } finally {
         if (!cancelled) {
@@ -702,6 +727,7 @@ export function useSearchWorkspace() {
     let trimmedQuery = nextQuery.trim();
     if (!trimmedQuery) return;
     const requestedMode = nextMode ?? (searchModeInitialized ? searchMode : "exact");
+    const requestId = ++runSearchIdRef.current;
 
     setIsInputFocused(false);
     setPreviewValue(null);
@@ -711,7 +737,6 @@ export function useSearchWorkspace() {
     setDidYouMean(null);
     setIsSearching(true);
     setDrawerOpen(false);
-    setWorkspaceView("results");
     inputRef.current?.blur();
 
     try {
@@ -753,10 +778,12 @@ export function useSearchWorkspace() {
       setSearchModeInitialized(true);
 
       const response = await api.searchV2(effectiveQuery, effectiveMode, selectedMushaf, ITEMS_PER_PAGE);
+      // Drop a stale response — a newer search has superseded this one.
+      if (requestId !== runSearchIdRef.current) return;
       if (!response.found) {
         startTransition(() => {
           clearWorkspaceState();
-          setErrorMessage(response.message ?? "لم يتم العثور على نتائج.");
+          setErrorMessage(sanitizeErrorMessage(response.message ?? "لم يتم العثور على نتائج."));
           setDidYouMean(response.did_you_mean ?? null);
         });
         return;
@@ -771,22 +798,22 @@ export function useSearchWorkspace() {
       const firstResult = response.results.find((result) => result.verses.length > 0);
       const firstVerse = firstResult?.verses[0];
       if (firstResult && firstVerse) {
-        await selectVerse(firstVerse, firstResult.result_key, false);
+        await selectVerse(firstVerse, firstResult.result_key);
       }
     } catch (error) {
+      if (requestId !== runSearchIdRef.current) return;
       clearWorkspaceState();
-      setErrorMessage(error instanceof Error ? error.message : "حدث خطأ في الاتصال بالخادم.");
+      setErrorMessage(toUserError("search:run", error, "حدث خطأ في الاتصال بالخادم."));
     } finally {
-      setIsSearching(false);
+      // Only the latest search controls the spinner; a stale one finishing must
+      // not clear it while a newer search is still in flight.
+      if (requestId === runSearchIdRef.current) setIsSearching(false);
     }
   }
 
-  async function selectVerse(verse: SearchVerse, resultKey: string, switchToReader = true) {
+  async function selectVerse(verse: SearchVerse, resultKey: string) {
     const selectionKey = getVerseSelectionKey(resultKey, verse);
     setSelectedVerseKey(selectionKey);
-    if (switchToReader) {
-      setWorkspaceView("reader");
-    }
     await mushaf.loadByAyah(
       verse.mushaf_id || selectedMushaf,
       verse.ayah_id,
@@ -825,7 +852,7 @@ export function useSearchWorkspace() {
         }
       });
     } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "حدث خطأ في جلب الصفحة المطلوبة.");
+      setErrorMessage(toUserError("search:page", error, "حدث خطأ في جلب الصفحة المطلوبة."));
     }
   }
 
@@ -938,7 +965,7 @@ export function useSearchWorkspace() {
     // there's no window where another effect can re-derive Search mode.
     if (!toReading && workspaceVisible) {
       setIsWorkspaceCollapsing(true);
-      window.setTimeout(finalizeReset, 240);
+      scheduleTimeout(finalizeReset, 240);
       return;
     }
 
@@ -1060,7 +1087,6 @@ export function useSearchWorkspace() {
       isWorkspaceCollapsing,
       errorMessage,
       didYouMean,
-      workspaceView,
       workspaceVisible,
       workspaceActive,
       results,
@@ -1080,7 +1106,6 @@ export function useSearchWorkspace() {
       },
       setDrawerOpen,
       setSelectedMushaf,
-      setWorkspaceView,
       setResultPageDraft(resultKey: string, value: string) {
         setResultPageDrafts((current) => ({ ...current, [resultKey]: value }));
       },
@@ -1116,7 +1141,7 @@ export function useSearchWorkspace() {
       },
       closeSuggestions() {
         setIsInputFocused(false);
-        window.setTimeout(() => setSuggestionsOpen(false), 120);
+        scheduleTimeout(() => setSuggestionsOpen(false), 120);
       },
       previewSuggestion(index: number) {
         setActiveSuggestionIndex(index);

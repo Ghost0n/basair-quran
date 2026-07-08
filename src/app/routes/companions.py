@@ -31,6 +31,14 @@ def _resolve_user_id(request: Request) -> int:
     return app_data_service.DEFAULT_USER_ID
 
 
+def _resolve_guest_id(request: Request) -> str | None:
+    """The per-device guest token used to scope a later guest→account merge.
+
+    Only meaningful for guest writes; ignored for authenticated users.
+    """
+    return request.headers.get("X-QBasair-Guest-Id")
+
+
 # --- Notebook --------------------------------------------------------------
 
 
@@ -42,7 +50,9 @@ def list_notebook(request: Request) -> list[NotebookItem]:
 
 @router.post("/notebook", response_model=NotebookItem)
 def create_notebook_item(request: Request, payload: NotebookItemCreate) -> NotebookItem:
-    item = app_data_service.add_notebook_item(payload.model_dump(), _resolve_user_id(request))
+    item = app_data_service.add_notebook_item(
+        payload.model_dump(), _resolve_user_id(request), _resolve_guest_id(request)
+    )
     return NotebookItem(**item)
 
 
@@ -71,7 +81,9 @@ def get_session(request: Request, session_id: str) -> ResearchSessionDetail:
 
 @router.post("/sessions", response_model=ResearchSessionDetail)
 def save_session(request: Request, payload: ResearchSessionSave) -> ResearchSessionDetail:
-    session = app_data_service.save_session(payload.model_dump(), _resolve_user_id(request))
+    session = app_data_service.save_session(
+        payload.model_dump(), _resolve_user_id(request), _resolve_guest_id(request)
+    )
     return ResearchSessionDetail(**session)
 
 
@@ -92,7 +104,9 @@ def list_roots(request: Request) -> list[FollowedRoot]:
 
 @router.post("/roots", response_model=FollowedRoot)
 def follow_root(request: Request, payload: FollowedRootCreate) -> FollowedRoot:
-    root = app_data_service.add_followed_root(payload.model_dump(), _resolve_user_id(request))
+    root = app_data_service.add_followed_root(
+        payload.model_dump(), _resolve_user_id(request), _resolve_guest_id(request)
+    )
     return FollowedRoot(**root)
 
 
@@ -114,5 +128,7 @@ def get_preferences(request: Request) -> UserPreferences:
 @router.patch("/user/preferences", response_model=UserPreferences)
 def update_preferences(request: Request, payload: UserPreferencesUpdate) -> UserPreferences:
     patch = payload.model_dump(exclude_none=True)
-    preferences = app_data_service.update_preferences(patch, _resolve_user_id(request))
+    preferences = app_data_service.update_preferences(
+        patch, _resolve_user_id(request), _resolve_guest_id(request)
+    )
     return UserPreferences(**preferences)

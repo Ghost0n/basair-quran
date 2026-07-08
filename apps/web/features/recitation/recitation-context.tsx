@@ -12,9 +12,10 @@ import {
 } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { ReciterItem, SurahListItem } from "@q-basair/shared";
+import type { MushafItem, ReciterItem, SurahListItem } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
+import { usePreferences } from "@/lib/preferences-context";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -26,6 +27,8 @@ export type RecitationPosition = { surah: number; ayah: number };
 
 type RecitationValue = {
   reciters: ReciterItem[];
+  /** Mushaf catalogue (with riwāyah), for reciter/mushaf mismatch detection. */
+  mushafs: MushafItem[];
   reciterId: string;
   reciter: ReciterItem | null;
   current: RecitationPosition | null;
@@ -63,10 +66,14 @@ const SPEEDS = [0.75, 1, 1.25, 1.5];
  * the Recitation room and the Mushaf footer mini-player.
  */
 export function RecitationProvider({ children }: { children: ReactNode }) {
+  const { preferences } = usePreferences();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [reciters, setReciters] = useState<ReciterItem[]>([]);
+  const [mushafs, setMushafs] = useState<MushafItem[]>([]);
   const [surahs, setSurahs] = useState<SurahListItem[]>([]);
-  const [reciterId, setReciterId] = useState<string>("alafasy");
+  const [reciterId, setReciterId] = useState<string>(() => preferences.reciter || "alafasy");
+  // Once the user picks a reciter this session, stop auto-seeding from the pref.
+  const userPickedReciterRef = useRef(false);
   const [current, setCurrent] = useState<RecitationPosition | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -82,11 +89,12 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([api.getReciters(), api.getSurahs()])
-      .then(([reciterList, surahList]) => {
+    Promise.all([api.getReciters(), api.getSurahs(), api.getMushafs()])
+      .then(([reciterList, surahList, mushafList]) => {
         if (cancelled) return;
         setReciters(reciterList);
         setSurahs(surahList);
+        setMushafs(mushafList);
         if (reciterList[0]) setReciterId((current) => (reciterList.some((r) => r.id === current) ? current : reciterList[0].id));
       })
       .catch(() => {
@@ -96,6 +104,16 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       cancelled = true;
     };
   }, []);
+
+  // Honor the saved reciter preference: apply it once the catalogue has loaded
+  // and the pref names a known reciter, until the user overrides it this session.
+  useEffect(() => {
+    if (userPickedReciterRef.current) return;
+    const preferred = preferences.reciter;
+    if (preferred && preferred !== reciterId && reciters.some((item) => item.id === preferred)) {
+      setReciterId(preferred);
+    }
+  }, [preferences.reciter, reciters, reciterId]);
 
   const loadAndPlay = useCallback(
     (position: RecitationPosition, activeReciter: ReciterItem | null) => {
@@ -172,6 +190,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
 
   const setReciter = useCallback(
     (id: string) => {
+      userPickedReciterRef.current = true;
       setReciterId(id);
       if (current) {
         const nextReciter = reciters.find((item) => item.id === id) ?? null;
@@ -217,6 +236,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   const value = useMemo<RecitationValue>(
     () => ({
       reciters,
+      mushafs,
       reciterId,
       reciter,
       current,
@@ -240,6 +260,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     }),
     [
       reciters,
+      mushafs,
       reciterId,
       reciter,
       current,

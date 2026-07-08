@@ -11,6 +11,7 @@ DEFAULT_SQLITE_CACHE_PAGES = 10000
 LOW_MEMORY_SQLITE_CACHE_PAGES = 2000
 LOW_MEMORY_MUSHAF_CACHE_LIMIT = 1
 LOW_MEMORY_QUERY_CACHE_LIMIT = 32
+DEFAULT_QUERY_CACHE_LIMIT = 2048
 SUPPORTED_PREFIX_LEMMAS = {"\u0648", "\u0641", "\u0628", "\u0643", "\u0644"}
 ARTICLE_LEMMA = "\u0627\u0644"
 PHRASE_SUGGESTION_MIN_CONFIDENCE = 0.88
@@ -41,7 +42,10 @@ def read_bool_env(name: str, default: bool = False) -> bool:
 
 
 def get_db_path() -> str:
-    return str(_db_path)
+    # Honor QBASAIR_DB_PATH when set (matches the other path getters); the
+    # module-global set via set_db_path is the fallback used by tests/startup.
+    raw_path = os.environ.get("QBASAIR_DB_PATH")
+    return str(Path(raw_path) if raw_path else _db_path)
 
 
 def set_db_path(path: str) -> None:
@@ -114,6 +118,11 @@ def get_hafs_mushaf_id() -> int:
     return HAFS_MUSHAF_ID
 
 
+def get_commit_sha() -> str:
+    """The running commit, surfaced by /api/ready for the deploy gate."""
+    return os.environ.get("QBASAIR_COMMIT_SHA", "unknown").strip() or "unknown"
+
+
 def get_llm_provider() -> str:
     return os.environ.get("QBASAIR_LLM_PROVIDER", "ollama").strip().lower()
 
@@ -124,6 +133,23 @@ def get_ollama_api_key() -> str:
 
 def get_ollama_base_url() -> str:
     return os.environ.get("QBASAIR_OLLAMA_BASE_URL", "https://ollama.com").strip().rstrip("/")
+
+
+# Hosts a client-supplied `X-QBasair-Ollama-Base-Url` override may target. The
+# server's own `QBASAIR_OLLAMA_BASE_URL` is trusted and NOT subject to this list;
+# only client overrides are checked, to close the SSRF / server-key-exfil surface.
+DEFAULT_OLLAMA_ALLOWED_HOSTS = ("ollama.com",)
+
+
+def get_ollama_allowed_hosts() -> set[str]:
+    """Return the lower-cased host allowlist for client base-URL overrides."""
+    hosts = set(DEFAULT_OLLAMA_ALLOWED_HOSTS)
+    raw = os.environ.get("QBASAIR_OLLAMA_ALLOWED_HOSTS", "")
+    for part in raw.split(","):
+        cleaned = part.strip().lower()
+        if cleaned:
+            hosts.add(cleaned)
+    return hosts
 
 
 def get_llm_chat_model() -> str:
@@ -146,8 +172,17 @@ def is_auth_enabled() -> bool:
     return read_bool_env("QBASAIR_AUTH_ENABLED")
 
 
+# The insecure default used for local http dev. Production (auth enabled) must
+# override it — create_app() refuses to start otherwise.
+DEV_SESSION_SECRET = "qbasair-dev-session-secret"
+
+
 def get_session_secret() -> str:
-    return os.environ.get("QBASAIR_SESSION_SECRET", "qbasair-dev-session-secret").strip()
+    return os.environ.get("QBASAIR_SESSION_SECRET", DEV_SESSION_SECRET).strip()
+
+
+def is_default_session_secret() -> bool:
+    return get_session_secret() == DEV_SESSION_SECRET
 
 
 def get_session_cookie_name() -> str:
@@ -157,6 +192,36 @@ def get_session_cookie_name() -> str:
 
 def is_session_secure() -> bool:
     return read_bool_env("QBASAIR_SESSION_SECURE")
+
+
+def get_invite_codes() -> set[str]:
+    """Signup invite codes. Empty set ⇒ open registration (current behavior)."""
+    raw = os.environ.get("QBASAIR_INVITE_CODES", "")
+    return {part.strip() for part in raw.split(",") if part.strip()}
+
+
+def _read_int_env(name: str, default: int) -> int:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw.strip())
+    except ValueError:
+        return default
+
+
+def get_rate_limit(bucket: str) -> tuple[float, int]:
+    """Return ``(window_seconds, max_requests)`` for a rate-limit bucket.
+
+    A non-positive ``max_requests`` disables limiting for that bucket. Limits are
+    per-IP sliding windows (single-process uvicorn); tune via env in production.
+    """
+    window = float(max(1, _read_int_env("QBASAIR_RATE_LIMIT_WINDOW_SECONDS", 60)))
+    if bucket == "auth":
+        return window, _read_int_env("QBASAIR_RATE_LIMIT_AUTH_MAX", 20)
+    if bucket == "research":
+        return window, _read_int_env("QBASAIR_RATE_LIMIT_RESEARCH_MAX", 60)
+    return window, 0
 
 
 def is_low_memory_mode() -> bool:
@@ -178,11 +243,15 @@ def get_runtime_mushaf_cache_limit() -> int | None:
     return None
 
 
-def get_runtime_query_cache_limit() -> int | None:
-    """Return the did-you-mean cache entry limit, or None when unlimited."""
+def get_runtime_query_cache_limit() -> int:
+    """Return the did-you-mean cache entry limit.
+
+    These caches are keyed by arbitrary user query strings, so they must always
+    be bounded (previously unlimited in normal mode → unbounded memory growth).
+    """
     if is_low_memory_mode():
         return LOW_MEMORY_QUERY_CACHE_LIMIT
-    return None
+    return DEFAULT_QUERY_CACHE_LIMIT
 
 
 def get_cors_origins() -> list[str]:

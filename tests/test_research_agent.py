@@ -3,7 +3,13 @@ import sqlite3
 import pytest
 
 from src.app.core import config
-from src.app.models.api import ResearchAgentAyah, ResearchRelatedTerm, ResearchSearchItem, TafssirStructuredAnswer
+from src.app.models.api import (
+    ResearchAgentAyah,
+    ResearchAgentMessage,
+    ResearchRelatedTerm,
+    ResearchSearchItem,
+    TafssirStructuredAnswer,
+)
 from src.app.services import quran_service, research_agent_service
 
 
@@ -567,3 +573,166 @@ def test_research_agent_filters_displayed_ayahs_from_final_review(api_client):
     assert body["answer"] == "Filtered answer."
     assert len(body["ayahs"]) == 1
     assert body["ayahs"][0]["ayah_id"] == provider.answer_ayahs[-1].ayah_id
+
+
+# --- SSRF / server-key-exfil closure (T1.3) -------------------------------
+
+
+def test_client_base_url_override_never_carries_server_key(monkeypatch):
+    """A client base_url override must not inherit the server's Ollama key."""
+    monkeypatch.setenv("OLLAMA_API_KEY", "server-secret-key")
+
+    runtime = research_agent_service.build_runtime_settings(
+        api_key=None, base_url="https://ollama.com"
+    )
+
+    assert runtime.base_url == "https://ollama.com"
+    assert runtime.api_key == ""  # server key withheld from the override endpoint
+
+
+def test_client_base_url_override_honors_client_key(monkeypatch):
+    monkeypatch.setenv("OLLAMA_API_KEY", "server-secret-key")
+
+    runtime = research_agent_service.build_runtime_settings(
+        api_key="client-key", base_url="https://ollama.com"
+    )
+
+    assert runtime.api_key == "client-key"
+
+
+def test_no_override_still_uses_server_key(monkeypatch):
+    """The trusted env path (no client override) keeps the server key."""
+    monkeypatch.setenv("OLLAMA_API_KEY", "server-secret-key")
+    monkeypatch.setenv("QBASAIR_OLLAMA_BASE_URL", "https://ollama.com")
+
+    runtime = research_agent_service.build_runtime_settings(api_key=None, base_url=None)
+
+    assert runtime.api_key == "server-secret-key"
+
+
+def test_client_base_url_override_rejects_http_and_non_allowlisted():
+    for bad in (
+        "http://ollama.com",  # non-https
+        "https://169.254.169.254/latest/meta-data",  # SSRF to metadata
+        "https://evil.example.com",  # not allowlisted
+        "https://notollama.com",  # not a suffix match
+    ):
+        with pytest.raises(research_agent_service.ResearchProviderUnavailable):
+            research_agent_service.build_runtime_settings(base_url=bad)
+
+
+def test_client_base_url_override_allows_extra_allowlisted_host(monkeypatch):
+    monkeypatch.setenv("QBASAIR_OLLAMA_ALLOWED_HOSTS", "my-ollama.internal")
+
+    runtime = research_agent_service.build_runtime_settings(
+        base_url="https://my-ollama.internal", api_key="k"
+    )
+
+    assert runtime.base_url == "https://my-ollama.internal"
+
+
+def test_bounded_provider_error_caps_reflected_body():
+    huge = "leaked-secret " * 200
+    bounded = research_agent_service._bounded_provider_error(
+        f"Ollama request failed with HTTP 500: {huge}"
+    )
+    assert len(bounded) <= research_agent_service.MAX_PROVIDER_ERROR_CHARS
+
+
+def test_source_path_is_never_sent_to_the_llm(monkeypatch):
+    """T3.7: corpus source_path must not leak into any LLM prompt."""
+    runtime = research_agent_service.build_runtime_settings()
+    provider = research_agent_service.OllamaResearchLlmProvider(runtime)
+
+    captured: list[str] = []
+
+    def fake_chat(messages, *args, **kwargs):
+        captured.append(research_agent_service.json.dumps(messages, ensure_ascii=False))
+        return '{"related_terms":[],"searches":[]}'
+
+    monkeypatch.setattr(provider, "_chat", fake_chat)
+
+    chunk = research_agent_service.SourceChunk(
+        id=1, title="Note", source_path="/srv/secret/internal/note.txt", content="نص", score=1.0
+    )
+    provider.expand_search_candidates(
+        messages=[ResearchAgentMessage(role="user", content="سؤال")],
+        source_chunks=[chunk],
+        quran_terms=[],
+        answer_language="ar",
+    )
+
+    assert captured, "expected the provider to build an LLM prompt"
+    assert "secret/internal" not in captured[0]
+    assert "source_path" not in captured[0]
+
+
+def _ayah(i: int) -> ResearchAgentAyah:
+    return ResearchAgentAyah(
+        ayah_id=i, mushaf_id=1, surah="س", surah_id=1, ayah=i, text=f"v{i}", global_index=i
+    )
+
+
+def test_filter_ayahs_by_review_respects_discard_only_review():
+    """T3.4: a discard-only review must actually drop the discarded ayahs."""
+    ayahs = [_ayah(i) for i in (1, 2, 3)]
+    review = research_agent_service.AnswerReview(answer="a", keep_ayah_ids=[], discard_ayah_ids=[1])
+    kept = research_agent_service.filter_ayahs_by_review(ayahs, review)
+    assert [a.ayah_id for a in kept] == [2, 3]
+
+
+def test_filter_ayahs_by_review_no_signal_keeps_all():
+    ayahs = [_ayah(i) for i in (1, 2)]
+    review = research_agent_service.AnswerReview(answer="a", keep_ayah_ids=[], discard_ayah_ids=[])
+    assert research_agent_service.filter_ayahs_by_review(ayahs, review) == ayahs
+
+
+def test_parse_search_plan_falls_back_on_garbage_json():
+    """T3.4: malformed LLM output degrades to a deterministic plan, not a 502."""
+    fallback = [research_agent_service.QuranTermCandidate(type="root", text="ر ح م", root_id=1, score=1.0)]
+    plan = research_agent_service.parse_search_plan("not json at all", fallback)
+    assert plan.status == "search"
+    assert plan.searches  # populated from the fallback candidates
+
+
+def test_parse_candidate_expansion_falls_back_on_garbage_json():
+    fallback = [research_agent_service.QuranTermCandidate(type="root", text="ر ح م", root_id=1, score=1.0)]
+    expansion = research_agent_service.parse_candidate_expansion("<<broken>>", fallback)
+    assert expansion.searches
+
+
+def test_public_catalog_serves_fresh_cache_without_scraping(monkeypatch):
+    """T3.6: a fresh cache is served without touching the network."""
+    calls = []
+    monkeypatch.setattr(
+        research_agent_service,
+        "fetch_public_ollama_cloud_catalog",
+        lambda timeout=10.0: calls.append(timeout) or [],
+    )
+    previous = research_agent_service._public_ollama_cloud_catalog_cache
+    try:
+        cached_item = research_agent_service.make_model_item("cached-model")
+        research_agent_service._public_ollama_cloud_catalog_cache = (
+            research_agent_service.time.time(),
+            [cached_item],
+        )
+        result = research_agent_service.get_public_ollama_cloud_catalog()
+        assert [m.name for m in result] == ["cached-model"]
+        assert calls == []  # fresh cache ⇒ no scrape on the request path
+    finally:
+        research_agent_service._public_ollama_cloud_catalog_cache = previous
+
+
+def test_public_catalog_background_refresh_populates_cache(monkeypatch):
+    fetched = [research_agent_service.make_model_item("fetched-model")]
+    monkeypatch.setattr(
+        research_agent_service, "fetch_public_ollama_cloud_catalog", lambda timeout=10.0: fetched
+    )
+    previous = research_agent_service._public_ollama_cloud_catalog_cache
+    try:
+        research_agent_service._refresh_public_ollama_cloud_catalog(1.0)
+        cache = research_agent_service._public_ollama_cloud_catalog_cache
+        assert cache is not None
+        assert [m.name for m in cache[1]] == ["fetched-model"]
+    finally:
+        research_agent_service._public_ollama_cloud_catalog_cache = previous

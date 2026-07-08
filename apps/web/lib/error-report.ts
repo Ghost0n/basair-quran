@@ -101,6 +101,25 @@ export type DiagnosticReport = {
 
 const REPORTING_ENABLED = process.env.NEXT_PUBLIC_ERROR_REPORTING === "1";
 
+let globalHooksInstalled = false;
+
+/**
+ * Sentry-shaped global capture — routes uncaught errors and unhandled promise
+ * rejections into the same reporting pipeline (breadcrumbs + console, plus the
+ * POST transport when it's enabled). Installed once, and only when
+ * `NEXT_PUBLIC_ERROR_REPORTING=1` (opt-in, no real DSN/vendor SDK). Idempotent.
+ */
+export function installGlobalErrorHooks(): void {
+  if (globalHooksInstalled || typeof window === "undefined" || !REPORTING_ENABLED) return;
+  globalHooksInstalled = true;
+  window.addEventListener("error", (event) => {
+    reportError("window.error", event.error ?? event.message);
+  });
+  window.addEventListener("unhandledrejection", (event) => {
+    reportError("unhandledrejection", event.reason);
+  });
+}
+
 /**
  * The user-initiated "send a report" action (future admin pipeline). Assembles a
  * diagnostic bundle (sanitized user message + technical detail + recent
@@ -118,7 +137,9 @@ export async function sendDiagnosticReport(
     scope,
     user_message: input.userMessage,
     detail: input.detail,
-    url: typeof window !== "undefined" ? window.location.href : undefined,
+    // Pathname only — never the query string, which can carry the user's search
+    // text or other sensitive params into the diagnostic bundle.
+    url: typeof window !== "undefined" ? window.location.pathname : undefined,
     user_agent: typeof navigator !== "undefined" ? navigator.userAgent : undefined,
     at: Date.now(),
     breadcrumbs: [...breadcrumbs],

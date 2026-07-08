@@ -35,6 +35,14 @@
   --gold-800: #3a2c05;
   --gold-900: #1f1702;
 
+  /* Brand seal (BrandMark) tones. Theme-aware so a CSS-driven mark follows the
+     stored theme without a JS `light` prop (which caused an SSR/client hydration
+     mismatch for light-theme users). Dark values here; light override in .light. */
+  --brand-mark-stroke: #d4af37;
+  --brand-mark-fill: #e9cf73;
+  --brand-mark-glow: rgba(212, 175, 55, 0.22);
+  --brand-mark-filter: drop-shadow(0 4px 14px rgba(212, 175, 55, 0.18));
+
   /* ---------- Ink (text) ---------- */
   --ink-0:   #ffffff;
   --ink-50:  #f7f3e8;
@@ -203,6 +211,11 @@
      gold); gold-400 itself is too light to read on cream surfaces. */
   --gold-text: #8a6a0c;
   --gold-text-bright: #8a6a0c;
+
+  --brand-mark-stroke: #8a6a0c;
+  --brand-mark-fill: #8a6a0c;
+  --brand-mark-glow: rgba(212, 175, 55, 0.18);
+  --brand-mark-filter: none;
 
   --evidence-fg: #8a6a0c;
   --evidence-bg: rgba(212,175,55,0.14);

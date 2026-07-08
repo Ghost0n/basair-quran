@@ -7,13 +7,36 @@ from src.app.services import quran_service, reciter_service
 
 router = APIRouter(prefix="/api", tags=["catalog"])
 
+# The mushaf name IS the riwāyah (in Arabic). Map to the normalized english key
+# used by ReciterItem.riwayah so the UI can flag a reciter/mushaf mismatch.
+_RIWAYAH_BY_NAME = {
+    "حفص": "hafs",
+    "ورش": "warsh",
+    "قالون": "qaloun",
+    "شعبة": "shuba",
+    "الدوري": "douri",
+    "السوسي": "sousi",
+}
+
+
+def _riwayah_for_mushaf(name: str) -> str:
+    return _RIWAYAH_BY_NAME.get((name or "").strip(), "hafs")
+
 
 @router.get("/mushafs", response_model=list[MushafItem])
 def get_mushafs() -> list[MushafItem]:
     start = time.time()
     cursor = quran_service.get_db().cursor()
     cursor.execute("SELECT id, name, description FROM mushafs ORDER BY id")
-    mushafs = [MushafItem(id=row["id"], name=row["name"], description=row["description"]) for row in cursor.fetchall()]
+    mushafs = [
+        MushafItem(
+            id=row["id"],
+            name=row["name"],
+            description=row["description"],
+            riwayah=_riwayah_for_mushaf(row["name"]),
+        )
+        for row in cursor.fetchall()
+    ]
     quran_service.logger.info("GET /api/mushafs - %.1fms", (time.time() - start) * 1000)
     return mushafs
 

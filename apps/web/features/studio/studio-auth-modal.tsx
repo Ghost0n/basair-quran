@@ -1,6 +1,7 @@
 "use client";
 
 import { BrandMark } from "@/components/brand-mark";
+import { useDialog } from "@/lib/use-dialog";
 
 import "./studio-auth-modal.css";
 
@@ -14,11 +15,12 @@ export function StudioAuthModal({ onClose }: { onClose: () => void }) {
   const next =
     typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/";
   const enc = encodeURIComponent(next);
+  const dialogRef = useDialog<HTMLDivElement>(onClose);
 
   return (
     <div className="qb-studio-auth" role="dialog" aria-modal="true" aria-label="الدراسة تتطلّب حساباً">
       <div className="backdrop" onClick={onClose} aria-hidden />
-      <div className="dialog">
+      <div className="dialog" ref={dialogRef} tabIndex={-1}>
         <BrandMark size={52} />
         <h4>الدراسة تتطلّب حساباً</h4>
         <p>

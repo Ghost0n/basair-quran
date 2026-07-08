@@ -5,17 +5,24 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from src.app.core import config
 from src.app.models.api import (
     AuthLoginRequest,
+    AuthOkResponse,
     AuthProfileUpdate,
     AuthSessionResponse,
     AuthSignupRequest,
     AuthUserInfo,
     DeleteResult,
     DeviceInfo,
+    ForgotPasswordRequest,
     GuestMergeRequest,
     GuestMergeResult,
     GuestMergeUndoRequest,
+    ResetPasswordRequest,
 )
+import logging
+
 from src.app.services import app_data_service, auth_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -105,17 +112,32 @@ def auth_login(req: AuthLoginRequest, request: Request, response: Response) -> A
     return AuthSessionResponse(enabled=True, authenticated=True, user=_user_info(user), token=raw_token)
 
 
+def _enforce_invite(invite_code: str | None) -> None:
+    """Gate signup behind an invite code when QBASAIR_INVITE_CODES is configured.
+
+    Unset ⇒ open registration (unchanged). Set ⇒ a wrong/missing code is 403.
+    """
+    codes = config.get_invite_codes()
+    if not codes:
+        return
+    if (invite_code or "").strip() not in codes:
+        raise HTTPException(status_code=403, detail="رمز الدعوة غير صالح.")
+
+
 @router.post("/signup", response_model=AuthSessionResponse)
 def auth_signup(req: AuthSignupRequest, request: Request, response: Response) -> AuthSessionResponse:
     if not config.is_auth_enabled():
         raise HTTPException(status_code=400, detail="Authentication is disabled.")
 
+    _enforce_invite(req.invite_code)
+
     try:
         user = auth_service.create_user(req.email, req.password, name=req.name)
+    except auth_service.EmailAlreadyExistsError as exc:
+        # Static message — never reflect whether the email exists (enumeration).
+        raise HTTPException(status_code=409, detail="تعذّر إنشاء الحساب بهذه البيانات.") from exc
     except auth_service.AuthError as exc:
-        message = str(exc)
-        status = 409 if "already exists" in message else 422
-        raise HTTPException(status_code=status, detail=message) from exc
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
     raw_token, _ = auth_service.create_session(
         user.id, device_label=req.device_label, platform=req.platform
@@ -129,6 +151,45 @@ def auth_logout(request: Request, response: Response) -> AuthSessionResponse:
     auth_service.revoke_session_by_token(_extract_token(request))
     _clear_session_cookie(response)
     return AuthSessionResponse(enabled=config.is_auth_enabled(), authenticated=False, user=None)
+
+
+@router.post("/forgot-password", response_model=AuthOkResponse)
+def auth_forgot_password(req: ForgotPasswordRequest) -> AuthOkResponse:
+    """Request a password-reset token. Always returns ok (no account
+    enumeration). Delivery is console/manual for now — the token is logged."""
+    if not config.is_auth_enabled():
+        raise HTTPException(status_code=400, detail="Authentication is disabled.")
+    raw_token = auth_service.create_password_reset(req.email)
+    if raw_token is not None:
+        # Manual delivery: surface the token in the server log until an email
+        # transport lands. Never returned to the client.
+        logger.info("Password reset requested — token for delivery: %s", raw_token)
+    return AuthOkResponse(ok=True)
+
+
+@router.post("/reset-password", response_model=AuthOkResponse)
+def auth_reset_password(req: ResetPasswordRequest) -> AuthOkResponse:
+    """Consume a reset token and set a new password. Invalidates all sessions."""
+    if not config.is_auth_enabled():
+        raise HTTPException(status_code=400, detail="Authentication is disabled.")
+    try:
+        ok = auth_service.reset_password_with_token(req.token, req.password)
+    except auth_service.AuthError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not ok:
+        raise HTTPException(status_code=400, detail="رمز إعادة التعيين غير صالح أو منتهٍ.")
+    return AuthOkResponse(ok=True)
+
+
+@router.delete("/account", response_model=DeleteResult)
+def auth_delete_account(request: Request, response: Response) -> DeleteResult:
+    """Permanently delete the current account: all app data, then the user +
+    every session (all devices), and clear the cookie. Irreversible."""
+    resolved = _require_user(request)
+    app_data_service.delete_user_data(resolved.user.id)
+    deleted = auth_service.delete_user(resolved.user.id)
+    _clear_session_cookie(response)
+    return DeleteResult(deleted=deleted)
 
 
 # --------------------------------------------------------------------------
@@ -187,6 +248,7 @@ def auth_merge_guest_data(req: GuestMergeRequest, request: Request) -> GuestMerg
     resolved = _require_user(request)
     result = app_data_service.merge_guest_data(
         resolved.user.id,
+        guest_id=request.headers.get("X-QBasair-Guest-Id"),
         notebook_ids=req.notebook_ids,
         session_ids=req.session_ids,
         root_ids=req.root_ids,

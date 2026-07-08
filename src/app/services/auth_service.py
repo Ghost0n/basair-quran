@@ -54,6 +54,15 @@ class AuthError(ValueError):
     """Raised when auth management input is invalid."""
 
 
+class EmailAlreadyExistsError(AuthError):
+    """Raised when signup targets an email that is already registered."""
+
+
+# A fixed salt used only to burn an equivalent scrypt on the login miss path, so
+# an unknown email costs the same wall-clock as a known one (no enumeration oracle).
+_DUMMY_PASSWORD_SALT_HEX = "00" * 16
+
+
 def normalize_email(email: str) -> str:
     normalized = email.strip().lower()
     if not normalized or "@" not in normalized:
@@ -119,6 +128,16 @@ def ensure_auth_db() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_sessions_token ON sessions (token_hash);
             CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions (user_id, last_seen_at);
+
+            CREATE TABLE IF NOT EXISTS password_resets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT NOT NULL UNIQUE,
+                created_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL,
+                used_at INTEGER
+            );
+            CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets (token_hash);
             """
         )
         # Idempotent identity-column migration (name / avatar medallion / onboarded).
@@ -195,7 +214,7 @@ def create_user(email: str, password: str, *, name: str | None = None, is_admin:
             connection.commit()
             user_id = int(cursor.lastrowid)
     except sqlite3.IntegrityError as exc:
-        raise AuthError(f"User '{normalized_email}' already exists.") from exc
+        raise EmailAlreadyExistsError(f"User '{normalized_email}' already exists.") from exc
 
     return AuthUser(
         id=user_id,
@@ -329,6 +348,9 @@ def authenticate_user(email: str, password: str) -> AuthUser | None:
         ).fetchone()
 
     if row is None or not bool(row["is_active"]):
+        # Burn an equivalent scrypt so a missing/inactive account is not
+        # distinguishable from a wrong password by response time.
+        _hash_password(password, _DUMMY_PASSWORD_SALT_HEX)
         return None
 
     _, candidate_hash = _hash_password(password, str(row["password_salt"]))
@@ -455,6 +477,92 @@ def revoke_session(session_id: int, user_id: int) -> bool:
             "UPDATE sessions SET revoked_at = ? WHERE id = ? AND user_id = ? AND revoked_at IS NULL",
             (now, session_id, user_id),
         )
+        connection.commit()
+        return cursor.rowcount > 0
+
+
+# A reset token lives 1 hour and is single-use.
+PASSWORD_RESET_TTL_SECONDS = 60 * 60
+
+
+def create_password_reset(email: str) -> str | None:
+    """Mint a single-use password-reset token for ``email``.
+
+    Returns the raw token (delivered out-of-band — logged for manual delivery)
+    when the account exists, else ``None``. Only the token's sha256 hash is
+    stored. Callers must NOT reveal to the client whether the email existed.
+    """
+    ensure_auth_db()
+    try:
+        normalized_email = normalize_email(email)
+    except AuthError:
+        return None
+    with _connect() as connection:
+        row = connection.execute(
+            "SELECT id FROM users WHERE email = ? AND is_active = 1",
+            (normalized_email,),
+        ).fetchone()
+        if row is None:
+            return None
+        raw_token = secrets.token_urlsafe(32)
+        now = int(time.time())
+        connection.execute(
+            """
+            INSERT INTO password_resets (user_id, token_hash, created_at, expires_at, used_at)
+            VALUES (?, ?, ?, ?, NULL)
+            """,
+            (int(row["id"]), _hash_token(raw_token), now, now + PASSWORD_RESET_TTL_SECONDS),
+        )
+        connection.commit()
+    return raw_token
+
+
+def reset_password_with_token(raw_token: str, new_password: str) -> bool:
+    """Consume a reset token and set the user's password. Returns success.
+
+    Raises AuthError for a weak password (so the route can 422). A missing,
+    expired, or already-used token returns False (invalid). All the user's
+    sessions are revoked so a compromised password can't keep a live session.
+    """
+    if not raw_token:
+        return False
+    validated_password = validate_password(new_password)  # may raise AuthError
+    ensure_auth_db()
+    token_hash = _hash_token(raw_token)
+    now = int(time.time())
+    salt_hex, password_hash = _hash_password(validated_password)
+    with _connect() as connection:
+        row = connection.execute(
+            "SELECT id, user_id, used_at, expires_at FROM password_resets WHERE token_hash = ?",
+            (token_hash,),
+        ).fetchone()
+        if row is None or row["used_at"] is not None or int(row["expires_at"]) <= now:
+            return False
+        user_id = int(row["user_id"])
+        connection.execute(
+            "UPDATE users SET password_salt = ?, password_hash = ?, updated_at = ? WHERE id = ?",
+            (salt_hex, password_hash, now, user_id),
+        )
+        connection.execute(
+            "UPDATE password_resets SET used_at = ? WHERE id = ?",
+            (now, int(row["id"])),
+        )
+        # Invalidate every live session for this user.
+        connection.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+        connection.commit()
+    return True
+
+
+def delete_user(user_id: int) -> bool:
+    """Erase an account: its sessions (all devices) and the user row itself.
+
+    App-data rows (notebook, sessions, roots, preferences) are removed separately
+    by ``app_data_service.delete_user_data``. Returns True if the user existed.
+    """
+    ensure_auth_db()
+    with _connect() as connection:
+        connection.execute("DELETE FROM sessions WHERE user_id = ?", (user_id,))
+        cursor = connection.execute("DELETE FROM users WHERE id = ?", (user_id,))
         connection.commit()
         return cursor.rowcount > 0
 

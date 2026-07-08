@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-import type { AuthUserInfo } from "@q-basair/shared";
-
 import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-mark";
 import { Icon } from "@/components/icon";
 import { AUTH_ENABLED } from "@/lib/config";
+import { useAuthSession } from "@/lib/auth-session-context";
+import { useDialog } from "@/lib/use-dialog";
 import { clearGuestChoice, identityApi } from "@/features/auth/identity-flow";
 
 import "./more-sheet.css";
@@ -29,21 +27,8 @@ type MoreSheetProps = {
  * The mobile counterpart of the desktop rail's account menu + settings button.
  */
 export function MoreSheet({ onClose, onOpenSettings, theme, onToggleTheme }: MoreSheetProps) {
-  const [user, setUser] = useState<AuthUserInfo | null>(null);
-
-  useEffect(() => {
-    if (!AUTH_ENABLED) return;
-    let cancelled = false;
-    identityApi
-      .getAuthSession({ suppressAuthRedirect: true })
-      .then((session) => {
-        if (!cancelled && session.authenticated) setUser(session.user ?? null);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const { user } = useAuthSession();
+  const sheetRef = useDialog<HTMLDivElement>(onClose);
 
   async function signOut() {
     try {
@@ -58,7 +43,7 @@ export function MoreSheet({ onClose, onOpenSettings, theme, onToggleTheme }: Mor
   return (
     <div className="qb-more" role="dialog" aria-modal="true" aria-label="المزيد">
       <div className="backdrop" onClick={onClose} aria-hidden />
-      <div className="sheet">
+      <div className="sheet" ref={sheetRef} tabIndex={-1}>
         <div className="grip" aria-hidden />
 
         {AUTH_ENABLED && user ? (
@@ -78,7 +63,20 @@ export function MoreSheet({ onClose, onOpenSettings, theme, onToggleTheme }: Mor
 
         <div className="row theme">
           السِّمة
-          <span className="seg" onClick={onToggleTheme} role="button" tabIndex={0}>
+          <span
+            className="seg"
+            onClick={onToggleTheme}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onToggleTheme();
+              }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-pressed={theme === "light"}
+            aria-label="تبديل السِّمة"
+          >
             <span className={theme === "dark" ? "on" : ""}>داكنة</span>
             <span className={theme === "light" ? "on" : ""}>فاتحة</span>
           </span>

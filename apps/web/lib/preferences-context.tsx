@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -15,6 +16,8 @@ import type { UserPreferences, UserPreferencesUpdate } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
 import { formatNumber } from "@/lib/numerals";
+// Side-effect: registers the guest-id header provider on the api-client.
+import "@/lib/guest-id";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -42,6 +45,8 @@ type PreferencesValue = {
   /** The current per-session overrides. */
   tweaks: TweaksPatch;
   updateAccount: (patch: UserPreferencesUpdate) => Promise<void>;
+  /** Optimistic local update + debounced PATCH — for continuous inputs (sliders). */
+  updateAccountDebounced: (patch: UserPreferencesUpdate) => void;
   setTweak: (patch: TweaksPatch) => void;
   resetTweaks: () => void;
   promoteTweaks: () => Promise<void>;
@@ -52,6 +57,7 @@ const PreferencesContext = createContext<PreferencesValue>({
   account: DEFAULT_PREFERENCES,
   tweaks: {},
   updateAccount: async () => {},
+  updateAccountDebounced: () => {},
   setTweak: () => {},
   resetTweaks: () => {},
   promoteTweaks: async () => {},
@@ -100,6 +106,43 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     setAccount(next);
   }, []);
 
+  // Debounced persistence for continuous controls (e.g. the font-size slider),
+  // which would otherwise fire a PATCH on every drag tick. The local state updates
+  // immediately for live feedback; the network write is coalesced.
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingPatchRef = useRef<UserPreferencesUpdate>({});
+
+  const updateAccountDebounced = useCallback((patch: UserPreferencesUpdate) => {
+    setAccount((current) => {
+      // Type-safe optimistic merge: skip null/undefined and merge nested research
+      // (mirrors the backend's update_preferences), keeping the result a full
+      // UserPreferences rather than loosening it with the partial/nullable patch.
+      const next: Record<string, unknown> = { ...current };
+      for (const [key, value] of Object.entries(patch)) {
+        if (value === null || value === undefined) continue;
+        if (key === "research" && typeof value === "object") {
+          next.research = { ...current.research, ...(value as object) };
+        } else {
+          next[key] = value;
+        }
+      }
+      return next as unknown as UserPreferences;
+    });
+    pendingPatchRef.current = { ...pendingPatchRef.current, ...patch };
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      const patchToSend = pendingPatchRef.current;
+      pendingPatchRef.current = {};
+      void api.updatePreferences(patchToSend).then(setAccount).catch(() => {});
+    }, 400);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, []);
+
   const setTweak = useCallback((patch: TweaksPatch) => {
     setTweaks((current) => ({ ...current, ...patch }));
   }, []);
@@ -114,8 +157,17 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
   }, [tweaks]);
 
   const value = useMemo<PreferencesValue>(
-    () => ({ preferences, account, tweaks, updateAccount, setTweak, resetTweaks, promoteTweaks }),
-    [preferences, account, tweaks, updateAccount, setTweak, resetTweaks, promoteTweaks],
+    () => ({
+      preferences,
+      account,
+      tweaks,
+      updateAccount,
+      updateAccountDebounced,
+      setTweak,
+      resetTweaks,
+      promoteTweaks,
+    }),
+    [preferences, account, tweaks, updateAccount, updateAccountDebounced, setTweak, resetTweaks, promoteTweaks],
   );
 
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;

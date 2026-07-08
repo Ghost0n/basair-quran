@@ -5,6 +5,7 @@ import "./export.css";
 import { useMemo, useState } from "react";
 
 import { Icon } from "@/components/icon";
+import { useDialog } from "@/lib/use-dialog";
 import { TAFSSIR_DISCLAIMER_TEXT } from "@/features/studio/tafssir-disclaimer";
 import type { StudioSession } from "@/features/studio/use-studio-sessions";
 
@@ -24,9 +25,16 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
   const [includeEvidence, setIncludeEvidence] = useState(true);
   const [includeDisclaimer, setIncludeDisclaimer] = useState(true);
 
+  // The experimental Tafssir disclaimer is MANDATORY on a tafssir export — the
+  // user cannot opt out of it (safety: a tafssir reading must never travel
+  // without its caveat).
+  const isTafssir = session.mode === "tafssir";
+  const disclaimerIncluded = isTafssir ? true : includeDisclaimer;
+  const dialogRef = useDialog<HTMLDivElement>(onClose);
+
   const content = useMemo(
-    () => buildExport(session, format, { includeEvidence, includeDisclaimer }),
-    [session, format, includeEvidence, includeDisclaimer],
+    () => buildExport(session, format, { includeEvidence, includeDisclaimer: disclaimerIncluded }),
+    [session, format, includeEvidence, disclaimerIncluded],
   );
 
   function download() {
@@ -44,7 +52,15 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
 
   return (
     <div className="qb-export-backdrop" onClick={onClose}>
-      <div className="qb-export-modal" role="dialog" aria-label="تصدير الجلسة" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="qb-export-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="تصدير الجلسة"
+        ref={dialogRef}
+        tabIndex={-1}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="qb-export-head">
           <div>
             <div className="kicker">التصدير · EXPORT</div>
@@ -90,14 +106,21 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
               />
               تضمين الآيات المُستدَل بها
             </label>
-            <label className="qb-export-toggle">
-              <input
-                type="checkbox"
-                checked={includeDisclaimer}
-                onChange={(e) => setIncludeDisclaimer(e.target.checked)}
-              />
-              تضمين تنبيه الوضع التفسيري
-            </label>
+            {isTafssir ? (
+              <label className="qb-export-toggle" title="إلزامي في الوضع التفسيري">
+                <input type="checkbox" checked disabled />
+                تنبيه الوضع التفسيري (إلزامي)
+              </label>
+            ) : (
+              <label className="qb-export-toggle">
+                <input
+                  type="checkbox"
+                  checked={includeDisclaimer}
+                  onChange={(e) => setIncludeDisclaimer(e.target.checked)}
+                />
+                تضمين تنبيه الوضع التفسيري
+              </label>
+            )}
           </div>
 
           <div className="qb-export-section-label">معاينة</div>

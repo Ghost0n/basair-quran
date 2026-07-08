@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -11,6 +11,7 @@ import { Icon } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
 import { flyToNotebook } from "@/lib/fly-to-notebook";
 import { emitNotebookChange, useNotebookSync } from "@/lib/notebook-sync";
+import { useIsMobile } from "@/lib/use-is-mobile";
 import { useNumerals } from "@/lib/preferences-context";
 import { getVerseSelectionKey, renderHighlightedVerseText } from "@/lib/quran-ui";
 import { useShellMode } from "@/features/shell/mode-context";
@@ -28,6 +29,15 @@ export function ConcordancePanel() {
   const { setMode } = useShellMode();
   const formatNumber = useNumerals();
   const router = useRouter();
+  // At ≤1000 px the reader isn't mounted beside the results, so a verse tap must
+  // switch the shell to the reader surface (Back returns to the results). At wide
+  // widths the reader is already visible beside the panel — no mode switch needed.
+  const isCompact = useIsMobile(1000);
+
+  function openVerse(verse: SearchVerse, resultKey: string) {
+    void actions.selectVerse(verse, resultKey);
+    if (isCompact) setMode("reading");
+  }
 
   const [pinnedAyahIds, setPinnedAyahIds] = useState<Set<number>>(new Set());
   const [rootFollowed, setRootFollowed] = useState(false);
@@ -38,6 +48,46 @@ export function ConcordancePanel() {
   const totalVerses = results.reduce((sum, r) => sum + r.total_verses, 0);
   // B2: use the server-computed count across the full result set, not just the current page.
   const surahCount = results.reduce((sum, r) => sum + (r.total_surahs ?? 0), 0);
+
+  // Seed the pin markers from the notebook on mount so already-saved verses show
+  // as pinned (previously the set started empty and lied until a live change).
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .getNotebook()
+      .then((items) => {
+        if (cancelled) return;
+        const ids = new Set<number>();
+        for (const item of items) if (item.ayah_id != null) ids.add(item.ayah_id);
+        setPinnedAyahIds(ids);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Reset + re-seed the "followed" state whenever the primary root changes, so it
+  // reflects the CURRENT root rather than staying stale from the previous search.
+  const primaryRoot = primary?.root;
+  useEffect(() => {
+    if (!primaryRoot) {
+      setRootFollowed(false);
+      return;
+    }
+    let cancelled = false;
+    setRootFollowed(false);
+    api
+      .getRoots()
+      .then((roots) => {
+        if (cancelled) return;
+        setRootFollowed(roots.some((r) => r.root_text === primaryRoot));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [primaryRoot]);
 
   // Keep the pin markers honest when the same ayah is saved/removed elsewhere
   // (the reader beside this panel, or the library).
@@ -231,11 +281,11 @@ export function ConcordancePanel() {
                   role="button"
                   tabIndex={0}
                   aria-pressed={isSelected}
-                  onClick={() => void actions.selectVerse(verse, result.result_key)}
+                  onClick={() => openVerse(verse, result.result_key)}
                   onKeyDown={(event) => {
                     if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
                       event.preventDefault();
-                      void actions.selectVerse(verse, result.result_key);
+                      openVerse(verse, result.result_key);
                     }
                   }}
                 >

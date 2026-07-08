@@ -66,11 +66,11 @@ export function WelcomeFlow() {
   async function finish() {
     setSaving(true);
     try {
-      const user = await identityApi.updateProfile(
+      await identityApi.updateProfile(
         { avatar: motif, onboarded: true },
         { suppressAuthRedirect: true },
       );
-      await maybeMergeGuestData(user.id);
+      await maybeMergeGuestData();
     } catch {
       // Even if persistence fails, don't trap the user on the welcome screen.
     }
@@ -120,6 +120,14 @@ export function WelcomeFlow() {
 
         <button type="button" className="qb-welcome-cta step-avatar" onClick={() => setStep("onboard")}>
           متابعة ←
+        </button>
+        <button
+          type="button"
+          className="qb-welcome-skip"
+          onClick={finish}
+          disabled={saving}
+        >
+          تخطّي والبدء مباشرةً
         </button>
       </div>
     );

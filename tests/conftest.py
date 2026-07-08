@@ -5,6 +5,15 @@ import pytest
 from fastapi.testclient import TestClient
 
 from src import main
+from src.app.core import rate_limit
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Isolate the in-memory rate-limit store between tests."""
+    rate_limit.reset()
+    yield
+    rate_limit.reset()
 
 
 def create_test_db(db_path: Path):

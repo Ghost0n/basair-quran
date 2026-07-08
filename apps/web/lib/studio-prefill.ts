@@ -75,16 +75,20 @@ const QUESTION_WORDS = new Set([
 
 /**
  * A conservative heuristic: treat the input as a research question (route it to
- * the Studio) rather than a search when it ends with a question mark, is a long
- * natural-language phrase, or opens with an Arabic interrogative. Kept strict so
- * short root/word/phrase searches still go to search.
+ * the Studio) rather than a search when it ends with a question mark or opens
+ * with an Arabic interrogative. A long phrase (≥6 words) counts ONLY when it
+ * also carries an interrogative cue — a plain long ayah/phrase search must still
+ * go to search, not the Studio. Kept strict so short searches stay searches.
  */
 export function looksLikeQuestion(text: string): boolean {
   const t = text.trim();
   if (!t) return false;
   if (/[؟?]\s*$/.test(t)) return true;
   const words = t.split(/\s+/);
-  if (words.length >= 6) return true;
+  const hasInterrogative = words.some((word) => QUESTION_WORDS.has(word.replace(/[^؀-ۿ]/g, "")));
+  // Softened: the 6-word rule now requires an interrogative (was word-count only,
+  // which misrouted long non-question searches into the Studio).
+  if (words.length >= 6 && hasInterrogative) return true;
   const first = words[0].replace(/[^؀-ۿ]/g, "");
   if (words.length >= 3 && QUESTION_WORDS.has(first)) return true;
   return false;

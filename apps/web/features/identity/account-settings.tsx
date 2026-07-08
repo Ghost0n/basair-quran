@@ -3,11 +3,12 @@
 import { useEffect, useState } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { AuthUserInfo, DeviceInfo } from "@q-basair/shared";
+import type { DeviceInfo } from "@q-basair/shared";
 
 import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-mark";
 import { Icon } from "@/components/icon";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { useAuthSession } from "@/lib/auth-session-context";
 import { clearGuestChoice } from "@/features/auth/identity-flow";
 import { useNumerals } from "@/lib/preferences-context";
 
@@ -44,11 +45,14 @@ function relativeTime(epochSeconds: number, formatNumber: (n: number) => string)
  */
 export function AccountSettings() {
   const formatNumber = useNumerals();
-  const [user, setUser] = useState<AuthUserInfo | null>(null);
+  // Shared session probe — a rename here propagates to the rail menu via patchUser.
+  const { user, ready, patchUser } = useAuthSession();
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
   const [picking, setPicking] = useState(false);
-  const [ready, setReady] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
+  const [deviceError, setDeviceError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Keep the name field seeded from the loaded profile (and after a save).
   useEffect(() => {
@@ -56,20 +60,8 @@ export function AccountSettings() {
   }, [user?.name]);
 
   useEffect(() => {
-    if (!AUTH_ENABLED) {
-      setReady(true);
-      return;
-    }
+    if (!AUTH_ENABLED) return;
     let cancelled = false;
-    void api
-      .getAuthSession({ suppressAuthRedirect: true })
-      .then((session) => {
-        if (!cancelled && session.authenticated) setUser(session.user ?? null);
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setReady(true);
-      });
     void api
       .getDevices({ suppressAuthRedirect: true })
       .then((list) => {
@@ -123,7 +115,7 @@ export function AccountSettings() {
 
   async function chooseMotif(next: AvatarMotif) {
     setPicking(false);
-    setUser((current) => (current ? { ...current, avatar: next } : current));
+    patchUser({ avatar: next });
     try {
       await api.updateProfile({ avatar: next }, { suppressAuthRedirect: true });
     } catch {
@@ -134,7 +126,7 @@ export function AccountSettings() {
   async function saveName() {
     const next = nameDraft.trim();
     if (!user || !next || next === (user.name || "")) return;
-    setUser((current) => (current ? { ...current, name: next } : current));
+    patchUser({ name: next });
     try {
       await api.updateProfile({ name: next }, { suppressAuthRedirect: true });
     } catch {
@@ -143,11 +135,20 @@ export function AccountSettings() {
   }
 
   async function eject(sessionId: number) {
+    // Optimistic removal, but never leave a false success: if the server does
+    // not actually revoke the session, restore the row and surface the failure.
+    setDeviceError(null);
+    const previous = devices;
     setDevices((list) => list.filter((device) => device.id !== sessionId));
     try {
-      await api.ejectDevice(sessionId, { suppressAuthRedirect: true });
+      const result = await api.ejectDevice(sessionId, { suppressAuthRedirect: true });
+      if (!result.deleted) {
+        setDevices(previous);
+        setDeviceError("تعذّر إخراج الجهاز. حاول مرة أخرى.");
+      }
     } catch {
-      /* ignore */
+      setDevices(previous);
+      setDeviceError("تعذّر إخراج الجهاز. تحقّق من اتصالك وأعد المحاولة.");
     }
   }
 
@@ -159,6 +160,19 @@ export function AccountSettings() {
     }
     clearGuestChoice();
     window.location.assign("/");
+  }
+
+  async function deleteAccount() {
+    setDeleting(true);
+    try {
+      await api.deleteAccount({ suppressAuthRedirect: true });
+      clearGuestChoice();
+      window.location.assign("/");
+    } catch {
+      setDeleting(false);
+      setDeviceError("تعذّر حذف الحساب. حاول مرة أخرى.");
+      setConfirmDelete(false);
+    }
   }
 
   return (
@@ -222,11 +236,44 @@ export function AccountSettings() {
           <Icon name="logout" size={15} />
           تسجيل الخروج
         </button>
+
+        {!confirmDelete ? (
+          <button
+            type="button"
+            className="qb-account-delete-row"
+            onClick={() => {
+              setDeviceError(null);
+              setConfirmDelete(true);
+            }}
+          >
+            حذف الحساب نهائياً
+          </button>
+        ) : (
+          <div className="qb-account-delete-confirm" role="alertdialog" aria-label="تأكيد حذف الحساب">
+            <p>
+              سيُحذف حسابك وكل محفوظاتك (المثبَّتات والجلسات والجذور والإعدادات) نهائياً على كل الأجهزة.
+              لا يمكن التراجع.
+            </p>
+            <div className="qb-account-delete-actions">
+              <button type="button" className="danger" onClick={deleteAccount} disabled={deleting}>
+                {deleting ? "جارٍ الحذف…" : "احذف نهائياً"}
+              </button>
+              <button type="button" onClick={() => setConfirmDelete(false)} disabled={deleting}>
+                إلغاء
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       <section className="qb-setting-card">
         <h3>الأجهزة النشطة{devices.length ? ` · ${formatNumber(devices.length)}` : ""}</h3>
         <p className="card-sub">الجلسات المتصلة بحسابك — يمكنك إخراج أيّ جهاز.</p>
+        {deviceError ? (
+          <div className="qb-devices-error" role="alert">
+            {deviceError}
+          </div>
+        ) : null}
         <div className="qb-devices">
           {devices.map((device) => (
             <div key={device.id} className="qb-device-row">

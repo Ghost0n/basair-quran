@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import sqlite3
+import threading
 from typing import Optional
 
 from src.app.core import config
@@ -14,12 +15,21 @@ from src.app.core import config
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Connection pool (reuse connections)
-_db_connection = None
+# Per-thread read-only SQLite connections. A single shared connection used from
+# multiple worker threads (uvicorn's sync threadpool) is a data-race hazard even
+# with check_same_thread=False; each thread gets its own read-only handle instead.
+# A generation counter lets close_db_connection() (called from a *different*
+# thread on teardown / DB-path change) invalidate every thread's cached handle:
+# a thread whose cached generation is stale transparently reopens.
+_thread_local = threading.local()
+_open_connections: list[sqlite3.Connection] = []
+_connections_lock = threading.Lock()
+_connection_generation = 0
 _mushaf_page_index_cache = OrderedDict()
 _mushaf_latin_word_index_cache = OrderedDict()
 _mushaf_latin_root_index_cache = OrderedDict()
 _mushaf_word_suggestion_candidates_cache = OrderedDict()
+_mushaf_phrase_metadata_cache = OrderedDict()
 _phrase_did_you_mean_cache = OrderedDict()
 _word_did_you_mean_cache = OrderedDict()
 _mushaf_layout_index_cache = OrderedDict()
@@ -49,17 +59,26 @@ def put_cache_entry(cache, key, value, limit=None):
 
 
 def close_db_connection():
-    """Close the cached SQLite connection."""
-    global _db_connection, _mushaf_page_index_cache
+    """Close every per-thread SQLite connection and reset the in-process caches."""
+    global _open_connections, _connection_generation, _mushaf_page_index_cache
     global _mushaf_latin_word_index_cache, _mushaf_latin_root_index_cache, _mushaf_word_suggestion_candidates_cache
+    global _mushaf_phrase_metadata_cache
     global _phrase_did_you_mean_cache, _word_did_you_mean_cache, _mushaf_layout_index_cache
-    if _db_connection is not None:
-        _db_connection.close()
-        _db_connection = None
+    with _connections_lock:
+        for connection in _open_connections:
+            try:
+                connection.close()
+            except sqlite3.Error:
+                pass
+        _open_connections = []
+        # Bump the generation so other threads' cached handles are seen as stale
+        # and get reopened on their next get_db() call.
+        _connection_generation += 1
     _mushaf_page_index_cache = OrderedDict()
     _mushaf_latin_word_index_cache = OrderedDict()
     _mushaf_latin_root_index_cache = OrderedDict()
     _mushaf_word_suggestion_candidates_cache = OrderedDict()
+    _mushaf_phrase_metadata_cache = OrderedDict()
     _phrase_did_you_mean_cache = OrderedDict()
     _word_did_you_mean_cache = OrderedDict()
     _mushaf_layout_index_cache = OrderedDict()
@@ -71,17 +90,24 @@ def reset_morphology_search_index():
 
 
 def get_db():
-    global _db_connection
-    if _db_connection is None:
-        db_uri = Path(config.get_db_path()).resolve().as_uri() + "?mode=ro"
-        _db_connection = sqlite3.connect(db_uri, uri=True, check_same_thread=False)
-        _db_connection.row_factory = sqlite3.Row
-        _db_connection.execute("PRAGMA query_only=ON")
-        _db_connection.execute(f"PRAGMA cache_size={config.get_runtime_sqlite_cache_pages()}")
-        _db_connection.execute("PRAGMA temp_store=MEMORY")
-        if config.is_low_memory_mode():
-            logger.info("Low-memory runtime mode enabled; using constrained in-process caches.")
-    return _db_connection
+    """Return this thread's read-only connection, reopening if it went stale."""
+    entry = getattr(_thread_local, "entry", None)
+    if entry is not None and entry[1] == _connection_generation:
+        return entry[0]
+
+    db_uri = Path(config.get_db_path()).resolve().as_uri() + "?mode=ro"
+    connection = sqlite3.connect(db_uri, uri=True, check_same_thread=False)
+    connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA query_only=ON")
+    connection.execute(f"PRAGMA cache_size={config.get_runtime_sqlite_cache_pages()}")
+    connection.execute("PRAGMA temp_store=MEMORY")
+    if config.is_low_memory_mode():
+        logger.info("Low-memory runtime mode enabled; using constrained in-process caches.")
+
+    with _connections_lock:
+        _open_connections.append(connection)
+        _thread_local.entry = (connection, _connection_generation)
+    return connection
 
 
 def normalize_text_search(text):
@@ -846,8 +872,9 @@ def get_mushaf_latin_root_index(cursor, mushaf):
             continue
         items.append({"text": row["root_text"], "variants": variants})
 
-    if not config.is_low_memory_mode():
-        put_cache_entry(_mushaf_latin_root_index_cache, cache_key, items, config.get_runtime_mushaf_cache_limit())
+    # Cache even in low-memory mode: the runtime limit (1 entry) already bounds
+    # memory, and skipping entirely would rebuild this index on every request.
+    put_cache_entry(_mushaf_latin_root_index_cache, cache_key, items, config.get_runtime_mushaf_cache_limit())
     return items
 
 
@@ -939,8 +966,7 @@ def get_mushaf_latin_word_index(cursor, mushaf):
             }
         )
 
-    if not config.is_low_memory_mode():
-        put_cache_entry(_mushaf_latin_word_index_cache, cache_key, items, config.get_runtime_mushaf_cache_limit())
+    put_cache_entry(_mushaf_latin_word_index_cache, cache_key, items, config.get_runtime_mushaf_cache_limit())
     return items
 
 
@@ -1252,7 +1278,18 @@ def fetch_mushaf_ayah_tokens(cursor, mushaf):
 
 
 def get_mushaf_phrase_metadata(cursor, mushaf):
-    """Return cached phrase-search metadata for one mushaf."""
+    """Return phrase-search metadata for one mushaf, memoized per mushaf.
+
+    Building it scans every ayah token against the candidate phrase records — an
+    expensive full-mushaf pass that was previously repeated on every phrase
+    search (and twice within a single request path). It is deterministic per
+    mushaf, so it is cached like the other per-mushaf indexes.
+    """
+    cache_key = (config.get_db_path(), mushaf)
+    cached = get_cache_entry(_mushaf_phrase_metadata_cache, cache_key)
+    if cached is not None:
+        return cached
+
     ayahs = fetch_mushaf_ayah_tokens(cursor, mushaf)
     phrase_forms = set()
     positions_by_form = defaultdict(list)
@@ -1269,11 +1306,15 @@ def get_mushaf_phrase_metadata(cursor, mushaf):
                 seen_positions.add(position_key)
                 positions_by_form[form].append((ayah_index, token_index))
 
-    return {
+    metadata = {
         "ayahs": ayahs,
         "phrase_forms": phrase_forms,
         "positions_by_form": dict(positions_by_form),
     }
+    put_cache_entry(
+        _mushaf_phrase_metadata_cache, cache_key, metadata, config.get_runtime_mushaf_cache_limit()
+    )
+    return metadata
 
 
 def has_consecutive_word_positions(window):
@@ -1491,13 +1532,12 @@ def collect_word_suggestion_candidates(cursor, mushaf):
                 }
 
     candidate_list = list(candidates.values())
-    if not config.is_low_memory_mode():
-        put_cache_entry(
-            _mushaf_word_suggestion_candidates_cache,
-            cache_key,
-            candidate_list,
-            config.get_runtime_mushaf_cache_limit(),
-        )
+    put_cache_entry(
+        _mushaf_word_suggestion_candidates_cache,
+        cache_key,
+        candidate_list,
+        config.get_runtime_mushaf_cache_limit(),
+    )
     return candidate_list
 
 

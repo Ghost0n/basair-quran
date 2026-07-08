@@ -19,8 +19,8 @@ services:
       QBASAIR_LLM_EMBED_MODEL: ${QBASAIR_LLM_EMBED_MODEL:-nomic-embed-text}
       QBASAIR_LLM_TIMEOUT_SECONDS: ${QBASAIR_LLM_TIMEOUT_SECONDS:-120}
       QBASAIR_SESSION_COOKIE_NAME: ${QBASAIR_SESSION_COOKIE_NAME:-qbasair_session}
-      QBASAIR_SESSION_SECRET: ${QBASAIR_SESSION_SECRET:-qbasair-dev-session-secret}
-      QBASAIR_SESSION_SECURE: ${QBASAIR_SESSION_SECURE:-0}
+      QBASAIR_SESSION_SECRET: ${QBASAIR_SESSION_SECRET:?set a strong QBASAIR_SESSION_SECRET in .env.production}
+      QBASAIR_SESSION_SECURE: ${QBASAIR_SESSION_SECURE:-1}
       OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
     volumes:
       - ./data:/app/data
@@ -28,6 +28,16 @@ services:
       - "8001"
     networks:
       - app
+    # Bounded container logs so a chatty process can't fill the host disk.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Resource ceilings (env-tunable per host). Generous for the api since DB /
+    # index rebuilds run inside it; drop if the box is small.
+    mem_limit: ${QBASAIR_API_MEM_LIMIT:-1g}
+    cpus: ${QBASAIR_API_CPUS:-1.5}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/health', timeout=5).read()"]
       interval: 30s
@@ -63,6 +73,13 @@ services:
         condition: service_healthy
     networks:
       - app
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: ${QBASAIR_WEB_MEM_LIMIT:-512m}
+    cpus: ${QBASAIR_WEB_CPUS:-1.0}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then((res)=>process.exit(res.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
@@ -106,6 +123,13 @@ services:
     networks:
       - edge
       - app
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: ${QBASAIR_NGINX_MEM_LIMIT:-128m}
+    cpus: ${QBASAIR_NGINX_CPUS:-0.5}
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz || exit 1"]
       interval: 30s

@@ -89,7 +89,33 @@ def ensure_app_db() -> None:
             );
             """
         )
+        # Additive migration: a random per-device guest token stamped on all
+        # guest (user_id=0) writes so a guest→account merge can be scoped to the
+        # caller's OWN guest rows instead of harvesting every guest's data.
+        for table in ("notebook_items", "research_sessions", "followed_roots", "user_preferences"):
+            if "guest_id" not in _column_names(connection, table):
+                connection.execute(f"ALTER TABLE {table} ADD COLUMN guest_id TEXT")
         connection.commit()
+
+
+def _column_names(connection: sqlite3.Connection, table: str) -> set[str]:
+    rows = connection.execute(f"PRAGMA table_info({table})").fetchall()
+    return {str(row["name"]) for row in rows}
+
+
+def _clean_guest_id(guest_id: str | None) -> str | None:
+    """Normalize a presented guest token: trimmed, length-capped, or None."""
+    if not guest_id:
+        return None
+    cleaned = guest_id.strip()[:128]
+    return cleaned or None
+
+
+def _guest_stamp(user_id: int, guest_id: str | None) -> str | None:
+    """The guest_id to persist on a write: only meaningful for guest rows."""
+    if user_id != DEFAULT_USER_ID:
+        return None
+    return _clean_guest_id(guest_id)
 
 
 # ----------------------------------------------------------------------
@@ -130,7 +156,7 @@ def get_preferences(user_id: int = DEFAULT_USER_ID) -> dict:
     return merged
 
 
-def update_preferences(patch: dict, user_id: int = DEFAULT_USER_ID) -> dict:
+def update_preferences(patch: dict, user_id: int = DEFAULT_USER_ID, guest_id: str | None = None) -> dict:
     current = get_preferences(user_id)
     research_patch = patch.pop("research", None)
     current.update({key: value for key, value in patch.items() if value is not None})
@@ -141,8 +167,8 @@ def update_preferences(patch: dict, user_id: int = DEFAULT_USER_ID) -> dict:
         }
     with _connect() as connection:
         connection.execute(
-            "INSERT OR REPLACE INTO user_preferences (user_id, data, updated_at) VALUES (?, ?, ?)",
-            (user_id, json.dumps(current, ensure_ascii=False), int(time.time())),
+            "INSERT OR REPLACE INTO user_preferences (user_id, data, updated_at, guest_id) VALUES (?, ?, ?, ?)",
+            (user_id, json.dumps(current, ensure_ascii=False), int(time.time()), _guest_stamp(user_id, guest_id)),
         )
         connection.commit()
     return current
@@ -162,14 +188,14 @@ def list_notebook_items(user_id: int = DEFAULT_USER_ID) -> list[dict]:
     return [dict(row) for row in rows]
 
 
-def add_notebook_item(payload: dict, user_id: int = DEFAULT_USER_ID) -> dict:
+def add_notebook_item(payload: dict, user_id: int = DEFAULT_USER_ID, guest_id: str | None = None) -> dict:
     created_at = int(time.time())
     with _connect() as connection:
         cursor = connection.execute(
             """
             INSERT INTO notebook_items
-                (user_id, ayah_id, mushaf_id, surah_id, surah, ayah, text, note, collection, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (user_id, ayah_id, mushaf_id, surah_id, surah, ayah, text, note, collection, created_at, guest_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 user_id,
@@ -182,6 +208,7 @@ def add_notebook_item(payload: dict, user_id: int = DEFAULT_USER_ID) -> dict:
                 payload.get("note"),
                 payload.get("collection"),
                 created_at,
+                _guest_stamp(user_id, guest_id),
             ),
         )
         connection.commit()
@@ -230,7 +257,7 @@ def get_session(session_id: str, user_id: int = DEFAULT_USER_ID) -> dict | None:
     return session
 
 
-def save_session(payload: dict, user_id: int = DEFAULT_USER_ID) -> dict:
+def save_session(payload: dict, user_id: int = DEFAULT_USER_ID, guest_id: str | None = None) -> dict:
     now = int(time.time())
     messages = payload.get("messages") or []
     with _connect() as connection:
@@ -242,8 +269,8 @@ def save_session(payload: dict, user_id: int = DEFAULT_USER_ID) -> dict:
         connection.execute(
             """
             INSERT OR REPLACE INTO research_sessions
-                (id, user_id, title, mode, message_count, messages, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                (id, user_id, title, mode, message_count, messages, created_at, updated_at, guest_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 payload["id"],
@@ -254,6 +281,7 @@ def save_session(payload: dict, user_id: int = DEFAULT_USER_ID) -> dict:
                 json.dumps(messages, ensure_ascii=False),
                 created_at,
                 now,
+                _guest_stamp(user_id, guest_id),
             ),
         )
         connection.commit()
@@ -286,7 +314,7 @@ def list_followed_roots(user_id: int = DEFAULT_USER_ID) -> list[dict]:
     return [dict(row) for row in rows]
 
 
-def add_followed_root(payload: dict, user_id: int = DEFAULT_USER_ID) -> dict:
+def add_followed_root(payload: dict, user_id: int = DEFAULT_USER_ID, guest_id: str | None = None) -> dict:
     root_text = (payload.get("root_text") or "").strip()
     created_at = int(time.time())
     with _connect() as connection:
@@ -298,10 +326,11 @@ def add_followed_root(payload: dict, user_id: int = DEFAULT_USER_ID) -> dict:
             return dict(existing)
         cursor = connection.execute(
             """
-            INSERT INTO followed_roots (user_id, root_text, root_id, occurrences, created_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO followed_roots (user_id, root_text, root_id, occurrences, created_at, guest_id)
+            VALUES (?, ?, ?, ?, ?, ?)
             """,
-            (user_id, root_text, payload.get("root_id"), payload.get("occurrences"), created_at),
+            (user_id, root_text, payload.get("root_id"), payload.get("occurrences"), created_at,
+             _guest_stamp(user_id, guest_id)),
         )
         connection.commit()
         row = connection.execute("SELECT * FROM followed_roots WHERE id = ?", (cursor.lastrowid,)).fetchone()
@@ -326,56 +355,84 @@ def delete_followed_root(root_id: int, user_id: int = DEFAULT_USER_ID) -> bool:
 def merge_guest_data(
     user_id: int,
     *,
+    guest_id: str | None = None,
     notebook_ids: list[int] | None = None,
     session_ids: list[str] | None = None,
     root_ids: list[int] | None = None,
     include_preferences: bool = False,
 ) -> dict:
-    """Re-attribute guest (``user_id = 0``) rows to ``user_id``.
+    """Re-attribute the caller's OWN guest (``user_id = 0``) rows to ``user_id``.
 
-    Rows are *moved*, never copied or deleted. When an id list is supplied,
-    only those guest rows move; an empty/omitted list moves all guest rows of
-    that type (single-guest deployments). Followed-roots the account already
-    follows (by ``root_text``) are left with the guest so nothing collides.
-    The exact ids moved are journalled under an ``undo_token`` so the move can
-    be reversed with zero data loss.
+    Scoped strictly to the presented ``guest_id`` device token: only guest rows
+    stamped with that same token can move, so one account can never claim another
+    guest's data (the HIGH-severity harvesting hole). A missing token moves
+    nothing. Optional id lists further narrow the move within that scope.
+
+    Rows are *moved*, never copied or deleted. Followed-roots the account already
+    follows (by ``root_text``) are left with the guest so nothing collides. The
+    exact ids moved are journalled under an ``undo_token`` for zero-loss reversal.
+    Because moved rows leave the ``user_id = 0`` scope, re-running the merge is
+    naturally idempotent, and guest rows created later are still claimable.
     """
     if user_id == DEFAULT_USER_ID:
         raise ValueError("Cannot merge guest data into the guest user.")
 
+    token = _clean_guest_id(guest_id)
     now = int(time.time())
     moved: dict[str, object] = {"notebook": [], "sessions": [], "roots": [], "preferences": False}
 
+    # No token ⇒ nothing is claimable. Fail safe (never harvest unstamped rows).
+    if token is None:
+        undo_token = secrets.token_urlsafe(24)
+        with _connect() as connection:
+            connection.execute(
+                "INSERT INTO merge_log (undo_token, user_id, moved_json, created_at, undone_at) VALUES (?, ?, ?, ?, NULL)",
+                (undo_token, user_id, json.dumps(moved, ensure_ascii=False), now),
+            )
+            connection.commit()
+        return {
+            "merged": True,
+            "notebook_moved": 0,
+            "sessions_moved": 0,
+            "roots_moved": 0,
+            "preferences_moved": False,
+            "undo_token": undo_token,
+        }
+
     with _connect() as connection:
-        # --- notebook ---
+        # --- notebook (scoped to this guest token) ---
         if notebook_ids:
             rows = connection.execute(
-                f"SELECT id FROM notebook_items WHERE user_id = 0 AND id IN ({_placeholders(notebook_ids)})",
-                tuple(notebook_ids),
+                f"SELECT id FROM notebook_items WHERE user_id = 0 AND guest_id = ? AND id IN ({_placeholders(notebook_ids)})",
+                (token, *notebook_ids),
             ).fetchall()
         else:
-            rows = connection.execute("SELECT id FROM notebook_items WHERE user_id = 0").fetchall()
+            rows = connection.execute(
+                "SELECT id FROM notebook_items WHERE user_id = 0 AND guest_id = ?", (token,)
+            ).fetchall()
         note_ids = [int(row["id"]) for row in rows]
         for note_id in note_ids:
             connection.execute(
-                "UPDATE notebook_items SET user_id = ? WHERE id = ? AND user_id = 0",
-                (user_id, note_id),
+                "UPDATE notebook_items SET user_id = ? WHERE id = ? AND user_id = 0 AND guest_id = ?",
+                (user_id, note_id, token),
             )
         moved["notebook"] = note_ids
 
         # --- research sessions (TEXT ids) ---
         if session_ids:
             rows = connection.execute(
-                f"SELECT id FROM research_sessions WHERE user_id = 0 AND id IN ({_placeholders(session_ids)})",
-                tuple(session_ids),
+                f"SELECT id FROM research_sessions WHERE user_id = 0 AND guest_id = ? AND id IN ({_placeholders(session_ids)})",
+                (token, *session_ids),
             ).fetchall()
         else:
-            rows = connection.execute("SELECT id FROM research_sessions WHERE user_id = 0").fetchall()
+            rows = connection.execute(
+                "SELECT id FROM research_sessions WHERE user_id = 0 AND guest_id = ?", (token,)
+            ).fetchall()
         sess_ids = [str(row["id"]) for row in rows]
         for sess_id in sess_ids:
             connection.execute(
-                "UPDATE research_sessions SET user_id = ? WHERE id = ? AND user_id = 0",
-                (user_id, sess_id),
+                "UPDATE research_sessions SET user_id = ? WHERE id = ? AND user_id = 0 AND guest_id = ?",
+                (user_id, sess_id, token),
             )
         moved["sessions"] = sess_ids
 
@@ -389,37 +446,38 @@ def merge_guest_data(
         }
         if root_ids:
             rows = connection.execute(
-                f"SELECT id, root_text FROM followed_roots WHERE user_id = 0 AND id IN ({_placeholders(root_ids)})",
-                tuple(root_ids),
+                f"SELECT id, root_text FROM followed_roots WHERE user_id = 0 AND guest_id = ? AND id IN ({_placeholders(root_ids)})",
+                (token, *root_ids),
             ).fetchall()
         else:
             rows = connection.execute(
-                "SELECT id, root_text FROM followed_roots WHERE user_id = 0"
+                "SELECT id, root_text FROM followed_roots WHERE user_id = 0 AND guest_id = ?", (token,)
             ).fetchall()
         moved_root_ids: list[int] = []
         for row in rows:
             if str(row["root_text"]) in owned:
                 continue
             connection.execute(
-                "UPDATE followed_roots SET user_id = ? WHERE id = ? AND user_id = 0",
-                (user_id, int(row["id"])),
+                "UPDATE followed_roots SET user_id = ? WHERE id = ? AND user_id = 0 AND guest_id = ?",
+                (user_id, int(row["id"]), token),
             )
             moved_root_ids.append(int(row["id"]))
         moved["roots"] = moved_root_ids
 
-        # --- preferences (only if requested and the account has none yet) ---
+        # --- preferences (only if requested, matching token, account has none) ---
         if include_preferences:
             has_account_prefs = connection.execute(
                 "SELECT 1 FROM user_preferences WHERE user_id = ?",
                 (user_id,),
             ).fetchone()
             guest_prefs = connection.execute(
-                "SELECT 1 FROM user_preferences WHERE user_id = 0",
+                "SELECT 1 FROM user_preferences WHERE user_id = 0 AND guest_id = ?",
+                (token,),
             ).fetchone()
             if guest_prefs is not None and has_account_prefs is None:
                 connection.execute(
-                    "UPDATE user_preferences SET user_id = ? WHERE user_id = 0",
-                    (user_id,),
+                    "UPDATE user_preferences SET user_id = ? WHERE user_id = 0 AND guest_id = ?",
+                    (user_id, token),
                 )
                 moved["preferences"] = True
 
@@ -494,6 +552,24 @@ def undo_merge(user_id: int, undo_token: str) -> dict:
         "preferences_moved": bool(moved.get("preferences")),
         "undo_token": undo_token,
     }
+
+
+def delete_user_data(user_id: int) -> int:
+    """Erase all user-generated content for ``user_id`` (account deletion).
+
+    Removes notebook items, research sessions, followed roots, preferences, and
+    merge-log rows. Never touches guest (``user_id = 0``) data. Returns the total
+    number of rows deleted.
+    """
+    if user_id == DEFAULT_USER_ID:
+        raise ValueError("Refusing to delete guest data via account deletion.")
+    total = 0
+    with _connect() as connection:
+        for table in ("notebook_items", "research_sessions", "followed_roots", "user_preferences", "merge_log"):
+            cursor = connection.execute(f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
+            total += cursor.rowcount if cursor.rowcount and cursor.rowcount > 0 else 0
+        connection.commit()
+    return total
 
 
 def _placeholders(items: list) -> str:

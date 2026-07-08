@@ -206,3 +206,38 @@
   line-height: 1.6;
   color: var(--fg-1);
 }
+
+/* Tafssir default-mode confirmation (experimental-mode safety) */
+.qb-setting-confirm {
+  margin-top: var(--sp-2);
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--tafssir-border, var(--border-strong));
+  background: var(--tafssir-bg, var(--surface-soft));
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--fg-1);
+}
+
+.qb-setting-confirm-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.qb-setting-confirm-actions button {
+  padding: 6px 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.qb-setting-confirm-actions button.primary {
+  border-color: var(--tafssir-border, var(--gold-400));
+  color: var(--tafssir-fg, var(--gold-text));
+}

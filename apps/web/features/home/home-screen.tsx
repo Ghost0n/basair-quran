@@ -9,6 +9,7 @@ import type { ResearchSessionSummary, SavedPageEntry } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { useAuthSession } from "@/lib/auth-session-context";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { looksLikeQuestion, queueStudioAsk, queueStudioOpenSession } from "@/lib/studio-prefill";
 import { useMushaf } from "@/features/reading/mushaf-context";
@@ -59,26 +60,10 @@ export function HomeScreen() {
   const [ayahIndex, setAyahIndex] = useState(0);
   const [savedCount, setSavedCount] = useState<number | null>(null);
   const [recentSessions, setRecentSessions] = useState<ResearchSessionSummary[]>([]);
-  const [displayName, setDisplayName] = useState<string | null>(null);
-
-  // Personalized greeting — only when signed in. Guests keep the anonymous
-  // rotating-āyah hero with no greeting (the merge/sign-in path lives elsewhere).
-  useEffect(() => {
-    if (!AUTH_ENABLED) return;
-    let cancelled = false;
-    void api
-      .getAuthSession({ suppressAuthRedirect: true })
-      .then((session) => {
-        if (cancelled || !session.authenticated || !session.user) return;
-        setDisplayName(session.user.name || null);
-      })
-      .catch(() => {
-        /* guest or offline — no greeting */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // Personalized greeting — only when signed in. Reads the shared session probe,
+  // so it also reflects a name change made in settings this session.
+  const { user } = useAuthSession();
+  const displayName = AUTH_ENABLED ? user?.name ?? null : null;
 
   useEffect(() => {
     try {

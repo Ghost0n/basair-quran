@@ -16,30 +16,6 @@ jobs:
           git fetch origin main
           git reset --hard origin/main
 
-      - name: Rebuild quran.db if requested
-        run: |
-          cd /srv/q-basair
-          if git log -1 --pretty=%B | grep -q '\[rebuild-db\]'; then
-            echo "rebuild-db tag detected — rebuilding quran.db..."
-            docker compose --env-file .env.production run --rm api python scripts/build_db.py
-            # build_db.py recreates quran.db, dropping the additive layout tables,
-            # so the authentic Madani (QCF) layout must be rebuilt right after it.
-            echo "rebuilding authentic Madani layout tables..."
-            docker compose --env-file .env.production run --rm api python scripts/build_mushaf_layout.py
-          else
-            echo "No rebuild-db tag — skipping quran.db rebuild."
-          fi
-
-      - name: Rebuild research index if requested
-        run: |
-          cd /srv/q-basair
-          if git log -1 --pretty=%B | grep -q '\[rebuild-index\]'; then
-            echo "rebuild-index tag detected — rebuilding research index..."
-            docker compose --env-file .env.production run --rm api python scripts/build_research_index.py
-          else
-            echo "No rebuild-index tag — skipping research index rebuild."
-          fi
-
       - name: Fetch authentic mushaf fonts (QPC V1, idempotent)
         run: |
           cd /srv/q-basair
@@ -53,12 +29,70 @@ jobs:
             docker run --rm -v "$PWD:/repo" -w /repo python:3.12-slim python scripts/fetch_mushaf_fonts.py
           fi
 
-      - name: Build and restart stack
+      # Build BEFORE any rebuild step so the rebuild scripts run against the
+      # freshly-built image (new code), not a stale one. This also regenerates
+      # data/quran.db via QBASAIR_BUILD_DB_ON_START=auto if a prior deploy's
+      # `[rebuild-db]` untrack transition removed it from the working tree.
+      - name: Build and start stack
         run: |
           cd /srv/q-basair
           docker compose --env-file .env.production up -d --build --remove-orphans
 
-      - name: Verify health
+      - name: Tag images with the deployed commit (for fast rollback)
         run: |
-          sleep 15
-          curl -sf https://basair-al-quran.duckdns.org/api/health | grep '"status":"ok"'
+          cd /srv/q-basair
+          SHA="$(git rev-parse --short HEAD)"
+          # Best-effort: tag the freshly built api/web images with the commit so a
+          # rollback can retag a prior image without rebuilding. See
+          # docs/rollback-runbook.md. Never fail the deploy on a tagging hiccup.
+          for svc in api web; do
+            img="$(docker compose --env-file .env.production images -q "$svc" 2>/dev/null || true)"
+            if [ -n "$img" ]; then
+              docker tag "$img" "qbasair-${svc}:${SHA}" || true
+              docker tag "$img" "qbasair-${svc}:previous-$(cat /srv/q-basair/.last_deploy_sha 2>/dev/null || echo none)" || true
+            fi
+          done
+          echo "$SHA" > /srv/q-basair/.last_deploy_sha || true
+
+      - name: Rebuild quran.db if requested
+        run: |
+          cd /srv/q-basair
+          if git log -1 --pretty=%B | grep -q '\[rebuild-db\]'; then
+            echo "rebuild-db tag detected — rebuilding quran.db (fresh image)..."
+            docker compose --env-file .env.production run --rm api python scripts/build_db.py
+            # build_db.py recreates quran.db, dropping the additive layout tables,
+            # so the authentic Madani (QCF) layout must be rebuilt right after it.
+            echo "rebuilding authentic Madani layout tables..."
+            docker compose --env-file .env.production run --rm api python scripts/build_mushaf_layout.py
+            # The running api holds quran.db open read-only — restart it so it
+            # reopens the freshly generated database.
+            docker compose --env-file .env.production up -d --no-deps api
+          else
+            echo "No rebuild-db tag — skipping quran.db rebuild."
+          fi
+
+      - name: Rebuild research index if requested
+        run: |
+          cd /srv/q-basair
+          if git log -1 --pretty=%B | grep -q '\[rebuild-index\]'; then
+            echo "rebuild-index tag detected — rebuilding research index (fresh image)..."
+            docker compose --env-file .env.production run --rm api python scripts/build_research_index.py
+            docker compose --env-file .env.production up -d --no-deps api
+          else
+            echo "No rebuild-index tag — skipping research index rebuild."
+          fi
+
+      # DB-aware readiness gate with a retry loop (the API may be mid-rebuild or
+      # still opening the DB right after a restart). /api/ready runs SELECT 1.
+      - name: Verify readiness
+        run: |
+          for attempt in $(seq 1 20); do
+            if curl -sf https://basair-al-quran.duckdns.org/api/ready | grep -q '"db":true'; then
+              echo "Stack is ready."
+              exit 0
+            fi
+            echo "Not ready yet (attempt ${attempt}/20)…"
+            sleep 6
+          done
+          echo "Readiness check failed after retries."
+          exit 1

@@ -27,7 +27,7 @@ const SAVED_DESTINATIONS: RailDestination[] = [
 
 export function LeftRail() {
   const { mode, setMode } = useShellMode();
-  const { actions, state } = useWorkspace();
+  const { actions } = useWorkspace();
 
   const handleBrandClick = () => {
     // One clean navigation to the root (resetSearch handles the route); with the
@@ -35,8 +35,6 @@ export function LeftRail() {
     // here would race it and hang the shell.
     actions.resetSearch({ toReading: true });
   };
-
-  const isLight = state.theme === "light";
 
   return (
     <aside className="qb-rail" aria-label="القائمة الجانبية">
@@ -47,7 +45,7 @@ export function LeftRail() {
         title="بصائر القرآن — الصفحة الرئيسية"
         aria-label="بصائر القرآن — الصفحة الرئيسية"
       >
-        <BrandMark size={40} light={isLight} />
+        <BrandMark size={40} themed />
       </button>
 
       {WORK_DESTINATIONS.map((dest) => (

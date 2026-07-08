@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Callable
 
+import pytest
 from fastapi.testclient import TestClient
 
 from conftest import create_test_db
@@ -40,6 +41,26 @@ def build_auth_client(tmp_path: Path, monkeypatch) -> tuple[TestClient, Callable
         main.set_auth_db_path(original_auth_db_path)
 
     return client, finalize
+
+
+def test_create_app_raises_on_default_secret_when_auth_enabled(monkeypatch):
+    """Production auth must not boot on the shared dev session secret."""
+    monkeypatch.setenv("QBASAIR_AUTH_ENABLED", "1")
+    monkeypatch.delenv("QBASAIR_SESSION_SECRET", raising=False)
+
+    with pytest.raises(RuntimeError, match="QBASAIR_SESSION_SECRET"):
+        create_app()
+
+
+def test_create_app_boots_with_overridden_secret_when_auth_enabled(tmp_path, monkeypatch):
+    monkeypatch.setenv("QBASAIR_AUTH_ENABLED", "1")
+    monkeypatch.setenv("QBASAIR_SESSION_SECRET", "a-strong-production-secret")
+    # Keep auth/app DB bootstrapping off the real data dir.
+    monkeypatch.setenv("QBASAIR_AUTH_DB_PATH", str(tmp_path / "auth.db"))
+    monkeypatch.setenv("QBASAIR_APP_DB_PATH", str(tmp_path / "app_data.db"))
+
+    # Should not raise.
+    assert create_app() is not None
 
 
 def test_auth_session_reports_disabled_by_default(api_client):

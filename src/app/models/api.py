@@ -1,10 +1,26 @@
+import json
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+# Storage caps for persisted research sessions — guests reach this endpoint, so
+# an unbounded messages payload would let anyone bloat the shared app_data.db.
+MAX_SESSION_MESSAGES = 500
+MAX_SESSION_MESSAGES_BYTES = 512 * 1024
 
 
 class HealthResponse(BaseModel):
     status: str
+    timestamp: float
+
+
+class ReadyResponse(BaseModel):
+    """Deploy-gate readiness: DB reachable + running commit. Distinct from the
+    pure-liveness `/api/health` used by the container healthcheck."""
+
+    status: str
+    db: bool
+    commit: str
     timestamp: float
 
 
@@ -22,10 +38,24 @@ class AuthSignupRequest(BaseModel):
     email: str = Field(..., min_length=3, max_length=320)
     password: str = Field(..., min_length=8, max_length=256)
     name: Optional[str] = Field(None, max_length=80)
-    # Optional invite code — accepted and echoed, not enforced yet.
+    # Optional invite code — enforced only when QBASAIR_INVITE_CODES is set
+    # (otherwise registration stays open).
     invite_code: Optional[str] = Field(None, max_length=64)
     device_label: Optional[str] = Field(None, max_length=120)
     platform: Optional[Platform] = "web"
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(..., min_length=3, max_length=320)
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., min_length=10, max_length=512)
+    password: str = Field(..., min_length=8, max_length=256)
+
+
+class AuthOkResponse(BaseModel):
+    ok: bool = True
 
 
 class AuthProfileUpdate(BaseModel):
@@ -85,6 +115,9 @@ class MushafItem(BaseModel):
     id: int
     name: str
     description: Optional[str] = None
+    # Normalized riwāyah key (matches ReciterItem.riwayah), for reciter/mushaf
+    # mismatch detection. Defaults to hafs when unknown.
+    riwayah: str = "hafs"
 
 
 class SuggestionItem(BaseModel):
@@ -423,7 +456,17 @@ class ResearchSessionSave(BaseModel):
     id: str = Field(..., min_length=1, max_length=120)
     title: str = Field("جلسة بحث", max_length=200)
     mode: Literal["strict", "tafssir"] = "strict"
-    messages: List[Dict[str, Any]] = Field(default_factory=list)
+    messages: List[Dict[str, Any]] = Field(default_factory=list, max_length=MAX_SESSION_MESSAGES)
+
+    @field_validator("messages")
+    @classmethod
+    def _bound_messages_size(cls, value: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        serialized = json.dumps(value, ensure_ascii=False).encode("utf-8")
+        if len(serialized) > MAX_SESSION_MESSAGES_BYTES:
+            raise ValueError(
+                f"Session messages exceed the {MAX_SESSION_MESSAGES_BYTES // 1024} KB limit."
+            )
+        return value
 
 
 class FollowedRoot(BaseModel):
