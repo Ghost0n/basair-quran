@@ -91,7 +91,7 @@
   --fg-3: #8d8674;   /* tertiary / meta */
   --fg-mute: #5a5547;
 
-  --verse-fg: #ffffff;
+  --verse-fg: var(--ink-50);  /* warm off-white; pure #fff blooms on dense diacritics at night */
   --verse-bg: rgba(0,0,0,0.20);
   --highlight-bg: rgba(212,175,55,0.22);
   --highlight-fg: var(--gold-300);
@@ -169,6 +169,9 @@
   --fs-ayah:        1.6rem;
   --fs-ayah-reader: 1.72rem;
   --fs-ayah-large:  2.05rem;
+  /* Basmala size relative to the ayah font — one shared value for the Unicode
+     line and the glyph-page basmala so they no longer drift (0.72 vs 0.92). */
+  --basmala-scale:  0.8;
 
   --lh-tight: 1.2;
   --lh-snug: 1.45;
@@ -199,7 +202,7 @@
 
   --fg-1: #1a160d;
   --fg-2: #4a4232;
-  --fg-3: #7a7155;
+  --fg-3: #6b6248;  /* was #7a7155 — sat exactly on the 4.5:1 AA floor on parchment */
   --fg-mute: #a89f80;
 
   --verse-fg: #0e0c08;

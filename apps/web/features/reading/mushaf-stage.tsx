@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { SurahListItem } from "@q-basair/shared";
+import type { ReaderLayout, SurahListItem } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
 import { ErrorState } from "@/components/error-state";
@@ -25,13 +25,16 @@ import { AyahReader } from "./components/ayah-reader";
 import { useMushaf } from "./mushaf-context";
 import { useMushafLayout } from "./use-mushaf-layout";
 import { useGlyphFit } from "./use-glyph-fit";
-import { useWideScreen } from "./use-wide-screen";
+import { useWideScreen, useShortViewport } from "./use-wide-screen";
 import { useSavedAyat } from "./use-saved-ayat";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 // Surahs are catalog data — fetch once per session.
 let surahCache: SurahListItem[] | null = null;
+
+// Reader layout cycle order for the Shift+M shortcut and the header switcher.
+const LAYOUT_ORDER: ReaderLayout[] = ["auto", "single", "spread", "scroll", "ayah"];
 
 // Facing-page pairing for the two-page spread. The Madani mushaf opens on the
 // (1,2),(3,4)… spreads: the odd page reads first (on the right, in RTL) and the
@@ -45,6 +48,7 @@ function pageSpread(page: number): { right: number; left: number; facing: number
 export function MushafStage() {
   const { state, actions } = useWorkspace();
   const mushaf = useMushaf();
+  const { preferences, updateAccount, updateAccountDebounced, ready } = usePreferences();
   const selectedMushaf = state.selectedMushaf;
 
   const [surahs, setSurahs] = useState<SurahListItem[]>(surahCache ?? []);
@@ -82,11 +86,42 @@ export function MushafStage() {
   // reading (e.g. after a navigation reset), reload the last page rather than
   // leaving the skeleton stuck. Guarded by `error` so a failed load can't loop.
   useEffect(() => {
-    if (!mushaf.pageData && !mushaf.isLoading && !mushaf.error) {
+    if (mushaf.pageData || mushaf.isLoading || mushaf.error || !ready) return;
+    // Resume to the exact last-read verse (last_position) instead of the top of
+    // the last page. Fall back to the localStorage last page when there is no
+    // saved verse — or it belongs to another riwāyah (ayah ids are per-mushaf).
+    const pos = preferences.last_position;
+    if (pos?.ayah_id && pos.mushaf_id === selectedMushaf) {
+      void mushaf.loadByAyah(selectedMushaf, pos.ayah_id);
+    } else {
       void mushaf.loadPage(selectedMushaf, mushaf.readLastPage(), { persist: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mushaf.pageData, mushaf.isLoading, mushaf.error]);
+  }, [mushaf.pageData, mushaf.isLoading, mushaf.error, ready]);
+
+  // Persist the current reading position (the selected verse, else the page's
+  // first ayah) so the next visit resumes exactly here. Debounced so rapid page
+  // turns coalesce into a single write.
+  useEffect(() => {
+    const pd = mushaf.pageData;
+    if (!ready || !pd || !pd.ayahs.length) return;
+    const onPage =
+      mushaf.selectedAyahId != null && pd.ayahs.some((a) => a.ayah_id === mushaf.selectedAyahId);
+    const anchor = onPage
+      ? pd.ayahs.find((a) => a.ayah_id === mushaf.selectedAyahId)!
+      : pd.ayahs[0];
+    updateAccountDebounced({
+      last_position: {
+        ayah_id: anchor.ayah_id,
+        mushaf_id: pd.mushaf_id ?? selectedMushaf,
+        surah: anchor.surah_id ?? null,
+        ayah: anchor.ayah ?? null,
+        page: pd.page ?? null,
+        updated_at: Math.floor(Date.now() / 1000),
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mushaf.pageData, mushaf.selectedAyahId, ready]);
 
   // Reload the current page in the new riwāyah when the selection changes.
   useEffect(() => {
@@ -135,8 +170,12 @@ export function MushafStage() {
   // is fallback-safe: it yields a usable layout only for Hafs pages whose glyph
   // fonts have loaded, so non-Hafs riwāyāt and the loading window keep showing
   // the Unicode reader below.
-  const { preferences } = usePreferences();
   const authentic = preferences.mushaf_render === "authentic";
+
+  // The header layout switcher + Shift+M gate «صفحتان» on authentic Ḥafṣ (the
+  // riwāyah whose Madani glyph page the backend serves).
+  const isHafs = (state.selectedMushafLabel ?? "").includes("حفص");
+  const spreadAvailable = authentic && isHafs;
 
   // Reader layout preference dispatches the surface. `scroll` is a continuous
   // Unicode scroller; the ayah surface arrives in a later phase (reads as paged
@@ -147,7 +186,12 @@ export function MushafStage() {
   // the paged family (which already gives the spread on wide authentic, single
   // otherwise). An explicit choice is always honoured as-is.
   const isNarrow = !useWideScreen(768);
-  const effectiveLayout = readerLayout === "auto" && isNarrow ? "scroll" : readerLayout;
+  // Short / landscape viewports (landscape phones, short windows) also read
+  // better as scroll: a fit-to-height page has no vertical room and collapses
+  // the authentic glyph text toward MIN_SCALE.
+  const isShort = useShortViewport(560);
+  const effectiveLayout =
+    readerLayout === "auto" && (isNarrow || isShort) ? "scroll" : readerLayout;
   const scrollMode = effectiveLayout === "scroll";
   const ayahMode = effectiveLayout === "ayah";
   // The continuous readers (scroll + ayah) share a windowing engine and route the
@@ -207,7 +251,7 @@ export function MushafStage() {
 
   // The spread container drives the fit (one uniform scale for both pages).
   const spreadRef = useRef<HTMLDivElement | null>(null);
-  useGlyphFit(spreadRef as RefObject<HTMLElement | null>, [layout, facing.layout, showSpread]);
+  useGlyphFit(spreadRef as RefObject<HTMLElement | null>, preferences.font_size, [layout, facing.layout, showSpread]);
 
   const totalPages = pageData?.total_pages ?? pageData?.max_page ?? 604;
   function goPrev() {
@@ -234,6 +278,50 @@ export function MushafStage() {
       void mushaf.loadPage(selectedMushaf, target, { persist: true });
     }
   }
+
+  // Cycle the reader layout (auto → single → spread → scroll → ayah), skipping
+  // «صفحتان» when it isn't available. Shared by Shift+M and the header switcher.
+  function cycleLayout() {
+    const order = LAYOUT_ORDER.filter((value) => value !== "spread" || spreadAvailable);
+    const idx = order.indexOf(preferences.reader_layout);
+    const next = order[(idx + 1) % order.length] ?? order[0];
+    void updateAccount({ reader_layout: next });
+  }
+
+  // Reader-scoped keyboard shortcuts. PageUp/PageDown turn the page in every mode
+  // (paged: adjacent page; continuous: smooth-scroll — goPrev/goNext branch on
+  // mode). Shift+M cycles the layout (e.code so it's Arabic-keyboard safe). Space
+  // is left to focused buttons and arrows to word-nav; all ignored while typing.
+  const goPrevRef = useRef(goPrev);
+  const goNextRef = useRef(goNext);
+  const cycleLayoutRef = useRef(cycleLayout);
+  goPrevRef.current = goPrev;
+  goNextRef.current = goNext;
+  cycleLayoutRef.current = cycleLayout;
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target;
+      if (
+        t instanceof HTMLElement &&
+        (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.key === "PageDown") {
+        e.preventDefault();
+        goNextRef.current();
+      } else if (e.key === "PageUp") {
+        e.preventDefault();
+        goPrevRef.current();
+      } else if (e.shiftKey && e.code === "KeyM") {
+        e.preventDefault();
+        cycleLayoutRef.current();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   function handleWordClick(
     surah: number,
@@ -299,9 +387,15 @@ export function MushafStage() {
     <div
       className={`qb-mushaf-stage${showSpread ? " is-spread" : ""}${scrollMode ? " is-scroll" : ""}${ayahMode ? " is-ayah" : ""}`}
     >
+      {/* Shared SR hint: words reference this via aria-describedby so the analyze
+          affordance is described once, instead of turning every word into a button. */}
+      <span id="qb-word-hint" className="qb-sr-only">اضغط Enter لتحليل الكلمة صرفياً</span>
       <MushafHeader
         pageData={pageData}
         surahs={surahs}
+        readerLayout={preferences.reader_layout}
+        spreadAvailable={spreadAvailable}
+        onSetLayout={(next) => void updateAccount({ reader_layout: next })}
         onJumpSurah={(surahId, ayah) => void mushaf.loadBySurah(selectedMushaf, surahId, ayah)}
         onJumpJuz={(juz) => void mushaf.loadByJuz(selectedMushaf, juz)}
       />
@@ -332,9 +426,11 @@ export function MushafStage() {
           mushafId={selectedMushaf}
           anchorData={pageData}
           totalPages={totalPages}
+          authentic={authentic}
           selectedAyahId={mushaf.selectedAyahId}
           isSaved={saved.isSaved}
           onToggleSave={saved.toggle}
+          onGlyphSave={handleGlyphSave}
           onWordClick={handleWordClick}
           onWordKey={handleWordKey}
           morphTarget={morphTarget}

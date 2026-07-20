@@ -20,3 +20,22 @@ export function useWideScreen(breakpoint = 1180): boolean {
 
   return wide;
 }
+
+/**
+ * Tracks whether the viewport is at most `maxHeight` tall. The auto layout uses
+ * it to send short / landscape screens to `scroll`: a fit-to-height page has no
+ * room there and collapses the authentic glyph text toward MIN_SCALE. SSR-safe.
+ */
+export function useShortViewport(maxHeight = 560): boolean {
+  const [short, setShort] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia(`(max-height: ${maxHeight}px)`);
+    const update = () => setShort(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, [maxHeight]);
+
+  return short;
+}

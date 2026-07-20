@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import type { QuranPageResponse, SurahListItem } from "@q-basair/shared";
+import type { QuranPageResponse, ReaderLayout, SurahListItem } from "@q-basair/shared";
 
 import { Icon, type IconName } from "@/components/icon";
 import { SelectMenu } from "@/components/select-menu";
@@ -18,6 +18,15 @@ const NAV_PILLS: { mode: NavMode; label: string; icon: IconName }[] = [
   { mode: "juz", label: "جزء", icon: "layers" },
 ];
 
+// Persistent layout switcher shown in the reader header (also cycled by Shift+M).
+const LAYOUT_OPTIONS: { value: ReaderLayout; label: string }[] = [
+  { value: "auto", label: "تلقائي" },
+  { value: "single", label: "صفحة" },
+  { value: "spread", label: "صفحتان" },
+  { value: "scroll", label: "تمرير" },
+  { value: "ayah", label: "آية آية" },
+];
+
 function surahTypeLabel(type?: string | null): string {
   if (type === "meccan") return "مكّيّة";
   if (type === "medinan") return "مدنيّة";
@@ -27,11 +36,17 @@ function surahTypeLabel(type?: string | null): string {
 export function MushafHeader({
   pageData,
   surahs,
+  readerLayout,
+  spreadAvailable,
+  onSetLayout,
   onJumpSurah,
   onJumpJuz,
 }: {
   pageData: QuranPageResponse;
   surahs: SurahListItem[];
+  readerLayout: ReaderLayout;
+  spreadAvailable: boolean;
+  onSetLayout: (layout: ReaderLayout) => void;
   onJumpSurah: (surahId: number, ayah?: number) => void;
   onJumpJuz: (juz: number) => void;
 }) {
@@ -140,6 +155,28 @@ export function MushafHeader({
             />
           ) : null}
         </div>
+      </div>
+
+      {/* Persistent layout switcher — makes spread/scroll/ayah self-advertising
+          instead of buried in Quick Settings. Shift+M cycles the same options. */}
+      <div className="qb-tweak-seg qb-mushaf-modes" role="group" aria-label="تخطيط العرض (Shift+M)">
+        {LAYOUT_OPTIONS.map((opt) => {
+          const disabled = opt.value === "spread" && !spreadAvailable;
+          const active = readerLayout === opt.value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              className={active ? "active" : ""}
+              disabled={disabled}
+              aria-pressed={active && !disabled}
+              title={disabled ? "متاح في النمط المدني (حفص) فقط" : `${opt.label} — Shift+M للتبديل`}
+              onClick={() => onSetLayout(opt.value)}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

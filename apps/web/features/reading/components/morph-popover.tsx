@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { Icon } from "@/components/icon";
 import { useShellMode } from "@/features/shell/mode-context";
@@ -55,13 +55,59 @@ export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
+  // A11y: the popover is a modal dialog. Move focus into it on open, and restore
+  // focus to the originating word on close — the cleanup runs whenever the parent
+  // unmounts the popover (Escape, the close button, or an action button).
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    returnFocusRef.current = document.activeElement as HTMLElement | null;
+    const dialog = dialogRef.current;
+    const first = dialog?.querySelector<HTMLElement>(
+      'button, [href], input, [tabindex]:not([tabindex="-1"])',
+    );
+    (first ?? dialog)?.focus();
+    return () => {
+      returnFocusRef.current?.focus?.();
+    };
+  }, []);
+
+  // Trap Tab within the dialog so keyboard focus can't escape behind it.
+  function trapTab(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Tab") return;
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    const focusables = Array.from(
+      dialog.querySelectorAll<HTMLElement>('button, [href], input, [tabindex]:not([tabindex="-1"])'),
+    ).filter((el) => !el.hasAttribute("disabled"));
+    if (focusables.length === 0) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
   const word =
     data?.words.find((entry) => entry.position === target.position) ??
     data?.words.find((entry) => skeleton(entry.text) === skeleton(target.word)) ??
     null;
 
   return (
-    <div className="qb-morph-pop" style={{ top: target.top, insetInlineStart: target.left }}>
+    <div
+      className="qb-morph-pop"
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`تحليل الكلمة: ${word?.text ?? target.word}`}
+      tabIndex={-1}
+      onKeyDown={trapTab}
+      style={{ top: target.top, insetInlineStart: target.left }}
+    >
       {/* U11: flex header keeps word and close button in a clean row */}
       <div className="pop-head">
         <div className="word">{word?.text ?? target.word}</div>

@@ -82,19 +82,32 @@ export function AyahTokens({
   const formatNumber = useNumerals();
   const isSelected = ayah.is_selected || ayah.ayah_id === selectedAyahId;
   return (
-    <span className={`qb-ayah-tok${isSelected ? " selected" : ""}`} data-ayah-id={ayah.ayah_id}>
+    <span
+      className={`qb-ayah-tok${isSelected ? " selected" : ""}`}
+      data-ayah-id={ayah.ayah_id}
+      // The ayah is a readable unit: a screen reader announces "آية" and then
+      // reads the verse as prose (the words below are plain text, not buttons).
+      role="group"
+      aria-roledescription="آية"
+    >
       {ayah.text
         .trim()
         .split(/\s+/)
+        // Drop empty tokens: an entirely blank ayah would otherwise emit a bare
+        // word with no name in the accessibility tree.
+        .filter((word) => word.length > 0)
         .map((word, wordIndex) => (
           <span
             key={wordIndex}
             className="qb-word"
-            role="button"
             // Roving focus: words are focusable but not tabbable — the reader
-            // container is the tab stop and arrows walk words (useWordNav).
+            // container is the tab stop and arrows walk words (useWordNav). No
+            // role=button + "analyze the word" label: that made a screen reader
+            // announce a stream of buttons instead of the verse as prose. The
+            // word is now plain text named by itself; the analyze action is
+            // described once via the shared #qb-word-hint.
             tabIndex={-1}
-            aria-label={`تحليل الكلمة: ${word}`}
+            aria-describedby="qb-word-hint"
             onClick={(event) => {
               event.stopPropagation();
               onWordClick(ayah.surah_id, ayah.ayah, wordIndex + 1, word, event, ayah.text);

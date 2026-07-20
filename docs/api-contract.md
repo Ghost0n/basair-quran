@@ -101,6 +101,12 @@ This document freezes the backend contract that the future frontend migration wi
 - It is a **presentation** preference consumed by the client only; no server
   reader endpoint changes shape. Unknown/off-Hafs combinations degrade gracefully
   on the client (e.g. `spread` → `single`).
+- `last_position` (a `ReadingPosition`: `ayah_id`, `mushaf_id`, optional
+  `surah`/`ayah`/`page`/`updated_at`) is written by the reader as you read
+  (debounced) and read back on open, so the reader **resumes to the exact last
+  verse** rather than the top of the last page. Resume falls back to the local
+  last page when there is no saved verse, or it belongs to another riwāyah (ayah
+  ids are per-muṣḥaf).
 
 ## Saved pages
 

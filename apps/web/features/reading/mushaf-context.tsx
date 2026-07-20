@@ -108,10 +108,13 @@ function useMushafController(): MushafController {
     // jumped-to ayah scrolls into view there too, on the rare occasions the
     // authentic page can't fully fit and scrolls.
     const node = bodyRef.current.querySelector(
-      ".qb-ayah-tok.selected, .quran-page-ayah.selected, .qb-glyph-sel",
+      ".qb-ayah-tok.selected, .qb-glyph-sel",
     );
     if (node instanceof HTMLElement) {
-      node.scrollIntoView({ block: "center", behavior: "smooth" });
+      const reduce =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      node.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
     }
   }, [pageData]);
 

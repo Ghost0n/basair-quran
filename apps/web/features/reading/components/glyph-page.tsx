@@ -98,13 +98,28 @@ export function GlyphPage({
   }
 
   const renderWord = (word: MushafLayoutGlyph) => {
+    // Ayah-number ornaments / page-straddle fragments carry a glyph but no
+    // analyzable word text. Render them as decorative — no role/label/tabstop,
+    // and NOT `.qb-glyph-word` so roving word-nav skips them — instead of
+    // shipping a bare "button: تحليل الكلمة:" to the accessibility tree.
+    if (!(word.text ?? "").trim()) {
+      return (
+        <Fragment key={word.word_key}>
+          <span className="qb-glyph-mark" aria-hidden dangerouslySetInnerHTML={{ __html: word.glyph ?? "" }} />
+        </Fragment>
+      );
+    }
+
     const glyph = (
       <span
         className="qb-glyph-word"
-        role="button"
-        // Roving focus: tabbing stops on the reader container, not each word.
+        // Roving focus: tabbing stops on the reader container, not each word. No
+        // role=button + "analyze the word" label (a screen reader would announce
+        // a stream of buttons). The QCF codepoints are private-use, so the glyph
+        // itself is aria-hidden and the REAL word is exposed as sr-only text; the
+        // analyze action is described once via the shared #qb-word-hint.
         tabIndex={-1}
-        aria-label={`تحليل الكلمة: ${word.text ?? ""}`}
+        aria-describedby="qb-word-hint"
         onClick={(event) => {
           event.stopPropagation();
           onWordClick(word.surah, word.ayah, word.word_position, word.text ?? "", event, ayahTextById.get(word.ayah_id));
@@ -116,8 +131,10 @@ export function GlyphPage({
             onWordKey(word.surah, word.ayah, word.word_position, word.text ?? "", event.currentTarget, ayahTextById.get(word.ayah_id));
           }
         }}
-        dangerouslySetInnerHTML={{ __html: word.glyph ?? "" }}
-      />
+      >
+        <span aria-hidden dangerouslySetInnerHTML={{ __html: word.glyph ?? "" }} />
+        <span className="qb-sr-only">{word.text}</span>
+      </span>
     );
 
     if (!ayahEndKeys.has(word.word_key)) return <Fragment key={word.word_key}>{glyph}</Fragment>;
@@ -218,5 +235,91 @@ export function GlyphPage({
         );
       })}
     </div>
+  );
+}
+
+/**
+ * GlyphAyah — one ayah rendered as authentic QCF glyph words in a flowing row,
+ * for the ayah-by-ayah reader (Ḥafṣ + authentic). Mirrors GlyphPage's word
+ * treatment: the private-use glyph is aria-hidden and the real word is sr-only
+ * (a screen reader reads Arabic, not gibberish), words are roving-focusable and
+ * open morphology, and an inline save toggle sits at the ayah end. Words come
+ * from the page layout grouped by `ayah_id`; the size follows `--fs-ayah` (the
+ * slider drives it directly here — there is no page-fit to normalise it away).
+ */
+export function GlyphAyah({
+  words,
+  fontFamily,
+  isSelected,
+  isSaved,
+  onToggleSave,
+  onWordClick,
+  onWordKey,
+  ayahText,
+  save,
+}: {
+  words: MushafLayoutGlyph[];
+  fontFamily?: string | null;
+  isSelected: boolean;
+  isSaved: (ayahId: number) => boolean;
+  onToggleSave: (target: GlyphSaveTarget) => void;
+  onWordClick: WordClick;
+  onWordKey: WordKey;
+  ayahText: string;
+  save: GlyphSaveTarget;
+}) {
+  const saved = isSaved(save.ayahId);
+  return (
+    <span
+      className={`qb-glyph-ayah-row${isSelected ? " qb-glyph-sel" : ""}`}
+      data-ayah-id={save.ayahId}
+      style={{ fontFamily: fontFamily ?? undefined }}
+    >
+      {words.map((word) => {
+        // Ayah-number ornaments / straddle fragments carry a glyph but no word.
+        if (!(word.text ?? "").trim()) {
+          return (
+            <span key={word.word_key} className="qb-glyph-mark" aria-hidden dangerouslySetInnerHTML={{ __html: word.glyph ?? "" }} />
+          );
+        }
+        return (
+          <span
+            key={word.word_key}
+            className="qb-glyph-word"
+            tabIndex={-1}
+            aria-describedby="qb-word-hint"
+            onClick={(event) => {
+              event.stopPropagation();
+              onWordClick(word.surah, word.ayah, word.word_position, word.text ?? "", event, ayahText);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                event.stopPropagation();
+                onWordKey(word.surah, word.ayah, word.word_position, word.text ?? "", event.currentTarget, ayahText);
+              }
+            }}
+          >
+            <span aria-hidden dangerouslySetInnerHTML={{ __html: word.glyph ?? "" }} />
+            <span className="qb-sr-only">{word.text}</span>
+            {" "}
+          </span>
+        );
+      })}
+      <button
+        type="button"
+        className={`qb-save-ayah${saved ? " on" : ""}`}
+        aria-label={saved ? "إزالة من الدفتر" : "حفظ في الدفتر"}
+        aria-pressed={saved}
+        title={saved ? "محفوظة في الدفتر" : "حفظ الآية في الدفتر"}
+        onClick={(event) => {
+          event.stopPropagation();
+          if (!saved) flyToNotebook(event.currentTarget, save.text);
+          onToggleSave(save);
+        }}
+      >
+        <Icon name={saved ? "bookmarkFilled" : "bookmark"} size={13} />
+      </button>
+    </span>
   );
 }

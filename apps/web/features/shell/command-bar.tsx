@@ -7,6 +7,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Icon } from "@/components/icon";
 import { modKey } from "@/lib/platform";
 import { looksLikeQuestion, queueStudioAsk } from "@/lib/studio-prefill";
+import { useMushaf } from "@/features/reading/mushaf-context";
 
 import { useShellMode } from "./mode-context";
 import { useCommandShortcut } from "./use-command-shortcut";
@@ -17,7 +18,49 @@ import { useWorkspace } from "./workspace-context";
 // pressing Enter actually does; go/search are a display distinction.
 type CommandIntent = "ask" | "go" | "search";
 const INTERROGATIVE = /^(ما|من|لماذا|كيف|هل|أين|متى)\s/;
-const NAV_LEAD = /^(صفحة|سورة|جزء)(\s|$)/;
+
+// Map Arabic-Indic digits to ASCII so page/surah/juz/reference parsing is
+// numeral-script agnostic.
+function toLatinDigits(s: string): string {
+  return s.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+}
+
+type NavCommand =
+  | { type: "page"; page: number }
+  | { type: "surah"; surah: number }
+  | { type: "ayah"; surah: number; ayah: number }
+  | { type: "juz"; juz: number };
+
+// Parse a navigation command from the command bar: «صفحة N», «سورة N», «جزء N»,
+// or a reference like «2:255» (سورة:آية). Returns null for anything else so the
+// bar falls through to search — the "go" chip only lights when this matches, so
+// the chip and what Enter does never contradict.
+function parseGo(raw: string): NavCommand | null {
+  const value = toLatinDigits(raw.trim());
+  if (!value) return null;
+  let m = value.match(/^(\d{1,3})\s*[:：]\s*(\d{1,3})$/);
+  if (m) {
+    const surah = Number(m[1]);
+    const ayah = Number(m[2]);
+    return surah >= 1 && surah <= 114 && ayah >= 1 ? { type: "ayah", surah, ayah } : null;
+  }
+  m = value.match(/^صفحة\s+(\d{1,3})$/);
+  if (m) {
+    const page = Number(m[1]);
+    return page >= 1 && page <= 604 ? { type: "page", page } : null;
+  }
+  m = value.match(/^سورة\s+(\d{1,3})$/);
+  if (m) {
+    const surah = Number(m[1]);
+    return surah >= 1 && surah <= 114 ? { type: "surah", surah } : null;
+  }
+  m = value.match(/^جزء\s+(\d{1,2})$/);
+  if (m) {
+    const juz = Number(m[1]);
+    return juz >= 1 && juz <= 30 ? { type: "juz", juz } : null;
+  }
+  return null;
+}
 const INTENT_LABEL: Record<CommandIntent, string> = {
   ask: "اسأل ✦",
   go: "انتقال",
@@ -35,7 +78,7 @@ function detectIntent(raw: string): CommandIntent | null {
   const value = raw.trim();
   if (!value) return null;
   if (looksLikeQuestion(value) || INTERROGATIVE.test(value) || value.endsWith("؟")) return "ask";
-  if (/[٠-٩\d]/.test(value) || NAV_LEAD.test(value)) return "go";
+  if (parseGo(value)) return "go";
   return "search";
 }
 
@@ -55,6 +98,7 @@ export function CommandBar() {
 
   const { state, actions, refs, helpers } = useWorkspace();
   const { mode, setMode } = useShellMode();
+  const mushaf = useMushaf();
 
   // When the user starts typing or runs a search, surface the Search mode.
   // Use `replace` so this derived switch doesn't add a history entry.
@@ -87,6 +131,19 @@ export function CommandBar() {
         event.currentTarget.value = "";
         actions.setQuery("");
         setMode("studio");
+        return;
+      }
+      const nav = value ? parseGo(value) : null;
+      if (nav) {
+        event.preventDefault();
+        const m = state.selectedMushaf;
+        if (nav.type === "page") void mushaf.loadPage(m, nav.page, { persist: true });
+        else if (nav.type === "surah") void mushaf.loadBySurah(m, nav.surah);
+        else if (nav.type === "ayah") void mushaf.loadBySurah(m, nav.surah, nav.ayah);
+        else void mushaf.loadByJuz(m, nav.juz);
+        event.currentTarget.value = "";
+        actions.setQuery("");
+        setMode("reading");
         return;
       }
     }

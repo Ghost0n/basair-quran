@@ -127,7 +127,16 @@ export function useReaderWindow({
     hasScrolledRef.current = false;
     setPages([anchorData]);
     requestAnimationFrame(() => {
-      if (mushaf.bodyRef.current) mushaf.bodyRef.current.scrollTop = 0;
+      const el = mushaf.bodyRef.current;
+      if (!el) return;
+      // A jump that targets a selected ayah is positioned by the selection
+      // scroll-into-view (mushaf-context, block:center). Forcing scrollTop=0
+      // here would beat it and land at the top of the page instead of the
+      // verse — so only reset when the anchor page carries no selection.
+      const hasSelection =
+        anchorData.selected_ayah_id != null || anchorData.ayahs.some((a) => a.is_selected);
+      if (hasSelection) return;
+      el.scrollTop = 0;
     });
   }, [anchorData, mushafId, mushaf.bodyRef]);
 

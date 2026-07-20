@@ -38,6 +38,9 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
 type TweaksPatch = Partial<Omit<UserPreferences, "research">>;
 
 type PreferencesValue = {
+  /** True once the initial account preferences have loaded (or failed) — lets the
+   *  reader wait before deciding where to resume. */
+  ready: boolean;
   /** Effective preferences: account defaults with session tweaks layered on top. */
   preferences: UserPreferences;
   /** The persisted account defaults (no session tweaks). */
@@ -53,6 +56,7 @@ type PreferencesValue = {
 };
 
 const PreferencesContext = createContext<PreferencesValue>({
+  ready: false,
   preferences: DEFAULT_PREFERENCES,
   account: DEFAULT_PREFERENCES,
   tweaks: {},
@@ -72,6 +76,7 @@ const PreferencesContext = createContext<PreferencesValue>({
 export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [account, setAccount] = useState<UserPreferences>(DEFAULT_PREFERENCES);
   const [tweaks, setTweaks] = useState<TweaksPatch>({});
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,6 +87,9 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         /* keep defaults if the store is unreachable */
+      })
+      .finally(() => {
+        if (!cancelled) setReady(true);
       });
     return () => {
       cancelled = true;
@@ -158,6 +166,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<PreferencesValue>(
     () => ({
+      ready,
       preferences,
       account,
       tweaks,
@@ -167,7 +176,7 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       resetTweaks,
       promoteTweaks,
     }),
-    [preferences, account, tweaks, updateAccount, updateAccountDebounced, setTweak, resetTweaks, promoteTweaks],
+    [ready, preferences, account, tweaks, updateAccount, updateAccountDebounced, setTweak, resetTweaks, promoteTweaks],
   );
 
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;

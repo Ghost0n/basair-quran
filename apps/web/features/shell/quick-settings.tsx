@@ -110,12 +110,13 @@ export function QuickSettings() {
 
           <div className="qb-tweak-section">
             <div className="qb-tweak-label">نمط المصحف</div>
-            <div className="qb-tweak-seg">
+            <div className="qb-tweak-seg" role="group" aria-label="نمط المصحف">
               {RENDER_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   className={preferences.mushaf_render === option.value ? "active" : ""}
+                  aria-pressed={preferences.mushaf_render === option.value}
                   onClick={() => void updateAccount({ mushaf_render: option.value })}
                 >
                   {option.label}
@@ -137,7 +138,7 @@ export function QuickSettings() {
                     type="button"
                     className={active ? "active" : ""}
                     disabled={disabled}
-                    aria-pressed={active}
+                    aria-pressed={active && !disabled}
                     title={disabled ? "متاح في النمط المدني (حفص) فقط" : option.label}
                     onClick={() => void updateAccount({ reader_layout: option.value })}
                   >
@@ -165,12 +166,13 @@ export function QuickSettings() {
 
           <div className="qb-tweak-section">
             <div className="qb-tweak-label">الأرقام</div>
-            <div className="qb-tweak-seg">
+            <div className="qb-tweak-seg" role="group" aria-label="الأرقام">
               {NUMERAL_OPTIONS.map((option) => (
                 <button
                   key={option.value}
                   type="button"
                   className={preferences.numerals === option.value ? "active" : ""}
+                  aria-pressed={preferences.numerals === option.value}
                   onClick={() => void updateAccount({ numerals: option.value })}
                 >
                   {option.label}

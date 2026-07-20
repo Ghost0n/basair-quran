@@ -25,8 +25,12 @@ const MAX_SCALE = 1;
 // Low floor so "one screen, no scroll" wins even with a large font preference;
 // below it the page is allowed to scroll rather than become unreadable.
 const MIN_SCALE = 0.3;
+// Font-size preference (px) at which the authentic page fills the reading area
+// exactly (the historical behaviour). Below it the page shrinks; above it fills
+// more of the area, bounded by the fit so it never overflows.
+const DEFAULT_FONT_PX = 28;
 
-export function useGlyphFit(ref: RefObject<HTMLElement | null>, deps: unknown[]) {
+export function useGlyphFit(ref: RefObject<HTMLElement | null>, fontSize: number, deps: unknown[]) {
   const rafRef = useRef(0);
 
   useLayoutEffect(() => {
@@ -92,8 +96,13 @@ export function useGlyphFit(ref: RefObject<HTMLElement | null>, deps: unknown[])
       // Height headroom absorbs fixed page padding + banner margins (unscaled).
       const heightScale = (availH * 0.97) / maxNaturalH;
       const widthScale = (availW * 0.997 - totalGap - totalChromeX) / sumMaxW;
-      let scale = Math.min(MAX_SCALE, heightScale, widthScale);
-      scale = Math.max(scale, MIN_SCALE);
+      // The font-size preference zooms WITHIN the fit: above the default it raises
+      // the natural-size cap so the page fills more of the reading area (still
+      // bounded by the height/width fit — it can never overflow), and below it
+      // shrinks the page. At the default it equals the old fill-the-area scale.
+      const zoom = Math.min(1.7, Math.max(0.6, fontSize / DEFAULT_FONT_PX));
+      const fit = Math.min(MAX_SCALE * Math.max(1, zoom), heightScale, widthScale);
+      let scale = Math.max(MIN_SCALE, fit * Math.min(1, zoom));
 
       const apply = (s: number) => {
         pages.forEach((page, index) => {
@@ -147,5 +156,5 @@ export function useGlyphFit(ref: RefObject<HTMLElement | null>, deps: unknown[])
       });
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps);
+  }, [...deps, fontSize]);
 }

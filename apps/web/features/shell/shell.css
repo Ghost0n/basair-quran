@@ -449,6 +449,13 @@
   background: #fffdf7;
 }
 
+/* Narrow screens: shrink the 300px popover so it can't clip past the edge. */
+@media (max-width: 600px) {
+  .qb-quick-panel {
+    width: min(300px, calc(100vw - 24px));
+  }
+}
+
 .qb-quick-head {
   font-family: var(--font-arabic-display);
   color: var(--gold-text);
