@@ -20,7 +20,7 @@ from src.app.models.api import (
 )
 import logging
 
-from src.app.services import app_data_service, auth_service
+from src.app.services import app_data_service, auth_service, mail_service
 
 logger = logging.getLogger(__name__)
 
@@ -162,14 +162,14 @@ def auth_logout(request: Request, response: Response) -> AuthSessionResponse:
 @router.post("/forgot-password", response_model=AuthOkResponse)
 def auth_forgot_password(req: ForgotPasswordRequest) -> AuthOkResponse:
     """Request a password-reset token. Always returns ok (no account
-    enumeration). Delivery is console/manual for now — the token is logged."""
+    enumeration). The token is emailed when SMTP is configured, otherwise
+    logged for manual delivery (see services/mail_service.py). It is never
+    returned to the client."""
     if not config.is_auth_enabled():
         raise HTTPException(status_code=400, detail="Authentication is disabled.")
     raw_token = auth_service.create_password_reset(req.email)
     if raw_token is not None:
-        # Manual delivery: surface the token in the server log until an email
-        # transport lands. Never returned to the client.
-        logger.info("Password reset requested — token for delivery: %s", raw_token)
+        mail_service.send_password_reset(req.email.strip(), raw_token)
     return AuthOkResponse(ok=True)
 
 

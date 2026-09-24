@@ -31,9 +31,11 @@ export function LoginPageShell() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [checkingSession, setCheckingSession] = useState(true);
-  // Password-reset sub-flow (console/manual token delivery for now).
-  const [view, setView] = useState<"auth" | "forgot" | "reset">("auth");
-  const [resetToken, setResetToken] = useState("");
+  // Password-reset sub-flow. The emailed link (/login?reset=<token>) opens the
+  // reset step with the code pre-filled; the code can also be pasted by hand.
+  const linkToken = searchParams.get("reset") ?? "";
+  const [view, setView] = useState<"auth" | "forgot" | "reset">(linkToken ? "reset" : "auth");
+  const [resetToken, setResetToken] = useState(linkToken);
   const [notice, setNotice] = useState("");
 
   const isSignup = tab === "up";
@@ -86,7 +88,7 @@ export function LoginPageShell() {
       // Deliberately ignore — never reveal whether the email exists.
     }
     setLoading(false);
-    setNotice("إن كان البريد مُسجَّلاً، فقد أُنشئ رمز إعادة تعيين. أدخِله مع كلمة مرور جديدة.");
+    setNotice("إن كان البريد مُسجَّلاً، فقد أرسلنا إليه رابطاً ورمزاً لإعادة التعيين (صالحَين لساعة). افتح الرابط أو أدخِل الرمز هنا.");
     setView("reset");
   }
 

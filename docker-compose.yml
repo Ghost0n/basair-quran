@@ -28,6 +28,14 @@ services:
       QBASAIR_OLLAMA_ALLOWED_HOSTS: ${QBASAIR_OLLAMA_ALLOWED_HOSTS:-}
       # Reported by /api/ready so the deploy gate can see what is running.
       QBASAIR_COMMIT_SHA: ${QBASAIR_COMMIT_SHA:-unknown}
+      # Password-reset email (optional — without SMTP the token is only logged).
+      QBASAIR_PUBLIC_URL: ${QBASAIR_PUBLIC_URL:-}
+      QBASAIR_SMTP_HOST: ${QBASAIR_SMTP_HOST:-}
+      QBASAIR_SMTP_PORT: ${QBASAIR_SMTP_PORT:-587}
+      QBASAIR_SMTP_USER: ${QBASAIR_SMTP_USER:-}
+      QBASAIR_SMTP_PASSWORD: ${QBASAIR_SMTP_PASSWORD:-}
+      QBASAIR_SMTP_SECURITY: ${QBASAIR_SMTP_SECURITY:-starttls}
+      QBASAIR_MAIL_FROM: ${QBASAIR_MAIL_FROM:-}
     volumes:
       - ./data:/app/data
     expose:
