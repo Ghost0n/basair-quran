@@ -92,17 +92,22 @@ function AyahPage({
       {data.ayahs.map((ayah) => {
         const isSelected = ayah.is_selected || ayah.ayah_id === selectedAyahId;
         const glyph = glyphByAyah.get(ayah.ayah_id);
+        const hasGlyph = Boolean(glyph && glyph.words.length > 0);
         return (
           <Fragment key={ayah.ayah_id}>
             {ayah.ayah === 1 ? <SurahBanner surahName={ayah.surah} /> : null}
             {basmalaVisibleFor(ayah) ? <BasmalaLine /> : null}
-            <div className={`qb-ayah-row${isSelected ? " is-selected" : ""}`}>
-              <span className="qb-ayah-row-num" aria-hidden>
-                {formatNumber(ayah.ayah)}
-              </span>
+            <div className={`qb-ayah-row${isSelected ? " is-selected" : ""}${hasGlyph ? " is-glyph" : ""}`}>
+              {/* The Madani glyph verse already ends with its own ﴿n﴾ marker —
+                  the chip would number it twice; the text fallback needs it. */}
+              {hasGlyph ? null : (
+                <span className="qb-ayah-row-num" aria-hidden>
+                  {formatNumber(ayah.ayah)}
+                </span>
+              )}
               <span className="qb-sr-only">الآية {formatNumber(ayah.ayah)}</span>
               <div className="qb-ayah-row-text">
-                {glyph && glyph.words.length > 0 ? (
+                {glyph && hasGlyph ? (
                   <GlyphAyah
                     words={glyph.words}
                     fontFamily={glyph.fontFamily}

@@ -150,7 +150,14 @@ function useMushafController(): MushafController {
       const reduce =
         typeof window !== "undefined" &&
         window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      node.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+      // Centre the verse inside the page's OWN scroller only. scrollIntoView()
+      // also scrolls every ancestor (the shell canvas), which pushed the reader
+      // bar off-screen on short/landscape screens.
+      const body = bodyRef.current;
+      const nodeRect = node.getBoundingClientRect();
+      const bodyRect = body.getBoundingClientRect();
+      const top = body.scrollTop + (nodeRect.top - bodyRect.top) - (body.clientHeight - nodeRect.height) / 2;
+      body.scrollTo({ top: Math.max(0, top), behavior: reduce ? "auto" : "smooth" });
     }
   }, [pageData]);
 

@@ -7,7 +7,8 @@ import { useWorkspace } from "@/features/shell/workspace-context";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { useDialog } from "@/lib/use-dialog";
 
-import { toReaderMode, READER_MODES } from "../reader-modes";
+import { READER_MODES, resolveReaderMode } from "../reader-modes";
+import { useCompactReader } from "../use-wide-screen";
 
 const NUMERAL_OPTIONS: { value: NumeralScript; label: string }[] = [
   { value: "arabic-indic", label: "٠١٢" },
@@ -29,7 +30,8 @@ export function DisplaySheet({ onClose }: { onClose: () => void }) {
   const { preferences, updateAccount, updateAccountDebounced } = usePreferences();
   const { state, actions } = useWorkspace();
   const formatNumber = useNumerals();
-  const mode = toReaderMode(preferences.reader_layout);
+  const compact = useCompactReader();
+  const mode = resolveReaderMode(preferences.reader_layout, compact);
   const dark = state.theme !== "light";
 
   function setLayout(layout: ReaderLayout) {
@@ -54,11 +56,11 @@ export function DisplaySheet({ onClose }: { onClose: () => void }) {
             <div className="modes" role="group" aria-label="طريقة القراءة (Shift+M)">
               {READER_MODES.map((item) => (
                 <button
-                  key={item.value}
+                  key={item.mode}
                   type="button"
-                  className={mode === item.value ? "active" : ""}
-                  aria-pressed={mode === item.value}
-                  onClick={() => setLayout(item.value)}
+                  className={mode === item.mode ? "active" : ""}
+                  aria-pressed={mode === item.mode}
+                  onClick={() => setLayout(item.layout)}
                 >
                   <Icon name={item.icon} size={20} />
                   <span className="t">{item.label}</span>

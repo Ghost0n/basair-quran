@@ -105,21 +105,27 @@ This document freezes the backend contract that the future frontend migration wi
   endpoints, whose query default remains `1`); the web client always sends the edition's mushaf.
   A page or verse arriving in another riwāyah (e.g. a notebook item saved under Qālūn) is
   re-opened in the edition by `surah:ayah`.
-- `reader_layout` is an account preference on `GET/PATCH /api/user/preferences`,
-  **orthogonal** to `mushaf_render`. It selects how pages/ayahs are arranged, not
-  which renderer draws them: `"auto"` (default, resolved per viewport), `"single"`
-  (one fit-to-height page), `"spread"` (two facing pages, authentic/Hafs only —
-  degrades to `single` otherwise), `"scroll"` (continuous vertical scroll of pages,
-  fit-to-width), `"ayah"` (ayah-by-ayah list).
+- `reader_layout` is an account preference on `GET/PATCH /api/user/preferences`.
+  The API keeps its five values for compatibility; the web client offers **three
+  reading modes** and maps them:
+  - «صفحات» (pages) ← `"single"` or `"spread"`: the printed page; the client shows
+    a facing spread by itself only when two pages keep (almost) single-page size
+    in the reading area (`spreadFits` in `features/reading/reader-modes.ts`).
+    Choosing «صفحات» stores `"single"`.
+  - «تمرير» ← `"scroll"`: continuous pages, fitted to the column width but never
+    larger than the chosen text size (`font_size`).
+  - «آية آية» ← `"ayah"`: one verse per row at the chosen text size.
+  - `"auto"` (default) is device-smart: «تمرير» on phones and short/landscape
+    screens (≤768 px wide or ≤560 px tall), «صفحات» elsewhere.
 - It is a **presentation** preference consumed by the client only; no server
-  reader endpoint changes shape. Unknown/off-Hafs combinations degrade gracefully
-  on the client (e.g. `spread` → `single`).
+  reader endpoint changes shape.
 - `last_position` (a `ReadingPosition`: `ayah_id`, `mushaf_id`, optional
   `surah`/`ayah`/`page`/`updated_at`) is written by the reader as you read
   (debounced) and read back on open, so the reader **resumes to the exact last
-  verse** rather than the top of the last page. Resume falls back to the local
-  last page when there is no saved verse, or it belongs to another riwāyah (ayah
-  ids are per-muṣḥaf).
+  verse** rather than the top of the last page (the verse is marked for ~2.5 s,
+  then the mark clears without changing the saved position). A position saved in
+  another riwāyah resumes by its `surah:ayah`; with no saved verse the client
+  falls back to the local last page.
 
 ## Saved pages
 

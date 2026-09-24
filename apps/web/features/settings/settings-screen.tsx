@@ -4,27 +4,20 @@ import { useState } from "react";
 
 import "./settings.css";
 
-import type { NumeralScript, ReaderLayout } from "@q-basair/shared";
+import type { NumeralScript } from "@q-basair/shared";
 
 import { SelectMenu } from "@/components/select-menu";
 import { AccountSettings } from "@/features/identity/account-settings";
 import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
-import { usePreferences } from "@/lib/preferences-context";
+import { READER_MODES, resolveReaderMode } from "@/features/reading/reader-modes";
+import { useCompactReader } from "@/features/reading/use-wide-screen";
+import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
 const NUMERAL_OPTIONS: { value: NumeralScript; label: string }[] = [
   { value: "arabic-indic", label: "هنديّة ٠١٢" },
   { value: "latin", label: "لاتينية 012" },
   { value: "persian", label: "فارسيّة ۰۱۲" },
-];
-
-// Reader layout. "صفحتان" (spread) needs an authentic (glyph-page) edition.
-const LAYOUT_OPTIONS: { value: ReaderLayout; label: string; authenticOnly?: boolean }[] = [
-  { value: "auto", label: "تلقائي" },
-  { value: "single", label: "صفحة" },
-  { value: "spread", label: "صفحتان", authenticOnly: true },
-  { value: "scroll", label: "تمرير" },
-  { value: "ayah", label: "آية آية" },
 ];
 
 const DEPTH_OPTIONS: { value: "fast" | "balanced" | "deep"; label: string }[] = [
@@ -44,12 +37,14 @@ const DEPTH_OPTIONS: { value: "fast" | "balanced" | "deep"; label: string }[] = 
  */
 export function SettingsScreen() {
   const { preferences, account, updateAccount, updateAccountDebounced } = usePreferences();
+  const formatNumber = useNumerals();
   // Confirm before making the experimental tafssir mode the account default.
   const [confirmTafssirDefault, setConfirmTafssirDefault] = useState(false);
   const { state, actions } = useWorkspace();
 
   const edition = state.edition;
-  const spreadAvailable = edition.authentic;
+  const compactReader = useCompactReader();
+  const readerMode = resolveReaderMode(preferences.reader_layout, compactReader);
 
   return (
     <div className="qb-settings">
@@ -80,29 +75,25 @@ export function SettingsScreen() {
           </div>
           <p className="card-sub">{edition.description}</p>
           <div className="qb-setting-row">
-            <label>تخطيط الصفحة</label>
-            <div className="qb-setting-seg is-grid" role="group" aria-label="تخطيط الصفحة">
-              {LAYOUT_OPTIONS.map((option) => {
-                const disabled = Boolean(option.authenticOnly) && !spreadAvailable;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={preferences.reader_layout === option.value ? "active" : ""}
-                    disabled={disabled}
-                    aria-pressed={preferences.reader_layout === option.value}
-                    title={option.label}
-                    onClick={() => void updateAccount({ reader_layout: option.value })}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
+            <label>طريقة القراءة</label>
+            <div className="qb-setting-seg" role="group" aria-label="طريقة القراءة">
+              {READER_MODES.map((item) => (
+                <button
+                  key={item.mode}
+                  type="button"
+                  className={readerMode === item.mode ? "active" : ""}
+                  aria-pressed={readerMode === item.mode}
+                  title={item.hint}
+                  onClick={() => void updateAccount({ reader_layout: item.layout })}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
           </div>
           <div className="qb-setting-row">
             <label>
-              حجم خطّ الآية <span className="qb-setting-value">{preferences.font_size}px</span>
+              حجم خطّ الآية <span className="qb-setting-value">{formatNumber(preferences.font_size)}</span>
             </label>
             <input
               type="range"

@@ -641,8 +641,19 @@
    There is no page-fit here, so --fs-ayah (the size slider) drives the size
    directly. Extra leading gives the stacked Madani marks room. */
 .qb-glyph-ayah-row {
-  font-size: var(--fs-ayah);
+  /* Same glyph size as the page and scroll modes (1.15 × the chosen size). */
+  font-size: calc(var(--fs-ayah) * 1.15);
   line-height: 2.15;
+}
+
+/* Glyph rows: calm hairline-separated verses, no card chrome. */
+.qb-ayah-row.is-glyph {
+  padding: 10px 6px;
+  border-radius: 0;
+}
+
+.qb-ayah-row.is-glyph.is-selected {
+  border-radius: var(--r-md);
 }
 
 /* Save-ayah affordance in the glyph reader — parity with the simple reader.
@@ -1649,4 +1660,49 @@
 .qb-nav-sheet .field input::-webkit-search-cancel-button {
   -webkit-appearance: none;
   appearance: none;
+}
+
+/* Authentic pages carry their own sheet frames: drop the outer card (border,
+   panel background, wide padding) so the leaves get that room instead of
+   sitting in a frame within a frame. */
+.qb-mushaf-page.is-glyph {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 12px 8px;
+  background: none;
+}
+
+.light .qb-mushaf-page.is-glyph,
+.light-mode .qb-mushaf-page.is-glyph {
+  background: none;
+}
+
+/* In a spread both leaves share the tallest leaf's height; the short framed
+   opening pages (1–2) centre their text vertically, like the printed mushaf. */
+.qb-glyph-spread .qb-glyph-page.is-opening {
+  justify-content: center;
+}
+
+/* Short screens (landscape phones): a slimmer reader bar. */
+@media (max-height: 500px) {
+  .qb-reader-bar {
+    min-height: 44px;
+    padding-block: 2px 4px;
+  }
+
+  .qb-reader-bar .identity {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .qb-reader-bar .identity .name {
+    font-size: 18px;
+  }
+
+  .qb-reader-bar .act {
+    min-width: 40px;
+    height: 40px;
+  }
 }

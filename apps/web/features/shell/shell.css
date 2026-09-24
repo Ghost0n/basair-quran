@@ -636,3 +636,11 @@ html.qb-immersive .qb-rail,
 html.qb-immersive .qb-tabbar {
   display: none;
 }
+
+/* Landscape phones / short windows: every pixel of height is reading room —
+   the reader bar carries the controls, so drop the top bar while reading. */
+@media (max-height: 500px) {
+  .qb-topbar.is-reading {
+    display: none;
+  }
+}

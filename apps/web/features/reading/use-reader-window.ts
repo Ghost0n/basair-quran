@@ -233,7 +233,10 @@ export function useReaderWindow({
         const reduce =
           typeof window !== "undefined" &&
           window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        node.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+        // Scroll the page's own scroller only (scrollIntoView would also move
+        // the shell canvas and push the reader bar off-screen).
+        const top = el.scrollTop + node.getBoundingClientRect().top - el.getBoundingClientRect().top;
+        el.scrollTo({ top, behavior: reduce ? "auto" : "smooth" });
       } else {
         void mushaf.loadPage(mushafId, target, { persist: true });
       }

@@ -51,6 +51,7 @@ export function useGlyphFit(ref: RefObject<HTMLElement | null>, fontSize: number
       pages.forEach((page) => {
         page.style.setProperty("--qcf-fit", "1");
         page.style.width = "";
+        page.style.minHeight = "";
       });
 
       const cs = getComputedStyle(viewport);
@@ -104,13 +105,19 @@ export function useGlyphFit(ref: RefObject<HTMLElement | null>, fontSize: number
       const fit = Math.min(MAX_SCALE * Math.max(1, zoom), heightScale, widthScale);
       let scale = Math.max(MIN_SCALE, fit * Math.min(1, zoom));
 
+      // A facing spread's leaves are physically identical: every page gets the
+      // widest page's width (justification absorbs the slack) and, below, the
+      // tallest page's height — no more mismatched frames side by side.
+      const spread = pages.length > 1;
       const apply = (s: number) => {
+        const widths = metrics.map((m) => Math.ceil(m.maxW * s) + m.chromeX + 8);
+        const shared = Math.max(...widths);
         pages.forEach((page, index) => {
           page.style.setProperty("--qcf-fit", s.toFixed(4));
           // Content width + the page's own padding/border (border-box), plus a
           // few px of slack so per-glyph rounding can't push a line into a wrap
           // (one wrap would cascade into a height overflow → scrollbar).
-          page.style.width = `${Math.ceil(metrics[index].maxW * s) + metrics[index].chromeX + 8}px`;
+          page.style.width = `${spread ? shared : widths[index]}px`;
         });
       };
       apply(scale);
@@ -126,6 +133,15 @@ export function useGlyphFit(ref: RefObject<HTMLElement | null>, fontSize: number
       if (tallest > availH) {
         const corrected = Math.max(MIN_SCALE, (scale * availH * 0.98) / tallest);
         if (corrected < scale) apply(corrected);
+      }
+      if (spread) {
+        let frame = 0;
+        pages.forEach((page) => {
+          if (page.offsetHeight > frame) frame = page.offsetHeight;
+        });
+        pages.forEach((page) => {
+          page.style.minHeight = `${frame}px`;
+        });
       }
     };
 
@@ -152,6 +168,7 @@ export function useGlyphFit(ref: RefObject<HTMLElement | null>, fontSize: number
       observer.disconnect();
       container.querySelectorAll<HTMLElement>(".qb-glyph-page").forEach((page) => {
         page.style.width = "";
+        page.style.minHeight = "";
         page.style.removeProperty("--qcf-fit");
       });
     };

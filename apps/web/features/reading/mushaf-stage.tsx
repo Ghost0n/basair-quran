@@ -27,9 +27,9 @@ import { AyahReader } from "./components/ayah-reader";
 import { prefetchQuranPage, useMushaf } from "./mushaf-context";
 import { prefetchMushafLayout, useMushafLayout } from "./use-mushaf-layout";
 import { useReaderGestures } from "./use-reader-gestures";
-import { nextReaderMode } from "./reader-modes";
+import { nextReaderLayout, resolveReaderMode, spreadFits } from "./reader-modes";
 import { useGlyphFit } from "./use-glyph-fit";
-import { useWideScreen, useShortViewport } from "./use-wide-screen";
+import { useCompactReader, useElementSize } from "./use-wide-screen";
 import { useSavedAyat } from "./use-saved-ayat";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
@@ -204,24 +204,24 @@ export function MushafStage() {
   // Unicode scroller; the ayah surface arrives in a later phase (reads as paged
   // for now). Everything else resolves within the paged family.
   const readerLayout = preferences.reader_layout;
-  // Smart default: `auto` resolves per viewport and recomputes on resize. Phones
-  // read better with continuous scroll than a fixed page; tablet/desktop stay in
-  // the paged family (which already gives the spread on wide authentic, single
-  // otherwise). An explicit choice is always honoured as-is.
-  const isNarrow = !useWideScreen(768);
-  // Short / landscape viewports (landscape phones, short windows) also read
-  // better as scroll: a fit-to-height page has no vertical room and collapses
-  // the authentic glyph text toward MIN_SCALE.
-  const isShort = useShortViewport(560);
-  const effectiveLayout =
-    readerLayout === "auto" && (isNarrow || isShort) ? "scroll" : readerLayout;
-  const scrollMode = effectiveLayout === "scroll";
-  const ayahMode = effectiveLayout === "ayah";
-  // The continuous readers (scroll + ayah) share a windowing engine and route the
-  // footer prev/next to a smooth in-place scroll rather than a page swap.
+  // Three modes (see reader-modes.ts): "auto" is device-smart — continuous
+  // scroll on phones / short screens (a fit-to-height page has no room there),
+  // pages elsewhere; explicit choices are honoured on every device.
+  const compact = useCompactReader();
+  const readerMode = resolveReaderMode(readerLayout, compact);
+  const scrollMode = readerMode === "scroll";
+  const ayahMode = readerMode === "ayah";
+  // The continuous readers (scroll + ayah) share a windowing engine and route
+  // prev/next to a smooth in-place scroll rather than a page swap.
   const continuousMode = scrollMode || ayahMode;
-  const pagedMode: "auto" | "single" | "spread" =
-    effectiveLayout === "single" ? "single" : effectiveLayout === "spread" ? "spread" : "auto";
+
+  // Measure the room for pages: the canvas width (independent of the stage's own
+  // max-width, which depends on whether a spread shows) and the reading
+  // surface's height.
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const surfaceRef = useRef<HTMLDivElement | null>(null);
+  const canvasSize = useElementSize(stageRef, (stage) => stage.parentElement);
+  const surfaceSize = useElementSize(surfaceRef);
 
   // The stage-level layout fetch serves the PAGED reader only. In scroll mode
   // each windowed section fetches its own page layout (fit-to-width); the ayah
@@ -258,11 +258,12 @@ export function MushafStage() {
   // Two-page facing spread on wide screens; collapses to a single page when the
   // window is too narrow, when the user forces single, or on the simple reader /
   // non-Hafs (where layout is null).
-  const wide = useWideScreen();
+  // A facing spread only when two pages keep (almost) single-page size.
+  const roomForSpread = spreadFits(canvasSize.width - 64, surfaceSize.height - 64);
   const currentPage = pageData?.page ?? null;
   const pair = currentPage != null && currentPage >= 1 ? pageSpread(currentPage) : null;
   const spreadIntent =
-    pagedMode !== "single" && authentic && wide && Boolean(layout?.lines) && pair != null;
+    !continuousMode && authentic && roomForSpread && Boolean(layout?.lines) && pair != null;
   const facing = useMushafLayout({
     enabled: spreadIntent,
     mushafId: pageData?.mushaf_id,
@@ -328,7 +329,7 @@ export function MushafStage() {
 
   // Shift+M cycles the three reading modes (صفحات → تمرير → آية آية).
   function cycleLayout() {
-    void updateAccount({ reader_layout: nextReaderMode(preferences.reader_layout) });
+    void updateAccount({ reader_layout: nextReaderLayout(preferences.reader_layout, compact) });
   }
 
   function navigateTo(target: NavigateTarget) {
@@ -447,6 +448,7 @@ export function MushafStage() {
 
   return (
     <div
+      ref={stageRef}
       className={`qb-mushaf-stage${showSpread ? " is-spread" : ""}${scrollMode ? " is-scroll" : ""}${ayahMode ? " is-ayah" : ""}${immersive ? " is-immersive" : ""}`}
     >
       {/* Shared SR hint: words reference this via aria-describedby so the analyze
@@ -469,6 +471,7 @@ export function MushafStage() {
       {/* The reading surface: touch swipe turns the page (paged modes), a tap on
           the page background toggles focus mode. */}
       <div
+        ref={surfaceRef}
         className="qb-reader-surface"
         onPointerDown={gestures.onPointerDown}
         onPointerUp={gestures.onPointerUp}

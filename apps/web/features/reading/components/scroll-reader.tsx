@@ -2,7 +2,7 @@
 
 import type { QuranPageAyah, QuranPageResponse } from "@q-basair/shared";
 
-import { useNumerals } from "@/lib/preferences-context";
+import { useNumerals, usePreferences } from "@/lib/preferences-context";
 
 import { AyatFlow, type WordClickHandler, type WordKeyHandler } from "./ayat-flow";
 import { GlyphPage, type GlyphSaveTarget } from "./glyph-page";
@@ -64,12 +64,13 @@ export function ScrollReader({
 }: ScrollReaderProps) {
   const mushaf = useMushaf();
   const formatNumber = useNumerals();
+  const { preferences } = usePreferences();
   const { pages } = useReaderWindow({ mushafId, anchorData, totalPages, registerControls });
   useWordNav(mushaf.bodyRef);
   // ONE uniform fit for every glyph page in the column (identical card width and
   // text scale — a muṣḥaf's leaves are physically identical). Mounted once;
   // its own observers catch window slides and each page's async font arrival.
-  useGlyphFitWidth(mushaf.bodyRef);
+  useGlyphFitWidth(mushaf.bodyRef, preferences.font_size);
 
   return (
     <div
