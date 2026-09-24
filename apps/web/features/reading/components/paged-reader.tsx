@@ -81,6 +81,7 @@ export function PagedReader({
           {showSpread && rightLayout?.lines && leftLayout?.lines ? (
             <>
               <GlyphPage
+                page={rightLayout.page}
                 lines={rightLayout.lines}
                 selectedAyahId={selectedAyahId}
                 isSaved={isSaved}
@@ -89,6 +90,7 @@ export function PagedReader({
                 onWordKey={onWordKey}
               />
               <GlyphPage
+                page={leftLayout.page}
                 lines={leftLayout.lines}
                 selectedAyahId={selectedAyahId}
                 isSaved={isSaved}
@@ -99,6 +101,7 @@ export function PagedReader({
             </>
           ) : (
             <GlyphPage
+              page={layout.page}
               lines={layout.lines}
               selectedAyahId={selectedAyahId}
               isSaved={isSaved}

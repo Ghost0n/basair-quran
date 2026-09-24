@@ -30,6 +30,7 @@ _POLICIES: dict[str, str] = {
     "/api/search-v2": SEARCH_DATA,
     "/api/search-result-page": SEARCH_DATA,
     "/api/suggest": SEARCH_DATA,
+    "/api/text-count": SEARCH_DATA,
 }
 
 

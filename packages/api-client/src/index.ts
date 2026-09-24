@@ -16,6 +16,7 @@ import type {
   MushafItem,
   NotebookItem,
   NotebookItemCreate,
+  TextCountResponse,
   ThemeBoard,
   ThemeCreate,
   ThemeDetail,
@@ -325,6 +326,15 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
     },
     getSurahs(mushaf?: number): Promise<SurahListItem[]> {
       return request<SurahListItem[]>(typeof mushaf === "number" ? `/surahs?mushaf=${mushaf}` : "/surahs");
+    },
+    getTextCount(
+      text: string,
+      options: { mushaf?: number; surah?: number | null; page?: number | null } = {},
+    ): Promise<TextCountResponse> {
+      const params = new URLSearchParams({ text, mushaf: String(options.mushaf ?? 2) });
+      if (options.surah) params.set("surah", String(options.surah));
+      if (options.page) params.set("page", String(options.page));
+      return request<TextCountResponse>(`/text-count?${params.toString()}`);
     },
     getMorphology(surah: number, ayah: number, mushaf?: number): Promise<MorphologyResponse> {
       // `mushaf` lets the backend read that riwāyah's verse text and match it by

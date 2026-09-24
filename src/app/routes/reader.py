@@ -1,12 +1,13 @@
 import time
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from src.app.models.api import (
     AyahReaderMoreResponse,
     AyahReaderResponse,
     MorphologyResponse,
+    TextCountResponse,
     MushafPageLayoutResponse,
     QuranPageResponse,
 )
@@ -135,6 +136,22 @@ def mushaf_page_layout(
         "GET /api/mushaf-page-layout?mushaf=%s&page=%s - %.1fms - %s", mushaf, page, elapsed, status
     )
     return MushafPageLayoutResponse(**payload)
+
+
+@router.get("/text-count", response_model=TextCountResponse)
+def text_count(
+    text: str = Query(..., min_length=1, max_length=300, description="Selected word(s), any script form"),
+    mushaf: int = Query(2, ge=1),
+    surah: int | None = Query(None, ge=1, le=114),
+    page: int | None = Query(None, ge=1, le=700),
+) -> TextCountResponse:
+    """Occurrences of a word/phrase and of each of its letters in page / surah / Quran."""
+    if len(text.split()) > 12:
+        raise HTTPException(status_code=422, detail="Select at most 12 words to count.")
+    result = quran_service.count_text(mushaf, text, surah, page)
+    if not result["text"]:
+        raise HTTPException(status_code=422, detail="The selection has no Arabic letters to count.")
+    return TextCountResponse(**result)
 
 
 @router.get("/morphology", response_model=MorphologyResponse, response_model_exclude_none=True)

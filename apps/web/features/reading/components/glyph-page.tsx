@@ -6,6 +6,7 @@ import type { MushafLayoutLine, MushafLayoutGlyph } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { useAyahMarks, highlightProps, type AyahMark } from "@/features/themes/ayah-marks";
+import { usePickedWords, wordKey } from "@/features/reading/tools/word-selection";
 import { flyToNotebook } from "@/lib/fly-to-notebook";
 
 // The basmala is rendered as compact, unambiguous Unicode text (in the display
@@ -59,6 +60,7 @@ export type GlyphSaveTarget = {
  * selection coherent across both renderers.
  */
 export function GlyphPage({
+  page,
   lines,
   selectedAyahId,
   isSaved,
@@ -66,6 +68,8 @@ export function GlyphPage({
   onWordClick,
   onWordKey,
 }: {
+  /** The printed page number (tools read it from `data-page` for page-scoped counts). */
+  page?: number;
   lines: MushafLayoutLine[];
   selectedAyahId: number | null;
   isSaved: (ayahId: number) => boolean;
@@ -75,6 +79,7 @@ export function GlyphPage({
 }) {
   const isOpeningPage = lines.length < FULL_PAGE_LINES;
   const markOf = useAyahMarks();
+  const isPicked = usePickedWords();
 
   // Per-ayah text (joined from the page's words) so the morphology lookup can
   // match the verse by skeleton — robust even where word tokenisation might
@@ -112,9 +117,12 @@ export function GlyphPage({
       );
     }
 
+    const wk = wordKey(word.surah, word.ayah, word.word_position);
     const glyph = (
       <span
-        className="qb-glyph-word"
+        className={`qb-glyph-word${isPicked(wk) ? " qb-word-picked" : ""}`}
+        data-wk={wk}
+        data-aid={word.ayah_id}
         // Roving focus: tabbing stops on the reader container, not each word. No
         // role=button + "analyze the word" label (a screen reader would announce
         // a stream of buttons). The QCF codepoints are private-use, so the glyph
@@ -173,7 +181,7 @@ export function GlyphPage({
   };
 
   return (
-    <div className={`qb-glyph-page${isOpeningPage ? " is-opening" : ""}`}>
+    <div className={`qb-glyph-page${isOpeningPage ? " is-opening" : ""}`} data-page={page}>
       {lines.map((line) => {
         if (line.line_type === "surah_name") {
           return (
@@ -282,6 +290,7 @@ export function GlyphAyah({
 }) {
   const saved = isSaved(save.ayahId);
   const mark = useAyahMarks()(save.ayahId);
+  const isPicked = usePickedWords();
   const highlight = isSelected ? { className: "" } : highlightProps(mark);
   return (
     <span
@@ -300,7 +309,9 @@ export function GlyphAyah({
         return (
           <span
             key={word.word_key}
-            className="qb-glyph-word"
+            className={`qb-glyph-word${isPicked(wordKey(word.surah, word.ayah, word.word_position)) ? " qb-word-picked" : ""}`}
+            data-wk={wordKey(word.surah, word.ayah, word.word_position)}
+            data-aid={word.ayah_id}
             tabIndex={-1}
             aria-describedby="qb-word-hint"
             onClick={(event) => {

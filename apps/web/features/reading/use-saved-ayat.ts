@@ -23,6 +23,14 @@ export type SavableAyah = {
   text: string;
 };
 
+/**
+ * Glyph pages join an ayah's words from the layout, whose last "word" is the
+ * end-of-ayah number: drop trailing digits so saved text is the verse only.
+ */
+export function cleanAyahText(text: string): string {
+  return text.replace(/[\s\u0660-\u0669\u06F0-\u06F90-9\u06DD]+$/u, "").trim();
+}
+
 /** A saved ayah as the reader tracks it: its notebook id (-1 while pending) + themes. */
 type SavedMark = { id: number; themeIds: number[] };
 
@@ -110,7 +118,7 @@ export function useSavedAyat() {
         surah_id: ayah.surah_id,
         surah: ayah.surah,
         ayah: ayah.ayah,
-        text: ayah.text.trim(),
+        text: cleanAyahText(ayah.text),
         theme_ids: themeIds,
       });
       put(ayah.ayah_id, { id: created.id, themeIds: created.theme_ids ?? [] });

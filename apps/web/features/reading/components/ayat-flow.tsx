@@ -6,6 +6,7 @@ import type { QuranPageAyah } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { highlightProps, useAyahMarks } from "@/features/themes/ayah-marks";
+import { usePickedWords, wordKey } from "@/features/reading/tools/word-selection";
 import { flyToNotebook } from "@/lib/fly-to-notebook";
 import { useNumerals } from "@/lib/preferences-context";
 
@@ -83,12 +84,14 @@ export function AyahTokens({
   const formatNumber = useNumerals();
   const isSelected = ayah.is_selected || ayah.ayah_id === selectedAyahId;
   const mark = useAyahMarks()(ayah.ayah_id);
+  const isPicked = usePickedWords();
   const highlight = isSelected ? { className: "" } : highlightProps(mark);
   return (
     <span
       className={`qb-ayah-tok${isSelected ? " selected" : ""}${highlight.className}`}
       data-hl={highlight["data-hl"]}
       data-ayah-id={ayah.ayah_id}
+      data-page={ayah.page}
       // The ayah is a readable unit: a screen reader announces "آية" and then
       // reads the verse as prose (the words below are plain text, not buttons).
       role="group"
@@ -103,7 +106,9 @@ export function AyahTokens({
         .map((word, wordIndex) => (
           <span
             key={wordIndex}
-            className="qb-word"
+            className={`qb-word${isPicked(wordKey(ayah.surah_id, ayah.ayah, wordIndex + 1)) ? " qb-word-picked" : ""}`}
+            data-wk={wordKey(ayah.surah_id, ayah.ayah, wordIndex + 1)}
+            data-aid={ayah.ayah_id}
             // Roving focus: words are focusable but not tabbable — the reader
             // container is the tab stop and arrows walk words (useWordNav). No
             // role=button + "analyze the word" label: that made a screen reader

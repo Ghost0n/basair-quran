@@ -226,6 +226,26 @@ export interface ResearchAgentRequest {
   focus?: ResearchFocusAyah | null;
 }
 
+/** Counts per scope; `surah` / `page` are null when that scope wasn't requested. */
+export interface TextCountScopes {
+  quran: number;
+  surah?: number | null;
+  page?: number | null;
+}
+
+export interface TextCountLetter extends TextCountScopes {
+  letter: string;
+  in_selection: number;
+}
+
+/** GET /api/text-count — a selected word/phrase and its letters, counted on the rasm. */
+export interface TextCountResponse {
+  text: string;
+  word_count: number;
+  phrase: TextCountScopes;
+  letters: TextCountLetter[];
+}
+
 export interface ResearchFocusAyah {
   surah: number;
   ayah: number;

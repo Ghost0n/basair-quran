@@ -1,0 +1,331 @@
+/* =====================================================================
+   Reader toolbox — tool chooser, picked words, «تحديد» action bar.
+   ===================================================================== */
+
+.qb-toolbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.light .qb-toolbox {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.qb-toolbox .tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  min-width: 34px;
+  padding: 0 9px;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--fg-3);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 140ms var(--ease-out), color 140ms var(--ease-out);
+}
+
+.qb-toolbox .tool:hover {
+  color: var(--gold-text);
+}
+
+.qb-toolbox .tool.on {
+  background: var(--gold-a18);
+  color: var(--gold-text);
+  padding: 0 12px;
+}
+
+.qb-toolbox .tool:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 1px;
+}
+
+/* Compact: one button + a menu with each tool's hint. */
+.qb-toolbox-compact {
+  position: relative;
+}
+
+.qb-reader-bar .qb-toolbox-compact .act.on-tool {
+  color: var(--gold-text);
+  border-color: var(--gold-a40);
+}
+
+.qb-toolbox-menu {
+  position: fixed;
+  z-index: calc(var(--elev-toast) + 6);
+  padding: 6px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-strong, var(--border));
+  background: var(--bg-elev-2);
+  box-shadow: var(--shadow-3);
+  animation: qbPopIn var(--motion-dur-fast) var(--motion-ease-settle) both;
+}
+
+.qb-toolbox-menu button {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  grid-template-areas: "icon t" "icon d";
+  align-items: center;
+  column-gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  text-align: start;
+  cursor: pointer;
+}
+
+.qb-toolbox-menu button > svg {
+  grid-area: icon;
+}
+
+.qb-toolbox-menu .t {
+  grid-area: t;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.qb-toolbox-menu .d {
+  grid-area: d;
+  font-size: 12px;
+  color: var(--fg-3);
+  line-height: 1.6;
+}
+
+.qb-toolbox-menu button.on {
+  background: var(--gold-a12);
+  color: var(--gold-text);
+}
+
+/* --- Picked words («تحديد») --- */
+
+.qb-glyph-word.qb-word-picked,
+.qb-word.qb-word-picked {
+  background: rgba(92, 140, 220, 0.3);
+  box-shadow: 0 0 0 1px rgba(92, 140, 220, 0.55);
+  border-radius: 4px;
+}
+
+.light .qb-glyph-word.qb-word-picked,
+.light .qb-word.qb-word-picked {
+  background: rgba(47, 94, 168, 0.18);
+  box-shadow: 0 0 0 1px rgba(47, 94, 168, 0.45);
+}
+
+/* --- Selection action bar --- */
+
+.qb-selection-bar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  z-index: calc(var(--elev-toast) + 4);
+  width: min(720px, calc(100% - 24px));
+  margin-inline: auto;
+  padding: 10px 12px 12px;
+  border-radius: var(--r-xl);
+  border: 1px solid var(--border-strong, var(--border));
+  background: var(--bg-elev-2);
+  box-shadow: var(--shadow-3);
+  animation: qbSheetUp var(--motion-dur-base) var(--motion-ease-settle) both;
+}
+
+.qb-selection-bar .row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.qb-selection-bar .picked {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.qb-selection-bar .picked .text {
+  font-family: var(--font-arabic-display);
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--fg-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qb-selection-bar .picked .meta {
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.qb-selection-bar .clear {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+.qb-selection-bar .clear:hover {
+  background: var(--gold-a08);
+  color: var(--fg-1);
+}
+
+.qb-selection-bar .acts {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.qb-selection-bar .acts::-webkit-scrollbar {
+  display: none;
+}
+
+.qb-selection-bar .acts button {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.qb-selection-bar .acts button:hover:not(:disabled),
+.qb-selection-bar .acts button.on {
+  border-color: var(--gold-a40);
+  background: var(--gold-a12);
+  color: var(--gold-text);
+}
+
+.qb-selection-bar .acts button:disabled {
+  opacity: 0.5;
+}
+
+.qb-selection-bar .note {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+/* Count panel (inside the bar, above its row). */
+.qb-selection-bar .count {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.qb-selection-bar .count-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-3);
+}
+
+.qb-selection-bar .count-head button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+.qb-selection-bar .count .state {
+  padding: 10px 0;
+  font-size: 13px;
+  color: var(--fg-3);
+}
+
+.qb-selection-bar .table-wrap {
+  max-height: 38vh;
+  overflow-y: auto;
+}
+
+.qb-selection-bar table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.qb-selection-bar th,
+.qb-selection-bar td {
+  padding: 6px 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--divider, var(--border));
+}
+
+.qb-selection-bar thead th {
+  font-size: 11px;
+  color: var(--fg-3);
+  font-weight: 700;
+}
+
+.qb-selection-bar tbody th {
+  text-align: start;
+  font-weight: 600;
+  color: var(--fg-2);
+}
+
+.qb-selection-bar td {
+  color: var(--fg-1);
+}
+
+.qb-selection-bar .phrase {
+  color: var(--gold-text);
+}
+
+.qb-selection-bar .letter b {
+  font-family: var(--font-arabic-display);
+  font-size: 18px;
+  color: var(--fg-1);
+}
+
+.qb-selection-bar .letter small {
+  margin-inline-start: 6px;
+  font-size: 11px;
+  color: var(--fg-3);
+}
+
+.qb-selection-bar .fine {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--fg-3);
+}

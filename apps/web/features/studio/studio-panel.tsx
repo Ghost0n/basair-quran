@@ -10,7 +10,7 @@ import { Icon } from "@/components/icon";
 import { drawEvidenceThread } from "@/lib/draw-evidence-thread";
 import { useNumerals } from "@/lib/preferences-context";
 import { renderHighlightedVerseText } from "@/lib/quran-ui";
-import { STUDIO_ASK_EVENT, drainStudioAsk, drainStudioOpenSession } from "@/lib/studio-prefill";
+import { STUDIO_ASK_EVENT, drainStudioAsk, drainStudioOpenSession, type StudioAsk } from "@/lib/studio-prefill";
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { saveClientResearchSettings } from "@/features/research/lib/research-client-settings";
 import { useShellMode } from "@/features/shell/mode-context";
@@ -77,8 +77,13 @@ export function StudioPanel() {
   // session — it must not inherit an existing thread's mode/context. A queued
   // session-open (Home / history) hydrates that saved thread as a tab. The refs
   // always hold the latest bindings so the deferred drain uses live settings.
-  const askRef = useRef<(question: string) => void>(() => {});
-  askRef.current = (question) => void studio.askInNewSession(question, state.selectedMushaf);
+  const askRef = useRef<(ask: StudioAsk) => void>(() => {});
+  askRef.current = (ask) =>
+    void studio.askInNewSession(ask.question, state.selectedMushaf, {
+      mode: ask.mode,
+      focus: ask.focus,
+      focusLabel: ask.focusLabel,
+    });
   const openRef = useRef<(id: string) => void>(() => {});
   openRef.current = (id) => void studio.openSavedSession(id);
 
@@ -86,8 +91,8 @@ export function StudioPanel() {
     const drain = () => {
       const openId = drainStudioOpenSession();
       if (openId) openRef.current(openId);
-      const question = drainStudioAsk();
-      if (question) askRef.current(question);
+      const ask = drainStudioAsk();
+      if (ask) askRef.current(ask);
     };
     // Defer past the persisted-sessions restore (a mount effect that re-renders),
     // so we submit into the real active session.
@@ -238,6 +243,16 @@ export function StudioPanel() {
         ) : null}
 
         {studio.error ? <div className="qb-studio-error">{studio.error}</div> : null}
+
+        {active?.focus ? (
+          <div className="qb-studio-focus" role="note">
+            <Icon name="feather" size={13} />
+            <span>
+              الآية المقصودة: {active.focusLabel ?? `${active.focus.surah}:${active.focus.ayah}`}، تُقرأ مع ما قبلها
+              وما بعدها وسياق السورة.
+            </span>
+          </div>
+        ) : null}
 
         {active && active.messages.length > 0 ? (
           <div className="qb-thread" ref={threadRef}>

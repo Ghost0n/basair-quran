@@ -313,6 +313,26 @@ class ResearchAgentMessage(BaseModel):
     content: str = Field(..., min_length=1, max_length=4000)
 
 
+class TextCountScopes(BaseModel):
+    quran: int
+    surah: Optional[int] = None
+    page: Optional[int] = None
+
+
+class TextCountLetter(TextCountScopes):
+    letter: str
+    in_selection: int
+
+
+class TextCountResponse(BaseModel):
+    """Occurrences of a selected word/phrase and of its letters (reader «إحصاء»)."""
+
+    text: str
+    word_count: int
+    phrase: TextCountScopes
+    letters: List[TextCountLetter]
+
+
 class ResearchFocusAyah(BaseModel):
     """One ayah the question is about (read in the request's mushaf)."""
 

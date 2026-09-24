@@ -57,11 +57,24 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/quran-page`
 - `GET /api/mushaf-page-layout`
 - `GET /api/morphology`
+- `GET /api/text-count`
 - `GET /api/notebook` · `POST /api/notebook` · `DELETE /api/notebook/{item_id}` · `PUT /api/notebook/{item_id}/themes`
 - `GET /api/themes` · `POST /api/themes` · `GET /api/themes/{theme_id}` · `PATCH /api/themes/{theme_id}` · `PUT /api/themes/{theme_id}/board` · `DELETE /api/themes/{theme_id}`
 - `GET /api/sessions` · `GET /api/sessions/{session_id}` · `POST /api/sessions` · `DELETE /api/sessions/{session_id}`
 - `GET /api/roots` · `POST /api/roots` · `DELETE /api/roots/{root_id}`
 - `GET /api/user/preferences` · `PATCH /api/user/preferences`
+
+## Text count notes (reader «تحديد» → «إحصاء»)
+
+- `GET /api/text-count?text=…&mushaf=2[&surah=N][&page=P]` → `TextCountResponse {text, word_count,
+  phrase: {quran, surah?, page?}, letters: [{letter, in_selection, quran, surah?, page?}]}`.
+  `surah` / `page` counts are `null` unless that scope is requested.
+- Deterministic and rasm-based: counted on the mushaf's undiacritized text with the search
+  normalization (alif forms folded to ا, lone hamza and tatweel dropped). A phrase counts as a
+  whole-word sequence inside one ayah (so «رب العالمين» does not count «لرب العالمين»); `page` is the
+  ayah's starting page.
+- `text` is 1–300 chars and at most 12 words (`422` otherwise, or when it has no letters to count).
+  Cached like search (`public, max-age=600`).
 
 ## Themes (مواضيع) notes
 

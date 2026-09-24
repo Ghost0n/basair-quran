@@ -9,6 +9,7 @@ export const ICON_PATHS = {
   book: "M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2V5zM18 3v16M6 19h12",
   sparkles: "M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8",
   bookmark: "M6 3h12v18l-6-4-6 4V3z",
+  select: "M9 5h6M9 19h6M12 5v14M4 8V6a2 2 0 0 1 2-2M20 8V6a2 2 0 0 0-2-2M4 16v2a2 2 0 0 0 2 2M20 16v2a2 2 0 0 1-2 2",
   bookmarkFilled: "M6 3h12v18l-6-4-6 4V3z",
   notebook: "M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2V4zm0 0v14M9 8h6M9 12h6M9 16h4",
   history: "M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 2",

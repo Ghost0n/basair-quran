@@ -82,6 +82,8 @@ def close_db_connection():
     _phrase_did_you_mean_cache = OrderedDict()
     _word_did_you_mean_cache = OrderedDict()
     _mushaf_layout_index_cache = OrderedDict()
+    with _count_corpus_lock:
+        _count_corpus_cache.clear()
 
 
 def reset_morphology_search_index():
@@ -162,6 +164,81 @@ def get_ayah_context(mushaf_id: int, surah: int, ayah: int, before: int = 2, aft
         "ayah": ayah,
         "before": [{"ayah": r["number_in_surah"], "text": r["text_uthmani"]} for r in rows if r["number_in_surah"] < ayah],
         "after": [{"ayah": r["number_in_surah"], "text": r["text_uthmani"]} for r in rows if r["number_in_surah"] > ayah],
+    }
+
+
+# --- Counting (reader «تحديد» → «إحصاء») ---------------------------------------
+
+_TATWEEL = "\u0640"
+_count_corpus_cache: dict[int, list[tuple[int, int, tuple[str, ...], str]]] = {}
+_count_corpus_lock = threading.Lock()
+
+
+def normalize_count_text(text: str) -> str:
+    """The rasm used for counting: search normalization, no tatweel, single spaces."""
+    return " ".join(normalize_text_search(text).replace(_TATWEEL, "").split())
+
+
+def _count_corpus(mushaf_id: int) -> list[tuple[int, int, tuple[str, ...], str]]:
+    """(surah, page, tokens, letters-only text) per ayah of one mushaf, cached."""
+    with _count_corpus_lock:
+        cached = _count_corpus_cache.get(mushaf_id)
+        if cached is not None:
+            return cached
+    rows = get_db().execute(
+        "SELECT surah_id, page, text_simple FROM ayahs WHERE mushaf_id = ? ORDER BY global_index",
+        (mushaf_id,),
+    ).fetchall()
+    corpus = []
+    for row in rows:
+        simple = normalize_count_text(row["text_simple"] or "")
+        corpus.append((int(row["surah_id"]), int(row["page"] or 0), tuple(simple.split()), simple.replace(" ", "")))
+    with _count_corpus_lock:
+        _count_corpus_cache[mushaf_id] = corpus
+    return corpus
+
+
+def _phrase_occurrences(tokens: tuple[str, ...], phrase: tuple[str, ...]) -> int:
+    size = len(phrase)
+    if size == 0 or size > len(tokens):
+        return 0
+    return sum(1 for start in range(len(tokens) - size + 1) if tokens[start : start + size] == phrase)
+
+
+def count_text(mushaf_id: int, text: str, surah: int | None = None, page: int | None = None) -> dict:
+    """Occurrences of a word/phrase and of each of its letters in page / surah / Quran.
+
+    Deterministic and rasm-based: counted on the mushaf's undiacritized text with
+    the search normalization (alif forms folded, lone hamza and tatweel dropped).
+    A phrase counts as a whole-word sequence inside one ayah; `page` is the
+    ayah's starting page.
+    """
+    normalized = normalize_count_text(text)
+    phrase = tuple(normalized.split())
+    letters = sorted({char for char in normalized if char != " "})
+    phrase_counts = {"quran": 0, "surah": 0 if surah else None, "page": 0 if page else None}
+    letter_counts = {letter: {"quran": 0, "surah": 0 if surah else None, "page": 0 if page else None} for letter in letters}
+    for ayah_surah, ayah_page, tokens, letters_text in _count_corpus(mushaf_id):
+        in_scope = {
+            "quran": True,
+            "surah": surah is not None and ayah_surah == surah,
+            "page": page is not None and ayah_page == page,
+        }
+        occurrences = _phrase_occurrences(tokens, phrase)
+        for scope, inside in in_scope.items():
+            if not inside:
+                continue
+            phrase_counts[scope] += occurrences
+            for letter in letters:
+                letter_counts[letter][scope] += letters_text.count(letter)
+    return {
+        "text": normalized,
+        "word_count": len(phrase),
+        "phrase": phrase_counts,
+        "letters": [
+            {"letter": letter, "in_selection": normalized.count(letter), **letter_counts[letter]}
+            for letter in letters
+        ],
     }
 
 

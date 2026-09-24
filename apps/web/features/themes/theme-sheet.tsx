@@ -8,7 +8,7 @@ import type { ThemeColor } from "@q-basair/shared";
 import { Icon } from "@/components/icon";
 import { useNumerals } from "@/lib/preferences-context";
 import { useDialog } from "@/lib/use-dialog";
-import type { SavableAyah, SavedAyat } from "@/features/reading/use-saved-ayat";
+import { cleanAyahText, type SavableAyah, type SavedAyat } from "@/features/reading/use-saved-ayat";
 
 import { THEME_PALETTE, nextThemeColor } from "./palette";
 import { createTheme, useThemes } from "./themes-store";
@@ -104,7 +104,10 @@ export function ThemeSheet({
 
         <div className="body">
           <p className="verse" dir="rtl">
-            {ayah.text.length > 160 ? `${ayah.text.slice(0, 160)}…` : ayah.text}
+            {(() => {
+              const text = cleanAyahText(ayah.text);
+              return text.length > 160 ? `${text.slice(0, 160)}…` : text;
+            })()}
           </p>
 
           <section>

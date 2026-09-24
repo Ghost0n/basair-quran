@@ -502,3 +502,18 @@
   outline: none;
   border-color: var(--gold-400);
 }
+
+/* A session centred on one ayah (reader «تفسير» tool). */
+.qb-studio-focus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--tafssir-border, var(--border));
+  background: var(--gold-a08);
+  color: var(--fg-2);
+  font-size: 12px;
+  line-height: 1.7;
+}
