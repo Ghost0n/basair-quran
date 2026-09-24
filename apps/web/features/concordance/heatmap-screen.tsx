@@ -35,16 +35,13 @@ export function HeatmapScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    if (surahs.length === 0) {
-      api.getSurahs().then((list) => {
-        if (!cancelled) setSurahs(list);
-      }).catch(() => {});
-    }
+    api.getSurahs(state.selectedMushaf).then((list) => {
+      if (!cancelled) setSurahs(list);
+    }).catch(() => {});
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [state.selectedMushaf]);
 
   useEffect(() => {
     if (!root) {

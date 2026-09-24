@@ -318,8 +318,8 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
         `/mushaf-page-layout?mushaf=${mushaf}${pagePart}${selectedPart}`,
       );
     },
-    getSurahs(): Promise<SurahListItem[]> {
-      return request<SurahListItem[]>("/surahs");
+    getSurahs(mushaf?: number): Promise<SurahListItem[]> {
+      return request<SurahListItem[]>(typeof mushaf === "number" ? `/surahs?mushaf=${mushaf}` : "/surahs");
     },
     getMorphology(surah: number, ayah: number, text?: string): Promise<MorphologyResponse> {
       // `text` lets the backend match the verse by its skeleton, so morphology is

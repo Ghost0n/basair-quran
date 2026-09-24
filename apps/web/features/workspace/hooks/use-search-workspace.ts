@@ -41,6 +41,7 @@ function toUserError(scope: string, error: unknown, fallback: string): string {
   return isTechnicalMessage(raw) ? fallback : raw;
 }
 import { usePreferences } from "@/lib/preferences-context";
+import { DEFAULT_MUSHAF_ID, MUSHAF_STORAGE_KEY, pickDefaultMushaf } from "@/lib/mushaf-defaults";
 import { useMushaf } from "@/features/reading/mushaf-context";
 
 import type { ThemeMode } from "../types";
@@ -101,7 +102,7 @@ export function useSearchWorkspace() {
     }
   });
   const [mushafs, setMushafs] = useState<MushafItem[]>([]);
-  const [selectedMushaf, setSelectedMushaf] = useState<number>(1);
+  const [selectedMushaf, setSelectedMushaf] = useState<number>(DEFAULT_MUSHAF_ID);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -352,7 +353,7 @@ export function useSearchWorkspace() {
   }
 
   useEffect(() => {
-    const storedMushaf = Number(window.localStorage.getItem("selectedMushaf") || "1");
+    const storedMushaf = Number(window.localStorage.getItem(MUSHAF_STORAGE_KEY) || String(DEFAULT_MUSHAF_ID));
     if (Number.isFinite(storedMushaf) && storedMushaf > 0) {
       setSelectedMushaf(storedMushaf);
     }
@@ -464,8 +465,8 @@ export function useSearchWorkspace() {
         if (cancelled) return;
         setMushafs(items);
         setSelectedMushaf((current) => {
-          const next = items.some((item) => item.id === current) ? current : items[0]?.id ?? 1;
-          window.localStorage.setItem("selectedMushaf", String(next));
+          const next = items.some((item) => item.id === current) ? current : pickDefaultMushaf(items);
+          window.localStorage.setItem(MUSHAF_STORAGE_KEY, String(next));
           return next;
         });
       } catch (error) {
@@ -486,7 +487,7 @@ export function useSearchWorkspace() {
   }, []);
 
   useEffect(() => {
-    window.localStorage.setItem("selectedMushaf", String(selectedMushaf));
+    window.localStorage.setItem(MUSHAF_STORAGE_KEY, String(selectedMushaf));
   }, [selectedMushaf]);
 
   useEffect(() => {

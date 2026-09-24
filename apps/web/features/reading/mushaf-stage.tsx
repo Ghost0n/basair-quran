@@ -30,8 +30,9 @@ import { useSavedAyat } from "./use-saved-ayat";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
-// Surahs are catalog data — fetch once per session.
-let surahCache: SurahListItem[] | null = null;
+// Surahs are catalog data — fetch once per riwāyah per session (ayah counts
+// follow the riwāyah's numbering).
+const surahCache = new Map<number, SurahListItem[]>();
 
 // Reader layout cycle order for the Shift+M shortcut and the header switcher.
 const LAYOUT_ORDER: ReaderLayout[] = ["auto", "single", "spread", "scroll", "ayah"];
@@ -51,7 +52,7 @@ export function MushafStage() {
   const { preferences, updateAccount, updateAccountDebounced, ready } = usePreferences();
   const selectedMushaf = state.selectedMushaf;
 
-  const [surahs, setSurahs] = useState<SurahListItem[]>(surahCache ?? []);
+  const [surahs, setSurahs] = useState<SurahListItem[]>(surahCache.get(selectedMushaf) ?? []);
   const [morphTarget, setMorphTarget] = useState<MorphTarget | null>(null);
   // Page-turn direction for the whole-page animation (RTL: next enters from the
   // left, back from the right). Applied to the Unicode reader only — the glyph
@@ -64,14 +65,18 @@ export function MushafStage() {
   // Tracks the last riwāyah we reconciled, so a failing reload can't loop.
   const reconciledRef = useRef<number | null>(null);
 
-  // Surah catalog (once).
+  // Surah catalog (once per riwāyah).
   useEffect(() => {
-    if (surahCache) return;
+    const cached = surahCache.get(selectedMushaf);
+    if (cached) {
+      setSurahs(cached);
+      return;
+    }
     let cancelled = false;
     api
-      .getSurahs()
+      .getSurahs(selectedMushaf)
       .then((list) => {
-        surahCache = list;
+        surahCache.set(selectedMushaf, list);
         if (!cancelled) setSurahs(list);
       })
       .catch(() => {
@@ -80,7 +85,7 @@ export function MushafStage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [selectedMushaf]);
 
   // Initial page load — and a self-heal: if the page ever ends up empty while
   // reading (e.g. after a navigation reset), reload the last page rather than

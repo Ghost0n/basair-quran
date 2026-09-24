@@ -541,7 +541,7 @@ class SavedPageEntry(BaseModel):
 
 
 class UserPreferences(BaseModel):
-    riwayah: int = 1
+    riwayah: int = 2  # Ḥafṣ (mushaf id 2)
     mushaf_font: str = "amiri-quran"
     numerals: Literal["arabic-indic", "latin", "persian"] = "arabic-indic"
     ui_language: str = "ar"

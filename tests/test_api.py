@@ -346,6 +346,15 @@ def test_surahs_catalog_lists_surahs(api_client):
     assert body[0]["ayah_count"] == 15
 
 
+def test_surahs_catalog_counts_follow_the_requested_mushaf(api_client):
+    # Ayah counts are per riwāyah (al-Baqarah: Hafs 286, Qaloun 285); the fixture
+    # only holds mushaf 1, so another mushaf lists the surah with no ayahs.
+    assert api_client.get("/api/surahs?mushaf=1").json()[0]["ayah_count"] == 15
+    other = api_client.get("/api/surahs?mushaf=2").json()
+    assert [item["id"] for item in other] == [1]
+    assert other[0]["ayah_count"] == 0
+
+
 def test_reciters_catalog_lists_reciters(api_client):
     response = api_client.get("/api/reciters")
     assert response.status_code == 200

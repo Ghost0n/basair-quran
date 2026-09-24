@@ -19,7 +19,7 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   vertical scroll, and an ayah-by-ayah list — chosen from Quick Settings or resolved
   automatically per screen size (`reader_layout` preference; see
   [docs/authentic-mushaf-reader.md](docs/authentic-mushaf-reader.md)).
-- Multi-mushaf support, including Qaloun, Hafs, Warsh, Shuba, Douri, and Sousi.
+- Multi-mushaf support: Hafs (the default, and the only riwāyah with the authentic Madani reader), Qaloun, Warsh, Shuba, Douri, and Sousi.
 - A persistent floating media bar (transport · reciter chip · seekable progress ·
   repeat/speed) shown across every screen; reciter selection lives in a filterable
   sheet opened from the bar or the rail.

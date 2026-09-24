@@ -41,7 +41,8 @@ This document freezes the backend contract that the future frontend migration wi
 - `POST /api/auth/merge-guest-data/undo`
 - `GET /api/mushafs` — each `MushafItem` now includes a normalized `riwayah` key (matches
   `ReciterItem.riwayah`), so the UI can flag a reciter/mushaf riwāyah mismatch during recitation.
-- `GET /api/surahs`
+- `GET /api/surahs` — optional `mushaf` (default `1`): `ayah_count` follows that mushaf's
+  numbering (e.g. al-Baqarah: Hafs 286, Qaloun 285). The web client passes the selected riwāyah.
 - `GET /api/reciters`
 - `GET /api/root-distribution`
 - `GET /api/suggest`
@@ -91,6 +92,13 @@ This document freezes the backend contract that the future frontend migration wi
   via `fallback: "reader"`.
 
 ## Reader layout notes
+
+- The default riwāyah is **Ḥafṣ** (mushaf id `2`) — the only riwāyah with the authentic
+  Madani reader. It is the `riwayah` default in `GET /api/user/preferences` and the web
+  client's fallback when this device has no stored choice (`qb.selectedMushaf` in
+  localStorage; the legacy `selectedMushaf` key is ignored so earlier visitors, who were
+  auto-pinned to Qālūn, also get Ḥafṣ). Search/reader endpoints keep `mushaf=1` as their
+  query default; the client always sends the selected mushaf explicitly.
 
 - `reader_layout` is an account preference on `GET/PATCH /api/user/preferences`,
   **orthogonal** to `mushaf_render`. It selects how pages/ayahs are arranged, not

@@ -15,6 +15,7 @@ import { looksLikeQuestion, queueStudioAsk, queueStudioOpenSession } from "@/lib
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
+import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -50,7 +51,7 @@ export function HomeScreen() {
   const savedPages = preferences.saved_pages ?? [];
 
   function openSavedPage(entry: SavedPageEntry) {
-    void mushaf.loadPage(entry.mushaf_id || 1, entry.page, { persist: true });
+    void mushaf.loadPage(entry.mushaf_id || DEFAULT_MUSHAF_ID, entry.page, { persist: true });
     setMode("reading");
   }
 

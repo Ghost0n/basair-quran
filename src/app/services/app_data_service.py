@@ -123,7 +123,7 @@ def _guest_stamp(user_id: int, guest_id: str | None) -> str | None:
 # ----------------------------------------------------------------------
 
 DEFAULT_PREFERENCES: dict = {
-    "riwayah": 1,
+    "riwayah": 2,  # Ḥafṣ — the only riwāyah with the authentic Madani reader
     "mushaf_font": "amiri-quran",
     "numerals": "arabic-indic",
     "ui_language": "ar",

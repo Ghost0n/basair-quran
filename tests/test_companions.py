@@ -87,7 +87,7 @@ def test_user_preferences_defaults_and_patch(api_client):
     assert defaults.status_code == 200
     body = defaults.json()
     assert body["numerals"] == "arabic-indic"
-    assert body["riwayah"] == 1
+    assert body["riwayah"] == 2  # Ḥafṣ is the default riwāyah
     assert body["reader_layout"] == "auto"
     assert body["research"]["default_mode"] == "strict"
 
