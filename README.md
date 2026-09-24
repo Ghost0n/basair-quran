@@ -34,6 +34,9 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 - Themes (مواضيع): the reader's save action highlights an ayah with one or more named colours, so
   saved ayahs group by subject as you read; the library lists them by theme (rename, recolour,
   delete) and «العرض» can hide the highlights.
+- Theme boards (لوحة الموضوع, `/?mode=board&theme=<id>`): a theme's ayahs on a canvas to arrange,
+  annotate (notes, headings) and link with labelled relations («يفسّر»، «يؤكّد»…); an ayah expands
+  into a scrollable mini reader of its passage. The board autosaves as the theme's metadata.
 - A persistent floating media bar (transport · reciter chip · seekable progress ·
   repeat/speed) shown across every screen; reciter selection lives in a filterable
   sheet opened from the bar or the rail.

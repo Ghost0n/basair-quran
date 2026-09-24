@@ -1,0 +1,482 @@
+/* =====================================================================
+   Theme board (لوحة الموضوع) — React Flow canvas themed to Q-Basair.
+   ===================================================================== */
+
+.qb-board {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.qb-board-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.qb-board-bar .back {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg-2);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.qb-board-bar .title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.qb-board-bar .title .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--hl-ink);
+  align-self: center;
+}
+
+.qb-board-bar h1 {
+  margin: 0;
+  font-family: var(--font-arabic-heading, var(--font-arabic-display));
+  font-size: 22px;
+  line-height: var(--lh-tight, 1.4);
+  color: var(--gold-text);
+}
+
+.qb-board-bar .meta {
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.qb-board-bar .tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qb-board-bar .tools button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.qb-board-bar .tools button:hover {
+  border-color: var(--gold-a40);
+  color: var(--gold-text);
+}
+
+.qb-board-bar .save {
+  min-width: 70px;
+  font-size: 12px;
+  color: var(--fg-3);
+  text-align: center;
+}
+
+.qb-board-bar .save.error {
+  color: var(--danger-fg);
+}
+
+@media (max-width: 640px) {
+  .qb-board-bar {
+    padding: 8px 12px;
+    flex-wrap: wrap;
+  }
+
+  .qb-board-bar .tools {
+    width: 100%;
+  }
+
+  .qb-board-bar .tools .lbl {
+    display: inline;
+  }
+
+  .qb-board-bar .save {
+    margin-inline-start: auto;
+  }
+}
+
+.qb-board-canvas {
+  flex: 1;
+  min-height: 320px;
+  position: relative;
+}
+
+.qb-board-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--fg-3);
+}
+
+.qb-board-state button {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--gold-a40);
+  background: var(--gold-a12);
+  color: var(--gold-text);
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+}
+
+/* React Flow chrome in the app's palette. */
+.qb-board .react-flow {
+  --xy-background-color: transparent;
+  --xy-background-pattern-dots-color: var(--border-strong, rgba(212, 175, 55, 0.18));
+  --xy-edge-stroke: var(--fg-3);
+  --xy-edge-stroke-selected: var(--gold-400);
+  --xy-connectionline-stroke: var(--gold-400);
+  --xy-handle-background-color: var(--gold-400);
+  --xy-handle-border-color: var(--bg-elev-2);
+  --xy-controls-button-background-color: var(--bg-elev-2);
+  --xy-controls-button-background-color-hover: var(--gold-a12);
+  --xy-controls-button-color: var(--fg-2);
+  --xy-controls-button-border-color: var(--border);
+  --xy-minimap-background-color: var(--bg-elev-2);
+  --xy-minimap-mask-background-color: rgba(0, 0, 0, 0.35);
+  --xy-edge-label-background-color: var(--bg-elev-2);
+  --xy-edge-label-color: var(--gold-text);
+  --xy-selection-background-color: rgba(212, 175, 55, 0.08);
+  --xy-selection-border: 1px dashed var(--gold-400);
+  font-family: var(--font-arabic-ui);
+}
+
+.light .qb-board .react-flow {
+  --xy-minimap-mask-background-color: rgba(255, 255, 255, 0.5);
+}
+
+.qb-board .react-flow__edge-textbg {
+  rx: 6;
+}
+
+.qb-board .react-flow__edge-text {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.qb-board .react-flow__handle {
+  width: 9px;
+  height: 9px;
+  opacity: 0;
+  transition: opacity 120ms var(--ease-out);
+}
+
+.qb-board .react-flow__node:hover .react-flow__handle,
+.qb-board .react-flow__node.selected .react-flow__handle,
+.qb-board .react-flow.connecting .react-flow__handle {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .qb-board .react-flow__handle {
+    opacity: 0.8;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.qb-board-minimap {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .qb-board-minimap {
+    display: none;
+  }
+}
+
+.qb-board-hint {
+  max-width: 420px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elev-2);
+  color: var(--fg-2);
+  font-size: 13px;
+  line-height: 1.8;
+  text-align: center;
+}
+
+/* --- Nodes --- */
+
+.qb-bnode {
+  position: relative;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-elev-2);
+  box-shadow: var(--shadow-2, 0 4px 18px rgba(0, 0, 0, 0.25));
+  color: var(--fg-1);
+}
+
+.qb-bnode.sel {
+  border-color: var(--gold-400);
+  box-shadow: 0 0 0 2px var(--gold-a40), var(--shadow-2, 0 4px 18px rgba(0, 0, 0, 0.25));
+}
+
+.qb-bnode.ayah {
+  border-top: 3px solid var(--hl-ink);
+}
+
+.qb-bnode.ayah header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px 0;
+}
+
+.qb-bnode.ayah .ref {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold-text);
+}
+
+.qb-bnode.ayah .acts {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.qb-bnode.ayah .acts button {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+.qb-bnode.ayah .acts button:hover {
+  background: var(--gold-a08);
+  color: var(--gold-text);
+}
+
+.qb-bnode.ayah .text {
+  margin: 0;
+  padding: 6px 14px 14px;
+  font-family: var(--font-arabic-display);
+  font-size: 17px;
+  line-height: 1.9;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.qb-bnode.ayah .mini {
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 6px 6px 8px;
+  padding: 4px 8px;
+  border-radius: var(--r-md);
+  background: rgba(0, 0, 0, 0.12);
+  overscroll-behavior: contain;
+  cursor: auto;
+}
+
+.light .qb-bnode.ayah .mini {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.qb-bnode.ayah .mini p {
+  margin: 0;
+  padding: 6px 4px;
+  font-family: var(--font-arabic-display);
+  font-size: 16px;
+  line-height: 1.9;
+  color: var(--fg-2);
+  border-bottom: 1px solid var(--divider, var(--border));
+}
+
+.qb-bnode.ayah .mini p.center {
+  color: var(--fg-1);
+  background: var(--hl);
+  border-radius: 6px;
+}
+
+.qb-bnode.ayah .mini .n {
+  color: var(--gold-text);
+  font-size: 13px;
+}
+
+.qb-bnode.ayah .mini .state {
+  font-family: var(--font-arabic-ui);
+  font-size: 12px;
+  color: var(--fg-3);
+  border: 0;
+}
+
+.qb-bnode.note {
+  min-width: 180px;
+  min-height: 80px;
+  width: 100%;
+  height: 100%;
+  background: rgba(196, 150, 104, 0.14);
+  border-color: rgba(196, 150, 104, 0.45);
+}
+
+.qb-bnode.note textarea {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 80px;
+  min-width: 180px;
+  padding: 12px 14px;
+  border: 0;
+  background: none;
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-size: 14px;
+  line-height: 1.8;
+  resize: none;
+  outline: none;
+}
+
+.qb-bnode.heading {
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.qb-bnode.heading.sel {
+  box-shadow: 0 0 0 2px var(--gold-a40);
+}
+
+.qb-bnode.heading input {
+  width: 320px;
+  padding: 4px 8px;
+  border: 0;
+  border-bottom: 2px solid var(--gold-a40);
+  background: none;
+  color: var(--gold-text);
+  font-family: var(--font-arabic-heading, var(--font-arabic-display));
+  font-size: 28px;
+  line-height: 1.5;
+  outline: none;
+}
+
+.qb-resize-line {
+  border-color: var(--gold-400) !important;
+}
+
+.qb-resize-handle {
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 3px;
+  background: var(--gold-400) !important;
+}
+
+/* --- Edge label editor --- */
+
+.qb-edge-editor {
+  width: min(360px, calc(100vw - 32px));
+  padding: 10px 12px 12px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-strong, var(--border));
+  background: var(--bg-elev-2);
+  box-shadow: var(--shadow-3);
+}
+
+.qb-edge-editor .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-3);
+}
+
+.qb-edge-editor .head button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+.qb-edge-editor .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.qb-edge-editor .chips button,
+.qb-edge-editor form button,
+.qb-edge-editor .remove {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.qb-edge-editor .chips button:hover {
+  border-color: var(--gold-a40);
+  color: var(--gold-text);
+}
+
+.qb-edge-editor form {
+  display: flex;
+  gap: 6px;
+}
+
+.qb-edge-editor input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.14);
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-size: 16px;
+}
+
+.qb-edge-editor .remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  border: 0;
+  color: var(--danger-fg);
+}

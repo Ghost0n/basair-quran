@@ -84,7 +84,8 @@ function RailButton({
   activeMode: ShellMode;
   onSelect: (next: ShellMode) => void;
 }) {
-  const isActive = destination.mode === activeMode;
+  // A theme board belongs to the library (الدفتر).
+  const isActive = destination.mode === activeMode || (destination.mode === "notebook" && activeMode === "board");
   // Double-effect: clicking the ACTIVE button collapses what it opened — back to
   // the reader (the resting surface). The reader is the resting surface itself,
   // so clicking it while active does nothing (null = no navigation).

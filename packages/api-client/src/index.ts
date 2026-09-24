@@ -1,4 +1,5 @@
 import type {
+  AyahReaderResponse,
   AuthLoginRequest,
   AuthOkResponse,
   AuthProfileUpdate,
@@ -326,6 +327,15 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
     },
     getSurahs(mushaf?: number): Promise<SurahListItem[]> {
       return request<SurahListItem[]>(typeof mushaf === "number" ? `/surahs?mushaf=${mushaf}` : "/surahs");
+    },
+    getAyahReader(ayahId: number, options: { mushaf?: number; before?: number; after?: number } = {}): Promise<AyahReaderResponse> {
+      const params = new URLSearchParams({
+        ayah_id: String(ayahId),
+        mushaf: String(options.mushaf ?? 2),
+        before: String(options.before ?? 5),
+        after: String(options.after ?? 5),
+      });
+      return request<AyahReaderResponse>(`/ayah-reader?${params.toString()}`);
     },
     getTextCount(
       text: string,

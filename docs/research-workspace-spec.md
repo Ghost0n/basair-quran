@@ -37,7 +37,8 @@ researcher arranges, links and annotates.
 - **Ayah node:** reference + text; **expand** turns it into a scrollable mini reader
   (the ayah with ±5 neighbours, same surah, loaded on demand), collapse back.
 - **Persistence:** the whole board (`{v:1, nodes:[{id,type,x,y,w?,h?,data}], edges:[…],
-  viewport}`) is stored as `themes.board` (JSON, ≤ 256 KB), autosaved (debounced).
+  viewport}`) is stored as `themes.board` (JSON, ≤ 256 KB), autosaved (debounced). The viewport is
+  not persisted (always fit on open) since it depends on the device.
   It is metadata of the theme: deleting the theme deletes its board.
 - Library: React Flow (`@xyflow/react`, MIT) — pan/zoom, drag, connect, minimap,
   keyboard; RTL labels inside nodes.

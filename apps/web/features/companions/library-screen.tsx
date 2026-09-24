@@ -272,6 +272,7 @@ function MiniVerse({ item, onOpen }: { item: NotebookItem; onOpen: (item: Notebo
 /** A theme's card: colour, name, count, and inline rename / recolour / delete. */
 function ThemeCard({ theme, count, children }: { theme: ThemeSummary; count: number; children: React.ReactNode }) {
   const formatNumber = useNumerals();
+  const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(theme.name);
   const [confirming, setConfirming] = useState(false);
@@ -309,6 +310,17 @@ function ThemeCard({ theme, count, children }: { theme: ThemeSummary; count: num
           </span>
         )}
         <span className="count">{formatNumber(count)} آية</span>
+        {!editing ? (
+          <button
+            type="button"
+            className="row-action"
+            aria-label={`لوحة «${theme.name}»`}
+            title="افتح لوحة الموضوع: رتّب الآيات واربط بينها وأضف ملاحظات"
+            onClick={() => router.push(`/?mode=board&theme=${theme.id}`)}
+          >
+            <Icon name="graph" size={14} />
+          </button>
+        ) : null}
         {!editing ? (
           <button type="button" className="row-action" aria-label={`تعديل «${theme.name}»`} onClick={() => { setName(theme.name); setEditing(true); }}>
             <Icon name="edit" size={14} />
