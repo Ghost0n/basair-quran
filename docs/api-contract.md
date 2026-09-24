@@ -91,7 +91,9 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   saved). The list endpoint never includes boards.
 - `PUT /api/themes/{id}/board {board}` stores the board as opaque JSON (≤ 256 KB, `413` beyond). Shape
   (`packages/shared` `ThemeBoard`): `{v: 1, nodes: [{id, type: ayah|note|heading, x, y, w?, h?, data}],
-  edges: [{id, source, target, label?}], viewport?}`.
+  edges: [{id, source, target, label?}], viewport?}`. Ayah node ids are `a-<mushaf_id>-<ayah_id>`
+  (`data: {ayah_id, mushaf_id, expanded?}`); the web app reconciles them with the theme's ayahs on open
+  and always fits the view (it saves `viewport: null` — viewports are per-device).
 - `DELETE /api/themes/{id}` deletes the theme and its board; its ayahs stay saved without it.
 - Migration: when `theme_ids` is added to an existing store, each distinct free-text `collection`
   becomes a theme (per owner, colours in palette order). `collection` is still returned for compatibility.

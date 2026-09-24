@@ -8,6 +8,7 @@ import { HomeScreen } from "@/features/home/home-screen";
 import { LibraryScreen } from "@/features/companions/library-screen";
 import { HeatmapScreen } from "@/features/concordance/heatmap-screen";
 import { SettingsScreen } from "@/features/settings/settings-screen";
+import { BoardScreen } from "@/features/board/board-screen";
 
 function WorkspacePage() {
   const { mode } = useShellMode();
@@ -38,6 +39,9 @@ function WorkspacePage() {
       return <SettingsScreen />;
     case "heatmap":
       return <HeatmapScreen />;
+    // A theme's graph board — full width: it's a canvas, not a companion.
+    case "board":
+      return <BoardScreen />;
     default:
       return <WorkspaceCanvas mode="reading" />;
   }

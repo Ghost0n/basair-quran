@@ -12,6 +12,7 @@
   "dependencies": {
     "@q-basair/api-client": "workspace:*",
     "@q-basair/shared": "workspace:*",
+    "@xyflow/react": "^12.8.0",
     "next": "15.5.15",
     "react": "19.1.0",
     "react-dom": "19.1.0"

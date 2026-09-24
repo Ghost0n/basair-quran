@@ -14,6 +14,8 @@ export const SHELL_MODES = [
   "roots",
   "settings",
   "heatmap",
+  // لوحة الموضوع — a theme's graph board (`&theme=<id>`).
+  "board",
 ] as const;
 
 export type ShellMode = (typeof SHELL_MODES)[number];

@@ -246,6 +246,28 @@ export interface TextCountResponse {
   letters: TextCountLetter[];
 }
 
+/** GET /api/ayah-reader — an ayah with its neighbours in the same surah. */
+export interface ReaderAyah {
+  ayah_id: number;
+  ayah: number;
+  text: string;
+  global_index: number;
+  is_center: boolean;
+}
+
+export interface AyahReaderResponse {
+  found: boolean;
+  mushaf_id?: number | null;
+  surah_id?: number | null;
+  surah?: string | null;
+  center_ayah_id?: number | null;
+  start_ayah?: number | null;
+  end_ayah?: number | null;
+  has_previous?: boolean | null;
+  has_next?: boolean | null;
+  ayahs: ReaderAyah[];
+}
+
 export interface ResearchFocusAyah {
   surah: number;
   ayah: number;
