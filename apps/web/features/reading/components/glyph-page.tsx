@@ -5,6 +5,7 @@ import { Fragment } from "react";
 import type { MushafLayoutLine, MushafLayoutGlyph } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { useAyahMarks, highlightProps, type AyahMark } from "@/features/themes/ayah-marks";
 import { flyToNotebook } from "@/lib/fly-to-notebook";
 
 // The basmala is rendered as compact, unambiguous Unicode text (in the display
@@ -73,6 +74,7 @@ export function GlyphPage({
   onWordKey: WordKey;
 }) {
   const isOpeningPage = lines.length < FULL_PAGE_LINES;
+  const markOf = useAyahMarks();
 
   // Per-ayah text (joined from the page's words) so the morphology lookup can
   // match the verse by skeleton — robust even where word tokenisation might
@@ -140,6 +142,7 @@ export function GlyphPage({
     if (!ayahEndKeys.has(word.word_key)) return <Fragment key={word.word_key}>{glyph}</Fragment>;
 
     const saved = isSaved(word.ayah_id);
+    const mark = markOf(word.ayah_id);
     // The bookmark is absolutely positioned so it never changes the line's
     // intrinsic width (which the fit measurement relies on).
     return (
@@ -147,10 +150,11 @@ export function GlyphPage({
         {glyph}
         <button
           type="button"
-          className={`qb-glyph-save${saved ? " on" : ""}`}
-          aria-label={saved ? "إزالة من الدفتر" : "حفظ في الدفتر"}
-          aria-pressed={saved}
-          title={saved ? "محفوظة في الدفتر" : "حفظ الآية في الدفتر"}
+          className={`qb-glyph-save${saved ? " on" : ""}${mark && mark.themes > 1 ? " multi" : ""}`}
+          data-hl={mark?.color ?? undefined}
+          aria-label={saved ? "المواضيع والحفظ" : "حفظ في الدفتر"}
+          aria-haspopup="dialog"
+          title={saved ? "محفوظة — المواضيع" : "حفظ الآية وتظليلها"}
           onClick={(event) => {
             event.stopPropagation();
             if (!saved) flyToNotebook(event.currentTarget, ayahTextById.get(word.ayah_id) ?? word.text ?? "");
@@ -194,14 +198,17 @@ export function GlyphPage({
         // line (1–3 words) flows naturally rather than stretching.
         const isFull = words.length >= 4;
 
-        // Group consecutive words by selection so a selected ayah renders as one
-        // continuous highlight block (covering the justified gaps), not per-word.
-        const segments: { selected: boolean; words: MushafLayoutGlyph[] }[] = [];
+        // Group consecutive words by selection / theme highlight so a marked ayah
+        // renders as one continuous block (covering the justified gaps), not
+        // per-word. Selection wins over a theme colour.
+        const segments: { selected: boolean; mark: AyahMark; key: string; words: MushafLayoutGlyph[] }[] = [];
         for (const word of words) {
           const selected = Boolean(word.is_selected) || word.ayah_id === selectedAyahId;
+          const mark = selected ? null : markOf(word.ayah_id);
+          const key = selected ? "sel" : mark?.color ? `hl:${word.ayah_id}` : "";
           const last = segments[segments.length - 1];
-          if (last && last.selected === selected) last.words.push(word);
-          else segments.push({ selected, words: [word] });
+          if (last && last.key === key) last.words.push(word);
+          else segments.push({ selected, mark, key, words: [word] });
         }
 
         return (
@@ -217,8 +224,13 @@ export function GlyphPage({
                   {wordIndex < segment.words.length - 1 ? " " : null}
                 </Fragment>
               ));
+              const highlight = highlightProps(segment.mark);
               const node = segment.selected ? (
                 <span className="qb-glyph-sel" data-ayah-id={segment.words[0]?.ayah_id}>
+                  {inner}
+                </span>
+              ) : highlight.className ? (
+                <span className={`qb-glyph-hl${highlight.className}`} data-hl={highlight["data-hl"]}>
                   {inner}
                 </span>
               ) : (
@@ -269,9 +281,12 @@ export function GlyphAyah({
   save: GlyphSaveTarget;
 }) {
   const saved = isSaved(save.ayahId);
+  const mark = useAyahMarks()(save.ayahId);
+  const highlight = isSelected ? { className: "" } : highlightProps(mark);
   return (
     <span
-      className={`qb-glyph-ayah-row${isSelected ? " qb-glyph-sel" : ""}`}
+      className={`qb-glyph-ayah-row${isSelected ? " qb-glyph-sel" : ""}${highlight.className}`}
+      data-hl={highlight["data-hl"]}
       data-ayah-id={save.ayahId}
       style={{ fontFamily: fontFamily ?? undefined }}
     >
@@ -308,10 +323,11 @@ export function GlyphAyah({
       })}
       <button
         type="button"
-        className={`qb-save-ayah${saved ? " on" : ""}`}
-        aria-label={saved ? "إزالة من الدفتر" : "حفظ في الدفتر"}
-        aria-pressed={saved}
-        title={saved ? "محفوظة في الدفتر" : "حفظ الآية في الدفتر"}
+        className={`qb-save-ayah${saved ? " on" : ""}${mark && mark.themes > 1 ? " multi" : ""}`}
+        data-hl={mark?.color ?? undefined}
+        aria-label={saved ? "المواضيع والحفظ" : "حفظ في الدفتر"}
+        aria-haspopup="dialog"
+        title={saved ? "محفوظة — المواضيع" : "حفظ الآية وتظليلها"}
         onClick={(event) => {
           event.stopPropagation();
           if (!saved) flyToNotebook(event.currentTarget, save.text);

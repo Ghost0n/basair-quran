@@ -13,9 +13,15 @@ from src.app.models.api import (
     FollowedRootCreate,
     NotebookItem,
     NotebookItemCreate,
+    NotebookItemThemes,
     ResearchSessionDetail,
     ResearchSessionSave,
     ResearchSessionSummary,
+    ThemeBoardSave,
+    ThemeCreate,
+    ThemeDetail,
+    ThemeSummary,
+    ThemeUpdate,
     UserPreferences,
     UserPreferencesUpdate,
 )
@@ -60,6 +66,65 @@ def create_notebook_item(request: Request, payload: NotebookItemCreate) -> Noteb
 def delete_notebook_item(request: Request, item_id: int) -> DeleteResult:
     deleted = app_data_service.delete_notebook_item(item_id, _resolve_user_id(request))
     return DeleteResult(deleted=deleted)
+
+
+@router.put("/notebook/{item_id}/themes", response_model=NotebookItem)
+def set_notebook_item_themes(request: Request, item_id: int, payload: NotebookItemThemes) -> NotebookItem:
+    item = app_data_service.set_notebook_item_themes(item_id, payload.theme_ids, _resolve_user_id(request))
+    if item is None:
+        raise HTTPException(status_code=404, detail="Notebook item not found.")
+    return NotebookItem(**item)
+
+
+# --- Themes (مواضيع) --------------------------------------------------------
+
+
+@router.get("/themes", response_model=list[ThemeSummary])
+def list_themes(request: Request) -> list[ThemeSummary]:
+    return [ThemeSummary(**theme) for theme in app_data_service.list_themes(_resolve_user_id(request))]
+
+
+@router.post("/themes", response_model=ThemeSummary)
+def create_theme(request: Request, payload: ThemeCreate) -> ThemeSummary:
+    try:
+        theme = app_data_service.create_theme(
+            payload.model_dump(), _resolve_user_id(request), _resolve_guest_id(request)
+        )
+    except app_data_service.ThemeLimitError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return ThemeSummary(**theme)
+
+
+@router.get("/themes/{theme_id}", response_model=ThemeDetail)
+def get_theme(request: Request, theme_id: int) -> ThemeDetail:
+    theme = app_data_service.get_theme(theme_id, _resolve_user_id(request))
+    if theme is None:
+        raise HTTPException(status_code=404, detail="Theme not found.")
+    return ThemeDetail(**theme)
+
+
+@router.patch("/themes/{theme_id}", response_model=ThemeDetail)
+def update_theme(request: Request, theme_id: int, payload: ThemeUpdate) -> ThemeDetail:
+    theme = app_data_service.update_theme(theme_id, payload.model_dump(), _resolve_user_id(request))
+    if theme is None:
+        raise HTTPException(status_code=404, detail="Theme not found.")
+    return ThemeDetail(**theme)
+
+
+@router.put("/themes/{theme_id}/board", response_model=ThemeDetail)
+def save_theme_board(request: Request, theme_id: int, payload: ThemeBoardSave) -> ThemeDetail:
+    try:
+        theme = app_data_service.save_theme_board(theme_id, payload.board, _resolve_user_id(request))
+    except app_data_service.ThemeLimitError as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
+    if theme is None:
+        raise HTTPException(status_code=404, detail="Theme not found.")
+    return ThemeDetail(**theme)
+
+
+@router.delete("/themes/{theme_id}", response_model=DeleteResult)
+def delete_theme(request: Request, theme_id: int) -> DeleteResult:
+    return DeleteResult(deleted=app_data_service.delete_theme(theme_id, _resolve_user_id(request)))
 
 
 # --- Research sessions -----------------------------------------------------

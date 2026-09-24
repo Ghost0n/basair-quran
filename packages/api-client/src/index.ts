@@ -16,6 +16,11 @@ import type {
   MushafItem,
   NotebookItem,
   NotebookItemCreate,
+  ThemeBoard,
+  ThemeCreate,
+  ThemeDetail,
+  ThemeSummary,
+  ThemeUpdate,
   ReciterItem,
   RootDistributionResponse,
   ResearchAgentSettingsResponse,
@@ -344,6 +349,30 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
     },
     deleteNotebookItem(itemId: number): Promise<DeleteResult> {
       return request<DeleteResult>(`/notebook/${itemId}`, { method: "DELETE" });
+    },
+    setNotebookItemThemes(itemId: number, themeIds: number[]): Promise<NotebookItem> {
+      return request<NotebookItem>(`/notebook/${itemId}/themes`, {
+        method: "PUT",
+        body: JSON.stringify({ theme_ids: themeIds }),
+      });
+    },
+    getThemes(): Promise<ThemeSummary[]> {
+      return request<ThemeSummary[]>("/themes");
+    },
+    getTheme(themeId: number): Promise<ThemeDetail> {
+      return request<ThemeDetail>(`/themes/${themeId}`);
+    },
+    createTheme(theme: ThemeCreate): Promise<ThemeSummary> {
+      return request<ThemeSummary>("/themes", { method: "POST", body: JSON.stringify(theme) });
+    },
+    updateTheme(themeId: number, patch: ThemeUpdate): Promise<ThemeDetail> {
+      return request<ThemeDetail>(`/themes/${themeId}`, { method: "PATCH", body: JSON.stringify(patch) });
+    },
+    saveThemeBoard(themeId: number, board: ThemeBoard): Promise<ThemeDetail> {
+      return request<ThemeDetail>(`/themes/${themeId}/board`, { method: "PUT", body: JSON.stringify({ board }) });
+    },
+    deleteTheme(themeId: number): Promise<DeleteResult> {
+      return request<DeleteResult>(`/themes/${themeId}`, { method: "DELETE" });
     },
     getSessions(): Promise<ResearchSessionSummary[]> {
       return request<ResearchSessionSummary[]>("/sessions");

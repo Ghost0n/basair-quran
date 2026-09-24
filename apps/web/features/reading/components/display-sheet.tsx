@@ -4,6 +4,7 @@ import type { NumeralScript, ReaderLayout } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { useWorkspace } from "@/features/shell/workspace-context";
+import { setShowHighlights, useShowHighlights } from "@/features/themes/ayah-marks";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { useDialog } from "@/lib/use-dialog";
 
@@ -33,6 +34,7 @@ export function DisplaySheet({ onClose }: { onClose: () => void }) {
   const compact = useCompactReader();
   const mode = resolveReaderMode(preferences.reader_layout, compact);
   const dark = state.theme !== "light";
+  const showHighlights = useShowHighlights();
 
   function setLayout(layout: ReaderLayout) {
     void updateAccount({ reader_layout: layout });
@@ -132,6 +134,18 @@ export function DisplaySheet({ onClose }: { onClose: () => void }) {
                   </button>
                 ))}
               </div>
+            </div>
+          </section>
+
+          <section>
+            <div className="label">تظليل المواضيع</div>
+            <div className="seg" role="group" aria-label="تظليل المواضيع">
+              <button type="button" className={showHighlights ? "active" : ""} aria-pressed={showHighlights} onClick={() => setShowHighlights(true)}>
+                <Icon name="highlight" size={15} /> ظاهر
+              </button>
+              <button type="button" className={!showHighlights ? "active" : ""} aria-pressed={!showHighlights} onClick={() => setShowHighlights(false)}>
+                مخفيّ
+              </button>
             </div>
           </section>
         </div>

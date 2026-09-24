@@ -5,6 +5,7 @@ import { Fragment } from "react";
 import type { QuranPageAyah } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { highlightProps, useAyahMarks } from "@/features/themes/ayah-marks";
 import { flyToNotebook } from "@/lib/fly-to-notebook";
 import { useNumerals } from "@/lib/preferences-context";
 
@@ -81,9 +82,12 @@ export function AyahTokens({
 }: AyahTokensProps) {
   const formatNumber = useNumerals();
   const isSelected = ayah.is_selected || ayah.ayah_id === selectedAyahId;
+  const mark = useAyahMarks()(ayah.ayah_id);
+  const highlight = isSelected ? { className: "" } : highlightProps(mark);
   return (
     <span
-      className={`qb-ayah-tok${isSelected ? " selected" : ""}`}
+      className={`qb-ayah-tok${isSelected ? " selected" : ""}${highlight.className}`}
+      data-hl={highlight["data-hl"]}
       data-ayah-id={ayah.ayah_id}
       // The ayah is a readable unit: a screen reader announces "آية" and then
       // reads the verse as prose (the words below are plain text, not buttons).
@@ -126,10 +130,11 @@ export function AyahTokens({
       {showNumber ? <span className="qb-num-glyph">{`﴿${formatNumber(ayah.ayah)}﴾`}</span> : null}
       <button
         type="button"
-        className={`qb-save-ayah${isSaved(ayah.ayah_id) ? " on" : ""}`}
-        aria-label={isSaved(ayah.ayah_id) ? "إزالة من الدفتر" : "حفظ في الدفتر"}
-        aria-pressed={isSaved(ayah.ayah_id)}
-        title={isSaved(ayah.ayah_id) ? "محفوظة في الدفتر" : "حفظ في الدفتر"}
+        className={`qb-save-ayah${isSaved(ayah.ayah_id) ? " on" : ""}${mark && mark.themes > 1 ? " multi" : ""}`}
+        data-hl={mark?.color ?? undefined}
+        aria-label={isSaved(ayah.ayah_id) ? "المواضيع والحفظ" : "حفظ في الدفتر"}
+        aria-haspopup="dialog"
+        title={isSaved(ayah.ayah_id) ? "محفوظة — المواضيع" : "حفظ الآية وتظليلها"}
         onClick={(event) => {
           event.stopPropagation();
           // Ghost flight to the notebook only on SAVE (not un-save).

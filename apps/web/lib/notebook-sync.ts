@@ -19,6 +19,8 @@ import type { NotebookItem } from "@q-basair/shared";
  */
 export type NotebookChange =
   | { kind: "added"; item: NotebookItem }
+  // An existing item changed in place (e.g. its themes).
+  | { kind: "updated"; item: NotebookItem }
   | { kind: "removed"; itemId: number; ayahId?: number | null };
 
 const EVENT = "qb:notebook-changed";

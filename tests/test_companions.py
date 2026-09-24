@@ -153,3 +153,114 @@ def test_mushaf_edition_preference_is_validated_and_falls_back(api_client):
     app_data_service.update_preferences({"mushaf_edition": "retired-edition"})
     body = api_client.get("/api/user/preferences").json()
     assert body["mushaf_edition"] == "madani-hafs"
+
+
+# --- Themes (مواضيع) ------------------------------------------------------------------
+
+
+def _save(api_client, ayah, **extra):
+    response = api_client.post(
+        "/api/notebook",
+        json={"ayah_id": ayah, "mushaf_id": 1, "surah_id": 1, "ayah": ayah, "text": f"shared verse {ayah}", **extra},
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
+def test_theme_lifecycle_and_item_counts(api_client):
+    created = api_client.post("/api/themes", json={"name": " الصبر ", "color": "green"})
+    assert created.status_code == 200
+    theme = created.json()
+    assert theme["name"] == "الصبر"
+    assert theme["color"] == "green"
+    assert theme["item_count"] == 0
+
+    item = _save(api_client, 3, theme_ids=[theme["id"]])
+    assert item["theme_ids"] == [theme["id"]]
+    listing = api_client.get("/api/themes").json()
+    assert listing[0]["item_count"] == 1
+
+    renamed = api_client.patch(f"/api/themes/{theme['id']}", json={"name": "الصبر والشكر", "color": "teal"})
+    assert renamed.json()["name"] == "الصبر والشكر"
+    assert renamed.json()["color"] == "teal"
+
+    assert api_client.delete(f"/api/themes/{theme['id']}").json() == {"deleted": True}
+    # The ayah stays saved, just without the deleted theme.
+    notebook = api_client.get("/api/notebook").json()
+    assert [row["theme_ids"] for row in notebook] == [[]]
+    assert api_client.get(f"/api/themes/{theme['id']}").status_code == 404
+
+
+def test_theme_rejects_unknown_colour_and_empty_name(api_client):
+    assert api_client.post("/api/themes", json={"name": "x", "color": "neon"}).status_code == 422
+    assert api_client.post("/api/themes", json={"name": ""}).status_code == 422
+
+
+def test_set_item_themes_replaces_and_drops_unknown_ids(api_client):
+    a = api_client.post("/api/themes", json={"name": "أ"}).json()
+    b = api_client.post("/api/themes", json={"name": "ب", "color": "rose"}).json()
+    item = _save(api_client, 5)
+    assert item["theme_ids"] == []
+
+    updated = api_client.put(f"/api/notebook/{item['id']}/themes", json={"theme_ids": [b["id"], a["id"], b["id"], 9999]})
+    assert updated.status_code == 200
+    assert updated.json()["theme_ids"] == [b["id"], a["id"]]
+
+    cleared = api_client.put(f"/api/notebook/{item['id']}/themes", json={"theme_ids": []})
+    assert cleared.json()["theme_ids"] == []
+    assert api_client.put("/api/notebook/424242/themes", json={"theme_ids": []}).status_code == 404
+
+
+def test_theme_board_round_trips_and_is_size_capped(api_client):
+    theme = api_client.post("/api/themes", json={"name": "لوحة"}).json()
+    board = {"v": 1, "nodes": [{"id": "n1", "type": "note", "x": 10, "y": 20, "data": {"text": "ملاحظة"}}], "edges": []}
+    saved = api_client.put(f"/api/themes/{theme['id']}/board", json={"board": board})
+    assert saved.status_code == 200
+    assert api_client.get(f"/api/themes/{theme['id']}").json()["board"] == board
+    # The list stays light: no board payload.
+    assert "board" not in api_client.get("/api/themes").json()[0]
+
+    huge = {"v": 1, "nodes": [{"id": "n", "data": {"text": "x" * (300 * 1024)}}], "edges": []}
+    assert api_client.put(f"/api/themes/{theme['id']}/board", json={"board": huge}).status_code == 413
+    assert api_client.put("/api/themes/999/board", json={"board": board}).status_code == 404
+
+
+def test_collections_migrate_to_themes_once(tmp_path, monkeypatch):
+    import json
+    import sqlite3
+
+    from src.app.core import config
+    from src.app.services import app_data_service
+
+    db_path = tmp_path / "legacy_app.db"
+    connection = sqlite3.connect(db_path)
+    connection.executescript(
+        """
+        CREATE TABLE notebook_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL DEFAULT 0,
+            ayah_id INTEGER NOT NULL, mushaf_id INTEGER NOT NULL DEFAULT 1, surah_id INTEGER,
+            surah TEXT, ayah INTEGER, text TEXT, note TEXT, collection TEXT, created_at INTEGER NOT NULL
+        );
+        INSERT INTO notebook_items (user_id, ayah_id, collection, created_at) VALUES (7, 1, 'نور', 1);
+        INSERT INTO notebook_items (user_id, ayah_id, collection, created_at) VALUES (7, 2, ' نور ', 2);
+        INSERT INTO notebook_items (user_id, ayah_id, collection, created_at) VALUES (7, 3, 'صبر', 3);
+        INSERT INTO notebook_items (user_id, ayah_id, collection, created_at) VALUES (7, 4, NULL, 4);
+        """
+    )
+    connection.commit()
+    connection.close()
+
+    original = config.get_app_db_path()
+    config.set_app_db_path(str(db_path))
+    try:
+        app_data_service.ensure_app_db()
+        app_data_service.ensure_app_db()  # idempotent: no duplicate themes
+        themes = app_data_service.list_themes(7)
+        assert [(t["name"], t["color"], t["item_count"]) for t in themes] == [("نور", "green", 2), ("صبر", "blue", 1)]
+        items = {row["ayah_id"]: row["theme_ids"] for row in app_data_service.list_notebook_items(7)}
+        assert items[1] == items[2] == [themes[0]["id"]]
+        assert items[3] == [themes[1]["id"]]
+        assert items[4] == []
+        assert json.loads(json.dumps(items))  # plain JSON-serializable lists
+    finally:
+        config.set_app_db_path(original)
