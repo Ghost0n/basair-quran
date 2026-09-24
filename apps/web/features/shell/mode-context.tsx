@@ -16,6 +16,8 @@ export const SHELL_MODES = [
   "heatmap",
   // لوحة الموضوع — a theme's graph board (`&theme=<id>`).
   "board",
+  // البحث — a research document editor (`&id=<doc id>`).
+  "document",
 ] as const;
 
 export type ShellMode = (typeof SHELL_MODES)[number];

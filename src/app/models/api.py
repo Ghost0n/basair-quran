@@ -551,6 +551,134 @@ class ResearchSessionSave(BaseModel):
         return value
 
 
+# ---------------------------------------------------------------------------
+# Research documents — the shareable research format (docs/research-workspace-spec.md §5)
+# ---------------------------------------------------------------------------
+
+RESEARCH_DOCUMENT_VERSION = 1
+MAX_DOCUMENT_SECTIONS = 60
+MAX_SECTION_BODY_CHARS = 8000
+MAX_SECTION_AYAHS = 40
+MAX_DOCUMENT_REFERENCES = 80
+MAX_DOCUMENT_BYTES = 512 * 1024
+MAX_DOCUMENTS_PER_USER = 300
+
+ResearchSectionKind = Literal["text", "ayahs", "note", "question", "ai_answer"]
+
+
+class AyahRef(BaseModel):
+    """A quoted ayah. `text` is what the author quotes; it is verified against the Quran DB."""
+
+    mushaf_id: int = Field(2, ge=1)
+    surah_id: int = Field(..., ge=1, le=114)
+    ayah: int = Field(..., ge=1, le=286)
+    ayah_id: Optional[int] = None
+    text: str = Field("", max_length=4000)
+
+
+class ResearchSection(BaseModel):
+    id: str = Field(..., min_length=1, max_length=64)
+    kind: ResearchSectionKind = "text"
+    title: Optional[str] = Field(None, max_length=200)
+    # A markdown subset (paragraphs, **bold**, lists); rendered as text, never as HTML.
+    body: str = Field("", max_length=MAX_SECTION_BODY_CHARS)
+    ayahs: List[AyahRef] = Field(default_factory=list, max_length=MAX_SECTION_AYAHS)
+
+
+class ResearchReference(BaseModel):
+    kind: Literal["ayah", "tafsir", "book", "url"] = "book"
+    label: str = Field(..., min_length=1, max_length=300)
+    locator: Optional[str] = Field(None, max_length=500)
+
+
+class ResearchProvenance(BaseModel):
+    mode: Optional[Literal["strict", "tafssir"]] = None
+    # Sections produced by the research agent (must stay labelled as AI output).
+    ai_sections: List[str] = Field(default_factory=list, max_length=MAX_DOCUMENT_SECTIONS)
+    created_from: Literal["studio", "board", "manual"] = "manual"
+    source_id: Optional[str] = Field(None, max_length=120)
+
+
+class ResearchDocumentSave(BaseModel):
+    """Create/replace body. Visibility is private until community publishing ships."""
+
+    title: str = Field(..., min_length=1, max_length=200)
+    summary: Optional[str] = Field(None, max_length=1200)
+    language: str = Field("ar", max_length=12)
+    tags: List[str] = Field(default_factory=list, max_length=12)
+    theme_ids: List[int] = Field(default_factory=list, max_length=MAX_THEMES_PER_ITEM)
+    sections: List[ResearchSection] = Field(default_factory=list, max_length=MAX_DOCUMENT_SECTIONS)
+    references: List[ResearchReference] = Field(default_factory=list, max_length=MAX_DOCUMENT_REFERENCES)
+    provenance: ResearchProvenance = Field(default_factory=ResearchProvenance)
+    visibility: Literal["private"] = "private"
+
+    @field_validator("tags")
+    @classmethod
+    def _clean_tags(cls, value: List[str]) -> List[str]:
+        cleaned = [tag.strip()[:40] for tag in value if tag and tag.strip()]
+        return list(dict.fromkeys(cleaned))
+
+    @field_validator("sections")
+    @classmethod
+    def _unique_section_ids(cls, value: List[ResearchSection]) -> List[ResearchSection]:
+        ids = [section.id for section in value]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Section ids must be unique.")
+        return value
+
+
+class QuoteIssue(BaseModel):
+    section_id: str
+    surah_id: int
+    ayah: int
+    problem: Literal["not_found", "text_mismatch"]
+    expected: Optional[str] = None
+
+
+class QuoteVerification(BaseModel):
+    """Every quoted ayah checked against the Quran DB (normalized comparison)."""
+
+    ok: bool
+    checked: int
+    issues: List[QuoteIssue] = Field(default_factory=list)
+
+
+class ResearchDocumentSummary(BaseModel):
+    id: str
+    title: str
+    summary: Optional[str] = None
+    mode: Optional[Literal["strict", "tafssir"]] = None
+    created_from: str = "manual"
+    section_count: int = 0
+    ayah_count: int = 0
+    visibility: str = "private"
+    version: int = 1
+    created_at: int
+    updated_at: int
+
+
+class ResearchDocument(ResearchDocumentSave):
+    id: str
+    v: int = RESEARCH_DOCUMENT_VERSION
+    version: int = 1
+    created_at: int
+    updated_at: int
+    verification: Optional[QuoteVerification] = None
+
+
+class AuditCheck(BaseModel):
+    rule: str
+    passed: bool
+    detail: Optional[str] = None
+
+
+class DocumentAudit(BaseModel):
+    """Deterministic pre-publication checks (blocking). The AI audit is advisory and not wired yet."""
+
+    publishable: bool
+    checks: List[AuditCheck]
+
+
 class FollowedRoot(BaseModel):
     id: int
     root_text: str

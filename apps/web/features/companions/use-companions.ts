@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { FollowedRoot, NotebookItem, ResearchSessionSummary } from "@q-basair/shared";
+import type { FollowedRoot, NotebookItem, ResearchDocumentSummary, ResearchSessionSummary } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
 import { emitNotebookChange, useNotebookSync } from "@/lib/notebook-sync";
@@ -31,6 +31,7 @@ export function useCompanions() {
   const [notebook, setNotebook] = useState<NotebookItem[]>([]);
   const [sessions, setSessions] = useState<ResearchSessionSummary[]>([]);
   const [roots, setRoots] = useState<FollowedRoot[]>([]);
+  const [documents, setDocuments] = useState<ResearchDocumentSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // Mirror of the list so deletes can report the removed ayah_id in their event.
@@ -41,14 +42,17 @@ export function useCompanions() {
     setLoading(true);
     setError(null);
     try {
-      const [notebookItems, sessionList, rootList] = await Promise.all([
+      const [notebookItems, sessionList, rootList, documentList] = await Promise.all([
         api.getNotebook(),
         api.getSessions(),
         api.getRoots(),
+        // Documents are additive: an older backend without them must not break the library.
+        api.getDocuments().catch(() => [] as ResearchDocumentSummary[]),
       ]);
       setNotebook(notebookItems);
       setSessions(sessionList);
       setRoots(rootList);
+      setDocuments(documentList);
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذّر تحميل بيانات الدفتر.");
     } finally {
@@ -86,6 +90,11 @@ export function useCompanions() {
     setSessions((current) => current.filter((session) => session.id !== sessionId));
   }, []);
 
+  const deleteDocument = useCallback(async (documentId: string) => {
+    await api.deleteDocument(documentId);
+    setDocuments((current) => current.filter((document) => document.id !== documentId));
+  }, []);
+
   const unfollowRoot = useCallback(async (rootId: number) => {
     await api.unfollowRoot(rootId);
     setRoots((current) => current.filter((root) => root.id !== rootId));
@@ -95,11 +104,13 @@ export function useCompanions() {
     notebook,
     sessions,
     roots,
+    documents,
     loading,
     error,
     refresh,
     deleteNotebookItem,
     deleteSession,
+    deleteDocument,
     unfollowRoot,
   };
 }

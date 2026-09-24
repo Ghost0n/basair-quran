@@ -246,6 +246,104 @@ export interface TextCountResponse {
   letters: TextCountLetter[];
 }
 
+// ---------------------------------------------------------------------------
+// Research documents — the shareable research format (spec §5)
+// ---------------------------------------------------------------------------
+
+export type ResearchSectionKind = "text" | "ayahs" | "note" | "question" | "ai_answer";
+
+/** A quoted ayah; `text` is verified against the Quran DB (empty = filled by the server). */
+export interface AyahRef {
+  mushaf_id: number;
+  surah_id: number;
+  ayah: number;
+  ayah_id?: number | null;
+  text: string;
+}
+
+export interface ResearchSection {
+  id: string;
+  kind: ResearchSectionKind;
+  title?: string | null;
+  /** A markdown subset, rendered as text (never HTML). */
+  body: string;
+  ayahs: AyahRef[];
+}
+
+export interface ResearchReference {
+  kind: "ayah" | "tafsir" | "book" | "url";
+  label: string;
+  locator?: string | null;
+}
+
+export interface ResearchProvenance {
+  mode?: "strict" | "tafssir" | null;
+  ai_sections: string[];
+  created_from: "studio" | "board" | "manual";
+  source_id?: string | null;
+}
+
+export interface ResearchDocumentSave {
+  title: string;
+  summary?: string | null;
+  language?: string;
+  tags: string[];
+  theme_ids: number[];
+  sections: ResearchSection[];
+  references: ResearchReference[];
+  provenance: ResearchProvenance;
+  /** Private until community publishing ships. */
+  visibility?: "private";
+}
+
+export interface QuoteIssue {
+  section_id: string;
+  surah_id: number;
+  ayah: number;
+  problem: "not_found" | "text_mismatch";
+  expected?: string | null;
+}
+
+export interface QuoteVerification {
+  ok: boolean;
+  checked: number;
+  issues: QuoteIssue[];
+}
+
+export interface ResearchDocument extends ResearchDocumentSave {
+  id: string;
+  v: 1;
+  version: number;
+  created_at: number;
+  updated_at: number;
+  verification?: QuoteVerification | null;
+}
+
+export interface ResearchDocumentSummary {
+  id: string;
+  title: string;
+  summary?: string | null;
+  mode?: "strict" | "tafssir" | null;
+  created_from: string;
+  section_count: number;
+  ayah_count: number;
+  visibility: string;
+  version: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface AuditCheck {
+  rule: string;
+  passed: boolean;
+  detail?: string | null;
+}
+
+export interface DocumentAudit {
+  publishable: boolean;
+  checks: AuditCheck[];
+}
+
 /** GET /api/ayah-reader — an ayah with its neighbours in the same surah. */
 export interface ReaderAyah {
   ayah_id: number;

@@ -16,10 +16,11 @@ import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { THEME_PALETTE } from "@/features/themes/palette";
 import { deleteTheme, updateTheme, useThemes } from "@/features/themes/themes-store";
+import { createDocumentUrl } from "@/features/documents/open-document";
 
 import { relativeAge, useCompanions } from "./use-companions";
 
-type LibraryTab = "verses" | "sessions" | "roots";
+type LibraryTab = "verses" | "documents" | "sessions" | "roots";
 type VerseView = "recent" | "themes";
 type SessionFilter = "all" | "strict" | "tafssir";
 
@@ -76,6 +77,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
 
   const TABS: { value: LibraryTab; label: string; count: number }[] = [
     { value: "verses", label: "الآيات", count: companions.notebook.length },
+    { value: "documents", label: "الأبحاث", count: companions.documents.length },
     { value: "sessions", label: "الجلسات", count: companions.sessions.length },
     { value: "roots", label: "الجذور", count: companions.roots.length },
   ];
@@ -87,7 +89,8 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
           <div className="kicker">الدفتر</div>
           <h2>الدفتر</h2>
           <div className="sub">
-            {formatNumber(companions.notebook.length)} آية، {formatNumber(companions.sessions.length)} جلسة،{" "}
+            {formatNumber(companions.notebook.length)} آية، {formatNumber(companions.documents.length)} بحث،{" "}
+            {formatNumber(companions.sessions.length)} جلسة،{" "}
             {formatNumber(companions.roots.length)} جذر
           </div>
         </div>
@@ -170,6 +173,72 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
             )}
           </>
         )
+      ) : null}
+
+      {/* ---- Research documents ---- */}
+      {tab === "documents" && !companions.loading ? (
+        <>
+          <div className="qb-form-tabs" style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+            <button
+              type="button"
+              className="qb-pill active"
+              onClick={async () => {
+                try {
+                  router.push(
+                    await createDocumentUrl({
+                      title: "بحث جديد",
+                      summary: null,
+                      tags: [],
+                      theme_ids: [],
+                      sections: [{ id: "s1", kind: "text", title: null, body: "", ayahs: [] }],
+                      references: [],
+                      provenance: { mode: null, ai_sections: [], created_from: "manual" },
+                    }),
+                  );
+                } catch {
+                  /* stays on the list */
+                }
+              }}
+            >
+              <Icon name="plus" size={13} /> بحث جديد
+            </button>
+          </div>
+          {companions.documents.length === 0 ? (
+            <div className="qb-aux-state">
+              لا أبحاث بعد. حوِّل جلسة من الدراسة، أو صدِّر لوحة موضوع، أو ابدأ بحثاً جديداً.
+            </div>
+          ) : (
+            <div className="qb-aux-list">
+              {companions.documents.map((document) => (
+                <div key={document.id} className="qb-aux-row">
+                  <span className={`icon-tile${document.mode === "tafssir" ? " copper" : ""}`}>
+                    <Icon name="page" size={17} />
+                  </span>
+                  <button
+                    type="button"
+                    className="grow qb-row-open"
+                    onClick={() => router.push(`/?mode=document&id=${encodeURIComponent(document.id)}`)}
+                  >
+                    <div className="title">{document.title}</div>
+                    <div className="meta">
+                      {formatNumber(document.section_count)} أقسام، {formatNumber(document.ayah_count)} آية،{" "}
+                      {relativeAge(document.updated_at)}
+                      {document.created_from === "studio" ? "، من الدراسة" : document.created_from === "board" ? "، من لوحة" : ""}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className="row-action"
+                    aria-label="حذف البحث"
+                    onClick={() => void companions.deleteDocument(document.id)}
+                  >
+                    <Icon name="trash" size={15} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       ) : null}
 
       {/* ---- Sessions ---- */}

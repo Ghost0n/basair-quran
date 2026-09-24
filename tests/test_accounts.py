@@ -197,6 +197,11 @@ def test_guest_merge_moves_rows_and_undo_restores_them(tmp_path, monkeypatch):
         app_data_service.add_notebook_item({"ayah_id": 203, "surah": "الأعراف", "ayah": 203}, 0, gid)
         app_data_service.add_followed_root({"root_text": "ب ص ر", "occurrences": 148}, 0, gid)
         theme = app_data_service.create_theme({"name": "البصائر"}, 0, gid)
+        from src.app.services import research_document_service
+
+        document = research_document_service.create_document(
+            {"title": "بحث", "sections": [], "references": [], "provenance": {}}, 0, gid
+        )
         app_data_service.create_theme({"name": "جهاز آخر"}, 0, "guest-token-B")
         guest_notebook_before = app_data_service.list_notebook_items(0)
         assert len(guest_notebook_before) == 2
@@ -224,6 +229,7 @@ def test_guest_merge_moves_rows_and_undo_restores_them(tmp_path, monkeypatch):
         # This device's theme moves with it; another guest's theme stays.
         assert [t["id"] for t in app_data_service.list_themes(user_id)] == [theme["id"]]
         assert [t["name"] for t in app_data_service.list_themes(0)] == ["جهاز آخر"]
+        assert [d["id"] for d in research_document_service.list_documents(user_id)] == [document["id"]]
 
         # Re-running the merge is idempotent — nothing left to move.
         again = client.post(
@@ -238,6 +244,8 @@ def test_guest_merge_moves_rows_and_undo_restores_them(tmp_path, monkeypatch):
         assert app_data_service.list_notebook_items(user_id) == []
         assert app_data_service.list_themes(user_id) == []
         assert len(app_data_service.list_themes(0)) == 2
+        assert research_document_service.list_documents(user_id) == []
+        assert len(research_document_service.list_documents(0)) == 1
     finally:
         finalize()
 

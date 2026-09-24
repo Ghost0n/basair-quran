@@ -3,6 +3,7 @@
 import "./studio.css";
 
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 
 import type { ResearchAgentResponse, TafssirDepth } from "@q-basair/shared";
 
@@ -17,6 +18,8 @@ import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
 import { ExportModal } from "@/features/export/export-modal";
+import { documentFromSession } from "@/features/documents/convert";
+import { createDocumentUrl } from "@/features/documents/open-document";
 
 import { StudioAuthModal } from "./studio-auth-modal";
 import { TafssirDisclaimer } from "./tafssir-disclaimer";
@@ -42,6 +45,7 @@ const TAFSSIR_SECTIONS: { key: keyof NonNullable<ResearchAgentResponse["tafssir"
  * the Mushaf via the shared useMushaf hook.
  */
 export function StudioPanel() {
+  const router = useRouter();
   const studio = useStudioSessions();
   const mushaf = useMushaf();
   const { state } = useWorkspace();
@@ -51,6 +55,20 @@ export function StudioPanel() {
   const [draft, setDraft] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [converting, setConverting] = useState(false);
+
+  // «حوّل إلى بحث»: the session becomes an editable research document.
+  async function convertToDocument() {
+    if (!active || active.messages.length === 0 || converting) return;
+    setConverting(true);
+    try {
+      router.push(await createDocumentUrl(documentFromSession(active)));
+    } catch {
+      /* the button simply stays; the session is untouched */
+    } finally {
+      setConverting(false);
+    }
+  }
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const threadRef = useRef<HTMLDivElement | null>(null);
 
@@ -159,6 +177,16 @@ export function StudioPanel() {
               {isTafssir ? "قراءة تفسيرية" : "القرآن وحدَه"}
             </div>
           </div>
+          <button
+            type="button"
+            className="close"
+            title="حوّل إلى بحث قابل للتحرير والمشاركة"
+            aria-label="حوّل إلى بحث"
+            disabled={!active || active.messages.length === 0 || converting}
+            onClick={() => void convertToDocument()}
+          >
+            <Icon name="page" size={16} />
+          </button>
           <button
             type="button"
             className="close"

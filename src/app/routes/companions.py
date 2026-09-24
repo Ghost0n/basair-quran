@@ -9,6 +9,10 @@ from fastapi import APIRouter, HTTPException, Request
 
 from src.app.models.api import (
     DeleteResult,
+    DocumentAudit,
+    ResearchDocument,
+    ResearchDocumentSave,
+    ResearchDocumentSummary,
     FollowedRoot,
     FollowedRootCreate,
     NotebookItem,
@@ -25,7 +29,7 @@ from src.app.models.api import (
     UserPreferences,
     UserPreferencesUpdate,
 )
-from src.app.services import app_data_service
+from src.app.services import app_data_service, research_document_service
 
 router = APIRouter(prefix="/api", tags=["companions"])
 
@@ -125,6 +129,60 @@ def save_theme_board(request: Request, theme_id: int, payload: ThemeBoardSave) -
 @router.delete("/themes/{theme_id}", response_model=DeleteResult)
 def delete_theme(request: Request, theme_id: int) -> DeleteResult:
     return DeleteResult(deleted=app_data_service.delete_theme(theme_id, _resolve_user_id(request)))
+
+
+# --- Research documents (the shareable research format) --------------------
+
+
+@router.get("/documents", response_model=list[ResearchDocumentSummary])
+def list_documents(request: Request) -> list[ResearchDocumentSummary]:
+    documents = research_document_service.list_documents(_resolve_user_id(request))
+    return [ResearchDocumentSummary(**document) for document in documents]
+
+
+@router.post("/documents", response_model=ResearchDocument, response_model_exclude_none=True)
+def create_document(request: Request, payload: ResearchDocumentSave) -> ResearchDocument:
+    try:
+        document = research_document_service.create_document(
+            payload.model_dump(), _resolve_user_id(request), _resolve_guest_id(request)
+        )
+    except research_document_service.DocumentLimitError as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
+    return ResearchDocument(**document)
+
+
+@router.get("/documents/{document_id}", response_model=ResearchDocument, response_model_exclude_none=True)
+def get_document(request: Request, document_id: str) -> ResearchDocument:
+    document = research_document_service.get_document(document_id, _resolve_user_id(request))
+    if document is None:
+        raise HTTPException(status_code=404, detail="Research document not found.")
+    return ResearchDocument(**document)
+
+
+@router.put("/documents/{document_id}", response_model=ResearchDocument, response_model_exclude_none=True)
+def replace_document(request: Request, document_id: str, payload: ResearchDocumentSave) -> ResearchDocument:
+    try:
+        document = research_document_service.replace_document(
+            document_id, payload.model_dump(), _resolve_user_id(request)
+        )
+    except research_document_service.DocumentLimitError as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
+    if document is None:
+        raise HTTPException(status_code=404, detail="Research document not found.")
+    return ResearchDocument(**document)
+
+
+@router.get("/documents/{document_id}/audit", response_model=DocumentAudit)
+def audit_document(request: Request, document_id: str) -> DocumentAudit:
+    document = research_document_service.get_document(document_id, _resolve_user_id(request))
+    if document is None:
+        raise HTTPException(status_code=404, detail="Research document not found.")
+    return DocumentAudit(**research_document_service.audit_document(document))
+
+
+@router.delete("/documents/{document_id}", response_model=DeleteResult)
+def delete_document(request: Request, document_id: str) -> DeleteResult:
+    return DeleteResult(deleted=research_document_service.delete_document(document_id, _resolve_user_id(request)))
 
 
 # --- Research sessions -----------------------------------------------------
