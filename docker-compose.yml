@@ -22,6 +22,12 @@ services:
       QBASAIR_SESSION_SECRET: ${QBASAIR_SESSION_SECRET:?set a strong QBASAIR_SESSION_SECRET in .env.production}
       QBASAIR_SESSION_SECURE: ${QBASAIR_SESSION_SECURE:-1}
       OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
+      # Invite-only signup when set (comma-separated codes); open signup when empty.
+      QBASAIR_INVITE_CODES: ${QBASAIR_INVITE_CODES:-}
+      # Extra Ollama hosts a client may target (ollama.com is always allowed).
+      QBASAIR_OLLAMA_ALLOWED_HOSTS: ${QBASAIR_OLLAMA_ALLOWED_HOSTS:-}
+      # Reported by /api/ready so the deploy gate can see what is running.
+      QBASAIR_COMMIT_SHA: ${QBASAIR_COMMIT_SHA:-unknown}
     volumes:
       - ./data:/app/data
     expose:
