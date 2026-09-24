@@ -12,6 +12,17 @@ const nextConfig: NextConfig = {
         outputFileTracingRoot: workspaceRoot,
       }
     : {}),
+  // Glyph/Quran fonts live under versioned paths (e.g. /fonts/qpc-hafs-v1/p50.woff2)
+  // and never change in place — cache them for a year instead of Next's default
+  // max-age=0, which revalidated every one of the 604 page fonts on each visit.
+  async headers() {
+    return [
+      {
+        source: "/fonts/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

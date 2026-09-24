@@ -136,16 +136,35 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/morphology?surah=N&ayah=M` returns per-word morphology (root, lemma,
   POS, case, features) sourced from the Quranic Arabic Corpus, which is
   **Kufan/Hafs-numbered**.
-- It accepts an optional `text` param (the displayed ayah). When present, the
+- It accepts an optional `mushaf` param (preferred): the server reads that mushaf's
+  ayah text itself and matches it as described below, so the client never sends the
+  verse in the URL (2:282 made a ~7 KB request line with `text`). The web client
+  always sends `mushaf`.
+- It also accepts a **deprecated** `text` param (the displayed ayah). When present, the
   verse is matched by its normalized consonant skeleton — first as a whole verse,
   then (if boundaries differ) as a **contiguous word run** in the surah's word
   stream. This is correct even for riwāyāt whose ayah **numbering** differs
   (e.g. Madani/Qalūn) *and* where a verse is **split or merged** relative to the
   Kufan source (the run is re-indexed to the displayed word positions). Without
   `text`, it falls back to the `(surah, ayah)` number — correct only for
-  Kufan-numbered riwāyāt (Hafs). Clients should send `text` for non-Hafs reading.
+  Kufan-numbered riwāyāt (Hafs). Clients should send `mushaf` for non-Hafs reading.
 - `position` is the 1-based word index within the verse; word counts are stable
   across riwāyāt, so the displayed word index aligns once the verse is matched.
+
+## HTTP caching
+
+- Read-only Quran endpoints (a pure function of `quran.db`) send
+  `Cache-Control: public, max-age=3600, stale-while-revalidate=86400`:
+  `/api/quran-page`, `/api/mushaf-page-layout`, `/api/ayah-reader`,
+  `/api/ayah-reader-more`, `/api/morphology`, `/api/surahs`, `/api/mushafs`,
+  `/api/reciters`, `/api/root-distribution`.
+- Search endpoints (`/api/search`, `/api/search-v2`, `/api/search-result-page`,
+  `/api/suggest`) send `public, max-age=600, stale-while-revalidate=3600`.
+- Only successful `GET`s are marked; per-user surfaces (auth, preferences,
+  notebook, sessions, followed roots, research) are never cached. Policy lives in
+  `src/app/core/http_cache.py`.
+- The web server serves `/fonts/*` (versioned glyph fonts) with
+  `public, max-age=31536000, immutable`; nginx gzips JSON/CSS/JS.
 
 ## Authentication notes
 

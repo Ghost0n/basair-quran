@@ -141,13 +141,21 @@ def mushaf_page_layout(
 def morphology(
     surah: int = Query(..., ge=1, le=114, description="Surah number"),
     ayah: int = Query(..., ge=1, description="Ayah number within the surah"),
+    mushaf: int | None = Query(
+        None,
+        ge=1,
+        description="Mushaf ID of the displayed verse. The server reads that riwāyah's "
+        "ayah text itself and matches it by skeleton, so the lookup is correct across "
+        "riwāyāt with different ayah numbering (preferred over `text`).",
+    ),
     text: str | None = Query(
         None,
-        description="Displayed ayah text; matches the verse by skeleton so the "
-        "lookup is correct across riwāyāt with different ayah numbering.",
+        description="Deprecated: the displayed ayah text (long URLs — use `mushaf`).",
     ),
 ) -> MorphologyResponse:
     start = time.time()
+    if text is None and mushaf is not None:
+        text = quran_service.get_ayah_text(mushaf, surah, ayah)
     payload = morphology_service.get_ayah_morphology(surah, ayah, text)
     quran_service.logger.info(
         "GET /api/morphology?surah=%s&ayah=%s - %.1fms - %s words",

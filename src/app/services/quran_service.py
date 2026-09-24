@@ -89,6 +89,15 @@ def reset_morphology_search_index():
     return None
 
 
+def get_ayah_text(mushaf_id: int, surah: int, ayah: int) -> str | None:
+    """The Uthmani text of one ayah in one mushaf, or None if it doesn't exist."""
+    row = get_db().execute(
+        "SELECT text_uthmani FROM ayahs WHERE mushaf_id = ? AND surah_id = ? AND number_in_surah = ?",
+        (mushaf_id, surah, ayah),
+    ).fetchone()
+    return row["text_uthmani"] if row else None
+
+
 def get_db():
     """Return this thread's read-only connection, reopening if it went stale."""
     entry = getattr(_thread_local, "entry", None)
