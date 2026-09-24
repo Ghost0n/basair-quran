@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import type { NumeralScript, ReaderLayout } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
-import { SelectMenu } from "@/components/select-menu";
 import { usePreferences } from "@/lib/preferences-context";
 
 import { useWorkspace } from "./workspace-context";
@@ -16,13 +15,7 @@ const NUMERAL_OPTIONS: { value: NumeralScript; label: string }[] = [
   { value: "persian", label: "۰۱۲" },
 ];
 
-const RENDER_OPTIONS: { value: "authentic" | "simple"; label: string }[] = [
-  { value: "authentic", label: "مدني" },
-  { value: "simple", label: "نصّي" },
-];
-
-// Reader layout (orthogonal to the renderer). "صفحتان" (spread) needs the
-// authentic Madani glyph page (Hafs only), so it's gated on mushaf_render.
+// Reader layout. "صفحتان" (spread) needs an authentic (glyph-page) edition.
 const LAYOUT_OPTIONS: { value: ReaderLayout; label: string; authenticOnly?: boolean }[] = [
   { value: "auto", label: "تلقائي" },
   { value: "single", label: "صفحة" },
@@ -33,32 +26,25 @@ const LAYOUT_OPTIONS: { value: ReaderLayout; label: string; authenticOnly?: bool
 
 /**
  * Quick Settings — one top-bar popover that centralizes the controls a reader
- * changes often: theme, riwāyah, ayah font size, and numerals. These write
+ * changes often: page layout, ayah font size, and numerals. The mushaf edition
+ * is a general setting and lives in the Settings screen. These write
  * straight to the account preferences (no separate session-overrides concept).
  * Full preferences (language, defaults, …) still live in the Settings screen.
  */
 export function QuickSettings() {
   const [open, setOpen] = useState(false);
   const { preferences, updateAccount } = usePreferences();
-  const { state, actions } = useWorkspace();
+  const { state } = useWorkspace();
   const rootRef = useRef<HTMLDivElement | null>(null);
-
-  // The two-page spread only renders on the authentic Madani glyph page, which
-  // the backend serves for Ḥafṣ alone — so gate "صفحتان" on both. We detect Ḥafṣ
-  // by the selected riwāyah's name rather than a hardcoded id.
-  const selectedMushafName =
-    state.mushafs.find((item) => item.id === state.selectedMushaf)?.name ??
-    state.selectedMushafLabel ??
-    "";
-  const spreadAvailable = preferences.mushaf_render === "authentic" && selectedMushafName.includes("حفص");
+  const spreadAvailable = state.edition.authentic;
 
   useEffect(() => {
     if (!open) return;
     function onPointer(event: MouseEvent) {
       const target = event.target as Node;
       if (rootRef.current && !rootRef.current.contains(target)) {
-        // The riwāyah SelectMenu renders its list in a portal on <body>, so a
-        // click on an option is "outside" rootRef — don't close for those.
+        // A SelectMenu renders its list in a portal on <body>, so a click on
+        // an option is "outside" rootRef — don't close for those.
         if (target instanceof Element && target.closest(".qb-select-list")) return;
         setOpen(false);
       }
@@ -93,40 +79,6 @@ export function QuickSettings() {
           <div className="qb-quick-head">إعدادات سريعة</div>
 
           <div className="qb-tweak-section">
-            <div className="qb-tweak-label">الرواية</div>
-            <SelectMenu
-              className="qb-quick-menu"
-              ariaLabel="الرواية"
-              value={String(state.selectedMushaf)}
-              placeholder={state.loadingMushafs ? "جارٍ التحميل…" : "الرواية"}
-              disabled={state.loadingMushafs}
-              options={state.mushafs.map((mushafItem) => ({
-                value: String(mushafItem.id),
-                label: mushafItem.name,
-              }))}
-              onChange={(next) => actions.setSelectedMushaf(Number(next))}
-            />
-          </div>
-
-          <div className="qb-tweak-section">
-            <div className="qb-tweak-label">نمط المصحف</div>
-            <div className="qb-tweak-seg" role="group" aria-label="نمط المصحف">
-              {RENDER_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={preferences.mushaf_render === option.value ? "active" : ""}
-                  aria-pressed={preferences.mushaf_render === option.value}
-                  onClick={() => void updateAccount({ mushaf_render: option.value })}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            <div className="qb-tweak-note">«مدني» متاح في رواية حفص فقط.</div>
-          </div>
-
-          <div className="qb-tweak-section">
             <div className="qb-tweak-label">تخطيط الصفحة</div>
             <div className="qb-tweak-seg is-grid" role="group" aria-label="تخطيط الصفحة">
               {LAYOUT_OPTIONS.map((option) => {
@@ -139,7 +91,7 @@ export function QuickSettings() {
                     className={active ? "active" : ""}
                     disabled={disabled}
                     aria-pressed={active && !disabled}
-                    title={disabled ? "متاح في النمط المدني (حفص) فقط" : option.label}
+                    title={option.label}
                     onClick={() => void updateAccount({ reader_layout: option.value })}
                   >
                     {option.label}
@@ -147,7 +99,6 @@ export function QuickSettings() {
                 );
               })}
             </div>
-            <div className="qb-tweak-note">«صفحتان» متاح في النمط المدني (حفص) فقط.</div>
           </div>
 
           <div className="qb-tweak-section">

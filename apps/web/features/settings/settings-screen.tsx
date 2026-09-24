@@ -8,6 +8,7 @@ import type { NumeralScript, ReaderLayout } from "@q-basair/shared";
 
 import { SelectMenu } from "@/components/select-menu";
 import { AccountSettings } from "@/features/identity/account-settings";
+import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
 import { usePreferences } from "@/lib/preferences-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
@@ -17,13 +18,7 @@ const NUMERAL_OPTIONS: { value: NumeralScript; label: string }[] = [
   { value: "persian", label: "فارسيّة ۰۱۲" },
 ];
 
-const RENDER_OPTIONS: { value: "authentic" | "simple"; label: string }[] = [
-  { value: "authentic", label: "مدني (تخطيط الصفحة)" },
-  { value: "simple", label: "نصّي" },
-];
-
-// Reader layout (orthogonal to the renderer). "صفحتان" (spread) needs the
-// authentic Madani glyph page (Ḥafṣ only), so it's gated on mushaf_render.
+// Reader layout. "صفحتان" (spread) needs an authentic (glyph-page) edition.
 const LAYOUT_OPTIONS: { value: ReaderLayout; label: string; authenticOnly?: boolean }[] = [
   { value: "auto", label: "تلقائي" },
   { value: "single", label: "صفحة" },
@@ -52,8 +47,8 @@ const DEPTH_OPTIONS: { value: "fast" | "balanced" | "deep"; label: string }[] = 
  * reading & muṣḥaf, display, guided research, and interface language. Quick
  * Settings (the ⚙ top-bar popover) is a shortcut to the handful of these a
  * reader changes mid-session; both write the same account preferences, so they
- * stay in lockstep. Riwāyah and theme delegate to their existing workspace
- * homes; the rest persist via PreferencesProvider.updateAccount.
+ * stay in lockstep. Theme delegates to its workspace home; the rest (including
+ * the mushaf edition) persist via PreferencesProvider.updateAccount.
  */
 export function SettingsScreen() {
   const { preferences, account, updateAccount, updateAccountDebounced } = usePreferences();
@@ -61,13 +56,8 @@ export function SettingsScreen() {
   const [confirmTafssirDefault, setConfirmTafssirDefault] = useState(false);
   const { state, actions } = useWorkspace();
 
-  // "صفحتان" (spread) only renders on the authentic Madani glyph page, served
-  // for Ḥafṣ alone — gate it on both the renderer and the riwāyah name.
-  const selectedMushafName =
-    state.mushafs.find((item) => item.id === state.selectedMushaf)?.name ??
-    state.selectedMushafLabel ??
-    "";
-  const spreadAvailable = preferences.mushaf_render === "authentic" && selectedMushafName.includes("حفص");
+  const edition = state.edition;
+  const spreadAvailable = edition.authentic;
 
   return (
     <div className="qb-settings">
@@ -85,36 +75,18 @@ export function SettingsScreen() {
 
         <section className="qb-setting-card">
           <h3>القراءة والمصحف</h3>
-          <p className="card-sub">الرواية، نمط العرض، تخطيط الصفحة، وحجم الخطّ.</p>
+          <p className="card-sub">المصحف، تخطيط الصفحة، وحجم الخطّ.</p>
           <div className="qb-setting-row">
-            <label>الرواية</label>
+            <label>المصحف</label>
             <SelectMenu
               className="qb-setting-menu"
-              ariaLabel="الرواية"
-              value={String(state.selectedMushaf)}
-              options={state.mushafs.map((mushafItem) => ({
-                value: String(mushafItem.id),
-                label: mushafItem.name,
-              }))}
-              onChange={(next) => actions.setSelectedMushaf(Number(next))}
+              ariaLabel="المصحف"
+              value={edition.id}
+              options={MUSHAF_EDITIONS.map((item) => ({ value: item.id, label: item.name }))}
+              onChange={(next) => void updateAccount({ mushaf_edition: resolveEdition(next).id })}
             />
           </div>
-          <div className="qb-setting-row">
-            <label>نمط المصحف</label>
-            <div className="qb-setting-seg">
-              {RENDER_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={preferences.mushaf_render === option.value ? "active" : ""}
-                  aria-pressed={preferences.mushaf_render === option.value}
-                  onClick={() => void updateAccount({ mushaf_render: option.value })}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          <p className="card-sub">{edition.description}</p>
           <div className="qb-setting-row">
             <label>تخطيط الصفحة</label>
             <div className="qb-setting-seg is-grid" role="group" aria-label="تخطيط الصفحة">
@@ -127,7 +99,7 @@ export function SettingsScreen() {
                     className={preferences.reader_layout === option.value ? "active" : ""}
                     disabled={disabled}
                     aria-pressed={preferences.reader_layout === option.value}
-                    title={disabled ? "متاح في النمط المدني (حفص) فقط" : option.label}
+                    title={option.label}
                     onClick={() => void updateAccount({ reader_layout: option.value })}
                   >
                     {option.label}
@@ -149,10 +121,6 @@ export function SettingsScreen() {
               onChange={(event) => updateAccountDebounced({ font_size: Number(event.target.value) })}
             />
           </div>
-          <p className="card-sub">
-            «مدني» يعرض صفحة المصحف بخطّ المدينة (رواية حفص فقط)؛ «نصّي» يعرض النصّ المتدفّق. «صفحتان»
-            متاح في النمط المدني (حفص) فقط.
-          </p>
         </section>
 
         <section className="qb-setting-card">

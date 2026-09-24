@@ -93,13 +93,18 @@ This document freezes the backend contract that the future frontend migration wi
 
 ## Reader layout notes
 
-- The default riwāyah is **Ḥafṣ** (mushaf id `2`) — the only riwāyah with the authentic
-  Madani reader. It is the `riwayah` default in `GET /api/user/preferences` and the web
-  client's fallback when this device has no stored choice (`qb.selectedMushaf` in
-  localStorage; the legacy `selectedMushaf` key is ignored so earlier visitors, who were
-  auto-pinned to Qālūn, also get Ḥafṣ). Search/reader endpoints keep `mushaf=1` as their
-  query default; the client always sends the selected mushaf explicitly.
-
+- `mushaf_edition` is the account preference that picks **which mushaf** the reader shows. An
+  edition fixes the riwāyah and how it is drawn. Version 1 offers a single edition,
+  `"madani-hafs"` (the Madani mushaf: Ḥafṣ, mushaf id `2`, authentic QCF glyph pages), which is
+  also the default. PATCH rejects unknown ids (422); a stored id that is no longer offered reads
+  back as the default. Future standard editions are added to `MUSHAF_EDITION_IDS`
+  (`src/app/models/api.py`) and `MUSHAF_EDITIONS` (`apps/web/lib/mushaf-defaults.ts`).
+- `riwayah` and `mushaf_render` are **deprecated** since `mushaf_edition`: still returned and
+  accepted for compatibility (defaults `2` / `"authentic"`), but the web client ignores them.
+  The other riwāyāt stay in the database and API (`GET /api/mushafs`, `mushaf=` on search/reader
+  endpoints, whose query default remains `1`); the web client always sends the edition's mushaf.
+  A page or verse arriving in another riwāyah (e.g. a notebook item saved under Qālūn) is
+  re-opened in the edition by `surah:ayah`.
 - `reader_layout` is an account preference on `GET/PATCH /api/user/preferences`,
   **orthogonal** to `mushaf_render`. It selects how pages/ayahs are arranged, not
   which renderer draws them: `"auto"` (default, resolved per viewport), `"single"`

@@ -87,7 +87,9 @@ def test_user_preferences_defaults_and_patch(api_client):
     assert defaults.status_code == 200
     body = defaults.json()
     assert body["numerals"] == "arabic-indic"
+    assert body["mushaf_edition"] == "madani-hafs"  # the Madani mushaf is the default edition
     assert body["riwayah"] == 2  # Ḥafṣ is the default riwāyah
+    assert body["mushaf_render"] == "authentic"
     assert body["reader_layout"] == "auto"
     assert body["research"]["default_mode"] == "strict"
 
@@ -138,3 +140,16 @@ def test_user_preferences_saved_pages(api_client):
     assert api_client.get("/api/user/preferences").json()["saved_pages"][0]["page"] == 50
     cleared = api_client.patch("/api/user/preferences", json={"saved_pages": []})
     assert cleared.json()["saved_pages"] == []
+
+
+def test_mushaf_edition_preference_is_validated_and_falls_back(api_client):
+    from src.app.services import app_data_service
+
+    assert api_client.patch("/api/user/preferences", json={"mushaf_edition": "madani-hafs"}).status_code == 200
+    # Only offered editions are accepted.
+    assert api_client.patch("/api/user/preferences", json={"mushaf_edition": "qaloun-text"}).status_code == 422
+
+    # An edition stored earlier but no longer offered reads back as the default.
+    app_data_service.update_preferences({"mushaf_edition": "retired-edition"})
+    body = api_client.get("/api/user/preferences").json()
+    assert body["mushaf_edition"] == "madani-hafs"

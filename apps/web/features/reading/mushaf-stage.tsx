@@ -47,7 +47,7 @@ function pageSpread(page: number): { right: number; left: number; facing: number
 }
 
 export function MushafStage() {
-  const { state, actions } = useWorkspace();
+  const { state } = useWorkspace();
   const mushaf = useMushaf();
   const { preferences, updateAccount, updateAccountDebounced, ready } = usePreferences();
   const selectedMushaf = state.selectedMushaf;
@@ -94,10 +94,13 @@ export function MushafStage() {
     if (mushaf.pageData || mushaf.isLoading || mushaf.error || !ready) return;
     // Resume to the exact last-read verse (last_position) instead of the top of
     // the last page. Fall back to the localStorage last page when there is no
-    // saved verse — or it belongs to another riwāyah (ayah ids are per-mushaf).
+    // saved verse. A verse saved in another riwāyah (ayah ids are per-mushaf)
+    // resumes by its surah:ayah reference in the current edition.
     const pos = preferences.last_position;
     if (pos?.ayah_id && pos.mushaf_id === selectedMushaf) {
       void mushaf.loadByAyah(selectedMushaf, pos.ayah_id);
+    } else if (pos?.surah && pos.ayah) {
+      void mushaf.loadBySurah(selectedMushaf, pos.surah, pos.ayah);
     } else {
       void mushaf.loadPage(selectedMushaf, mushaf.readLastPage(), { persist: true });
     }
@@ -141,16 +144,11 @@ export function MushafStage() {
 
   const { pageData, isLoading, error } = mushaf;
 
-  // Reconcile when the loaded page's riwāyah diverges from the active selection.
-  // Two causes, opposite fixes:
-  //  • A deliberate open of a specific ayah in ANOTHER riwāyah (e.g. a saved
-  //    verse from the library was saved in Qālūn while the reader is on Ḥafṣ).
-  //    Here the loaded page IS what the user asked for — adopt its riwāyah into
-  //    the selection rather than reloading and losing the ayah. Presetting the
-  //    refs keeps the selection-change effect from re-loading the same page.
-  //  • A stale default load: the first page request fired for the default
-  //    riwāyah before the saved/account one resolved. Bring the page to the
-  //    selected riwāyah (once per selection, so a load error can't loop).
+  // Keep the reader on the edition's riwāyah. A page can arrive in another one:
+  // a verse opened from the library/Studio that was saved under an older
+  // riwāyah, or a stale default load. Re-open it in the edition — by surah:ayah
+  // when a verse was targeted (ayah ids are per-mushaf), else by page. Once per
+  // divergent load so a failing reload can't loop.
   useEffect(() => {
     if (
       !pageData ||
@@ -158,29 +156,26 @@ export function MushafStage() {
       pageData.mushaf_id === undefined ||
       pageData.mushaf_id === selectedMushaf
     ) {
+      reconciledRef.current = null;
       return;
     }
-    if (mushaf.selectedAyahId != null) {
-      mushafRef.current = pageData.mushaf_id;
-      reconciledRef.current = pageData.mushaf_id;
-      actions.setSelectedMushaf(pageData.mushaf_id);
-    } else if (reconciledRef.current !== selectedMushaf) {
-      reconciledRef.current = selectedMushaf;
+    if (reconciledRef.current === pageData.mushaf_id) return;
+    reconciledRef.current = pageData.mushaf_id;
+    const target = pageData.ayahs.find((a) => a.ayah_id === mushaf.selectedAyahId);
+    if (target?.surah_id && target.ayah) {
+      void mushaf.loadBySurah(selectedMushaf, target.surah_id, target.ayah);
+    } else {
       void mushaf.loadPage(selectedMushaf, pageData.page ?? mushaf.readLastPage(), { persist: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pageData, isLoading, selectedMushaf]);
 
-  // Authentic Madani (QCF) rendering is an opt-in account preference. The hook
-  // is fallback-safe: it yields a usable layout only for Hafs pages whose glyph
-  // fonts have loaded, so non-Hafs riwāyāt and the loading window keep showing
-  // the Unicode reader below.
-  const authentic = preferences.mushaf_render === "authentic";
-
-  // The header layout switcher + Shift+M gate «صفحتان» on authentic Ḥafṣ (the
-  // riwāyah whose Madani glyph page the backend serves).
-  const isHafs = (state.selectedMushafLabel ?? "").includes("حفص");
-  const spreadAvailable = authentic && isHafs;
+  // The mushaf edition decides the rendering: authentic editions draw the
+  // Madani (QCF) glyph page. The layout hook is fallback-safe — until a page's
+  // layout + glyph font are ready, the Unicode text stands in as a loading state.
+  const authentic = state.edition.authentic;
+  // «صفحتان» (header switcher + Shift+M) needs the glyph page.
+  const spreadAvailable = authentic;
 
   // Reader layout preference dispatches the surface. `scroll` is a continuous
   // Unicode scroller; the ayah surface arrives in a later phase (reads as paged
@@ -467,7 +462,7 @@ export function MushafStage() {
 
       <MushafFooter
         pageData={pageData}
-        riwayahLabel={state.selectedMushafLabel || "—"}
+        riwayahLabel={state.edition.shortLabel}
         isLoading={isLoading}
         onPrev={goPrev}
         onNext={goNext}

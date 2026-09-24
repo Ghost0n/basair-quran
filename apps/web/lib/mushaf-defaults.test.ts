@@ -1,24 +1,23 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_MUSHAF_ID, pickDefaultMushaf } from "./mushaf-defaults";
+import { DEFAULT_EDITION, DEFAULT_MUSHAF_ID, MUSHAF_EDITIONS, resolveEdition } from "./mushaf-defaults";
 
-describe("pickDefaultMushaf", () => {
-  it("prefers Ḥafṣ by riwāyah key, whatever the catalog order", () => {
-    const items = [
-      { id: 1, name: "قالون", riwayah: "qaloun" },
-      { id: 7, name: "حفص", riwayah: "hafs" },
-    ];
-    expect(pickDefaultMushaf(items)).toBe(7);
+describe("mushaf editions", () => {
+  it("defaults to the authentic Madani Ḥafṣ edition", () => {
+    expect(DEFAULT_EDITION.id).toBe("madani-hafs");
+    expect(DEFAULT_EDITION.authentic).toBe(true);
+    expect(DEFAULT_EDITION.riwayah).toBe("hafs");
+    expect(DEFAULT_MUSHAF_ID).toBe(2);
   });
 
-  it("falls back to the Ḥafṣ id, then to the first mushaf", () => {
-    expect(pickDefaultMushaf([{ id: 1, name: "قالون" }, { id: DEFAULT_MUSHAF_ID, name: "حفص" }])).toBe(
-      DEFAULT_MUSHAF_ID,
-    );
-    expect(pickDefaultMushaf([{ id: 3, name: "ورش", riwayah: "warsh" }])).toBe(3);
+  it("resolves a known edition and falls back for unknown or missing ids", () => {
+    expect(resolveEdition("madani-hafs")).toBe(DEFAULT_EDITION);
+    expect(resolveEdition("qaloun-text")).toBe(DEFAULT_EDITION);
+    expect(resolveEdition(undefined)).toBe(DEFAULT_EDITION);
   });
 
-  it("returns the Ḥafṣ id for an empty catalog", () => {
-    expect(pickDefaultMushaf([])).toBe(DEFAULT_MUSHAF_ID);
+  it("keeps edition ids unique", () => {
+    const ids = MUSHAF_EDITIONS.map((edition) => edition.id);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

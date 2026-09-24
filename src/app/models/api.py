@@ -540,7 +540,18 @@ class SavedPageEntry(BaseModel):
     saved_at: Optional[int] = None
 
 
+# Mushaf editions the reader offers (account preference `mushaf_edition`). An
+# edition fixes the riwāyah and how it is drawn. Version 1 ships only the Madani
+# mushaf (Ḥafṣ, authentic QCF pages); append ids here as editions are added.
+MushafEditionId = Literal["madani-hafs"]
+MUSHAF_EDITION_IDS: tuple[str, ...] = ("madani-hafs",)
+DEFAULT_MUSHAF_EDITION = "madani-hafs"
+
+
 class UserPreferences(BaseModel):
+    mushaf_edition: MushafEditionId = DEFAULT_MUSHAF_EDITION
+    # Deprecated since `mushaf_edition`: kept for API compatibility, not read by
+    # the web client (the edition decides the riwāyah and the renderer).
     riwayah: int = 2  # Ḥafṣ (mushaf id 2)
     mushaf_font: str = "amiri-quran"
     numerals: Literal["arabic-indic", "latin", "persian"] = "arabic-indic"
@@ -548,9 +559,9 @@ class UserPreferences(BaseModel):
     theme: Literal["dark", "light", "system"] = "dark"
     font_size: int = Field(28, ge=18, le=48)
     reciter: str = ""
-    # "authentic" renders the line-faithful Madani QCF glyph page (Hafs only);
-    # "simple" renders the flowing Unicode reader. Default simple/opt-in.
-    mushaf_render: Literal["authentic", "simple"] = "simple"
+    # Deprecated since `mushaf_edition` (see above). "authentic" = Madani QCF
+    # glyph page (Hafs only); "simple" = flowing Unicode reader.
+    mushaf_render: Literal["authentic", "simple"] = "authentic"
     # Reader layout is orthogonal to mushaf_render: how pages/ayahs are arranged.
     # "auto" resolves per viewport; the others are explicit user choices.
     reader_layout: Literal["auto", "single", "spread", "scroll", "ayah"] = "auto"
@@ -567,6 +578,7 @@ class ResearchDefaultsUpdate(BaseModel):
 
 
 class UserPreferencesUpdate(BaseModel):
+    mushaf_edition: Optional[MushafEditionId] = None
     riwayah: Optional[int] = None
     mushaf_font: Optional[str] = None
     numerals: Optional[Literal["arabic-indic", "latin", "persian"]] = None
