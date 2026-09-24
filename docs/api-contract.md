@@ -255,6 +255,20 @@ This document freezes the backend contract that the future frontend migration wi
   - provider metadata
   - per-request usage metrics
   - structured Tafssir sections when `response_mode="tafssir"`
+- **Contextual Tafssir.** In `response_mode="tafssir"` every ayah sent to the final stage
+  carries its context from the Quran DB: `context.surah` (name, Meccan/Medinan type, ayah
+  count), `context.position`, and `context.before` / `context.after` — neighbouring ayahs of
+  the same surah (±1 fast, ±2 balanced, ±3 deep; ±5 for the focus ayah; each clipped to 600
+  chars). The system prompt requires reading each ayah with its neighbours and the whole
+  surah's themes before interpreting, and saying when context changes the reading.
+  Neighbours are context only: kept ayahs still come from the evidence list. Strict mode is
+  unchanged.
+- **Focus ayah (additive).** `ResearchAgentRequest.focus = {surah, ayah}` (optional, read in
+  the request's `mushaf`) centres the research on one ayah: its reference and DB text are
+  appended to the latest user message for every stage, it leads the evidence list, it is
+  always kept after review, the answer is never turned into a clarifying question, and a
+  search with no hits still answers from it. An unknown ayah returns `422`. Works in both
+  modes (in strict mode it is Quran evidence like any other ayah).
 - `GET /api/research-agent/settings` returns:
   - current provider metadata
   - `available_models`

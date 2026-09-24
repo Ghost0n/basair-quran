@@ -736,3 +736,184 @@ def test_public_catalog_background_refresh_populates_cache(monkeypatch):
         assert [m.name for m in cache[1]] == ["fetched-model"]
     finally:
         research_agent_service._public_ollama_cloud_catalog_cache = previous
+
+
+# --- Contextual tafssir (Q-Basair-14) -------------------------------------------------
+
+
+def test_get_ayah_context_returns_neighbours_within_the_surah(api_client):
+    context = quran_service.get_ayah_context(1, 1, 5, before=2, after=2)
+    assert context["surah"]["name_arabic"] == "Fixture Surah"
+    assert context["surah"]["type"] == "meccan"
+    assert context["surah"]["ayah_count"] == 15
+    assert [n["ayah"] for n in context["before"]] == [3, 4]
+    assert [n["ayah"] for n in context["after"]] == [6, 7]
+    assert context["after"][0]["text"] == "shared verse 6"
+
+
+def test_get_ayah_context_stops_at_surah_edges_and_rejects_unknown(api_client):
+    first = quran_service.get_ayah_context(1, 1, 1, before=3, after=1)
+    assert first["before"] == []
+    assert [n["ayah"] for n in first["after"]] == [2]
+    last = quran_service.get_ayah_context(1, 1, 15, before=1, after=3)
+    assert last["after"] == []
+    assert quran_service.get_ayah_context(1, 1, 16) is None
+    assert quran_service.get_ayah_context(1, 2, 1) is None
+
+
+def test_tafssir_payload_carries_context_and_widens_it_for_the_focus(api_client):
+    ayahs = [_ayah(3), _ayah(8)]
+    payload = research_agent_service.build_tafssir_ayah_payload(ayahs, window=1, focus_ayah_id=8)
+    first, focus = payload
+    assert first["context"]["position"] == "3/15"
+    assert [n["ayah"] for n in first["context"]["before"]] == [2]
+    assert [n["ayah"] for n in first["context"]["after"]] == [4]
+    assert first["context"]["surah"]["type"] == "meccan"
+    window = research_agent_service.TAFSSIR_FOCUS_CONTEXT_WINDOW
+    assert [n["ayah"] for n in focus["context"]["before"]] == list(range(8 - window, 8))
+    assert [n["ayah"] for n in focus["context"]["after"]] == list(range(9, 9 + window))
+
+
+def test_tafssir_final_prompt_requires_reading_in_context(api_client, monkeypatch):
+    provider = research_agent_service.OllamaResearchLlmProvider(research_agent_service.build_runtime_settings())
+    captured: list[list[dict]] = []
+
+    def fake_chat(messages, *args, **kwargs):
+        captured.append(messages)
+        return '{"answer":"قراءة في السياق","keep_ayah_ids":[5]}'
+
+    monkeypatch.setattr(provider, "_chat", fake_chat)
+    review = provider.finalize_tafssir_answer(
+        [ResearchAgentMessage(role="user", content="ما معنى الآية؟")],
+        [_ayah(5)],
+        [],
+        [],
+        [],
+        "arabic",
+        "balanced",
+        focus_ayah_id=5,
+    )
+
+    assert review.answer == "قراءة في السياق"
+    system, user = captured[0]
+    assert "CONTEXT RULE" in system["content"]
+    assert "whole surah" in system["content"]
+    payload = research_agent_service.json.loads(user["content"])
+    assert payload["focus_ayah_id"] == 5
+    entry = payload["ayahs"][0]
+    assert entry["context"]["before"][-1] == {"ayah": 4, "text": "shared verse 4"}
+    assert entry["context"]["after"][0] == {"ayah": 6, "text": "shared verse 6"}
+
+
+def test_context_text_is_clipped():
+    long_text = "ا" * (research_agent_service.TAFSSIR_CONTEXT_AYAH_CHARS + 50)
+    clipped = research_agent_service._clip_context_text(long_text)
+    assert clipped.endswith("…")
+    assert len(clipped) <= research_agent_service.TAFSSIR_CONTEXT_AYAH_CHARS + 2
+
+
+class FocusRecordingProvider(StubResearchProvider):
+    def __init__(self, plan):
+        super().__init__(plan)
+        self.focus_ayah_id = None
+        self.final_messages = []
+
+    def finalize_tafssir_answer(
+        self, messages, ayahs, related_terms, searches, source_chunks, answer_language,
+        tafssir_depth="balanced", focus_ayah_id=None,
+    ):
+        self.final_messages = messages
+        self.answer_ayahs = ayahs
+        self.focus_ayah_id = focus_ayah_id
+        # An over-eager review that drops the focus ayah: the pipeline must keep it.
+        return research_agent_service.AnswerReview(
+            answer="Contextual reading.",
+            keep_ayah_ids=[a.ayah_id for a in ayahs if a.ayah_id != focus_ayah_id][:1],
+        )
+
+
+def test_focus_ayah_leads_evidence_and_is_always_kept(api_client):
+    provider = FocusRecordingProvider(
+        research_agent_service.SearchPlan(
+            status="search",
+            related_terms=[ResearchRelatedTerm(type="root", text="shared-root-a")],
+            searches=[ResearchSearchItem(mode="root", query="shared")],
+        )
+    )
+    research_agent_service.set_llm_provider_for_tests(provider)
+
+    response = api_client.post(
+        "/api/research-agent",
+        json={
+            "messages": [{"role": "user", "content": "فسّر هذه الآية في سياقها"}],
+            "mushaf": 1,
+            "response_mode": "tafssir",
+            "max_results": 3,
+            "focus": {"surah": 1, "ayah": 9},
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "answered"
+    assert provider.focus_ayah_id == 9
+    assert provider.answer_ayahs[0].ayah == 9
+    assert len(provider.answer_ayahs) == 3
+    assert "shared verse 9" in provider.final_messages[-1].content
+    assert [a["ayah"] for a in body["ayahs"]][0] == 9
+    assert len(body["ayahs"]) == 2
+
+
+def test_focus_ayah_skips_clarification_and_answers_without_search_hits(api_client):
+    provider = FocusRecordingProvider(
+        research_agent_service.SearchPlan(
+            status="needs_clarification",
+            clarifying_question="Which angle?",
+            searches=[ResearchSearchItem(mode="exact", query="missing")],
+        )
+    )
+    research_agent_service.set_llm_provider_for_tests(provider)
+
+    response = api_client.post(
+        "/api/research-agent",
+        json={
+            "messages": [{"role": "user", "content": "فسّر هذه الآية"}],
+            "mushaf": 1,
+            "response_mode": "tafssir",
+            "focus": {"surah": 1, "ayah": 2},
+        },
+    )
+
+    body = response.json()
+    assert body["status"] == "answered"
+    assert [a["ayah"] for a in body["ayahs"]] == [2]
+
+
+def test_unknown_focus_ayah_is_rejected(api_client):
+    research_agent_service.set_llm_provider_for_tests(
+        StubResearchProvider(research_agent_service.SearchPlan(status="search"))
+    )
+    response = api_client.post(
+        "/api/research-agent",
+        json={"messages": [{"role": "user", "content": "q"}], "mushaf": 1, "focus": {"surah": 1, "ayah": 99}},
+    )
+    assert response.status_code == 422
+
+
+def test_strict_mode_with_focus_keeps_quran_only_evidence(api_client):
+    provider = StubResearchProvider(
+        research_agent_service.SearchPlan(
+            status="search",
+            searches=[ResearchSearchItem(mode="exact", query="missing")],
+        )
+    )
+    research_agent_service.set_llm_provider_for_tests(provider)
+    response = api_client.post(
+        "/api/research-agent",
+        json={"messages": [{"role": "user", "content": "q"}], "mushaf": 1, "focus": {"surah": 1, "ayah": 4}},
+    )
+    body = response.json()
+    assert body["status"] == "answered"
+    assert body["mode"] == "strict"
+    assert [a["ayah"] for a in body["ayahs"]] == [4]
+    assert [a.text for a in provider.answer_ayahs] == ["shared verse 4"]

@@ -43,6 +43,24 @@ class ResearchProviderResponseError(ResearchAgentError):
     """Raised when the provider returns unusable structured output."""
 
 
+# Tafssir must read each ayah in its setting, never as an isolated fragment.
+TAFSSIR_CONTEXT_INSTRUCTION = (
+    "CONTEXT RULE: before interpreting any ayah, read it within its context. Each ayah carries "
+    "`context.before` and `context.after` (the neighbouring ayahs of the same surah, in order) and "
+    "`context.surah` (name, Meccan/Medinan type, ayah count) with `context.position`. Use the "
+    "preceding and following ayahs to identify the passage's subject, addressee and flow of "
+    "meaning, and relate that passage to the overall themes and purpose of the whole surah. Never "
+    "interpret a fragment in isolation; when the surrounding context narrows, widens or changes the "
+    "reading, say so explicitly in ayah_connections. Neighbouring ayahs are context only: cite or "
+    "keep only ayahs listed in `ayahs` (keep_ayah_ids must come from their ayah_id values). "
+    "When `focus_ayah_id` is present the question is about that ayah: centre the answer on it, "
+    "read in its passage and surah, and keep it."
+)
+# Neighbouring ayahs can be long (e.g. 2:282); bound each so the prompt stays sized.
+TAFSSIR_CONTEXT_AYAH_CHARS = 600
+# The ayah a user explicitly asks about gets a wider window than search hits.
+TAFSSIR_FOCUS_CONTEXT_WINDOW = 5
+
 TAFSSIR_DISCLAIMER_AR = (
     "وضع التفسير التجريبي مخصص للتجربة فقط، وقد ينتج عنه أخطاء أو فهم غير دقيق. "
     "لا تعتمد عليه بوصفه تفسيراً معتمداً."
@@ -231,6 +249,7 @@ class ResearchLlmProvider:
         source_chunks: list[SourceChunk],
         answer_language: str,
         tafssir_depth: str = "balanced",
+        focus_ayah_id: int | None = None,
     ) -> AnswerReview:
         return AnswerReview(
             answer=self.synthesize_tafssir_answer(messages, ayahs, related_terms, searches, source_chunks, answer_language),
@@ -588,6 +607,7 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
         source_chunks: list[SourceChunk],
         answer_language: str,
         tafssir_depth: str = "balanced",
+        focus_ayah_id: int | None = None,
     ) -> AnswerReview:
         depth_profile = tafssir_depth_profile(tafssir_depth)
         chunk_count = int(depth_profile["chunk_count"])
@@ -598,16 +618,11 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
             "tafssir_depth": tafssir_depth,
             "related_terms": [dump_model(term) for term in related_terms],
             "searches": [dump_model(search) for search in searches],
-            "ayahs": [
-                {
-                    "ayah_id": ayah.ayah_id,
-                    "surah": ayah.surah,
-                    "ayah": ayah.ayah,
-                    "text": ayah.text,
-                    "matched_terms": ayah.matched_terms,
-                }
-                for ayah in ayahs
-            ],
+            "ayahs": build_tafssir_ayah_payload(
+                ayahs,
+                window=int(depth_profile["context_window"]),
+                focus_ayah_id=focus_ayah_id,
+            ),
             "source_chunks": [
                 {
                     "title": chunk.title,
@@ -616,6 +631,8 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
                 for chunk in source_chunks[:chunk_count]
             ],
         }
+        if focus_ayah_id is not None:
+            payload["focus_ayah_id"] = focus_ayah_id
         content = self._chat(
             [
                 {
@@ -625,6 +642,7 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
                         "source chunks only as a secondary interpretive aid. The corpus is internal-only: do not "
                         "quote chunks, expose source paths, or cite the corpus to the user. "
                         f"{depth_profile['guidance']} "
+                        f"{TAFSSIR_CONTEXT_INSTRUCTION} "
                         "Return strict JSON only with this shape: "
                         '{"answer":"...",'
                         '"tafssir":{"summary":"...","linguistic_analysis":"...",'
@@ -1301,6 +1319,7 @@ def tafssir_depth_profile(depth: str) -> dict[str, int | str | float]:
         return {
             "chunk_count": 3,
             "chunk_chars": 900,
+            "context_window": 1,
             "temperature": 0.14,
             "guidance": (
                 "FAST depth: produce a compact answer with short sections, minimal linguistic analysis, "
@@ -1311,6 +1330,7 @@ def tafssir_depth_profile(depth: str) -> dict[str, int | str | float]:
         return {
             "chunk_count": 9,
             "chunk_chars": 1900,
+            "context_window": 3,
             "temperature": 0.2,
             "guidance": (
                 "DEEP depth: produce a richer answer with stronger linguistic analysis, explicit ayah-to-ayah "
@@ -1321,12 +1341,64 @@ def tafssir_depth_profile(depth: str) -> dict[str, int | str | float]:
     return {
         "chunk_count": 5,
         "chunk_chars": 1400,
+        "context_window": 2,
         "temperature": 0.16,
         "guidance": (
             "BALANCED depth: produce clear sectioned analysis with moderate corpus use, enough linguistic detail, "
             "and concise caveats."
         ),
     }
+
+
+def _clip_context_text(text: str) -> str:
+    return text if len(text) <= TAFSSIR_CONTEXT_AYAH_CHARS else text[:TAFSSIR_CONTEXT_AYAH_CHARS].rstrip() + " …"
+
+
+def build_tafssir_ayah_payload(
+    ayahs: list[ResearchAgentAyah],
+    *,
+    window: int,
+    focus_ayah_id: int | None = None,
+) -> list[dict[str, Any]]:
+    """Tafssir-stage ayah entries, each with its surah context and neighbours.
+
+    Neighbours come straight from the Quran DB (same mushaf, same surah), so the
+    model reads every ayah in its passage — never corpus text, never a guess.
+    """
+    entries: list[dict[str, Any]] = []
+    for ayah in ayahs:
+        entry: dict[str, Any] = {
+            "ayah_id": ayah.ayah_id,
+            "surah": ayah.surah,
+            "surah_id": ayah.surah_id,
+            "ayah": ayah.ayah,
+            "text": ayah.text,
+            "matched_terms": ayah.matched_terms,
+        }
+        span = TAFSSIR_FOCUS_CONTEXT_WINDOW if ayah.ayah_id == focus_ayah_id else window
+        context = quran_service.get_ayah_context(ayah.mushaf_id, ayah.surah_id, ayah.ayah, before=span, after=span)
+        if context is not None:
+            surah = context["surah"]
+            entry["context"] = {
+                "surah": {
+                    "name": surah["name_arabic"],
+                    "name_english": surah["name_english"],
+                    "type": surah["type"],
+                    "ayah_count": surah["ayah_count"],
+                },
+                "position": f"{ayah.ayah}/{surah['ayah_count']}",
+                "before": [{"ayah": n["ayah"], "text": _clip_context_text(n["text"])} for n in context["before"]],
+                "after": [{"ayah": n["ayah"], "text": _clip_context_text(n["text"])} for n in context["after"]],
+            }
+        entries.append(entry)
+    return entries
+
+
+def resolve_focus_ayah(req: ResearchAgentRequest) -> ResearchAgentAyah | None:
+    if req.focus is None:
+        return None
+    verse = quran_service.get_ayah_verse(req.mushaf, req.focus.surah, req.focus.ayah)
+    return ResearchAgentAyah(**verse, matched_terms=[]) if verse else None
 
 
 def detect_answer_language(query: str, requested_language: str) -> str:
@@ -1726,9 +1798,33 @@ def build_no_results_answer(answer_language: str) -> str:
     return "I could not find matching ayahs for the proposed terms. Narrowing the intent would help the research."
 
 
+def with_focus_note(messages: list[ResearchAgentMessage], focus: ResearchAgentAyah) -> list[ResearchAgentMessage]:
+    """Append the focus ayah (reference + DB text) to the latest user message so
+    every stage — retrieval, planning, final answer — knows which ayah is asked about."""
+    note = f"\n\n[الآية المقصودة: سورة {focus.surah}، الآية {focus.ayah}: {focus.text}]"
+    updated = list(messages)
+    for index in range(len(updated) - 1, -1, -1):
+        if updated[index].role == "user":
+            updated[index] = ResearchAgentMessage(role="user", content=updated[index].content + note)
+            break
+    return updated
+
+
+def merge_focus_ayah(focus: ResearchAgentAyah | None, ayahs: list[ResearchAgentAyah], max_results: int) -> list[ResearchAgentAyah]:
+    """The focus ayah leads the evidence; search hits follow, without duplicates."""
+    if focus is None:
+        return ayahs
+    others = [ayah for ayah in ayahs if ayah.ayah_id != focus.ayah_id]
+    return [focus, *others][: max(1, max_results)]
+
+
 def run_research_agent(req: ResearchAgentRequest, runtime: ResearchRuntimeSettings | None = None) -> ResearchAgentResponse:
-    user_query = latest_user_message(req.messages)
-    answer_language = detect_answer_language(user_query, req.answer_language)
+    focus_ayah = resolve_focus_ayah(req)
+    if req.focus is not None and focus_ayah is None:
+        raise ValueError("The requested focus ayah does not exist in this mushaf.")
+    messages = with_focus_note(req.messages, focus_ayah) if focus_ayah else req.messages
+    user_query = latest_user_message(messages)
+    answer_language = detect_answer_language(latest_user_message(req.messages), req.answer_language)
     provider = get_llm_provider(runtime)
     disclaimer = build_research_disclaimer(req)
     provider_info = provider.provider_info()
@@ -1736,12 +1832,13 @@ def run_research_agent(req: ResearchAgentRequest, runtime: ResearchRuntimeSettin
     source_limit = int(tafssir_depth_profile(req.tafssir_depth)["chunk_count"]) if is_tafssir_mode(req) else 6
     source_chunks = retrieve_source_chunks(user_query, provider, limit=source_limit)
     quran_terms = retrieve_quran_terms(user_query, source_chunks, req.mushaf)
-    expanded_candidates = provider.expand_search_candidates(req.messages, source_chunks, quran_terms, answer_language)
-    plan = provider.create_search_plan(req.messages, source_chunks, quran_terms, expanded_candidates, answer_language)
+    expanded_candidates = provider.expand_search_candidates(messages, source_chunks, quran_terms, answer_language)
+    plan = provider.create_search_plan(messages, source_chunks, quran_terms, expanded_candidates, answer_language)
     if not plan.related_terms:
         plan.related_terms = expanded_candidates.related_terms
 
-    if plan.status == "needs_clarification" and plan.clarifying_question:
+    # A focus ayah is a precise question: never bounce it back for clarification.
+    if plan.status == "needs_clarification" and plan.clarifying_question and focus_ayah is None:
         return ResearchAgentResponse(
             status="needs_clarification",
             mode=req.response_mode,
@@ -1762,6 +1859,7 @@ def run_research_agent(req: ResearchAgentRequest, runtime: ResearchRuntimeSettin
         )
 
     executed_searches, ayahs = execute_searches(searches, req.mushaf, req.max_results)
+    ayahs = merge_focus_ayah(focus_ayah, ayahs, req.max_results)
     if not ayahs:
         return ResearchAgentResponse(
             status="no_results",
@@ -1776,19 +1874,23 @@ def run_research_agent(req: ResearchAgentRequest, runtime: ResearchRuntimeSettin
         )
 
     if is_tafssir_mode(req):
+        # Only pass focus_ayah_id when set, so older provider overrides keep working.
+        focus_kwargs = {"focus_ayah_id": focus_ayah.ayah_id} if focus_ayah else {}
         review = provider.finalize_tafssir_answer(
-            req.messages,
+            messages,
             ayahs,
             plan.related_terms,
             executed_searches,
             source_chunks,
             answer_language,
             req.tafssir_depth,
+            **focus_kwargs,
         )
     else:
-        review = provider.finalize_answer(req.messages, ayahs, plan.related_terms, executed_searches, answer_language)
+        review = provider.finalize_answer(messages, ayahs, plan.related_terms, executed_searches, answer_language)
 
-    ayahs = filter_ayahs_by_review(ayahs, review)
+    kept = filter_ayahs_by_review(ayahs, review)
+    ayahs = merge_focus_ayah(focus_ayah, kept, len(kept) + 1) if focus_ayah else kept
     return ResearchAgentResponse(
         status="answered",
         mode=req.response_mode,
