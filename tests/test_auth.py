@@ -150,3 +150,18 @@ def test_disabled_user_cannot_authenticate(tmp_path, monkeypatch):
         assert login_response.json()["detail"] == "Invalid email or password."
     finally:
         finalize()
+
+
+def test_describe_user_agent_names_common_devices():
+    from src.app.services.auth_service import describe_user_agent
+
+    chrome_win = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36"
+    safari_iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+    android = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Mobile Safari/537.36"
+    edge_mac = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36 Edg/128.0"
+
+    assert describe_user_agent(chrome_win) == ("Chrome · Windows", "desktop")
+    assert describe_user_agent(safari_iphone) == ("Safari · iPhone", "mobile")
+    assert describe_user_agent(android) == ("Chrome · Android", "mobile")
+    assert describe_user_agent(edge_mac) == ("Edge · macOS", "desktop")
+    assert describe_user_agent("") == (None, None)

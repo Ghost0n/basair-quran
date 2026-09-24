@@ -33,6 +33,9 @@ function relativeTime(epochSeconds: number, formatNumber: (n: number) => string)
   return `قبل ${formatNumber(Math.floor(diff / 86400))} يوم`;
 }
 
+// Other devices shown before «عرض الكل».
+const DEVICES_COLLAPSED = 3;
+
 /**
  * AccountSettings — the account & session home inside the Settings screen. It's
  * the canonical place to manage the session:
@@ -48,6 +51,8 @@ export function AccountSettings() {
   // Shared session probe — a rename here propagates to the rail menu via patchUser.
   const { user, ready, patchUser } = useAuthSession();
   const [devices, setDevices] = useState<DeviceInfo[]>([]);
+  const [showAllDevices, setShowAllDevices] = useState(false);
+  const [ejectingOthers, setEjectingOthers] = useState(false);
   const [picking, setPicking] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [deviceError, setDeviceError] = useState<string | null>(null);
@@ -150,6 +155,33 @@ export function AccountSettings() {
       setDevices(previous);
       setDeviceError("تعذّر إخراج الجهاز. تحقّق من اتصالك وأعد المحاولة.");
     }
+  }
+
+  // Current device first; others newest-first, collapsed after a few rows.
+  const currentDevice = devices.filter((device) => device.is_current);
+  const otherDevices = devices
+    .filter((device) => !device.is_current)
+    .sort((a, b) => b.last_seen_at - a.last_seen_at);
+  const visibleDevices = showAllDevices
+    ? [...currentDevice, ...otherDevices]
+    : [...currentDevice, ...otherDevices.slice(0, DEVICES_COLLAPSED)];
+  const hiddenCount = showAllDevices ? 0 : Math.max(0, otherDevices.length - DEVICES_COLLAPSED);
+
+  async function ejectOthers() {
+    setDeviceError(null);
+    setEjectingOthers(true);
+    const failed: DeviceInfo[] = [];
+    for (const device of otherDevices) {
+      try {
+        const result = await api.ejectDevice(device.id, { suppressAuthRedirect: true });
+        if (!result.deleted) failed.push(device);
+      } catch {
+        failed.push(device);
+      }
+    }
+    setDevices([...currentDevice, ...failed]);
+    setEjectingOthers(false);
+    if (failed.length) setDeviceError("تعذّر إخراج بعض الأجهزة. حاول مرة أخرى.");
   }
 
   async function signOut() {
@@ -267,7 +299,7 @@ export function AccountSettings() {
       </section>
 
       <section className="qb-setting-card">
-        <h3>الأجهزة النشطة{devices.length ? ` · ${formatNumber(devices.length)}` : ""}</h3>
+        <h3>الأجهزة النشطة{devices.length ? ` (${formatNumber(devices.length)})` : ""}</h3>
         <p className="card-sub">الجلسات المتصلة بحسابك — يمكنك إخراج أيّ جهاز.</p>
         {deviceError ? (
           <div className="qb-devices-error" role="alert">
@@ -275,7 +307,7 @@ export function AccountSettings() {
           </div>
         ) : null}
         <div className="qb-devices">
-          {devices.map((device) => (
+          {visibleDevices.map((device) => (
             <div key={device.id} className="qb-device-row">
               <Icon name={deviceIcon(device.platform)} size={16} />
               <div className="info">
@@ -294,6 +326,20 @@ export function AccountSettings() {
           ))}
           {devices.length === 0 ? <div className="qb-devices-empty">لا أجهزة أخرى.</div> : null}
         </div>
+        {hiddenCount > 0 || otherDevices.length > 0 ? (
+          <div className="qb-devices-actions">
+            {hiddenCount > 0 ? (
+              <button type="button" className="qb-devices-more" onClick={() => setShowAllDevices(true)}>
+                عرض الكل ({formatNumber(hiddenCount)} أخرى)
+              </button>
+            ) : null}
+            {otherDevices.length > 0 ? (
+              <button type="button" className="qb-device-eject all" onClick={ejectOthers} disabled={ejectingOthers}>
+                {ejectingOthers ? "جارٍ الإخراج…" : "أخرِج كل الأجهزة الأخرى"}
+              </button>
+            ) : null}
+          </div>
+        ) : null}
       </section>
     </>
   );

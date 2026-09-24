@@ -97,7 +97,7 @@ export function ReaderBar({
       <button type="button" className="identity" onClick={onOpenNavigate} aria-label={`${surahName} — انتقل`}>
         <span className="name">{surahName}</span>
         <span className="meta">
-          {juzLabel ? <>الجزء {juzLabel} · </> : null}
+          {juzLabel ? <>الجزء {juzLabel}، </> : null}
           صفحة {formatNumber(displayPage)}
           <span className="of"> من {formatNumber(totalPages)}</span>
         </span>

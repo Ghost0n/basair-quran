@@ -165,7 +165,7 @@ export function NavigateSheet({
                       <span className="name">{surah.name}</span>
                       <span className="meta">
                         {surah.type === "medinan" ? "مدنيّة" : surah.type === "meccan" ? "مكّيّة" : ""}
-                        {surah.ayah_count ? ` · ${formatNumber(surah.ayah_count)} آية` : ""}
+                        {surah.ayah_count ? `، ${formatNumber(surah.ayah_count)} آية` : ""}
                       </span>
                     </button>
                   </li>

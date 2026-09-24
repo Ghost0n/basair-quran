@@ -76,6 +76,10 @@ export function HomeScreen() {
   const [lastPage, setLastPage] = useState<number | null>(null);
   const [lastSurah, setLastSurah] = useState<string | null>(null);
   const [ayahIndex, setAyahIndex] = useState(0);
+  // The account's saved position (what the reader resumes at) wins over this
+  // device's last page.
+  const resumePage = preferences.last_position?.page ?? lastPage;
+  const resumeAyah = preferences.last_position?.page ? preferences.last_position?.ayah ?? null : null;
   const [savedCount, setSavedCount] = useState<number | null>(null);
   const [recentSessions, setRecentSessions] = useState<ResearchSessionSummary[]>([]);
   // Personalized greeting — only when signed in. Reads the shared session probe,
@@ -162,7 +166,7 @@ export function HomeScreen() {
             {ayah.text}
           </p>
           <span className="ayah-ref">
-            {ayah.surah} · {formatNumber(ayah.ayah)}
+            {ayah.surah}: {formatNumber(ayah.ayah)}
           </span>
         </header>
 
@@ -221,24 +225,28 @@ export function HomeScreen() {
           )}
 
           <button type="button" className="qb-home-gridcard" onClick={() => setMode("reading")}>
-            <span className="eyebrow">تابع القراءة</span>
+            <span className="eyebrow">{resumePage ? "تابع القراءة" : "ابدأ القراءة"}</span>
             <span className="lead sm">
-              {lastPage ? (
+              {resumePage ? (
                 <>
-                  {lastSurah ? <>سورة {lastSurah} · </> : null}صفحة {formatNumber(lastPage)}
+                  {lastSurah && resumePage === lastPage ? <>سورة {lastSurah}، </> : null}صفحة {formatNumber(resumePage)}
                 </>
               ) : (
                 <>سورة الفاتحة</>
               )}
             </span>
-            <span className="hairline" aria-hidden>
-              <span style={{ width: `${Math.min(100, Math.round(((lastPage ?? 1) / 604) * 100))}%` }} />
-            </span>
+            {resumeAyah ? <span className="meta">عند الآية {formatNumber(resumeAyah)}</span> : null}
+            {resumePage ? (
+              <span className="hairline" aria-hidden>
+                <span style={{ width: `${Math.min(100, Math.round((resumePage / 604) * 100))}%` }} />
+              </span>
+            ) : null}
+            <span className="cta">{resumePage ? "تابِع ←" : "افتح المصحف ←"}</span>
           </button>
 
           <button type="button" className="qb-home-gridcard" onClick={() => setMode("notebook")}>
             <span className="eyebrow">
-              مثبَّتات حديثة{savedCount ? <> · {formatNumber(savedCount)}</> : null}
+              مثبَّتات حديثة{savedCount ? <> ({formatNumber(savedCount)})</> : null}
             </span>
             <span className="lead sm">
               {savedCount ? `${formatNumber(savedCount)} آية مُثبَّتة في الدفتر` : "لا مثبَّتات بعد"}

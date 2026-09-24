@@ -52,13 +52,12 @@ export function SettingsScreen() {
         <div className="kicker">الإعدادات</div>
         <h2>التفضيلات</h2>
         <div className="sub">
-          كلّ الإعدادات هنا. «الإعدادات السريعة» (زرّ ⚙ أعلى الشاشة) اختصارٌ لأكثرها استعمالاً أثناء
-          القراءة، وتُحفظ في المكان نفسه.
+          كلّ الإعدادات هنا. زرّ «العرض» في شريط القراءة اختصارٌ لطريقة القراءة وحجم الخطّ أثناء
+          القراءة، ويحفظ في المكان نفسه.
         </div>
       </div>
 
       <div className="qb-settings-grid">
-        <AccountSettings />
 
         <section className="qb-setting-card">
           <h3>القراءة والمصحف</h3>
@@ -105,6 +104,8 @@ export function SettingsScreen() {
             />
           </div>
         </section>
+
+        <AccountSettings />
 
         <section className="qb-setting-card">
           <h3>العرض</h3>

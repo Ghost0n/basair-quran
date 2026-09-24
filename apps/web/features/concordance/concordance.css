@@ -213,11 +213,11 @@
 /* ---------- Verse rows ---------- */
 
 .qb-verse-row {
-  padding: 14px;
+  padding: 10px 14px 12px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.10));
   border: 1px solid var(--border);
   border-radius: 14px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   cursor: pointer;
   transition: border-color 200ms var(--ease-out), transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
   position: relative;
@@ -268,8 +268,11 @@
 
 .qb-verse-row .vmeta .pin {
   margin-inline-start: auto;
-  width: 22px;
-  height: 22px;
+  /* 36px hit area; the negative margin keeps the visual row height. */
+  width: 36px;
+  height: 36px;
+  margin-block: -8px;
+  margin-inline-end: -8px;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
@@ -293,8 +296,9 @@
 
 .qb-verse-row .vtext {
   font-family: var(--font-arabic-display);
-  font-size: 22px;
-  line-height: 1.95;
+  /* Denser than the reader: results are scanned, then opened in the mushaf. */
+  font-size: 20px;
+  line-height: 1.85;
   color: var(--verse-fg);
   font-weight: 500;
 }

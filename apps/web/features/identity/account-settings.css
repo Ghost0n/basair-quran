@@ -353,3 +353,34 @@
   opacity: 0.6;
   cursor: default;
 }
+
+.qb-devices-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.qb-devices-more {
+  min-height: 40px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--gold-text);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-device-eject.all {
+  min-height: 40px;
+  padding: 0 14px;
+}
+
+.qb-device-eject.all:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

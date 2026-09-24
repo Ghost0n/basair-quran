@@ -357,7 +357,7 @@ function BotMessage({
 
       {ayahs.length > 0 ? (
         <div className="evidence">
-          <div className="evidence-label">الدليل القرآني · {formatNumber(ayahs.length)} آية</div>
+          <div className="evidence-label">الدليل القرآني ({formatNumber(ayahs.length)} آية)</div>
           {ayahs.map((ayah, index) => (
             <button
               key={ayah.ayah_id}
@@ -375,7 +375,7 @@ function BotMessage({
               <span className="num">[{formatNumber(index + 1)}]</span>
               <span className="ev-body">
                 <span className="ev-meta">
-                  سورة {ayah.surah} · {formatNumber(ayah.ayah)}
+                  سورة {ayah.surah}: {formatNumber(ayah.ayah)}
                 </span>
                 <span className="ev-text">{renderHighlightedVerseText(ayah.text.trim(), ayah.highlights ?? [])}</span>
               </span>

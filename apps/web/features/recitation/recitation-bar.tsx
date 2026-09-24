@@ -105,7 +105,7 @@ export function RecitationBar() {
           subtitle={
             current ? (
               <>
-                سورة {formatNumber(current.surah)} · آية {formatNumber(current.ayah)}
+                سورة {formatNumber(current.surah)}، آية {formatNumber(current.ayah)}
               </>
             ) : (
               "جاهز — اختر قارئاً ثم شغّل"

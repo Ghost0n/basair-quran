@@ -78,7 +78,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
           <div className="kicker">الدفتر</div>
           <h2>الدفتر</h2>
           <div className="sub">
-            {formatNumber(companions.notebook.length)} آية · {formatNumber(companions.sessions.length)} جلسة ·{" "}
+            {formatNumber(companions.notebook.length)} آية، {formatNumber(companions.sessions.length)} جلسة،{" "}
             {formatNumber(companions.roots.length)} جذر
           </div>
         </div>
@@ -184,7 +184,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                   <div className="grow">
                     <div className="title">{session.title}</div>
                     <div className="meta">
-                      {formatNumber(session.message_count)} رسالة · {relativeAge(session.updated_at)} ·{" "}
+                      {formatNumber(session.message_count)} رسالة، {relativeAge(session.updated_at)} ·{" "}
                       {session.mode === "tafssir" ? "قراءة تفسيرية" : "القرآن وحدَه"}
                     </div>
                   </div>
@@ -210,7 +210,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                 <div className="grow">
                   <div className="root-disp">{root.root_text}</div>
                   <div className="meta">
-                    {root.occurrences != null ? `${formatNumber(root.occurrences)} موضع · ` : ""}
+                    {root.occurrences != null ? `${formatNumber(root.occurrences)} موضع، ` : ""}
                     {relativeAge(root.created_at)}
                   </div>
                 </div>
