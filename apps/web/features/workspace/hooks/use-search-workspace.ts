@@ -8,7 +8,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type {
   DidYouMeanSuggestion,
-  MushafItem,
   PaginatedSearchResult,
   SearchMode,
   SearchVerse,
@@ -18,104 +17,46 @@ import type {
 import { API_BASE_URL } from "@/lib/config";
 import {
   clampPage,
-  getResultLabelText,
   getSuggestionTypeLabel,
   getVerseSelectionKey,
-  hasArabicDiacritics,
   isPhraseInputValue,
   ITEMS_PER_PAGE,
-  removeChakl,
 } from "@/lib/quran-ui";
 import { generateArabicQueryCandidates } from "@/lib/arabic-transliteration";
-import { isTechnicalMessage, reportError, sanitizeErrorMessage } from "@/lib/error-report";
 import { dedupeSuggestionItems } from "@/features/workspace/lib/dedupe-suggestions";
+import { useThemeMode } from "./use-theme-mode";
 
-/**
- * Never surface a raw technical error string. Logs the real error for
- * diagnostics and returns the friendly message: a non-technical error message
- * as-is, otherwise the context-specific Arabic fallback.
- */
-function toUserError(scope: string, error: unknown, fallback: string): string {
-  reportError(scope, error);
-  const raw = error instanceof Error ? error.message : "";
-  return isTechnicalMessage(raw) ? fallback : raw;
-}
 import { usePreferences } from "@/lib/preferences-context";
 import { resolveEdition } from "@/lib/mushaf-defaults";
 import { useMushaf } from "@/features/reading/mushaf-context";
-
-import type { ThemeMode } from "../types";
+import {
+  getSuggestionContext,
+  isLatinQuery,
+  MAX_SUGGESTIONS,
+  normalizeSuggestionCandidate,
+  pickBestSuggestionForMode,
+  QUICK_EXAMPLES,
+  SUGGESTION_DEBOUNCE_MS,
+  toUserError,
+} from "@/features/workspace/lib/search-helpers";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
-const MAX_SUGGESTIONS = 10;
-const SUGGESTION_DEBOUNCE_MS = 120;
-const QUICK_EXAMPLES: Array<{ label: string; query: string; mode: SearchMode }> = [
-  { label: "الحمد", query: "الحمد", mode: "exact" },
-  { label: "صراط مستقيم", query: "صراط مستقيم", mode: "exact" },
-  { label: "كتب", query: "كتب", mode: "root" },
-];
-
-function isLatinQuery(text: string) {
-  return /[a-zA-Z]/.test(text);
-}
-
-function getSuggestionContext(query: string) {
-  if (!isPhraseInputValue(query.trim())) {
-    return { sourceQuery: query.trim(), prefixQuery: "" };
-  }
-
-  const tokens = query.trim().split(/\s+/);
-  return {
-    sourceQuery: tokens[tokens.length - 1] ?? "",
-    prefixQuery: tokens.slice(0, -1).join(" "),
-  };
-}
-
-function pickBestSuggestionForMode(items: SuggestionItem[], mode: SearchMode) {
-  if (items.length === 0) {
-    return null;
-  }
-
-  if (mode === "root") {
-    return items.find((item) => item.type === "root") ?? items[0];
-  }
-
-  return items.find((item) => item.type === "word") ?? items[0];
-}
-
-function normalizeSuggestionCandidate(text: string) {
-  return text.trim().replace(/\s+/g, " ");
-}
 
 export function useSearchWorkspace() {
   const [query, setQuery] = useState("");
   const [previewValue, setPreviewValue] = useState<string | null>(null);
   const [searchMode, setSearchMode] = useState<SearchMode>("exact");
-  // Device-level theme: a stored value is an explicit per-device override.
-  // Without one we adopt the account default once it loads (see below).
-  const [theme, setTheme] = useState<ThemeMode>(() => {
-    if (typeof window === "undefined") return "dark";
-    try {
-      return window.localStorage.getItem("theme") === "light" ? "light" : "dark";
-    } catch {
-      return "dark";
-    }
-  });
-  const [mushafs, setMushafs] = useState<MushafItem[]>([]);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const { theme, toggleTheme } = useThemeMode();
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [suggestionsWithChakl, setSuggestionsWithChakl] = useState(false);
   const [searchModeInitialized, setSearchModeInitialized] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
   const [isInputFocused, setIsInputFocused] = useState(false);
-  const [loadingMushafs, setLoadingMushafs] = useState(true);
   const [isSearching, setIsSearching] = useState(false);
-  const [isWorkspaceCollapsing, setIsWorkspaceCollapsing] = useState(false);
   const [results, setResults] = useState<PaginatedSearchResult[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [didYouMean, setDidYouMean] = useState<DidYouMeanSuggestion | null>(null);
-  const [resultPageDrafts, setResultPageDrafts] = useState<Record<string, string>>({});
   const [selectedVerseKey, setSelectedVerseKey] = useState<string | null>(null);
   const [searchContext, setSearchContext] = useState<{ q: string; mode: SearchMode; mushaf: number } | null>(null);
 
@@ -123,12 +64,11 @@ export function useSearchWorkspace() {
   // Reading mode and this search reader stay in sync.
   const mushaf = useMushaf();
 
-  // Theme is a device override layered on top of the account default.
-  const { account, updateAccount } = usePreferences();
   // The account's mushaf edition fixes the riwāyah every search/reader call uses.
+  const { account } = usePreferences();
   const edition = resolveEdition(account.mushaf_edition);
   const selectedMushaf = edition.mushafId;
-  const userSetThemeRef = useRef(false);
+
 
   // Search state is mirrored into the URL (?q=&sm=) so a search is
   // shareable/bookmarkable; we hydrate from it once on mount.
@@ -136,10 +76,8 @@ export function useSearchWorkspace() {
   const searchParams = useSearchParams();
   const urlHydratedRef = useRef(false);
 
-  const resultsAreaRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
-  const toolsDrawerRef = useRef<HTMLDivElement | null>(null);
   const previousMushafRef = useRef(selectedMushaf);
   const yamliRequestIdRef = useRef(0);
   // Monotonic id so an earlier (slower) runSearch can't overwrite a newer one's
@@ -176,13 +114,6 @@ export function useSearchWorkspace() {
   const workspaceActive = workspaceVisible;
   const isExactPhrase = searchMode === "exact" && isPhraseInputValue(inputValue);
   const searchPrefix = inputValue.trim() && searchModeInitialized ? (searchMode === "root" ? "جذر" : isExactPhrase ? "عبارة" : "كلمة") : "";
-  const modeToggleLabel = searchMode === "root" ? "كلمة" : "جذر";
-  const chaklButtonVisible = searchModeInitialized && searchMode === "exact" && query.trim().length > 0;
-  const modeControlsVisible = searchModeInitialized && query.trim().length > 0;
-
-  const selectedMushafLabel = useMemo(() => {
-    return mushafs.find((item) => item.id === selectedMushaf)?.name ?? "الرواية";
-  }, [mushafs, selectedMushaf]);
 
   const resultsSummary = useMemo(() => {
     if (results.length === 0) {
@@ -195,31 +126,6 @@ export function useSearchWorkspace() {
       totalVerses: results.reduce((sum, result) => sum + result.total_verses, 0),
     };
   }, [results]);
-
-  const insightSummary = useMemo(() => {
-    if (!resultsSummary || results.length === 0) {
-      return null;
-    }
-
-    const activeQuery = searchContext?.q ?? query;
-    const firstResult = results[0];
-    const termLabel =
-      results.length === 1
-        ? getResultLabelText(firstResult)
-        : searchContext?.mode === "root"
-          ? "الجذر"
-          : isPhraseInputValue(activeQuery)
-            ? "العبارة"
-            : "المصطلح";
-    const term = results.length === 1 ? firstResult.root : activeQuery;
-
-    return {
-      termLabel,
-      term,
-      totalOccurrences: resultsSummary.totalOccurrences,
-      totalVerses: resultsSummary.totalVerses,
-    };
-  }, [query, results, resultsSummary, searchContext]);
 
   async function resolveLatinTokenToArabic(token: string, mode: SearchMode = "exact") {
     if (!token.trim()) {
@@ -337,7 +243,6 @@ export function useSearchWorkspace() {
   function clearWorkspaceState() {
     setResults([]);
     mushaf.reset();
-    setResultPageDrafts({});
     setSelectedVerseKey(null);
     setSearchContext(null);
   }
@@ -353,31 +258,6 @@ export function useSearchWorkspace() {
     sp.set("sm", reflectedMode);
     router.replace(`/?${sp.toString()}`, { scroll: false });
   }
-
-  // Adopt the account theme as the default when this device has no explicit
-  // override and the user hasn't toggled this session. Keeps the backend
-  // `theme` preference live across devices instead of being dead state.
-  useEffect(() => {
-    if (userSetThemeRef.current) return;
-    let hasOverride = false;
-    try {
-      hasOverride = window.localStorage.getItem("theme") !== null;
-    } catch {
-      hasOverride = false;
-    }
-    if (!hasOverride && (account.theme === "light" || account.theme === "dark")) {
-      setTheme(account.theme);
-    }
-  }, [account.theme]);
-
-  // Apply the theme to <body> (the pre-paint script sets it initially; this
-  // keeps it in sync as the user toggles). Lives here so it runs regardless
-  // of which chrome surfaces the theme control.
-  useEffect(() => {
-    const isLight = theme === "light";
-    document.body.classList.toggle("light", isLight);
-    document.body.classList.toggle("light-mode", isLight);
-  }, [theme]);
 
   // Hydrate a search from ?q=&sm= once on first load (shared/bookmarked link).
   useEffect(() => {
@@ -409,11 +289,6 @@ export function useSearchWorkspace() {
       }
 
       if (event.key === "Escape") {
-        if (drawerOpen) {
-          setDrawerOpen(false);
-          return;
-        }
-
         if (suggestionsOpen) {
           setSuggestionsOpen(false);
           setPreviewValue(null);
@@ -431,7 +306,7 @@ export function useSearchWorkspace() {
     return () => {
       window.removeEventListener("keydown", handleGlobalKeyDown);
     };
-  }, [drawerOpen, suggestionsOpen]);
+  }, [suggestionsOpen]);
 
   useEffect(() => {
     return () => {
@@ -450,31 +325,6 @@ export function useSearchWorkspace() {
     }
     previousMushafRef.current = selectedMushaf;
   }, [selectedMushaf, searchContext]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadMushafs() {
-      try {
-        const items = await api.getMushafs();
-        if (cancelled) return;
-        setMushafs(items);
-      } catch (error) {
-        if (!cancelled) {
-          setErrorMessage(toUserError("search:riwayat", error, "تعذر تحميل الروايات."));
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingMushafs(false);
-        }
-      }
-    }
-
-    void loadMushafs();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     if (searchMode === "root" && isPhraseInputValue(query)) {
@@ -638,12 +488,6 @@ export function useSearchWorkspace() {
   }, [api, isInputFocused, previewValue, query, searchMode, searchModeInitialized, selectedMushaf, suggestionsWithChakl]);
 
   useEffect(() => {
-    setResultPageDrafts(
-      Object.fromEntries(results.map((result) => [result.result_key, String(result.page)])),
-    );
-  }, [results]);
-
-  useEffect(() => {
     if (!suggestionsOpen && previewValue !== null) {
       setPreviewValue(null);
       setActiveSuggestionIndex(-1);
@@ -696,12 +540,6 @@ export function useSearchWorkspace() {
       if (suggestionsRef.current && target && !suggestionsRef.current.contains(target) && inputRef.current && !inputRef.current.contains(target)) {
         setSuggestionsOpen(false);
       }
-      if (toolsDrawerRef.current && target && !toolsDrawerRef.current.contains(target)) {
-        const toggle = document.querySelector(".tools-drawer-toggle");
-        if (!toggle || !toggle.contains(target)) {
-          setDrawerOpen(false);
-        }
-      }
     }
 
     document.addEventListener("click", handleDocumentClick);
@@ -723,7 +561,6 @@ export function useSearchWorkspace() {
     setErrorMessage(null);
     setDidYouMean(null);
     setIsSearching(true);
-    setDrawerOpen(false);
     inputRef.current?.blur();
 
     try {
@@ -770,7 +607,9 @@ export function useSearchWorkspace() {
       if (!response.found) {
         startTransition(() => {
           clearWorkspaceState();
-          setErrorMessage(sanitizeErrorMessage(response.message ?? "لم يتم العثور على نتائج."));
+          // A normal outcome, not an error: always our Arabic copy (the API's
+          // `message` is an English developer string).
+          setErrorMessage("لا توجد نتائج لهذا البحث.");
           setDidYouMean(response.did_you_mean ?? null);
         });
         return;
@@ -814,7 +653,6 @@ export function useSearchWorkspace() {
     if (!currentResult) return;
 
     const nextPage = clampPage(requestedPage, currentResult.total_pages);
-    setResultPageDrafts((current) => ({ ...current, [resultKey]: String(nextPage) }));
     if (nextPage === currentResult.page) return;
 
     try {
@@ -830,84 +668,8 @@ export function useSearchWorkspace() {
       startTransition(() => {
         setResults((current) => current.map((result) => (result.result_key === resultKey ? pageData.result : result)));
       });
-
-      window.requestAnimationFrame(() => {
-        const card = resultsAreaRef.current?.querySelector<HTMLElement>(`[data-result-key="${resultKey}"]`);
-        if (card && resultsAreaRef.current) {
-          const offsetTop = card.offsetTop - resultsAreaRef.current.offsetTop;
-          resultsAreaRef.current.scrollTo({ top: Math.max(offsetTop, 0), behavior: "smooth" });
-        }
-      });
     } catch (error) {
       setErrorMessage(toUserError("search:page", error, "حدث خطأ في جلب الصفحة المطلوبة."));
-    }
-  }
-
-  async function toggleSearchMode() {
-    const trimmedQuery = query.trim();
-
-    if (searchMode === "root") {
-      setSearchMode("exact");
-      setSearchModeInitialized(true);
-      setSuggestionsWithChakl(false);
-      setSuggestions([]);
-      setSuggestionsOpen(false);
-      setActiveSuggestionIndex(-1);
-      if (workspaceVisible && trimmedQuery) {
-        void runSearch(trimmedQuery, "exact");
-      }
-      return;
-    }
-
-    if (!trimmedQuery || isPhraseInputValue(trimmedQuery)) {
-      return;
-    }
-
-    setPreviewValue(null);
-    setSearchMode("root");
-    setSearchModeInitialized(true);
-    setSuggestionsWithChakl(false);
-    setSuggestions([]);
-    setSuggestionsOpen(false);
-    setActiveSuggestionIndex(-1);
-
-    if (workspaceVisible) {
-      void runSearch(trimmedQuery, "root");
-    }
-  }
-
-  async function toggleSuggestionsWithChakl() {
-    const trimmedQuery = query.trim();
-    if (!trimmedQuery || searchMode !== "exact") {
-      return;
-    }
-
-    if (hasArabicDiacritics(trimmedQuery)) {
-      const plainQuery = removeChakl(trimmedQuery);
-      commitInputValue(plainQuery, "exact");
-      setSearchModeInitialized(true);
-      setSuggestionsWithChakl(false);
-      setSuggestions([]);
-      setSuggestionsOpen(false);
-      inputRef.current?.focus();
-      return;
-    }
-
-    setSuggestionsWithChakl(true);
-    setIsInputFocused(true);
-    inputRef.current?.focus();
-
-    try {
-      const items = isPhraseInputValue(trimmedQuery)
-        ? await buildPhraseSuggestionItems(trimmedQuery, { withChakl: true })
-        : await api.getSuggestions(trimmedQuery, "exact", selectedMushaf, true);
-      const uniqueItems = dedupeSuggestionItems(items);
-      setSuggestions(uniqueItems.slice(0, MAX_SUGGESTIONS));
-      setSuggestionsOpen(uniqueItems.length > 0);
-      setActiveSuggestionIndex(-1);
-    } catch {
-      setSuggestions([]);
-      setSuggestionsOpen(false);
     }
   }
 
@@ -929,8 +691,6 @@ export function useSearchWorkspace() {
       clearWorkspaceState();
       setErrorMessage(null);
       setDidYouMean(null);
-      setDrawerOpen(false);
-      setIsWorkspaceCollapsing(false);
       if (typeof window === "undefined") return;
       if (toReading) {
         // Single navigation: clears q/sm AND mode → clean reading view.
@@ -947,14 +707,6 @@ export function useSearchWorkspace() {
         router.replace(next ? `/?${next}` : "/", { scroll: false });
       }
     };
-
-    // Skip the collapse animation when leaving for reading — go immediately so
-    // there's no window where another effect can re-derive Search mode.
-    if (!toReading && workspaceVisible) {
-      setIsWorkspaceCollapsing(true);
-      scheduleTimeout(finalizeReset, 240);
-      return;
-    }
 
     finalizeReset();
   }
@@ -1050,67 +802,34 @@ export function useSearchWorkspace() {
 
   return {
     refs: {
-      resultsAreaRef,
       inputRef,
       suggestionsRef,
-      toolsDrawerRef,
     },
     state: {
       theme,
-      query,
       inputValue,
       searchMode,
-      searchModeInitialized,
-      drawerOpen,
-      loadingMushafs,
-      mushafs,
       edition,
       selectedMushaf,
-      selectedMushafLabel,
       suggestions,
       suggestionsOpen,
-      suggestionsWithChakl,
       activeSuggestionIndex,
       isSearching,
-      isWorkspaceCollapsing,
       errorMessage,
       didYouMean,
       workspaceVisible,
       workspaceActive,
       results,
-      resultPageDrafts,
       selectedVerseKey,
       searchPrefix,
-      modeToggleLabel,
-      chaklButtonVisible,
-      modeControlsVisible,
       resultsSummary,
-      insightSummary,
       quickExamples: QUICK_EXAMPLES,
     },
     actions: {
       setQuery(value: string) {
         commitInputValue(value);
       },
-      setDrawerOpen,
-      setResultPageDraft(resultKey: string, value: string) {
-        setResultPageDrafts((current) => ({ ...current, [resultKey]: value }));
-      },
-      toggleTheme() {
-        userSetThemeRef.current = true;
-        setTheme((current) => {
-          const next: ThemeMode = current === "dark" ? "light" : "dark";
-          try {
-            window.localStorage.setItem("theme", next);
-          } catch {
-            /* private mode — theme just won't persist on this device */
-          }
-          // Mirror to the account default so the choice follows the user
-          // across devices; a failed write must not break the toggle.
-          void updateAccount({ theme: next }).catch(() => {});
-          return next;
-        });
-      },
+      toggleTheme,
       runSearch,
       selectVerse,
       loadResultPage,
@@ -1133,13 +852,9 @@ export function useSearchWorkspace() {
       previewSuggestion(index: number) {
         setActiveSuggestionIndex(index);
       },
-      toggleSearchMode,
-      toggleSuggestionsWithChakl,
     },
     helpers: {
       getSuggestionTypeLabel,
-      hasArabicDiacritics,
-      isPhraseInputValue,
     },
   };
 }
