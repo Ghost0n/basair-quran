@@ -9,25 +9,56 @@
 const KEY = "qb.studio.ask";
 export const STUDIO_ASK_EVENT = "qb:studio-ask";
 
-export function queueStudioAsk(question: string): void {
+/** Optional context for a hand-off ask: the research mode and one focus ayah. */
+export type StudioAskOptions = {
+  mode?: "strict" | "tafssir";
+  focus?: { surah: number; ayah: number };
+  /** How to name the focus ayah in the Studio (e.g. «البقرة، الآية ٢٥٥»). */
+  focusLabel?: string;
+};
+
+export type StudioAsk = { question: string } & StudioAskOptions;
+
+export function queueStudioAsk(question: string, options: StudioAskOptions = {}): void {
   const trimmed = question.trim();
   if (!trimmed) return;
   try {
-    window.sessionStorage.setItem(KEY, trimmed);
+    window.sessionStorage.setItem(KEY, JSON.stringify({ question: trimmed, ...options }));
   } catch {
     /* private mode — the mount drain just won't find it; harmless */
   }
   window.dispatchEvent(new CustomEvent(STUDIO_ASK_EVENT));
 }
 
-export function drainStudioAsk(): string | null {
+export function drainStudioAsk(): StudioAsk | null {
   try {
     const value = window.sessionStorage.getItem(KEY);
     if (value) window.sessionStorage.removeItem(KEY);
-    return value && value.trim() ? value : null;
+    return value ? parseStudioAsk(value) : null;
   } catch {
     return null;
   }
+}
+
+/** Parse a queued ask; a plain string (older queue format) is just the question. */
+export function parseStudioAsk(value: string): StudioAsk | null {
+  let ask: StudioAsk | null = null;
+  try {
+    const parsed = JSON.parse(value) as Partial<StudioAsk> | string;
+    if (typeof parsed === "string") ask = { question: parsed };
+    else if (parsed && typeof parsed.question === "string") {
+      ask = { question: parsed.question };
+      if (parsed.mode === "strict" || parsed.mode === "tafssir") ask.mode = parsed.mode;
+      const focus = parsed.focus;
+      if (focus && Number.isInteger(focus.surah) && Number.isInteger(focus.ayah)) {
+        ask.focus = { surah: focus.surah, ayah: focus.ayah };
+        if (typeof parsed.focusLabel === "string") ask.focusLabel = parsed.focusLabel.slice(0, 80);
+      }
+    }
+  } catch {
+    ask = { question: value };
+  }
+  return ask && ask.question.trim() ? { ...ask, question: ask.question.trim() } : null;
 }
 
 // Same relay pattern for "open this saved session as a tab" (Home / history).

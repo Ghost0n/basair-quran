@@ -484,3 +484,33 @@ def test_mushafs_expose_normalized_riwayah(api_client):
     assert response.status_code == 200
     for mushaf in response.json():
         assert "riwayah" in mushaf and mushaf["riwayah"]
+
+
+def test_text_count_phrase_and_letters_by_scope(api_client):
+    # Fixture: surah 1 holds "shared verse N" (1–12 on pages 1–2) plus other ayahs.
+    response = api_client.get("/api/text-count", params={"text": "shared verse", "mushaf": 1, "surah": 1, "page": 2})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["word_count"] == 2
+    assert body["phrase"]["page"] == 2  # ayahs 11–12 start on page 2
+    assert body["phrase"]["surah"] == body["phrase"]["quran"] >= 12
+    letters = {entry["letter"]: entry for entry in body["letters"]}
+    assert letters["s"]["in_selection"] == 2
+    assert letters["e"]["in_selection"] == 3
+    assert letters["e"]["quran"] >= letters["e"]["surah"] >= letters["e"]["page"] > 0
+
+
+def test_text_count_without_scopes_and_validation(api_client):
+    body = api_client.get("/api/text-count", params={"text": "verse", "mushaf": 1}).json()
+    assert body["phrase"]["surah"] is None and body["phrase"]["page"] is None
+    assert body["phrase"]["quran"] >= 12
+    assert api_client.get("/api/text-count", params={"text": " ".join(["w"] * 13), "mushaf": 1}).status_code == 422
+    assert api_client.get("/api/text-count", params={"text": "ًٌ", "mushaf": 1}).status_code == 422
+
+
+def test_text_count_arabic_normalization():
+    from src.app.services import quran_service
+
+    assert quran_service.normalize_count_text("ٱلسَّمَٰوَٰتِ   وَٱلۡأَرۡضَ") == "السموت والارض"
+    assert quran_service.normalize_count_text("يَـُٔودُهُۥ") == "يوده"
+    assert quran_service._phrase_occurrences(("a", "b", "a", "b"), ("a", "b")) == 2

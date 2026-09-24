@@ -7,6 +7,9 @@ import { useRecitation } from "@/features/recitation/recitation-context";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { TOTAL_PAGES } from "@/lib/quran-nav";
 
+import { ToolPicker } from "../tools/tool-picker";
+import { useCompactReader } from "../use-wide-screen";
+
 /**
  * ReaderBar — the reader's single, compact control row (replaces the old header
  * with its pills/selects/layout switch AND the two-row footer).
@@ -46,6 +49,7 @@ export function ReaderBar({
 }) {
   const formatNumber = useNumerals();
   const recitation = useRecitation();
+  const compact = useCompactReader();
   const { preferences, updateAccount } = usePreferences();
 
   const firstAyah = pageData.ayahs[0];
@@ -104,6 +108,7 @@ export function ReaderBar({
       </button>
 
       <div className="actions">
+        <ToolPicker compact={compact} />
         <button type="button" className="act labelled" onClick={onOpenNavigate} aria-label="انتقل" title="انتقل (سورة · آية · جزء · صفحة)">
           <Icon name="compass" size={18} />
           <span className="lbl">انتقل</span>

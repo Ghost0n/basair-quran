@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
 import { createPortal } from "react-dom";
 
@@ -34,6 +34,12 @@ import { nextReaderLayout, resolveReaderMode, spreadFits } from "./reader-modes"
 import { useGlyphFit } from "./use-glyph-fit";
 import { useCompactReader, useElementSize } from "./use-wide-screen";
 import { useSavedAyat, type SavableAyah } from "./use-saved-ayat";
+import { useShellMode } from "@/features/shell/mode-context";
+import { queueStudioAsk } from "@/lib/studio-prefill";
+import { toolForKey } from "./tools/registry";
+import { SelectionBar } from "./tools/selection-bar";
+import { setReaderTool, useReaderTool } from "./tools/use-reader-tool";
+import { PickedWordsProvider, readSelection, type WordSelection } from "./tools/word-selection";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -67,6 +73,15 @@ export function MushafStage() {
   const [sheet, setSheet] = useState<"navigate" | "display" | null>(null);
   // «حفظ وتظليل»: the ayah whose save/theme sheet is open.
   const [themeTarget, setThemeTarget] = useState<SavableAyah | null>(null);
+  // Reader toolbox: the active tool decides what a tap on a word does.
+  const tool = useReaderTool();
+  const { setMode } = useShellMode();
+  const [selection, setSelection] = useState<WordSelection | null>(null);
+  // Switching tools drops the previous tool's transient state.
+  useEffect(() => {
+    setSelection(null);
+    setMorphTarget(null);
+  }, [tool]);
   const [immersive, setImmersive] = useState(false);
 
   // Focus mode hides the shell chrome too (top bar, rail, tab bar) — a class on
@@ -411,6 +426,79 @@ export function MushafStage() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
+  // Grammar insights: anchor the morphology popover at a viewport point.
+  function openMorph(surah: number, ayah: number, position: number, word: string, x: number, y: number, ayahText?: string) {
+    const container = mushaf.bodyRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const top = y - rect.top + container.scrollTop;
+    const rawLeft = x - rect.left - 160;
+    const left = Math.min(Math.max(rawLeft, 12), Math.max(rect.width - 332, 12));
+    setMorphTarget({ surah, ayah, position, word, ayahText, top, left });
+  }
+
+  function ayahFromWord(element: HTMLElement, surah: number, ayah: number, ayahText?: string): SavableAyah | null {
+    const ayahId = Number(element.dataset.aid);
+    if (!Number.isFinite(ayahId) || ayahId <= 0) return null;
+    return {
+      ayah_id: ayahId,
+      mushaf_id: pageData?.mushaf_id ?? selectedMushaf,
+      surah_id: surah,
+      surah: surahs.find((item) => item.id === surah)?.name ?? `${surah}`,
+      ayah,
+      text: (ayahText ?? "").trim(),
+    };
+  }
+
+  // «تحديد»: first tap picks a word; a second tap extends the run to it; a
+  // tap on a lone picked word, or any tap after a run, starts over.
+  function pickWord(element: HTMLElement) {
+    const root = surfaceRef.current;
+    const key = element.dataset.wk;
+    if (!root || !key) return;
+    setMorphTarget(null);
+    setSelection((current) => {
+      if (current && current.keys.length === 1) {
+        if (current.anchor === key) return null;
+        return readSelection(root, current.anchor, key);
+      }
+      return readSelection(root, key, key);
+    });
+  }
+
+  // One entry point for pointer + keyboard word activation, routed by tool.
+  function activateWord(
+    surah: number,
+    ayah: number,
+    position: number,
+    word: string,
+    element: HTMLElement,
+    point: { x: number; y: number },
+    ayahText?: string,
+  ) {
+    switch (tool) {
+      case "highlight": {
+        const target = ayahFromWord(element, surah, ayah, ayahText);
+        if (target) setThemeTarget(target);
+        return;
+      }
+      case "select":
+        pickWord(element);
+        return;
+      case "tafssir": {
+        const name = surahs.find((item) => item.id === surah)?.name ?? `${surah}`;
+        queueStudioAsk(
+          `فسِّر الآية ${formatNumber(ayah)} من سورة ${name} في سياقها: ما قبلها وما بعدها ومقصد السورة.`,
+          { mode: "tafssir", focus: { surah, ayah }, focusLabel: `${name}، الآية ${formatNumber(ayah)}` },
+        );
+        setMode("studio");
+        return;
+      }
+      default:
+        openMorph(surah, ayah, position, word, point.x, point.y, ayahText);
+    }
+  }
+
   function handleWordClick(
     surah: number,
     ayah: number,
@@ -419,17 +507,12 @@ export function MushafStage() {
     event: React.MouseEvent,
     ayahText?: string,
   ) {
-    const container = mushaf.bodyRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    const top = event.clientY - rect.top + container.scrollTop + 22;
-    const rawLeft = event.clientX - rect.left - 160;
-    const left = Math.min(Math.max(rawLeft, 12), Math.max(rect.width - 332, 12));
-    setMorphTarget({ surah, ayah, position, word, ayahText, top, left });
+    const element = event.currentTarget as HTMLElement;
+    activateWord(surah, ayah, position, word, element, { x: event.clientX, y: event.clientY + 22 }, ayahText);
   }
 
-  // Keyboard path: anchor the popover off the focused word element instead of
-  // a pointer position, so Enter/Space opens morphology without a mouse.
+  // Keyboard path: anchor off the focused word element instead of a pointer
+  // position, so Enter/Space uses the active tool without a mouse.
   function handleWordKey(
     surah: number,
     ayah: number,
@@ -438,15 +521,39 @@ export function MushafStage() {
     element: HTMLElement,
     ayahText?: string,
   ) {
-    const container = mushaf.bodyRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
     const wordRect = element.getBoundingClientRect();
-    const top = wordRect.bottom - rect.top + container.scrollTop + 6;
-    const rawLeft = wordRect.left - rect.left + wordRect.width / 2 - 160;
-    const left = Math.min(Math.max(rawLeft, 12), Math.max(rect.width - 332, 12));
-    setMorphTarget({ surah, ayah, position, word, ayahText, top, left });
+    activateWord(
+      surah,
+      ayah,
+      position,
+      word,
+      element,
+      { x: wordRect.left + wordRect.width / 2, y: wordRect.bottom + 6 },
+      ayahText,
+    );
   }
+
+  // Tool shortcuts (1–4) and Esc to drop a selection — ignored while typing.
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key === "Escape") {
+        setSelection(null);
+        return;
+      }
+      const next = toolForKey(event.key);
+      if (next) setReaderTool(next);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  const isPicked = useMemo(() => {
+    const picked = new Set(selection?.keys ?? []);
+    return (key: string) => picked.has(key);
+  }, [selection]);
 
   if (error && !pageData) {
     return (
@@ -478,6 +585,7 @@ export function MushafStage() {
 
   return (
     <AyahMarksProvider value={markOf}>
+    <PickedWordsProvider value={isPicked}>
     <div
       ref={stageRef}
       className={`qb-mushaf-stage${showSpread ? " is-spread" : ""}${scrollMode ? " is-scroll" : ""}${ayahMode ? " is-ayah" : ""}${immersive ? " is-immersive" : ""}`}
@@ -625,7 +733,16 @@ export function MushafStage() {
           onDone={mushaf.clearTravel}
         />
       ) : null}
+      {selection && tool === "select" ? (
+        <SelectionBar
+          selection={selection}
+          surahs={surahs}
+          mushafId={pageData.mushaf_id ?? selectedMushaf}
+          onClear={() => setSelection(null)}
+        />
+      ) : null}
     </div>
+    </PickedWordsProvider>
     </AyahMarksProvider>
   );
 }

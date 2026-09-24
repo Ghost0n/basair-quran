@@ -27,6 +27,10 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   continuous scroll on phones and landscape screens, pages elsewhere (see
   [docs/api-contract.md](docs/api-contract.md) → Reader layout notes).
 - The Madani mushaf (Hafs, authentic line-faithful QCF pages) as the reader's single edition in this first version, chosen from Settings → «المصحف». The database also holds Qaloun, Warsh, Shuba, Douri, and Sousi for future standard editions; they are not exposed in the UI.
+- A reader toolbox (open registry, keys 1–4) that sets what a tap on the text does: «تحليل» (grammar
+  insights: root, lemma, iʿrāb), «تظليل» (save + theme an ayah), «تحديد» (select words, then exact /
+  root search, ask the Studio, count the phrase and each letter in page / surah / Quran, or copy with
+  the reference) and «تفسير» (an experimental tafssir of the tapped ayah, read in its context).
 - Themes (مواضيع): the reader's save action highlights an ayah with one or more named colours, so
   saved ayahs group by subject as you read; the library lists them by theme (rename, recolour,
   delete) and «العرض» can hide the highlights.

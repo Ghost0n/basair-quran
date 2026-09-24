@@ -6,6 +6,7 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type {
   ResearchAgentMessage,
   ResearchAgentResponse,
+  ResearchFocusAyah,
   StoredMessage,
   TafssirDepth,
 } from "@q-basair/shared";
@@ -36,6 +37,9 @@ export type StudioSession = {
   messages: StudioMessage[];
   mode: StudioMode;
   depth: TafssirDepth;
+  /** The ayah this session is about (from the reader's tafssir tool), sent with every turn. */
+  focus?: ResearchFocusAyah | null;
+  focusLabel?: string;
 };
 
 // Open Studio tabs survive a reload within the same browser tab. We use
@@ -59,7 +63,12 @@ function loadPersistedSessions(): PersistedStudioState | null {
 }
 
 let sessionCounter = 0;
-function createSession(defaults?: { mode?: StudioMode; depth?: TafssirDepth }): StudioSession {
+function createSession(defaults?: {
+  mode?: StudioMode;
+  depth?: TafssirDepth;
+  focus?: ResearchFocusAyah | null;
+  focusLabel?: string;
+}): StudioSession {
   sessionCounter += 1;
   return {
     id: `studio-${Date.now()}-${sessionCounter}`,
@@ -67,6 +76,8 @@ function createSession(defaults?: { mode?: StudioMode; depth?: TafssirDepth }): 
     messages: [],
     mode: defaults?.mode ?? "strict",
     depth: defaults?.depth ?? "balanced",
+    focus: defaults?.focus ?? null,
+    focusLabel: defaults?.focusLabel,
   };
 }
 
@@ -231,6 +242,7 @@ export function useStudioSessions() {
             answer_language: "auto",
             response_mode: target.mode,
             tafssir_depth: target.mode === "tafssir" ? target.depth : undefined,
+            focus: target.focus ?? undefined,
           },
           { headers: buildResearchHeaders(clientSettings) },
         );
@@ -286,9 +298,18 @@ export function useStudioSessions() {
   // inherit an existing thread's mode or context. `submitInto` updates by id, so
   // submitting before the state flush is safe.
   const askInNewSession = useCallback(
-    async (content: string, mushaf: number) => {
+    async (
+      content: string,
+      mushaf: number,
+      options: { mode?: StudioMode; focus?: ResearchFocusAyah | null; focusLabel?: string } = {},
+    ) => {
       if (!(await ensureAuth())) return;
-      const session = createSession(researchDefaultsRef.current);
+      const session = createSession({
+        ...researchDefaultsRef.current,
+        ...(options.mode ? { mode: options.mode } : {}),
+        focus: options.focus ?? null,
+        focusLabel: options.focusLabel,
+      });
       setSessions((current) => [...current, session]);
       setActiveId(session.id);
       return submitInto(session, content, mushaf);

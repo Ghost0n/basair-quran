@@ -132,6 +132,7 @@ function ScrollPageBody({
     return (
       <div className="qb-glyph-scroll-wrap">
         <GlyphPage
+          page={layout.page ?? data.page ?? undefined}
           lines={layout.lines}
           selectedAyahId={selectedAyahId}
           isSaved={isSaved}
