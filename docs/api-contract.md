@@ -59,6 +59,7 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/morphology`
 - `GET /api/text-count`
 - `GET /api/notebook` · `POST /api/notebook` · `DELETE /api/notebook/{item_id}` · `PUT /api/notebook/{item_id}/themes`
+- `GET /api/documents` · `POST /api/documents` · `GET /api/documents/{id}` · `PUT /api/documents/{id}` · `GET /api/documents/{id}/audit` · `DELETE /api/documents/{id}`
 - `GET /api/themes` · `POST /api/themes` · `GET /api/themes/{theme_id}` · `PATCH /api/themes/{theme_id}` · `PUT /api/themes/{theme_id}/board` · `DELETE /api/themes/{theme_id}`
 - `GET /api/sessions` · `GET /api/sessions/{session_id}` · `POST /api/sessions` · `DELETE /api/sessions/{session_id}`
 - `GET /api/roots` · `POST /api/roots` · `DELETE /api/roots/{root_id}`
@@ -75,6 +76,36 @@ This document freezes the backend contract that the future frontend migration wi
   ayah's starting page.
 - `text` is 1–300 chars and at most 12 words (`422` otherwise, or when it has no letters to count).
   Cached like search (`public, max-age=600`).
+
+## Research documents notes
+
+The shareable research format (design: `docs/research-workspace-spec.md` §5–6). Documents are
+private; the format is fixed now so community publishing can ship without migration.
+
+- `ResearchDocumentSave {title (1–200), summary?, language, tags[≤12], theme_ids[], sections[≤60],
+  references[≤80], provenance, visibility: "private"}`; the whole document is ≤ 512 KB (`413`), and a
+  user keeps at most 300 documents.
+  - `sections[]`: `{id (unique), kind: text|ayahs|note|question|ai_answer, title?, body (≤ 8000, a
+    markdown subset rendered as text), ayahs[≤40]: AyahRef}`.
+  - `AyahRef`: `{mushaf_id, surah_id, ayah, ayah_id?, text}`.
+  - `references[]`: `{kind: ayah|tafsir|book|url, label, locator?}`; an `ayah` locator is `"S:A"`.
+  - `provenance`: `{mode: strict|tafssir|null, ai_sections[], created_from: studio|board|manual,
+    source_id?}`.
+- **Quote verification on every save.** Each `AyahRef` is checked against the Quran DB:
+  - An empty `text` is filled with the mushaf text, and `ayah_id` is set.
+  - A quote whose normalized rasm differs is kept as written and reported in
+    `verification.issues[] {section_id, surah_id, ayah, problem: text_mismatch|not_found, expected?}`.
+- `ResearchDocument` = save body + `{id, v: 1, version (incremented on each PUT), created_at,
+  updated_at, verification?}` (`verification` is present on create/replace responses).
+- `GET /api/documents/{id}/audit` → `DocumentAudit {publishable, checks[{rule, passed, detail?}]}`.
+  These are the deterministic, blocking pre-publication checks:
+  - `quotes_verified`, `has_content`, `ai_sections_labelled` (`ai_answer` sections ⇔
+    `provenance.ai_sections`), `ayah_references_resolve`;
+  - `tafssir_disclaimer` for tafssir documents: the summary or a section must carry the «تجريبي»
+    note.
+
+  The advisory AI audit is designed in `docs/ai-audit-agent.md`.
+- Guest→account merge moves the device's documents; account deletion erases them.
 
 ## Themes (مواضيع) notes
 

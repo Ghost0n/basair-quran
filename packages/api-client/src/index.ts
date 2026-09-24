@@ -1,5 +1,9 @@
 import type {
   AyahReaderResponse,
+  DocumentAudit,
+  ResearchDocument,
+  ResearchDocumentSave,
+  ResearchDocumentSummary,
   AuthLoginRequest,
   AuthOkResponse,
   AuthProfileUpdate,
@@ -375,6 +379,27 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
         method: "PUT",
         body: JSON.stringify({ theme_ids: themeIds }),
       });
+    },
+    getDocuments(): Promise<ResearchDocumentSummary[]> {
+      return request<ResearchDocumentSummary[]>("/documents");
+    },
+    getDocument(documentId: string): Promise<ResearchDocument> {
+      return request<ResearchDocument>(`/documents/${encodeURIComponent(documentId)}`);
+    },
+    createDocument(document: ResearchDocumentSave): Promise<ResearchDocument> {
+      return request<ResearchDocument>("/documents", { method: "POST", body: JSON.stringify(document) });
+    },
+    saveDocument(documentId: string, document: ResearchDocumentSave): Promise<ResearchDocument> {
+      return request<ResearchDocument>(`/documents/${encodeURIComponent(documentId)}`, {
+        method: "PUT",
+        body: JSON.stringify(document),
+      });
+    },
+    auditDocument(documentId: string): Promise<DocumentAudit> {
+      return request<DocumentAudit>(`/documents/${encodeURIComponent(documentId)}/audit`);
+    },
+    deleteDocument(documentId: string): Promise<DeleteResult> {
+      return request<DeleteResult>(`/documents/${encodeURIComponent(documentId)}`, { method: "DELETE" });
     },
     getThemes(): Promise<ThemeSummary[]> {
       return request<ThemeSummary[]>("/themes");

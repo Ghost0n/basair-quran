@@ -5,7 +5,7 @@ import "@/features/themes/themes.css";
 import "./board.css";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Background,
   BackgroundVariant,
@@ -45,6 +45,8 @@ import {
 } from "./board-model";
 import { BoardContext, type BoardContextValue } from "./board-context";
 import { AyahNode, HeadingNode, NoteNode } from "./board-nodes";
+import { documentFromBoard } from "@/features/documents/convert";
+import { createDocumentUrl } from "@/features/documents/open-document";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -126,6 +128,7 @@ function Board() {
   const formatNumber = useNumerals();
   const flow = useReactFlow();
   const { state: workspace } = useWorkspace();
+  const router = useRouter();
 
   const [theme, setTheme] = useState<ThemeDetail | null>(null);
   const [items, setItems] = useState<NotebookItem[]>([]);
@@ -275,6 +278,22 @@ function Board() {
     window.requestAnimationFrame(() => void flow.fitView({ padding: 0.2, maxZoom: 1, duration: 300 }));
   }
 
+  // «صدّر كبحث»: the board (headings → sections, notes, relations) becomes a research document.
+  const [exporting, setExporting] = useState(false);
+  async function exportAsDocument() {
+    if (!theme || exporting) return;
+    setExporting(true);
+    try {
+      await save();
+      const board = toBoard(flow.getNodes(), flow.getEdges());
+      router.push(await createDocumentUrl(documentFromBoard(theme, board, items, ayahNodeId)));
+    } catch {
+      setSaveState("error");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function setEdgeLabel(edgeId: string, label: string) {
     setEdges((current) => current.map((edge) => (edge.id === edgeId ? { ...edge, label: label || undefined } : edge)));
     setEditingEdge(null);
@@ -329,6 +348,9 @@ function Board() {
             </button>
             <button type="button" onClick={arrange} title="ترتيب الآيات حسب ترتيب المصحف">
               <Icon name="layers" size={15} /> <span className="lbl">ترتيب</span>
+            </button>
+            <button type="button" onClick={() => void exportAsDocument()} disabled={exporting || items.length === 0}>
+              <Icon name="page" size={15} /> <span className="lbl">صدّر كبحث</span>
             </button>
             <span className={`save ${saveState}`} role="status" aria-live="polite">
               {saveLabel}

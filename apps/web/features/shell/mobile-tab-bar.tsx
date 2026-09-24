@@ -32,7 +32,7 @@ export function MobileTabBar() {
     <>
       <nav className="qb-tabbar" aria-label="التنقل">
         {TABS.map((tab) => {
-          const active = tab.mode === mode || (tab.mode === "notebook" && mode === "board");
+          const active = tab.mode === mode || (tab.mode === "notebook" && (mode === "board" || mode === "document"));
           return (
             <button
               key={tab.mode}

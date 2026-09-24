@@ -101,6 +101,18 @@ def ensure_app_db() -> None:
             );
             CREATE INDEX IF NOT EXISTS idx_themes_user ON themes (user_id, updated_at);
 
+            CREATE TABLE IF NOT EXISTS research_documents (
+                id TEXT PRIMARY KEY,
+                user_id INTEGER NOT NULL DEFAULT 0,
+                title TEXT NOT NULL,
+                body TEXT NOT NULL,
+                version INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                guest_id TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_documents_user ON research_documents (user_id, updated_at);
+
             CREATE TABLE IF NOT EXISTS merge_log (
                 undo_token TEXT PRIMARY KEY,
                 user_id INTEGER NOT NULL,
@@ -610,7 +622,14 @@ def merge_guest_data(
 
     token = _clean_guest_id(guest_id)
     now = int(time.time())
-    moved: dict[str, object] = {"notebook": [], "sessions": [], "roots": [], "themes": [], "preferences": False}
+    moved: dict[str, object] = {
+        "notebook": [],
+        "sessions": [],
+        "roots": [],
+        "themes": [],
+        "documents": [],
+        "preferences": False,
+    }
 
     # No token ⇒ nothing is claimable. Fail safe (never harvest unstamped rows).
     if token is None:
@@ -707,6 +726,18 @@ def merge_guest_data(
             )
         moved["themes"] = moved_theme_ids
 
+        # --- research documents ---
+        doc_rows = connection.execute(
+            "SELECT id FROM research_documents WHERE user_id = 0 AND guest_id = ?", (token,)
+        ).fetchall()
+        moved_doc_ids = [str(row["id"]) for row in doc_rows]
+        for doc_id in moved_doc_ids:
+            connection.execute(
+                "UPDATE research_documents SET user_id = ? WHERE id = ? AND user_id = 0 AND guest_id = ?",
+                (user_id, doc_id, token),
+            )
+        moved["documents"] = moved_doc_ids
+
         # --- preferences (only if requested, matching token, account has none) ---
         if include_preferences:
             has_account_prefs = connection.execute(
@@ -781,6 +812,11 @@ def undo_merge(user_id: int, undo_token: str) -> dict:
                 "UPDATE themes SET user_id = 0 WHERE id = ? AND user_id = ?",
                 (int(theme_id), user_id),
             )
+        for doc_id in moved.get("documents") or []:
+            connection.execute(
+                "UPDATE research_documents SET user_id = 0 WHERE id = ? AND user_id = ?",
+                (str(doc_id), user_id),
+            )
         if moved.get("preferences"):
             connection.execute(
                 "UPDATE user_preferences SET user_id = 0 WHERE user_id = ?",
@@ -805,7 +841,7 @@ def undo_merge(user_id: int, undo_token: str) -> dict:
 def delete_user_data(user_id: int) -> int:
     """Erase all user-generated content for ``user_id`` (account deletion).
 
-    Removes notebook items, research sessions, followed roots, themes, preferences, and
+    Removes notebook items, research sessions, followed roots, themes, research documents, preferences, and
     merge-log rows. Never touches guest (``user_id = 0``) data. Returns the total
     number of rows deleted.
     """
@@ -813,11 +849,28 @@ def delete_user_data(user_id: int) -> int:
         raise ValueError("Refusing to delete guest data via account deletion.")
     total = 0
     with _connect() as connection:
-        for table in ("notebook_items", "research_sessions", "followed_roots", "themes", "user_preferences", "merge_log"):
+        for table in (
+            "notebook_items",
+            "research_sessions",
+            "followed_roots",
+            "themes",
+            "research_documents",
+            "user_preferences",
+            "merge_log",
+        ):
             cursor = connection.execute(f"DELETE FROM {table} WHERE user_id = ?", (user_id,))
             total += cursor.rowcount if cursor.rowcount and cursor.rowcount > 0 else 0
         connection.commit()
     return total
+
+
+def connect() -> sqlite3.Connection:
+    """The app-data connection, for sibling services that own their own tables."""
+    return _connect()
+
+
+def guest_stamp(user_id: int, guest_id: str | None) -> str | None:
+    return _guest_stamp(user_id, guest_id)
 
 
 def _placeholders(items: list) -> str:

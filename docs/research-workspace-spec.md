@@ -1,6 +1,8 @@
 # Research workspace — themes, board, reader toolbox, contextual tafssir, research format
 
-**Status:** accepted design, implemented in phases Q-Basair-14 → 18 (see §7).
+**Status:** implemented in phases Q-Basair-14 → 18 (see §7). Community publishing itself
+(feeds, likes, comments, moderation UI) is the next step; its format, guidelines
+(`docs/community-guidelines.md`) and audit (`docs/ai-audit-agent.md`) are ready.
 **Principles (AGENTS.md):** Quran text is the evidence; strict mode stays Quran-only;
 Tafssir stays labelled experimental; user data is private by default; nothing here
 changes search results or the strict research contract.
