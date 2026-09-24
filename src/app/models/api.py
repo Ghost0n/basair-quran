@@ -313,6 +313,13 @@ class ResearchAgentMessage(BaseModel):
     content: str = Field(..., min_length=1, max_length=4000)
 
 
+class ResearchFocusAyah(BaseModel):
+    """One ayah the question is about (read in the request's mushaf)."""
+
+    surah: int = Field(..., ge=1, le=114)
+    ayah: int = Field(..., ge=1, le=286)
+
+
 class ResearchAgentRequest(BaseModel):
     messages: List[ResearchAgentMessage] = Field(..., min_length=1, max_length=12)
     mushaf: int = 1
@@ -320,6 +327,8 @@ class ResearchAgentRequest(BaseModel):
     answer_language: str = Field("auto", max_length=32)
     response_mode: Literal["strict", "tafssir"] = "strict"
     tafssir_depth: Literal["fast", "balanced", "deep"] = "balanced"
+    # Optional: centre the research on one ayah (always kept, read in context).
+    focus: Optional[ResearchFocusAyah] = None
 
 
 class ResearchRelatedTerm(BaseModel):

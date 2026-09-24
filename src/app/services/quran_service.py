@@ -98,6 +98,73 @@ def get_ayah_text(mushaf_id: int, surah: int, ayah: int) -> str | None:
     return row["text_uthmani"] if row else None
 
 
+def get_ayah_verse(mushaf_id: int, surah: int, ayah: int) -> dict | None:
+    """One ayah as a search-verse record (no highlights), or None."""
+    row = get_db().execute(
+        """
+        SELECT a.id AS ayah_id, a.mushaf_id, s.name_arabic AS surah_name, a.surah_id,
+               a.number_in_surah, a.text_uthmani, a.global_index
+        FROM ayahs a JOIN surahs s ON s.id = a.surah_id
+        WHERE a.mushaf_id = ? AND a.surah_id = ? AND a.number_in_surah = ?
+        """,
+        (mushaf_id, surah, ayah),
+    ).fetchone()
+    if row is None:
+        return None
+    return {
+        "ayah_id": row["ayah_id"],
+        "mushaf_id": row["mushaf_id"],
+        "surah": row["surah_name"],
+        "surah_id": row["surah_id"],
+        "ayah": row["number_in_surah"],
+        "text": row["text_uthmani"],
+        "global_index": row["global_index"],
+        "highlights": [],
+    }
+
+
+def get_ayah_context(mushaf_id: int, surah: int, ayah: int, before: int = 2, after: int = 2) -> dict | None:
+    """The ayah's place in its surah: surah metadata plus up to `before` /
+    `after` neighbouring ayahs (never crossing into another surah).
+
+    Used to read an ayah in context (tafssir) rather than as an isolated fragment.
+    """
+    cursor = get_db().cursor()
+    surah_row = cursor.execute(
+        """
+        SELECT s.id, s.name_arabic, s.name_english, s.type, COUNT(a.id) AS ayah_count
+        FROM surahs s JOIN ayahs a ON a.surah_id = s.id AND a.mushaf_id = ?
+        WHERE s.id = ?
+        GROUP BY s.id
+        """,
+        (mushaf_id, surah),
+    ).fetchone()
+    if surah_row is None or not 1 <= ayah <= surah_row["ayah_count"]:
+        return None
+    before = max(0, before)
+    after = max(0, after)
+    rows = cursor.execute(
+        """
+        SELECT number_in_surah, text_uthmani FROM ayahs
+        WHERE mushaf_id = ? AND surah_id = ? AND number_in_surah BETWEEN ? AND ?
+        ORDER BY number_in_surah
+        """,
+        (mushaf_id, surah, ayah - before, ayah + after),
+    ).fetchall()
+    return {
+        "surah": {
+            "id": surah_row["id"],
+            "name_arabic": surah_row["name_arabic"],
+            "name_english": surah_row["name_english"],
+            "type": surah_row["type"],
+            "ayah_count": surah_row["ayah_count"],
+        },
+        "ayah": ayah,
+        "before": [{"ayah": r["number_in_surah"], "text": r["text_uthmani"]} for r in rows if r["number_in_surah"] < ayah],
+        "after": [{"ayah": r["number_in_surah"], "text": r["text_uthmani"]} for r in rows if r["number_in_surah"] > ayah],
+    }
+
+
 def get_db():
     """Return this thread's read-only connection, reopening if it went stale."""
     entry = getattr(_thread_local, "entry", None)

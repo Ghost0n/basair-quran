@@ -32,7 +32,7 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   sheet opened from the bar or the rail.
 - Optional invite-only authentication with backend-managed users and signed session cookies.
 - Strict-context research agent that uses local transcript/book sources for term discovery and answers only from Quran search results.
-- Dedicated `/research` workspace with per-session Ollama cloud key entry, model switching, request-usage observability, and an experimental Tafssir mode.
+- Dedicated `/research` workspace with per-session Ollama cloud key entry, model switching, request-usage observability, and an experimental Tafssir mode that reads every ayah with its neighbouring ayahs and its surah's context (and can be centred on one ayah).
 
 ## Project Layout
 

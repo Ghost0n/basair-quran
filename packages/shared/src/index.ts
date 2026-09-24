@@ -222,6 +222,13 @@ export interface ResearchAgentRequest {
   answer_language?: string;
   response_mode?: "strict" | "tafssir";
   tafssir_depth?: TafssirDepth;
+  /** Centre the research on one ayah: always kept, read with its neighbours and surah. */
+  focus?: ResearchFocusAyah | null;
+}
+
+export interface ResearchFocusAyah {
+  surah: number;
+  ayah: number;
 }
 
 export interface ResearchAgentResponse {
