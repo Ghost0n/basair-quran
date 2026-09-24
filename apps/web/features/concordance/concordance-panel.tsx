@@ -13,7 +13,7 @@ import { flyToNotebook } from "@/lib/fly-to-notebook";
 import { emitNotebookChange, useNotebookSync } from "@/lib/notebook-sync";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { useNumerals } from "@/lib/preferences-context";
-import { getVerseSelectionKey, renderHighlightedVerseText } from "@/lib/quran-ui";
+import { getVerseSelectionKey, kwicWindow, renderHighlightedVerseText } from "@/lib/quran-ui";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
@@ -24,6 +24,25 @@ const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
  * live Mushaf. Clicking a verse jumps the Mushaf (via selectVerse →
  * useMushaf.loadByAyah). Consumes the shared search hook.
  */
+const DENSITY_KEY = "qb.concordanceDensity";
+
+/** One-line key-word-in-context rendering of a result verse. */
+function CompactVerse({ text, highlights }: { text: string; highlights?: number[] }) {
+  const { words, before, after } = kwicWindow(text, highlights ?? []);
+  return (
+    <>
+      {before ? <span className="ell">… </span> : null}
+      {words.map((item, index) => (
+        <span key={item.position}>
+          {item.hit ? <span className="highlight">{item.word}</span> : item.word}
+          {index < words.length - 1 ? " " : null}
+        </span>
+      ))}
+      {after ? <span className="ell"> …</span> : null}
+    </>
+  );
+}
+
 export function ConcordancePanel() {
   const { state, actions } = useWorkspace();
   const { setMode } = useShellMode();
@@ -41,6 +60,27 @@ export function ConcordancePanel() {
 
   const [pinnedAyahIds, setPinnedAyahIds] = useState<Set<number>>(new Set());
   const [rootFollowed, setRootFollowed] = useState(false);
+  // Result density: full verse cards, or one KWIC line per result (scan many
+  // hits fast, open the verse in the mushaf for context). Remembered per device.
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    try {
+      setCompact(window.localStorage.getItem(DENSITY_KEY) === "compact");
+    } catch {
+      /* default: full cards */
+    }
+  }, []);
+  function toggleDensity() {
+    setCompact((value) => {
+      const next = !value;
+      try {
+        window.localStorage.setItem(DENSITY_KEY, next ? "compact" : "full");
+      } catch {
+        /* per-device convenience only */
+      }
+      return next;
+    });
+  }
 
   const results = state.results;
   const primary = results[0];
@@ -156,6 +196,18 @@ export function ConcordancePanel() {
           </div>
         </div>
         <div className="qb-side-head-actions">
+          {primary ? (
+            <button
+              type="button"
+              className={`close${compact ? " on" : ""}`}
+              title={compact ? "عرض الآيات كاملة" : "عرض مختصر (سطر لكل موضع)"}
+              aria-label={compact ? "عرض الآيات كاملة" : "عرض مختصر"}
+              aria-pressed={compact}
+              onClick={toggleDensity}
+            >
+              <Icon name={compact ? "cards" : "menu"} size={15} />
+            </button>
+          ) : null}
           {primary ? (
             <button
               type="button"
@@ -276,7 +328,8 @@ export function ConcordancePanel() {
                 // bubble up from the pin.
                 <div
                   key={selectionKey}
-                  className={`qb-verse-row${isSelected ? " selected" : ""}`}
+                  className={`qb-verse-row${isSelected ? " selected" : ""}${compact ? " compact" : ""}`}
+                  title={compact ? `سورة ${verse.surah}` : undefined}
                   style={{ "--i": Math.min(verseIndex, 8) } as CSSProperties}
                   role="button"
                   tabIndex={0}
@@ -309,7 +362,13 @@ export function ConcordancePanel() {
                       <Icon name={isPinned ? "pinFilled" : "pin"} size={12} />
                     </button>
                   </div>
-                  <div className="vtext">{renderHighlightedVerseText(verse.text.trim(), verse.highlights)}</div>
+                  {compact ? (
+                    <div className="vtext kwic">
+                      <CompactVerse text={verse.text} highlights={verse.highlights} />
+                    </div>
+                  ) : (
+                    <div className="vtext">{renderHighlightedVerseText(verse.text.trim(), verse.highlights)}</div>
+                  )}
                 </div>
               );
             })}

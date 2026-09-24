@@ -57,3 +57,28 @@ export function renderHighlightedVerseText(text: string, highlights: number[] = 
     );
   });
 }
+
+/**
+ * Key-word-in-context window for compact result rows: the words around the
+ * first highlighted word (±radius), with flags for elided text on either side.
+ * `highlights` are 1-based word positions (as returned by the search API).
+ */
+export function kwicWindow(
+  text: string,
+  highlights: number[] = [],
+  radius = 4,
+): { words: { word: string; position: number; hit: boolean }[]; before: boolean; after: boolean } {
+  const all = text.trim().split(/\s+/).filter(Boolean);
+  const hits = new Set(highlights);
+  const first = highlights.length ? Math.min(...highlights) : 1;
+  const last = highlights.length ? Math.max(...highlights) : 1;
+  // Keep every hit when they sit close together; otherwise centre on the first.
+  const end = last - first <= radius * 2 ? last : first;
+  const from = Math.max(1, first - radius);
+  const to = Math.min(all.length, end + radius);
+  const words = [];
+  for (let position = from; position <= to; position += 1) {
+    words.push({ word: all[position - 1], position, hit: hits.has(position) });
+  }
+  return { words, before: from > 1, after: to < all.length };
+}

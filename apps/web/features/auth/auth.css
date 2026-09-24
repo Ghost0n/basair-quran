@@ -515,3 +515,21 @@
   margin-bottom: 4px;
   text-align: center;
 }
+
+/* "Back to sign in" on the forgot/reset steps: a quiet text button, centred
+   (the .forgot style above only applied inside a field row). */
+.qb-auth-card > .forgot {
+  align-self: center;
+  min-height: 40px;
+  padding: 0 12px;
+  border: none;
+  background: none;
+  color: var(--fg-3);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.qb-auth-card > .forgot:hover {
+  color: var(--gold-text);
+}
