@@ -15,6 +15,7 @@ import { looksLikeQuestion, queueStudioAsk, queueStudioOpenSession } from "@/lib
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
+import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -41,16 +42,33 @@ const ROTATE_MS = 9000;
  * row (continue-reading + library stats), three entry tiles, and the latest
  * research sessions. One glance orients, one click reaches every room.
  */
+const LANDED_KEY = "qb.landed";
+
 export function HomeScreen() {
   const { setMode } = useShellMode();
   const formatNumber = useNumerals();
   const { actions } = useWorkspace();
-  const { preferences } = usePreferences();
+  const { preferences, ready } = usePreferences();
+
+  // Returning readers land in the reader: the first Home of a browser session
+  // with a saved position forwards to «القراءة» (which resumes there). Home is
+  // still one tap away (rail brand / tab bar) and never redirects twice.
+  const hasPosition = Boolean(preferences.last_position?.ayah_id || preferences.last_position?.page);
+  useEffect(() => {
+    if (!ready) return;
+    try {
+      if (window.sessionStorage.getItem(LANDED_KEY)) return;
+      window.sessionStorage.setItem(LANDED_KEY, "1");
+    } catch {
+      return; // no sessionStorage: never redirect (can't guarantee "only once")
+    }
+    if (hasPosition) setMode("reading", { replace: true });
+  }, [ready, hasPosition, setMode]);
   const mushaf = useMushaf();
   const savedPages = preferences.saved_pages ?? [];
 
   function openSavedPage(entry: SavedPageEntry) {
-    void mushaf.loadPage(entry.mushaf_id || 1, entry.page, { persist: true });
+    void mushaf.loadPage(entry.mushaf_id || DEFAULT_MUSHAF_ID, entry.page, { persist: true });
     setMode("reading");
   }
 
@@ -58,6 +76,10 @@ export function HomeScreen() {
   const [lastPage, setLastPage] = useState<number | null>(null);
   const [lastSurah, setLastSurah] = useState<string | null>(null);
   const [ayahIndex, setAyahIndex] = useState(0);
+  // The account's saved position (what the reader resumes at) wins over this
+  // device's last page.
+  const resumePage = preferences.last_position?.page ?? lastPage;
+  const resumeAyah = preferences.last_position?.page ? preferences.last_position?.ayah ?? null : null;
   const [savedCount, setSavedCount] = useState<number | null>(null);
   const [recentSessions, setRecentSessions] = useState<ResearchSessionSummary[]>([]);
   // Personalized greeting — only when signed in. Reads the shared session probe,
@@ -144,7 +166,7 @@ export function HomeScreen() {
             {ayah.text}
           </p>
           <span className="ayah-ref">
-            {ayah.surah} · {formatNumber(ayah.ayah)}
+            {ayah.surah}: {formatNumber(ayah.ayah)}
           </span>
         </header>
 
@@ -203,24 +225,28 @@ export function HomeScreen() {
           )}
 
           <button type="button" className="qb-home-gridcard" onClick={() => setMode("reading")}>
-            <span className="eyebrow">تابع القراءة</span>
+            <span className="eyebrow">{resumePage ? "تابع القراءة" : "ابدأ القراءة"}</span>
             <span className="lead sm">
-              {lastPage ? (
+              {resumePage ? (
                 <>
-                  {lastSurah ? <>سورة {lastSurah} · </> : null}صفحة {formatNumber(lastPage)}
+                  {lastSurah && resumePage === lastPage ? <>سورة {lastSurah}، </> : null}صفحة {formatNumber(resumePage)}
                 </>
               ) : (
                 <>سورة الفاتحة</>
               )}
             </span>
-            <span className="hairline" aria-hidden>
-              <span style={{ width: `${Math.min(100, Math.round(((lastPage ?? 1) / 604) * 100))}%` }} />
-            </span>
+            {resumeAyah ? <span className="meta">عند الآية {formatNumber(resumeAyah)}</span> : null}
+            {resumePage ? (
+              <span className="hairline" aria-hidden>
+                <span style={{ width: `${Math.min(100, Math.round((resumePage / 604) * 100))}%` }} />
+              </span>
+            ) : null}
+            <span className="cta">{resumePage ? "تابِع ←" : "افتح المصحف ←"}</span>
           </button>
 
           <button type="button" className="qb-home-gridcard" onClick={() => setMode("notebook")}>
             <span className="eyebrow">
-              مثبَّتات حديثة{savedCount ? <> · {formatNumber(savedCount)}</> : null}
+              مثبَّتات حديثة{savedCount ? <> ({formatNumber(savedCount)})</> : null}
             </span>
             <span className="lead sm">
               {savedCount ? `${formatNumber(savedCount)} آية مُثبَّتة في الدفتر` : "لا مثبَّتات بعد"}

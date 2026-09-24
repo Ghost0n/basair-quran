@@ -318,14 +318,15 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
         `/mushaf-page-layout?mushaf=${mushaf}${pagePart}${selectedPart}`,
       );
     },
-    getSurahs(): Promise<SurahListItem[]> {
-      return request<SurahListItem[]>("/surahs");
+    getSurahs(mushaf?: number): Promise<SurahListItem[]> {
+      return request<SurahListItem[]>(typeof mushaf === "number" ? `/surahs?mushaf=${mushaf}` : "/surahs");
     },
-    getMorphology(surah: number, ayah: number, text?: string): Promise<MorphologyResponse> {
-      // `text` lets the backend match the verse by its skeleton, so morphology is
-      // correct even when the riwāyah's ayah numbering differs from the source.
-      const textPart = text ? `&text=${encodeURIComponent(text)}` : "";
-      return request<MorphologyResponse>(`/morphology?surah=${surah}&ayah=${ayah}${textPart}`);
+    getMorphology(surah: number, ayah: number, mushaf?: number): Promise<MorphologyResponse> {
+      // `mushaf` lets the backend read that riwāyah's verse text and match it by
+      // skeleton, so morphology is correct even when the ayah numbering differs
+      // from the source — without sending the whole verse in the URL.
+      const mushafPart = typeof mushaf === "number" ? `&mushaf=${mushaf}` : "";
+      return request<MorphologyResponse>(`/morphology?surah=${surah}&ayah=${ayah}${mushafPart}`);
     },
     getReciters(): Promise<ReciterItem[]> {
       return request<ReciterItem[]>("/reciters");

@@ -13,10 +13,10 @@ const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const cache = new Map<string, MorphologyResponse>();
 
 /**
- * Fetches per-word morphology for one ayah. Cached by surah:ayah so the
- * popover never refetches a verse the reader has already opened.
+ * Fetches per-word morphology for one ayah of one mushaf. Cached by
+ * mushaf:surah:ayah so the popover never refetches a verse already opened.
  */
-export function useMorphology(surah: number | null, ayah: number | null, text?: string) {
+export function useMorphology(surah: number | null, ayah: number | null, mushaf?: number) {
   const [data, setData] = useState<MorphologyResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -25,9 +25,9 @@ export function useMorphology(surah: number | null, ayah: number | null, text?: 
       setData(null);
       return;
     }
-    // Key by text too: the same (surah, ayah) maps to a different verse across
+    // Key by mushaf too: the same (surah, ayah) maps to a different verse across
     // riwāyāt (different numbering), so caching by number alone would be stale.
-    const key = `${surah}:${ayah}:${text ?? ""}`;
+    const key = `${mushaf ?? ""}:${surah}:${ayah}`;
     const cached = cache.get(key);
     if (cached) {
       setData(cached);
@@ -37,7 +37,7 @@ export function useMorphology(surah: number | null, ayah: number | null, text?: 
     setLoading(true);
     setData(null);
     api
-      .getMorphology(surah, ayah, text)
+      .getMorphology(surah, ayah, mushaf)
       .then((response) => {
         cache.set(key, response);
         if (!cancelled) setData(response);
@@ -51,7 +51,7 @@ export function useMorphology(surah: number | null, ayah: number | null, text?: 
     return () => {
       cancelled = true;
     };
-  }, [surah, ayah, text]);
+  }, [surah, ayah, mushaf]);
 
   return { data, loading };
 }

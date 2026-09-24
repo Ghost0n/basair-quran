@@ -1,6 +1,6 @@
 import time
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from src.app.models.api import MushafItem, ReciterItem, SurahListItem
 from src.app.services import quran_service, reciter_service
@@ -42,7 +42,9 @@ def get_mushafs() -> list[MushafItem]:
 
 
 @router.get("/surahs", response_model=list[SurahListItem])
-def get_surahs() -> list[SurahListItem]:
+def get_surahs(
+    mushaf: int = Query(1, description="Mushaf ID — ayah counts follow its numbering (e.g. al-Baqarah: Hafs 286, Qaloun 285)"),
+) -> list[SurahListItem]:
     start = time.time()
     cursor = quran_service.get_db().cursor()
     cursor.execute(
@@ -54,10 +56,11 @@ def get_surahs() -> list[SurahListItem]:
             s.type AS type,
             COUNT(a.id) AS ayah_count
         FROM surahs s
-        LEFT JOIN ayahs a ON a.surah_id = s.id AND a.mushaf_id = 1
+        LEFT JOIN ayahs a ON a.surah_id = s.id AND a.mushaf_id = ?
         GROUP BY s.id, s.name_arabic, s.name_english, s.type
         ORDER BY s.id
-        """
+        """,
+        (mushaf,),
     )
     surahs = [
         SurahListItem(

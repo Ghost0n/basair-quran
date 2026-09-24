@@ -83,7 +83,7 @@
   color: var(--gold-text);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
 }
 
 .qb-side-head h3 {
@@ -148,7 +148,7 @@
   color: var(--gold-text);
   font-size: 30px;
   line-height: 1;
-  letter-spacing: 0.08em;
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
 }
 
 .qb-root-summary .root-gloss {
@@ -213,11 +213,11 @@
 /* ---------- Verse rows ---------- */
 
 .qb-verse-row {
-  padding: 14px;
+  padding: 10px 14px 12px;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.10));
   border: 1px solid var(--border);
   border-radius: 14px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   cursor: pointer;
   transition: border-color 200ms var(--ease-out), transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
   position: relative;
@@ -262,13 +262,17 @@
 
 .qb-verse-row .vmeta .ayah-ref {
   color: var(--fg-3);
-  font-family: var(--font-mono);
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
 }
 
 .qb-verse-row .vmeta .pin {
   margin-inline-start: auto;
-  width: 22px;
-  height: 22px;
+  /* 36px hit area; the negative margin keeps the visual row height. */
+  width: 36px;
+  height: 36px;
+  margin-block: -8px;
+  margin-inline-end: -8px;
   border-radius: 6px;
   display: inline-flex;
   align-items: center;
@@ -292,8 +296,9 @@
 
 .qb-verse-row .vtext {
   font-family: var(--font-arabic-display);
-  font-size: 22px;
-  line-height: 1.95;
+  /* Denser than the reader: results are scanned, then opened in the mushaf. */
+  font-size: 20px;
+  line-height: 1.85;
   color: var(--verse-fg);
   font-weight: 500;
 }
@@ -339,7 +344,8 @@
 }
 
 .qb-conc-pager .count {
-  font-family: var(--font-mono);
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
   font-size: 11px;
   color: var(--fg-3);
 }
@@ -408,7 +414,7 @@
   font-family: var(--font-arabic-display);
   font-size: 26px;
   color: rgba(212, 175, 55, 0.22);
-  letter-spacing: 4px;
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
 }
 
 .qb-conc-error {
@@ -494,7 +500,9 @@
 
 .qb-heatmap-grid {
   display: grid;
-  grid-template-columns: repeat(19, 1fr);
+  /* Fluid: ~19 columns on desktop, ~8 on phones — cells never overflow the
+     viewport (minmax(0,…) lets tracks shrink below their content width). */
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
   gap: 6px;
   max-width: 860px;
 }
@@ -505,8 +513,10 @@
   border: 1px solid var(--border);
   background: rgba(212, 175, 55, 0.04);
   color: var(--fg-mute);
-  font-size: 9px;
-  font-family: var(--font-mono);
+  font-size: 11px;
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -514,7 +524,15 @@
   transition: transform 140ms var(--ease-out);
 }
 
-.qb-heat-cell:hover {
+@media (hover: hover) {
+  .qb-heat-cell:hover {
+    transform: scale(1.35);
+    z-index: 2;
+    border-color: var(--gold-400);
+  }
+}
+
+.qb-heat-cell:focus-visible {
   transform: scale(1.35);
   z-index: 2;
   border-color: var(--gold-400);
@@ -551,10 +569,6 @@
 }
 
 @media (max-width: 768px) {
-  .qb-heatmap-grid {
-    grid-template-columns: repeat(10, 1fr);
-  }
-
   .qb-aux,
   .qb-settings {
     padding: 20px 16px 32px;

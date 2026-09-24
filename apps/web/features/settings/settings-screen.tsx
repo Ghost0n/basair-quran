@@ -4,41 +4,20 @@ import { useState } from "react";
 
 import "./settings.css";
 
-import type { NumeralScript, ReaderLayout } from "@q-basair/shared";
+import type { NumeralScript } from "@q-basair/shared";
 
 import { SelectMenu } from "@/components/select-menu";
 import { AccountSettings } from "@/features/identity/account-settings";
-import { usePreferences } from "@/lib/preferences-context";
+import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
+import { READER_MODES, resolveReaderMode } from "@/features/reading/reader-modes";
+import { useCompactReader } from "@/features/reading/use-wide-screen";
+import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
 const NUMERAL_OPTIONS: { value: NumeralScript; label: string }[] = [
   { value: "arabic-indic", label: "هنديّة ٠١٢" },
   { value: "latin", label: "لاتينية 012" },
   { value: "persian", label: "فارسيّة ۰۱۲" },
-];
-
-const RENDER_OPTIONS: { value: "authentic" | "simple"; label: string }[] = [
-  { value: "authentic", label: "مدني (تخطيط الصفحة)" },
-  { value: "simple", label: "نصّي" },
-];
-
-// Reader layout (orthogonal to the renderer). "صفحتان" (spread) needs the
-// authentic Madani glyph page (Ḥafṣ only), so it's gated on mushaf_render.
-const LAYOUT_OPTIONS: { value: ReaderLayout; label: string; authenticOnly?: boolean }[] = [
-  { value: "auto", label: "تلقائي" },
-  { value: "single", label: "صفحة" },
-  { value: "spread", label: "صفحتان", authenticOnly: true },
-  { value: "scroll", label: "تمرير" },
-  { value: "ayah", label: "آية آية" },
-];
-
-const LANGUAGE_OPTIONS: { value: string; label: string }[] = [
-  { value: "ar", label: "العربية" },
-  { value: "en", label: "English" },
-  { value: "fr", label: "Français" },
-  { value: "tr", label: "Türkçe" },
-  { value: "id", label: "Bahasa" },
-  { value: "ur", label: "اردو" },
 ];
 
 const DEPTH_OPTIONS: { value: "fast" | "balanced" | "deep"; label: string }[] = [
@@ -49,96 +28,71 @@ const DEPTH_OPTIONS: { value: "fast" | "balanced" | "deep"; label: string }[] = 
 
 /**
  * Settings — the CANONICAL home for every preference: account & session,
- * reading & muṣḥaf, display, guided research, and interface language. Quick
+ * reading & muṣḥaf, display, and guided research. (The UI is Arabic-only in v1;
+ * `ui_language` stays in the API for the future i18n work.) Quick
  * Settings (the ⚙ top-bar popover) is a shortcut to the handful of these a
  * reader changes mid-session; both write the same account preferences, so they
- * stay in lockstep. Riwāyah and theme delegate to their existing workspace
- * homes; the rest persist via PreferencesProvider.updateAccount.
+ * stay in lockstep. Theme delegates to its workspace home; the rest (including
+ * the mushaf edition) persist via PreferencesProvider.updateAccount.
  */
 export function SettingsScreen() {
   const { preferences, account, updateAccount, updateAccountDebounced } = usePreferences();
+  const formatNumber = useNumerals();
   // Confirm before making the experimental tafssir mode the account default.
   const [confirmTafssirDefault, setConfirmTafssirDefault] = useState(false);
   const { state, actions } = useWorkspace();
 
-  // "صفحتان" (spread) only renders on the authentic Madani glyph page, served
-  // for Ḥafṣ alone — gate it on both the renderer and the riwāyah name.
-  const selectedMushafName =
-    state.mushafs.find((item) => item.id === state.selectedMushaf)?.name ??
-    state.selectedMushafLabel ??
-    "";
-  const spreadAvailable = preferences.mushaf_render === "authentic" && selectedMushafName.includes("حفص");
+  const edition = state.edition;
+  const compactReader = useCompactReader();
+  const readerMode = resolveReaderMode(preferences.reader_layout, compactReader);
 
   return (
     <div className="qb-settings">
       <div className="qb-settings-h">
-        <div className="kicker">الإعدادات · SETTINGS</div>
+        <div className="kicker">الإعدادات</div>
         <h2>التفضيلات</h2>
         <div className="sub">
-          كلّ الإعدادات هنا. «الإعدادات السريعة» (زرّ ⚙ أعلى الشاشة) اختصارٌ لأكثرها استعمالاً أثناء
-          القراءة، وتُحفظ في المكان نفسه.
+          كلّ الإعدادات هنا. زرّ «العرض» في شريط القراءة اختصارٌ لطريقة القراءة وحجم الخطّ أثناء
+          القراءة، ويحفظ في المكان نفسه.
         </div>
       </div>
 
       <div className="qb-settings-grid">
-        <AccountSettings />
 
         <section className="qb-setting-card">
           <h3>القراءة والمصحف</h3>
-          <p className="card-sub">الرواية، نمط العرض، تخطيط الصفحة، وحجم الخطّ.</p>
+          <p className="card-sub">المصحف، تخطيط الصفحة، وحجم الخطّ.</p>
           <div className="qb-setting-row">
-            <label>الرواية</label>
+            <label>المصحف</label>
             <SelectMenu
               className="qb-setting-menu"
-              ariaLabel="الرواية"
-              value={String(state.selectedMushaf)}
-              options={state.mushafs.map((mushafItem) => ({
-                value: String(mushafItem.id),
-                label: mushafItem.name,
-              }))}
-              onChange={(next) => actions.setSelectedMushaf(Number(next))}
+              ariaLabel="المصحف"
+              value={edition.id}
+              options={MUSHAF_EDITIONS.map((item) => ({ value: item.id, label: item.name }))}
+              onChange={(next) => void updateAccount({ mushaf_edition: resolveEdition(next).id })}
             />
           </div>
+          <p className="card-sub">{edition.description}</p>
           <div className="qb-setting-row">
-            <label>نمط المصحف</label>
-            <div className="qb-setting-seg">
-              {RENDER_OPTIONS.map((option) => (
+            <label>طريقة القراءة</label>
+            <div className="qb-setting-seg" role="group" aria-label="طريقة القراءة">
+              {READER_MODES.map((item) => (
                 <button
-                  key={option.value}
+                  key={item.mode}
                   type="button"
-                  className={preferences.mushaf_render === option.value ? "active" : ""}
-                  aria-pressed={preferences.mushaf_render === option.value}
-                  onClick={() => void updateAccount({ mushaf_render: option.value })}
+                  className={readerMode === item.mode ? "active" : ""}
+                  aria-pressed={readerMode === item.mode}
+                  title={item.hint}
+                  onClick={() => void updateAccount({ reader_layout: item.layout })}
                 >
-                  {option.label}
+                  {item.label}
                 </button>
               ))}
             </div>
           </div>
           <div className="qb-setting-row">
-            <label>تخطيط الصفحة</label>
-            <div className="qb-setting-seg is-grid" role="group" aria-label="تخطيط الصفحة">
-              {LAYOUT_OPTIONS.map((option) => {
-                const disabled = Boolean(option.authenticOnly) && !spreadAvailable;
-                return (
-                  <button
-                    key={option.value}
-                    type="button"
-                    className={preferences.reader_layout === option.value ? "active" : ""}
-                    disabled={disabled}
-                    aria-pressed={preferences.reader_layout === option.value}
-                    title={disabled ? "متاح في النمط المدني (حفص) فقط" : option.label}
-                    onClick={() => void updateAccount({ reader_layout: option.value })}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          <div className="qb-setting-row">
             <label>
-              حجم خطّ الآية <span className="qb-setting-value">{preferences.font_size}px</span>
+              حجم خطّ الآية <span className="qb-setting-value">{formatNumber(preferences.font_size)}</span>
             </label>
             <input
               type="range"
@@ -149,11 +103,9 @@ export function SettingsScreen() {
               onChange={(event) => updateAccountDebounced({ font_size: Number(event.target.value) })}
             />
           </div>
-          <p className="card-sub">
-            «مدني» يعرض صفحة المصحف بخطّ المدينة (رواية حفص فقط)؛ «نصّي» يعرض النصّ المتدفّق. «صفحتان»
-            متاح في النمط المدني (حفص) فقط.
-          </p>
         </section>
+
+        <AccountSettings />
 
         <section className="qb-setting-card">
           <h3>العرض</h3>
@@ -265,27 +217,6 @@ export function SettingsScreen() {
           </div>
         </section>
 
-        <section className="qb-setting-card">
-          <h3>اللغة</h3>
-          <p className="card-sub">لغة واجهة الاستخدام.</p>
-          <div className="qb-setting-row">
-            <label>لغة الواجهة</label>
-            <SelectMenu
-              className="qb-setting-menu"
-              ariaLabel="لغة الواجهة"
-              value={account.ui_language}
-              options={LANGUAGE_OPTIONS.map((option) => ({
-                value: option.value,
-                label: option.value === "ar" ? option.label : `${option.label} — قريباً`,
-              }))}
-              onChange={(next) => void updateAccount({ ui_language: next })}
-            />
-          </div>
-          <div className="qb-settings-note">
-            القرآن الكريم لا يُترجَم. تغيير اللغة يُبدّل واجهة الاستخدام فقط؛ نصّ الآيات يبقى بالعربية دائماً.
-            (ترجمة الواجهة الكاملة قيد الإعداد.)
-          </div>
-        </section>
       </div>
     </div>
   );

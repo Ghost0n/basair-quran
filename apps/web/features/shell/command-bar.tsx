@@ -12,6 +12,7 @@ import { useMushaf } from "@/features/reading/mushaf-context";
 import { useShellMode } from "./mode-context";
 import { useCommandShortcut } from "./use-command-shortcut";
 import { useWorkspace } from "./workspace-context";
+import { parseNavCommand } from "@/lib/quran-nav";
 
 // Live intent parsing for the command-bar chip (design spec). Ask stays aligned
 // with the Enter-routing (`looksLikeQuestion`) so the chip never contradicts what
@@ -19,48 +20,6 @@ import { useWorkspace } from "./workspace-context";
 type CommandIntent = "ask" | "go" | "search";
 const INTERROGATIVE = /^(ما|من|لماذا|كيف|هل|أين|متى)\s/;
 
-// Map Arabic-Indic digits to ASCII so page/surah/juz/reference parsing is
-// numeral-script agnostic.
-function toLatinDigits(s: string): string {
-  return s.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
-}
-
-type NavCommand =
-  | { type: "page"; page: number }
-  | { type: "surah"; surah: number }
-  | { type: "ayah"; surah: number; ayah: number }
-  | { type: "juz"; juz: number };
-
-// Parse a navigation command from the command bar: «صفحة N», «سورة N», «جزء N»,
-// or a reference like «2:255» (سورة:آية). Returns null for anything else so the
-// bar falls through to search — the "go" chip only lights when this matches, so
-// the chip and what Enter does never contradict.
-function parseGo(raw: string): NavCommand | null {
-  const value = toLatinDigits(raw.trim());
-  if (!value) return null;
-  let m = value.match(/^(\d{1,3})\s*[:：]\s*(\d{1,3})$/);
-  if (m) {
-    const surah = Number(m[1]);
-    const ayah = Number(m[2]);
-    return surah >= 1 && surah <= 114 && ayah >= 1 ? { type: "ayah", surah, ayah } : null;
-  }
-  m = value.match(/^صفحة\s+(\d{1,3})$/);
-  if (m) {
-    const page = Number(m[1]);
-    return page >= 1 && page <= 604 ? { type: "page", page } : null;
-  }
-  m = value.match(/^سورة\s+(\d{1,3})$/);
-  if (m) {
-    const surah = Number(m[1]);
-    return surah >= 1 && surah <= 114 ? { type: "surah", surah } : null;
-  }
-  m = value.match(/^جزء\s+(\d{1,2})$/);
-  if (m) {
-    const juz = Number(m[1]);
-    return juz >= 1 && juz <= 30 ? { type: "juz", juz } : null;
-  }
-  return null;
-}
 const INTENT_LABEL: Record<CommandIntent, string> = {
   ask: "اسأل ✦",
   go: "انتقال",
@@ -78,7 +37,7 @@ function detectIntent(raw: string): CommandIntent | null {
   const value = raw.trim();
   if (!value) return null;
   if (looksLikeQuestion(value) || INTERROGATIVE.test(value) || value.endsWith("؟")) return "ask";
-  if (parseGo(value)) return "go";
+  if (parseNavCommand(value)) return "go";
   return "search";
 }
 
@@ -133,7 +92,7 @@ export function CommandBar() {
         setMode("studio");
         return;
       }
-      const nav = value ? parseGo(value) : null;
+      const nav = value ? parseNavCommand(value) : null;
       if (nav) {
         event.preventDefault();
         const m = state.selectedMushaf;

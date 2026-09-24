@@ -147,7 +147,7 @@ export function StudioPanel() {
 
         <div className="qb-side-head" style={{ borderBottom: "none", padding: "14px 20px 4px" }}>
           <div>
-            <div className="kicker">جلسة الدراسة · STUDIO</div>
+            <div className="kicker">جلسة الدراسة</div>
             <h3 style={{ fontSize: 20 }}>{active?.title ?? "جلسة جديدة"}</h3>
             <div className="meta">
               {formatNumber(active?.messages.length ?? 0)} رسالة ·{" "}
@@ -357,7 +357,7 @@ function BotMessage({
 
       {ayahs.length > 0 ? (
         <div className="evidence">
-          <div className="evidence-label">الدليل القرآني · {formatNumber(ayahs.length)} آية</div>
+          <div className="evidence-label">الدليل القرآني ({formatNumber(ayahs.length)} آية)</div>
           {ayahs.map((ayah, index) => (
             <button
               key={ayah.ayah_id}
@@ -375,7 +375,7 @@ function BotMessage({
               <span className="num">[{formatNumber(index + 1)}]</span>
               <span className="ev-body">
                 <span className="ev-meta">
-                  سورة {ayah.surah} · {formatNumber(ayah.ayah)}
+                  سورة {ayah.surah}: {formatNumber(ayah.ayah)}
                 </span>
                 <span className="ev-text">{renderHighlightedVerseText(ayah.text.trim(), ayah.highlights ?? [])}</span>
               </span>

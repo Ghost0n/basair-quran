@@ -4,11 +4,11 @@ import { Icon } from "@/components/icon";
 
 import { CommandBar } from "./command-bar";
 import { useShellMode } from "./mode-context";
-import { QuickSettings } from "./quick-settings";
 import { useWorkspace } from "./workspace-context";
 
 /** Dedicated theme toggle — its own top-bar button now, no longer buried in the
- *  quick-settings popover or the account menu. Shows the theme you'd switch TO. */
+ *  account menu. Shows the theme you'd switch TO. (Reading display options live
+ *  in the reader's «العرض» sheet and in Settings.) */
 function ThemeButton() {
   const { state, actions } = useWorkspace();
   const dark = state.theme !== "light";
@@ -33,12 +33,13 @@ export function TopBar() {
   if (mode === "home") return null;
 
   return (
-    <div className="qb-topbar">
+    // On phones the reader hides this bar (its own bar carries the controls;
+    // search is one tap away in the tab bar) — see .qb-topbar.is-reading.
+    <div className={`qb-topbar${mode === "reading" ? " is-reading" : ""}`}>
       <CommandBar />
 
       <div className="qb-top-actions">
         <ThemeButton />
-        <QuickSettings />
       </div>
     </div>
   );

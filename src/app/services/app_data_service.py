@@ -20,6 +20,7 @@ import sqlite3
 import time
 
 from src.app.core import config
+from src.app.models.api import DEFAULT_MUSHAF_EDITION, MUSHAF_EDITION_IDS
 
 DEFAULT_USER_ID = 0
 
@@ -123,14 +124,17 @@ def _guest_stamp(user_id: int, guest_id: str | None) -> str | None:
 # ----------------------------------------------------------------------
 
 DEFAULT_PREFERENCES: dict = {
-    "riwayah": 1,
+    # The reader's mushaf edition (riwāyah + rendering); see models.api.MUSHAF_EDITION_IDS.
+    "mushaf_edition": DEFAULT_MUSHAF_EDITION,
+    # Deprecated since mushaf_edition (API compatibility only).
+    "riwayah": 2,  # Ḥafṣ — the only riwāyah with the authentic Madani reader
     "mushaf_font": "amiri-quran",
     "numerals": "arabic-indic",
     "ui_language": "ar",
     "theme": "dark",
     "font_size": 28,
     "reciter": "",
-    "mushaf_render": "simple",
+    "mushaf_render": "authentic",
     "reader_layout": "auto",
     "research": {"default_mode": "strict", "depth": "balanced"},
     # Last reading position — powers the personalized Home ayah hero. Snapshot,
@@ -153,6 +157,9 @@ def get_preferences(user_id: int = DEFAULT_USER_ID) -> dict:
         stored = json.loads(row["data"])
         merged.update({key: value for key, value in stored.items() if value is not None})
         merged["research"] = {**DEFAULT_PREFERENCES["research"], **(stored.get("research") or {})}
+    # An edition that is no longer offered falls back to the default one.
+    if merged.get("mushaf_edition") not in MUSHAF_EDITION_IDS:
+        merged["mushaf_edition"] = DEFAULT_MUSHAF_EDITION
     return merged
 
 

@@ -41,7 +41,7 @@
   color: var(--gold-text);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
 }
 
 .qb-export-head h3 {
@@ -75,7 +75,7 @@
 .qb-export-section-label {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
   color: var(--fg-3);
   margin-bottom: 8px;
 }
@@ -139,7 +139,8 @@
   border: 1px solid var(--border);
   border-radius: var(--r-md);
   padding: 12px 14px;
-  font-family: var(--font-mono);
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
   font-size: 11.5px;
   line-height: 1.7;
   color: var(--fg-2);

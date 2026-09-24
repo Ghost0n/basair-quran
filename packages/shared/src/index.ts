@@ -374,7 +374,13 @@ export interface SavedPageEntry {
   saved_at?: number | null;
 }
 
+/** Mushaf editions the reader offers (v1: the Madani mushaf only). */
+export type MushafEditionId = "madani-hafs";
+
 export interface UserPreferences {
+  /** The reader's mushaf edition — fixes the riwāyah and how it is drawn. */
+  mushaf_edition: MushafEditionId;
+  /** @deprecated since `mushaf_edition`; kept for API compatibility. */
   riwayah: number;
   mushaf_font: string;
   numerals: NumeralScript;
@@ -382,6 +388,7 @@ export interface UserPreferences {
   theme: "dark" | "light" | "system";
   font_size: number;
   reciter: string;
+  /** @deprecated since `mushaf_edition`; kept for API compatibility. */
   mushaf_render: "authentic" | "simple";
   reader_layout: ReaderLayout;
   research: ResearchDefaults;
@@ -413,6 +420,7 @@ export interface ReciterItem {
 }
 
 export interface UserPreferencesUpdate {
+  mushaf_edition?: MushafEditionId;
   riwayah?: number;
   mushaf_font?: string;
   numerals?: NumeralScript;

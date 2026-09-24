@@ -15,6 +15,7 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type { MushafItem, ReciterItem, SurahListItem } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
+import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { usePreferences } from "@/lib/preferences-context";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
@@ -89,7 +90,8 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([api.getReciters(), api.getSurahs(), api.getMushafs()])
+    // Audio files follow Ḥafṣ (Kūfī) ayah numbering, so auto-advance uses Ḥafṣ counts.
+    Promise.all([api.getReciters(), api.getSurahs(DEFAULT_MUSHAF_ID), api.getMushafs()])
       .then(([reciterList, surahList, mushafList]) => {
         if (cancelled) return;
         setReciters(reciterList);

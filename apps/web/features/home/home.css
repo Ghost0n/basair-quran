@@ -76,7 +76,8 @@
   align-items: center;
   gap: var(--sp-4);
   color: var(--gold-text);
-  font-family: var(--font-mono, ui-monospace, monospace);
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
   font-size: var(--fs-sm);
 }
 

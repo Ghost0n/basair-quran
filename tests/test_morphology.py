@@ -86,3 +86,35 @@ def test_morphology_run_match_handles_split_verses(api_client):
     assert len(body["words"]) == 6
     assert body["words"][0]["position"] == 1
     assert normalize_signature(body["words"][0]["text"]) == normalize_signature(full["words"][0]["text"])
+
+
+def test_morphology_resolves_the_verse_text_from_the_mushaf(api_client, monkeypatch):
+    # The client sends `mushaf` instead of the whole ayah text in the URL (a long
+    # verse like 2:282 made a ~7 KB request line); the server reads that riwāyah's
+    # text itself and matches it exactly like the legacy `text` parameter.
+    from src.app.services import quran_service
+
+    verse_text = (
+        "وَيَقُولُ ٱلَّذِينَ كَفَرُوا۟ لَوْلَآ أُنزِلَ عَلَيْهِ ءَايَةٌ مِّن رَّبِّهِۦٓ "
+        "إِنَّمَآ أَنتَ مُنذِرٌ وَلِكُلِّ قَوْمٍ هَادٍ"
+    )
+    seen = []
+
+    def fake_text(mushaf_id, surah, ayah):
+        seen.append((mushaf_id, surah, ayah))
+        return verse_text
+
+    monkeypatch.setattr(quran_service, "get_ayah_text", fake_text)
+    by_mushaf = api_client.get("/api/morphology", params={"surah": 13, "ayah": 8, "mushaf": 1}).json()
+    by_text = api_client.get("/api/morphology", params={"surah": 13, "ayah": 8, "text": verse_text}).json()
+
+    assert seen == [(1, 13, 8)]
+    assert by_mushaf == by_text
+    assert next(w for w in by_mushaf["words"] if w["position"] == 14)["root"] == "قوم"
+
+
+def test_get_ayah_text_reads_the_mushaf(api_client):
+    from src.app.services import quran_service
+
+    assert quran_service.get_ayah_text(1, 1, 3) == "shared verse 3"
+    assert quran_service.get_ayah_text(1, 1, 999) is None

@@ -92,6 +92,16 @@ def auth_session(request: Request) -> AuthSessionResponse:
     return AuthSessionResponse(enabled=True, authenticated=True, user=_user_info(resolved.user))
 
 
+def _device_fields(req, request: Request) -> dict:
+    """The client's own device label/platform, else one derived from the User-Agent."""
+    label, platform = req.device_label, req.platform
+    if not label or not platform:
+        ua_label, ua_platform = auth_service.describe_user_agent(request.headers.get("user-agent"))
+        label = label or ua_label
+        platform = platform or ua_platform
+    return {"device_label": label, "platform": platform}
+
+
 @router.post("/login", response_model=AuthSessionResponse)
 def auth_login(req: AuthLoginRequest, request: Request, response: Response) -> AuthSessionResponse:
     if not config.is_auth_enabled():
@@ -105,9 +115,7 @@ def auth_login(req: AuthLoginRequest, request: Request, response: Response) -> A
     if user is None:
         raise HTTPException(status_code=401, detail="Invalid email or password.")
 
-    raw_token, _ = auth_service.create_session(
-        user.id, device_label=req.device_label, platform=req.platform
-    )
+    raw_token, _ = auth_service.create_session(user.id, **_device_fields(req, request))
     _set_session_cookie(response, raw_token)
     return AuthSessionResponse(enabled=True, authenticated=True, user=_user_info(user), token=raw_token)
 
@@ -139,9 +147,7 @@ def auth_signup(req: AuthSignupRequest, request: Request, response: Response) ->
     except auth_service.AuthError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    raw_token, _ = auth_service.create_session(
-        user.id, device_label=req.device_label, platform=req.platform
-    )
+    raw_token, _ = auth_service.create_session(user.id, **_device_fields(req, request))
     _set_session_cookie(response, raw_token)
     return AuthSessionResponse(enabled=True, authenticated=True, user=_user_info(user), token=raw_token)
 

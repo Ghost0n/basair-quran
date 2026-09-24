@@ -42,9 +42,9 @@ export type MorphTarget = {
  * in the Mushaf.
  */
 export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose: () => void }) {
-  const { data, loading } = useMorphology(target.surah, target.ayah, target.ayahText);
   const { setMode } = useShellMode();
-  const { actions } = useWorkspace();
+  const { state, actions } = useWorkspace();
+  const { data, loading } = useMorphology(target.surah, target.ayah, state.selectedMushaf);
 
   // B1: ESC key closes the popover.
   useEffect(() => {

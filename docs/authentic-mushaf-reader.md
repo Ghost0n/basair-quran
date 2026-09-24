@@ -88,8 +88,12 @@ Hafs is `mushaf_id = 2`. Everything here is **parallel** to the existing
   `word_position` parity contract (the one silent failure mode → gets a dedicated
   round‑trip test against `/api/morphology`). Selection highlight = `.in-selected-ayah`
   on every span sharing `selectedAyahId`.
-- **Setting:** `mushaf_render: "authentic" | "simple"` (default `"simple"`), toggled in
-  Quick Settings; opt‑in so nothing changes for existing users until they choose it.
+- **Setting (superseded, Q-Basair-11):** originally `mushaf_render: "authentic" | "simple"`
+  (default `"simple"`), toggled in Quick Settings. Since the first public version the reader
+  shows **only** the Madani (Ḥafṣ, authentic) edition, chosen by the `mushaf_edition`
+  preference (Settings → «المصحف»); the riwāyah and renderer toggles were removed from the UI.
+  The Unicode path remains only as the loading/fallback state before a page's layout + glyph
+  font are ready. See `docs/api-contract.md` → Reader layout notes.
 
 ## Phased rollout
 

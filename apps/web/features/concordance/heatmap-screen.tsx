@@ -35,16 +35,13 @@ export function HeatmapScreen() {
 
   useEffect(() => {
     let cancelled = false;
-    if (surahs.length === 0) {
-      api.getSurahs().then((list) => {
-        if (!cancelled) setSurahs(list);
-      }).catch(() => {});
-    }
+    api.getSurahs(state.selectedMushaf).then((list) => {
+      if (!cancelled) setSurahs(list);
+    }).catch(() => {});
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [state.selectedMushaf]);
 
   useEffect(() => {
     if (!root) {
@@ -104,7 +101,7 @@ export function HeatmapScreen() {
     <div className="qb-aux">
       <div className="qb-aux-h">
         <div>
-          <div className="kicker">البانوراما · CONCORDANCE HEATMAP</div>
+          <div className="kicker">خريطة انتشار الجذر</div>
           <h2>{distribution?.root ?? root}</h2>
           <div className="sub">
             {loading

@@ -45,9 +45,11 @@ export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
 
   return (
     <div className={`qb-workspace-canvas${panelOpen ? " has-panel" : ""}`}>
+      {/* Every panel opens on the same side — inline-start (the right in RTL),
+          next to the rail that summoned it; the mushaf keeps the rest. */}
       {mode === "search" ? <ConcordancePanel /> : null}
-      <MushafStage />
       {mode === "studio" ? <StudioPanel /> : null}
+      <MushafStage />
     </div>
   );
 }

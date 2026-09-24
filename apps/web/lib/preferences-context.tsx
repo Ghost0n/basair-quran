@@ -15,6 +15,7 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type { UserPreferences, UserPreferencesUpdate } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
+import { DEFAULT_EDITION, DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { formatNumber } from "@/lib/numerals";
 // Side-effect: registers the guest-id header provider on the api-client.
 import "@/lib/guest-id";
@@ -22,14 +23,15 @@ import "@/lib/guest-id";
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
-  riwayah: 1,
+  mushaf_edition: DEFAULT_EDITION.id,
+  riwayah: DEFAULT_MUSHAF_ID,
   mushaf_font: "amiri-quran",
   numerals: "arabic-indic",
   ui_language: "ar",
   theme: "dark",
   font_size: 28,
   reciter: "",
-  mushaf_render: "simple",
+  mushaf_render: "authentic",
   reader_layout: "auto",
   research: { default_mode: "strict", depth: "balanced" },
   saved_pages: [],

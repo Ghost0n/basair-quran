@@ -63,7 +63,7 @@ body.light-mode::before {
 /* ---------- Base typography ---------- */
 
 h1, .h1 {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   font-size: var(--fs-4xl);
   line-height: var(--lh-tight);
   color: var(--gold-text);
@@ -72,7 +72,7 @@ h1, .h1 {
 }
 
 h2, .h2 {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   font-size: var(--fs-2xl);
   line-height: var(--lh-tight);
   color: var(--fg-1);
@@ -455,5 +455,46 @@ code, .mono {
   .qb-icon-btn {
     width: 42px;
     height: 42px;
+  }
+}
+
+/* ---------- Touch targets (coarse pointers) ----------
+   Phones/tablets: grow small controls to a comfortable hit area without
+   changing the desktop design. Inline verse save icons keep their 18px glyph
+   but get an invisible 44px hit box (they're absolutely positioned, so the
+   pseudo-element never moves the text). */
+@media (pointer: coarse) {
+  .qb-glyph-save,
+  .qb-save-ayah {
+    position: relative;
+  }
+
+  .qb-glyph-save::before,
+  .qb-save-ayah::before {
+    content: "";
+    position: absolute;
+    inset: -13px;
+  }
+
+  .qb-glyph-save {
+    position: absolute;
+  }
+
+  .qb-setting-seg button,
+  .qb-auth-tab,
+  .qb-mode-tab {
+    min-height: 40px;
+  }
+
+  .qb-side-panel .close,
+  .qb-studio .close,
+  .qb-conc-head .close {
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .qb-landing-guest {
+    min-height: 40px;
+    padding-inline: 8px;
   }
 }

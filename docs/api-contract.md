@@ -41,7 +41,8 @@ This document freezes the backend contract that the future frontend migration wi
 - `POST /api/auth/merge-guest-data/undo`
 - `GET /api/mushafs` — each `MushafItem` now includes a normalized `riwayah` key (matches
   `ReciterItem.riwayah`), so the UI can flag a reciter/mushaf riwāyah mismatch during recitation.
-- `GET /api/surahs`
+- `GET /api/surahs` — optional `mushaf` (default `1`): `ayah_count` follows that mushaf's
+  numbering (e.g. al-Baqarah: Hafs 286, Qaloun 285). The web client passes the selected riwāyah.
 - `GET /api/reciters`
 - `GET /api/root-distribution`
 - `GET /api/suggest`
@@ -92,21 +93,39 @@ This document freezes the backend contract that the future frontend migration wi
 
 ## Reader layout notes
 
-- `reader_layout` is an account preference on `GET/PATCH /api/user/preferences`,
-  **orthogonal** to `mushaf_render`. It selects how pages/ayahs are arranged, not
-  which renderer draws them: `"auto"` (default, resolved per viewport), `"single"`
-  (one fit-to-height page), `"spread"` (two facing pages, authentic/Hafs only —
-  degrades to `single` otherwise), `"scroll"` (continuous vertical scroll of pages,
-  fit-to-width), `"ayah"` (ayah-by-ayah list).
+- `mushaf_edition` is the account preference that picks **which mushaf** the reader shows. An
+  edition fixes the riwāyah and how it is drawn. Version 1 offers a single edition,
+  `"madani-hafs"` (the Madani mushaf: Ḥafṣ, mushaf id `2`, authentic QCF glyph pages), which is
+  also the default. PATCH rejects unknown ids (422); a stored id that is no longer offered reads
+  back as the default. Future standard editions are added to `MUSHAF_EDITION_IDS`
+  (`src/app/models/api.py`) and `MUSHAF_EDITIONS` (`apps/web/lib/mushaf-defaults.ts`).
+- `riwayah` and `mushaf_render` are **deprecated** since `mushaf_edition`: still returned and
+  accepted for compatibility (defaults `2` / `"authentic"`), but the web client ignores them.
+  The other riwāyāt stay in the database and API (`GET /api/mushafs`, `mushaf=` on search/reader
+  endpoints, whose query default remains `1`); the web client always sends the edition's mushaf.
+  A page or verse arriving in another riwāyah (e.g. a notebook item saved under Qālūn) is
+  re-opened in the edition by `surah:ayah`.
+- `reader_layout` is an account preference on `GET/PATCH /api/user/preferences`.
+  The API keeps its five values for compatibility; the web client offers **three
+  reading modes** and maps them:
+  - «صفحات» (pages) ← `"single"` or `"spread"`: the printed page; the client shows
+    a facing spread by itself only when two pages keep (almost) single-page size
+    in the reading area (`spreadFits` in `features/reading/reader-modes.ts`).
+    Choosing «صفحات» stores `"single"`.
+  - «تمرير» ← `"scroll"`: continuous pages, fitted to the column width but never
+    larger than the chosen text size (`font_size`).
+  - «آية آية» ← `"ayah"`: one verse per row at the chosen text size.
+  - `"auto"` (default) is device-smart: «تمرير» on phones and short/landscape
+    screens (≤768 px wide or ≤560 px tall), «صفحات» elsewhere.
 - It is a **presentation** preference consumed by the client only; no server
-  reader endpoint changes shape. Unknown/off-Hafs combinations degrade gracefully
-  on the client (e.g. `spread` → `single`).
+  reader endpoint changes shape.
 - `last_position` (a `ReadingPosition`: `ayah_id`, `mushaf_id`, optional
   `surah`/`ayah`/`page`/`updated_at`) is written by the reader as you read
   (debounced) and read back on open, so the reader **resumes to the exact last
-  verse** rather than the top of the last page. Resume falls back to the local
-  last page when there is no saved verse, or it belongs to another riwāyah (ayah
-  ids are per-muṣḥaf).
+  verse** rather than the top of the last page (the verse is marked for ~2.5 s,
+  then the mark clears without changing the saved position). A position saved in
+  another riwāyah resumes by its `surah:ayah`; with no saved verse the client
+  falls back to the local last page.
 
 ## Saved pages
 
@@ -123,16 +142,35 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/morphology?surah=N&ayah=M` returns per-word morphology (root, lemma,
   POS, case, features) sourced from the Quranic Arabic Corpus, which is
   **Kufan/Hafs-numbered**.
-- It accepts an optional `text` param (the displayed ayah). When present, the
+- It accepts an optional `mushaf` param (preferred): the server reads that mushaf's
+  ayah text itself and matches it as described below, so the client never sends the
+  verse in the URL (2:282 made a ~7 KB request line with `text`). The web client
+  always sends `mushaf`.
+- It also accepts a **deprecated** `text` param (the displayed ayah). When present, the
   verse is matched by its normalized consonant skeleton — first as a whole verse,
   then (if boundaries differ) as a **contiguous word run** in the surah's word
   stream. This is correct even for riwāyāt whose ayah **numbering** differs
   (e.g. Madani/Qalūn) *and* where a verse is **split or merged** relative to the
   Kufan source (the run is re-indexed to the displayed word positions). Without
   `text`, it falls back to the `(surah, ayah)` number — correct only for
-  Kufan-numbered riwāyāt (Hafs). Clients should send `text` for non-Hafs reading.
+  Kufan-numbered riwāyāt (Hafs). Clients should send `mushaf` for non-Hafs reading.
 - `position` is the 1-based word index within the verse; word counts are stable
   across riwāyāt, so the displayed word index aligns once the verse is matched.
+
+## HTTP caching
+
+- Read-only Quran endpoints (a pure function of `quran.db`) send
+  `Cache-Control: public, max-age=3600, stale-while-revalidate=86400`:
+  `/api/quran-page`, `/api/mushaf-page-layout`, `/api/ayah-reader`,
+  `/api/ayah-reader-more`, `/api/morphology`, `/api/surahs`, `/api/mushafs`,
+  `/api/reciters`, `/api/root-distribution`.
+- Search endpoints (`/api/search`, `/api/search-v2`, `/api/search-result-page`,
+  `/api/suggest`) send `public, max-age=600, stale-while-revalidate=3600`.
+- Only successful `GET`s are marked; per-user surfaces (auth, preferences,
+  notebook, sessions, followed roots, research) are never cached. Policy lives in
+  `src/app/core/http_cache.py`.
+- The web server serves `/fonts/*` (versioned glyph fonts) with
+  `public, max-age=31536000, immutable`; nginx gzips JSON/CSS/JS.
 
 ## Authentication notes
 

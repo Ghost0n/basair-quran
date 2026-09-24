@@ -147,11 +147,11 @@ export function ConcordancePanel() {
     <aside className="qb-side-panel" aria-label="لوحة المطابقة">
       <div className="qb-side-head">
         <div>
-          <div className="kicker">المطابقة · CONCORDANCE</div>
+          <div className="kicker">المطابقة</div>
           <h3>{primary ? primary.root : "البحث"}</h3>
           <div className="meta">
             {primary
-              ? `${formatNumber(totalOccurrences)} موضع · ${formatNumber(totalVerses)} آية`
+              ? `${formatNumber(totalOccurrences)} موضع، ${formatNumber(totalVerses)} آية`
               : "اكتب جذراً أو كلمة في شريط الأوامر"}
           </div>
         </div>

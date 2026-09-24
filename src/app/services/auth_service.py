@@ -377,6 +377,49 @@ def _row_to_session(row: sqlite3.Row) -> AuthSession:
     )
 
 
+def describe_user_agent(user_agent: str | None) -> tuple[str | None, str | None]:
+    """A human device label ("Chrome · Windows") and platform from a User-Agent.
+
+    Used when a web login doesn't name its device, so the devices list shows
+    something recognisable instead of a wall of identical «جهاز» rows.
+    """
+    ua = (user_agent or "").strip()
+    if not ua:
+        return None, None
+    lowered = ua.lower()
+    if "edg/" in lowered:
+        browser = "Edge"
+    elif "opr/" in lowered or "opera" in lowered:
+        browser = "Opera"
+    elif "firefox/" in lowered or "fxios/" in lowered:
+        browser = "Firefox"
+    elif "samsungbrowser/" in lowered:
+        browser = "Samsung Internet"
+    elif "chrome/" in lowered or "crios/" in lowered:
+        browser = "Chrome"
+    elif "safari/" in lowered:
+        browser = "Safari"
+    else:
+        browser = None
+    if "iphone" in lowered:
+        os_name, platform = "iPhone", "mobile"
+    elif "ipad" in lowered:
+        os_name, platform = "iPad", "tablet"
+    elif "android" in lowered:
+        os_name = "Android"
+        platform = "mobile" if "mobile" in lowered else "tablet"
+    elif "windows" in lowered:
+        os_name, platform = "Windows", "desktop"
+    elif "mac os x" in lowered or "macintosh" in lowered:
+        os_name, platform = "macOS", "desktop"
+    elif "linux" in lowered:
+        os_name, platform = "Linux", "desktop"
+    else:
+        os_name, platform = None, None
+    label = " · ".join(part for part in (browser, os_name) if part) or None
+    return label, platform
+
+
 def create_session(
     user_id: int,
     *,

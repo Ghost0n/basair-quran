@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from src.app.core import config, rate_limit
+from src.app.core import config, http_cache, rate_limit
 from src.app.routes import (
     auth_router,
     companions_router,
@@ -71,6 +71,17 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         return await call_next(request)
 
 
+class CacheControlMiddleware(BaseHTTPMiddleware):
+    """Adds Cache-Control to the read-only Quran endpoints (see core.http_cache)."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        policy = http_cache.cache_control_for(request.method, request.url.path, response.status_code)
+        if policy and "cache-control" not in response.headers:
+            response.headers["Cache-Control"] = policy
+        return response
+
+
 def attach_optional_session(request: Request) -> None:
     """Soft auth — resolve the token if present, never 401.
 
@@ -115,6 +126,7 @@ def create_app() -> FastAPI:
         https_only=config.is_session_secure(),
         max_age=60 * 60 * 24 * 14,
     )
+    app.add_middleware(CacheControlMiddleware)
     # Added before CORS so CORS stays the outermost layer and decorates 429s too.
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(

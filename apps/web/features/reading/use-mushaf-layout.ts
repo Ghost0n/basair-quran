@@ -11,6 +11,39 @@ import { loadPageFonts, prefetchPageFont } from "./qcf-font-loader";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
+// Layouts are immutable per (mushaf, page): keep recent ones so a prefetched or
+// revisited page renders without a network round trip. `null` = no usable
+// authentic layout for that page (non-Hafs / empty) — also worth remembering.
+const LAYOUT_CACHE_MAX = 48;
+const layoutCache = new Map<string, Promise<MushafPageLayoutResponse | null>>();
+
+function fetchLayout(mushafId: number, page: number): Promise<MushafPageLayoutResponse | null> {
+  const key = `${mushafId}:${page}`;
+  const cached = layoutCache.get(key);
+  if (cached) return cached;
+  const promise = api
+    .getMushafPageLayout(mushafId, page)
+    .then((data) => (!data.found || data.fallback || !data.lines || data.lines.length === 0 ? null : data))
+    .catch(() => {
+      layoutCache.delete(key); // allow a retry
+      return null;
+    });
+  layoutCache.set(key, promise);
+  if (layoutCache.size > LAYOUT_CACHE_MAX) {
+    const oldest = layoutCache.keys().next().value;
+    if (oldest !== undefined) layoutCache.delete(oldest);
+  }
+  return promise;
+}
+
+/** Warm a page's layout + glyph font so turning to it is instant. Best-effort. */
+export function prefetchMushafLayout(mushafId: number | null | undefined, page: number, totalPages = 604): void {
+  if (!mushafId || page < 1 || page > totalPages) return;
+  void fetchLayout(mushafId, page).then((data) => {
+    if (data) prefetchPageFont(data.font_base_path ?? "", page);
+  });
+}
+
 type MushafLayoutState = {
   /** The usable authentic layout — non-null only when found AND the page font is ready. */
   layout: MushafPageLayoutResponse | null;
@@ -53,10 +86,10 @@ export function useMushafLayout({
 
     void (async () => {
       try {
-        const data = await api.getMushafPageLayout(mushafId, page);
+        const data = await fetchLayout(mushafId, page);
         if (!isCurrent()) return;
         // Not Hafs / no layout tables / empty page → stay on the Unicode reader.
-        if (!data.found || data.fallback || !data.lines || data.lines.length === 0) {
+        if (!data) {
           setLayout(null);
           return;
         }

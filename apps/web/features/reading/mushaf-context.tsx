@@ -43,6 +43,37 @@ export type TravelJump = { from: number; to: number; id: number };
 // stay silent; only a real leap earns the wash + counter.
 const FAR_JUMP_MIN = 5;
 
+// Page payloads are immutable per (mushaf, page) — keep recent ones so turning
+// to a prefetched/revisited page needs no round trip. Only plain page loads
+// (no server-side selection) are cached.
+const PAGE_CACHE_MAX = 48;
+const pageCache = new Map<string, Promise<QuranPageResponse>>();
+
+function fetchPage(mushafId: number, page: number): Promise<QuranPageResponse> {
+  const key = `${mushafId}:${page}`;
+  const cached = pageCache.get(key);
+  if (cached) return cached;
+  const promise = api.getQuranPage(mushafId, page).then((data) => {
+    if (!data.found) pageCache.delete(key);
+    return data;
+  });
+  promise.catch(() => pageCache.delete(key));
+  pageCache.set(key, promise);
+  if (pageCache.size > PAGE_CACHE_MAX) {
+    const oldest = pageCache.keys().next().value;
+    if (oldest !== undefined) pageCache.delete(oldest);
+  }
+  return promise;
+}
+
+/** Warm a page's payload so turning to it is instant. Best-effort. */
+export function prefetchQuranPage(mushafId: number | null | undefined, page: number, totalPages = 604): void {
+  if (!mushafId || page < 1 || page > totalPages) return;
+  fetchPage(mushafId, page).catch(() => {});
+}
+// How long a resume marker stays on the verse before it clears itself.
+const TRANSIENT_SELECTION_MS = 2500;
+
 export type MushafController = {
   pageData: QuranPageResponse | null;
   isLoading: boolean;
@@ -55,7 +86,12 @@ export type MushafController = {
   clearTravel: () => void;
   bodyRef: RefObject<HTMLDivElement | null>;
   loadPage: (mushafId: number, page: number, options?: LoadOptions) => Promise<void>;
-  loadByAyah: (mushafId: number, ayahId: number, highlights?: number[]) => Promise<void>;
+  loadByAyah: (
+    mushafId: number,
+    ayahId: number,
+    highlights?: number[],
+    options?: { transient?: boolean },
+  ) => Promise<void>;
   loadBySurah: (mushafId: number, surah: number, ayah?: number) => Promise<void>;
   loadByJuz: (mushafId: number, juz: number) => Promise<void>;
   /**
@@ -114,7 +150,14 @@ function useMushafController(): MushafController {
       const reduce =
         typeof window !== "undefined" &&
         window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      node.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+      // Centre the verse inside the page's OWN scroller only. scrollIntoView()
+      // also scrolls every ancestor (the shell canvas), which pushed the reader
+      // bar off-screen on short/landscape screens.
+      const body = bodyRef.current;
+      const nodeRect = node.getBoundingClientRect();
+      const bodyRect = body.getBoundingClientRect();
+      const top = body.scrollTop + (nodeRect.top - bodyRect.top) - (body.clientHeight - nodeRect.height) / 2;
+      body.scrollTo({ top: Math.max(0, top), behavior: reduce ? "auto" : "smooth" });
     }
   }, [pageData]);
 
@@ -148,7 +191,10 @@ function useMushafController(): MushafController {
       if (options.highlights !== undefined) setSelectedHighlights(options.highlights);
       if (options.selectedAyahId !== undefined) setSelectedAyahId(options.selectedAyahId);
       try {
-        const data = await api.getQuranPage(mushafId, page, options.selectedAyahId ?? undefined);
+        const data =
+          options.selectedAyahId == null
+            ? await fetchPage(mushafId, page)
+            : await api.getQuranPage(mushafId, page, options.selectedAyahId);
         if (!data.found) throw new Error(NOT_FOUND);
         applyResult(data, options.persist ?? false);
       } catch (err) {
@@ -161,8 +207,19 @@ function useMushafController(): MushafController {
     [applyResult],
   );
 
+  // A "transient" selection (resume marker) clears itself after a moment, so the
+  // reader doesn't keep a verse boxed that the user never asked to select.
+  const transientTimerRef = useRef<number | null>(null);
+  const markTransient = useCallback((ayahId: number) => {
+    if (transientTimerRef.current) window.clearTimeout(transientTimerRef.current);
+    transientTimerRef.current = window.setTimeout(() => {
+      setSelectedAyahId((current) => (current === ayahId ? null : current));
+      transientTimerRef.current = null;
+    }, TRANSIENT_SELECTION_MS);
+  }, []);
+
   const loadByAyah = useCallback(
-    async (mushafId: number, ayahId: number, highlights: number[] = []) => {
+    async (mushafId: number, ayahId: number, highlights: number[] = [], options: { transient?: boolean } = {}) => {
       setIsLoading(true);
       setError(null);
       setSelectedAyahId(ayahId);
@@ -171,6 +228,7 @@ function useMushafController(): MushafController {
         const data = await api.getQuranPageForAyah(mushafId, ayahId);
         if (!data.found) throw new Error(NOT_FOUND);
         applyResult(data, false);
+        if (options.transient) markTransient(ayahId);
       } catch (err) {
         reportError("reader", err);
         setError(err instanceof Error ? err.message : READER_ERROR);
@@ -178,7 +236,7 @@ function useMushafController(): MushafController {
         setIsLoading(false);
       }
     },
-    [applyResult],
+    [applyResult, markTransient],
   );
 
   const loadBySurah = useCallback(
@@ -189,7 +247,8 @@ function useMushafController(): MushafController {
       try {
         const data = await api.getQuranPageForSurah(mushafId, surah, ayah);
         if (!data.found) throw new Error(NOT_FOUND);
-        setSelectedAyahId(data.selected_ayah_id ?? null);
+        // Only a targeted verse is selected; a plain surah jump selects nothing.
+        setSelectedAyahId(ayah ? data.selected_ayah_id ?? null : null);
         applyResult(data, true);
       } catch (err) {
         reportError("reader", err);
@@ -209,7 +268,7 @@ function useMushafController(): MushafController {
       try {
         const data = await api.getQuranPageForJuz(mushafId, juz);
         if (!data.found) throw new Error(NOT_FOUND);
-        setSelectedAyahId(data.selected_ayah_id ?? null);
+        setSelectedAyahId(null);
         applyResult(data, true);
       } catch (err) {
         reportError("reader", err);

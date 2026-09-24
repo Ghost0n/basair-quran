@@ -41,6 +41,7 @@ function toUserError(scope: string, error: unknown, fallback: string): string {
   return isTechnicalMessage(raw) ? fallback : raw;
 }
 import { usePreferences } from "@/lib/preferences-context";
+import { resolveEdition } from "@/lib/mushaf-defaults";
 import { useMushaf } from "@/features/reading/mushaf-context";
 
 import type { ThemeMode } from "../types";
@@ -101,7 +102,6 @@ export function useSearchWorkspace() {
     }
   });
   const [mushafs, setMushafs] = useState<MushafItem[]>([]);
-  const [selectedMushaf, setSelectedMushaf] = useState<number>(1);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -125,6 +125,9 @@ export function useSearchWorkspace() {
 
   // Theme is a device override layered on top of the account default.
   const { account, updateAccount } = usePreferences();
+  // The account's mushaf edition fixes the riwāyah every search/reader call uses.
+  const edition = resolveEdition(account.mushaf_edition);
+  const selectedMushaf = edition.mushafId;
   const userSetThemeRef = useRef(false);
 
   // Search state is mirrored into the URL (?q=&sm=) so a search is
@@ -351,13 +354,6 @@ export function useSearchWorkspace() {
     router.replace(`/?${sp.toString()}`, { scroll: false });
   }
 
-  useEffect(() => {
-    const storedMushaf = Number(window.localStorage.getItem("selectedMushaf") || "1");
-    if (Number.isFinite(storedMushaf) && storedMushaf > 0) {
-      setSelectedMushaf(storedMushaf);
-    }
-  }, []);
-
   // Adopt the account theme as the default when this device has no explicit
   // override and the user hasn't toggled this session. Keeps the backend
   // `theme` preference live across devices instead of being dead state.
@@ -463,11 +459,6 @@ export function useSearchWorkspace() {
         const items = await api.getMushafs();
         if (cancelled) return;
         setMushafs(items);
-        setSelectedMushaf((current) => {
-          const next = items.some((item) => item.id === current) ? current : items[0]?.id ?? 1;
-          window.localStorage.setItem("selectedMushaf", String(next));
-          return next;
-        });
       } catch (error) {
         if (!cancelled) {
           setErrorMessage(toUserError("search:riwayat", error, "تعذر تحميل الروايات."));
@@ -484,10 +475,6 @@ export function useSearchWorkspace() {
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem("selectedMushaf", String(selectedMushaf));
-  }, [selectedMushaf]);
 
   useEffect(() => {
     if (searchMode === "root" && isPhraseInputValue(query)) {
@@ -1077,6 +1064,7 @@ export function useSearchWorkspace() {
       drawerOpen,
       loadingMushafs,
       mushafs,
+      edition,
       selectedMushaf,
       selectedMushafLabel,
       suggestions,
@@ -1105,7 +1093,6 @@ export function useSearchWorkspace() {
         commitInputValue(value);
       },
       setDrawerOpen,
-      setSelectedMushaf,
       setResultPageDraft(resultKey: string, value: string) {
         setResultPageDrafts((current) => ({ ...current, [resultKey]: value }));
       },

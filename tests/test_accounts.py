@@ -324,3 +324,19 @@ def test_password_reset_flow(tmp_path, monkeypatch):
         assert client.post("/api/auth/reset-password", json={"token": token, "password": "newpass12"}).status_code == 400
     finally:
         finalize()
+
+
+def test_web_login_without_label_names_the_device_from_user_agent(tmp_path, monkeypatch):
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        ua = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1"
+        client.post(
+            "/api/auth/signup",
+            json={"email": "ua@example.com", "password": "hidayah8"},
+            headers={"User-Agent": ua},
+        )
+        devices = client.get("/api/auth/devices").json()
+        assert devices[0]["device_label"] == "Safari · iPhone"
+        assert devices[0]["platform"] == "web"  # the client-declared platform is kept
+    finally:
+        finalize()

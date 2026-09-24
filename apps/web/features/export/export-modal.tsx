@@ -63,7 +63,7 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
       >
         <div className="qb-export-head">
           <div>
-            <div className="kicker">التصدير · EXPORT</div>
+            <div className="kicker">التصدير</div>
             <h3>{session.title}</h3>
           </div>
           <button type="button" className="x" onClick={onClose} aria-label="إغلاق">

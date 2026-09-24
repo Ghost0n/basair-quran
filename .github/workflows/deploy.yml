@@ -36,6 +36,8 @@ jobs:
       - name: Build and start stack
         run: |
           cd /srv/q-basair
+          # Expose the deployed commit to /api/ready.
+          export QBASAIR_COMMIT_SHA="$(git rev-parse --short HEAD)"
           docker compose --env-file .env.production up -d --build --remove-orphans
 
       - name: Tag images with the deployed commit (for fast rollback)

@@ -35,11 +35,16 @@ import { useLayoutEffect, useRef, type RefObject } from "react";
  * selection/popover churn inside a page does NOT refit), container resize
  * (content-box, catches scrollbar changes), and page fonts finishing loading.
  */
-const MAX_SCALE = 2.4;
+// Never draw the glyphs larger than the user's chosen text size (the size
+// slider sets --fs-ayah; scale 1 = that size). Fit-to-width only ever SHRINKS
+// a page to fit a narrow column — on a wide screen the page stays at the chosen
+// size and centres, instead of ballooning to ~5 lines per screen.
+const MAX_SCALE = 1;
 const MIN_SCALE = 0.3;
 
-export function useGlyphFitWidth(ref: RefObject<HTMLElement | null>) {
+export function useGlyphFitWidth(ref: RefObject<HTMLElement | null>, fontSize: number) {
   const rafRef = useRef(0);
+  const scheduleRef = useRef<(() => void) | null>(null);
   // The shared reference (widest printed line + chrome) is cached MONOTONICALLY
   // across measure passes. Recomputing it from the current window subset made
   // the scale oscillate as pages slid in/out — resizing every card. The leaves
@@ -170,6 +175,7 @@ export function useGlyphFitWidth(ref: RefObject<HTMLElement | null>) {
       rafRef.current = requestAnimationFrame(measure);
     };
 
+    scheduleRef.current = schedule;
     schedule();
     if (typeof document !== "undefined" && document.fonts?.ready) {
       document.fonts.ready
@@ -211,6 +217,7 @@ export function useGlyphFitWidth(ref: RefObject<HTMLElement | null>) {
 
     return () => {
       cancelled = true;
+      scheduleRef.current = null;
       cancelAnimationFrame(rafRef.current);
       resizeObserver.disconnect();
       mutationObserver.disconnect();
@@ -222,4 +229,16 @@ export function useGlyphFitWidth(ref: RefObject<HTMLElement | null>) {
     // Mount-once by design (see SCROLL SAFETY above) — observers drive refits.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // A new text size changes every page's natural width: drop the monotonic
+  // reference (it only grows otherwise) and refit through the same anchored pass.
+  const firstSize = useRef(true);
+  useLayoutEffect(() => {
+    if (firstSize.current) {
+      firstSize.current = false;
+      return;
+    }
+    refRef.current = { maxW: 0, chrome: 0 };
+    scheduleRef.current?.();
+  }, [fontSize]);
 }

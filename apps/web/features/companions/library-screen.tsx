@@ -45,7 +45,14 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
   const [sessionFilter, setSessionFilter] = useState<SessionFilter>("all");
 
   function openVerse(item: NotebookItem) {
-    void mushaf.loadByAyah(item.mushaf_id || state.selectedMushaf, item.ayah_id, []);
+    // A verse saved under another riwāyah opens in the current edition by its
+    // surah:ayah reference (ayah ids are per-mushaf).
+    const sameMushaf = !item.mushaf_id || item.mushaf_id === state.selectedMushaf;
+    if (!sameMushaf && item.surah_id && item.ayah) {
+      void mushaf.loadBySurah(state.selectedMushaf, item.surah_id, item.ayah);
+    } else {
+      void mushaf.loadByAyah(item.mushaf_id || state.selectedMushaf, item.ayah_id, []);
+    }
     setMode("reading");
   }
 
@@ -68,10 +75,10 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
     <div className="qb-aux">
       <div className="qb-aux-h">
         <div>
-          <div className="kicker">الدفتر · LIBRARY</div>
+          <div className="kicker">الدفتر</div>
           <h2>الدفتر</h2>
           <div className="sub">
-            {formatNumber(companions.notebook.length)} آية · {formatNumber(companions.sessions.length)} جلسة ·{" "}
+            {formatNumber(companions.notebook.length)} آية، {formatNumber(companions.sessions.length)} جلسة،{" "}
             {formatNumber(companions.roots.length)} جذر
           </div>
         </div>
@@ -177,7 +184,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                   <div className="grow">
                     <div className="title">{session.title}</div>
                     <div className="meta">
-                      {formatNumber(session.message_count)} رسالة · {relativeAge(session.updated_at)} ·{" "}
+                      {formatNumber(session.message_count)} رسالة، {relativeAge(session.updated_at)} ·{" "}
                       {session.mode === "tafssir" ? "قراءة تفسيرية" : "القرآن وحدَه"}
                     </div>
                   </div>
@@ -203,7 +210,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                 <div className="grow">
                   <div className="root-disp">{root.root_text}</div>
                   <div className="meta">
-                    {root.occurrences != null ? `${formatNumber(root.occurrences)} موضع · ` : ""}
+                    {root.occurrences != null ? `${formatNumber(root.occurrences)} موضع، ` : ""}
                     {relativeAge(root.created_at)}
                   </div>
                 </div>
