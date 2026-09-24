@@ -430,50 +430,6 @@
   min-width: 116px;
 }
 
-/* ---------- Quick Settings (top-bar popover) ---------- */
-
-.qb-quick {
-  position: relative;
-  display: inline-flex;
-}
-
-.qb-quick-panel {
-  position: absolute;
-  top: calc(100% + 8px);
-  inset-inline-end: 0;
-  width: 300px;
-  background: var(--bg-elev-2);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  box-shadow: var(--shadow-3);
-  padding: 14px 16px;
-  z-index: 300;
-  animation: qbPopIn var(--dur) var(--ease-out);
-  transform-origin: top;
-}
-
-.light .qb-quick-panel {
-  background: #fffdf7;
-}
-
-/* Narrow screens: shrink the 300px popover so it can't clip past the edge. */
-@media (max-width: 600px) {
-  .qb-quick-panel {
-    width: min(300px, calc(100vw - 24px));
-  }
-}
-
-.qb-quick-head {
-  font-family: var(--font-arabic-display);
-  color: var(--gold-text);
-  font-size: 16px;
-  margin-bottom: 12px;
-}
-
-.qb-quick-menu {
-  width: 100%;
-}
-
 .qb-icon-btn {
   width: 38px;
   height: 38px;
@@ -580,250 +536,6 @@
 }
 
 /* =====================================================================
-   Tweaks panel — floating per-session overrides.
-   ===================================================================== */
-
-.qb-tweaks-fab {
-  position: fixed;
-  bottom: 22px;
-  inset-inline-end: 22px;
-  width: 46px;
-  height: 46px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #eac54a, #c69e27);
-  color: #140f00;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 10px 28px rgba(212, 175, 55, 0.35);
-  z-index: 39;
-}
-
-.qb-tweaks-panel {
-  position: fixed;
-  bottom: 22px;
-  inset-inline-end: 22px;
-  width: 320px;
-  background: rgba(20, 18, 12, 0.97);
-  border: 1px solid rgba(212, 175, 55, 0.30);
-  border-radius: 18px;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(20px);
-  z-index: 40;
-  overflow: hidden;
-}
-
-.light .qb-tweaks-panel {
-  background: rgba(255, 252, 244, 0.98);
-}
-
-.qb-tweaks-head {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--divider);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.qb-tweaks-head .t {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: var(--font-arabic-display);
-  font-size: 16px;
-  color: var(--gold-text);
-}
-
-.qb-tweaks-head .x {
-  width: 26px;
-  height: 26px;
-  border-radius: 7px;
-  color: var(--fg-3);
-  background: transparent;
-  border: none;
-  cursor: pointer;
-}
-
-.qb-tweaks-head .x:hover {
-  color: var(--gold-text);
-  background: rgba(212, 175, 55, 0.06);
-}
-
-.qb-tweaks-body {
-  padding: 12px 16px 16px;
-  max-height: 460px;
-  overflow-y: auto;
-}
-
-.qb-tweak-section {
-  margin-bottom: 14px;
-}
-
-.qb-tweak-section:last-child {
-  margin-bottom: 0;
-}
-
-.qb-tweak-label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--fg-3);
-  font-weight: 700;
-  letter-spacing: 0; /* Arabic: tracking breaks the joins */
-  margin-bottom: 6px;
-}
-
-.qb-tweak-label .v {
-  font-family: var(--font-arabic-display);
-  color: var(--gold-text);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.qb-tweak-note {
-  margin-top: 6px;
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--fg-3);
-}
-
-.qb-tweak-seg {
-  display: flex;
-  padding: 3px;
-  background: rgba(0, 0, 0, 0.20);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-
-.light .qb-tweak-seg {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.qb-tweak-seg button {
-  flex: 1;
-  padding: 6px 8px;
-  border-radius: 7px;
-  font-size: 12px;
-  color: var(--fg-2);
-  font-weight: 600;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.qb-tweak-seg button.active {
-  background: linear-gradient(135deg, #eac54a, #c69e27);
-  color: #140f00;
-}
-
-.qb-tweak-seg button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* 5-way layout switcher: flow into a 3-column grid so labels stay readable. */
-.qb-tweak-seg.is-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 3px;
-}
-
-.qb-tweak-seg.is-grid button {
-  flex: none;
-}
-
-.qb-tweak-select {
-  width: 100%;
-  height: 36px;
-  padding: 0 12px;
-  background: rgba(0, 0, 0, 0.20);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--fg-1);
-  font-size: 13px;
-  font-family: var(--font-arabic-ui);
-}
-
-.light .qb-tweak-select {
-  background: rgba(255, 255, 255, 0.7);
-}
-
-.qb-tweak-select:focus {
-  outline: none;
-  border-color: var(--gold-400);
-}
-
-.qb-tweak-menu {
-  width: 100%;
-}
-
-.qb-tweak-menu .qb-select-btn {
-  height: 36px;
-}
-
-.qb-tweak-slider {
-  width: 100%;
-  appearance: none;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.10);
-  border-radius: 999px;
-  outline: none;
-}
-
-.qb-tweak-slider::-webkit-slider-thumb {
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--gold-300), var(--gold-500));
-  cursor: pointer;
-}
-
-.qb-tweak-slider::-moz-range-thumb {
-  width: 16px;
-  height: 16px;
-  border: none;
-  border-radius: 999px;
-  background: linear-gradient(135deg, var(--gold-300), var(--gold-500));
-  cursor: pointer;
-}
-
-.qb-tweak-slider::-moz-range-track {
-  height: 4px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.10);
-}
-
-.qb-tweaks-foot {
-  padding: 10px 16px 14px;
-  border-top: 1px solid var(--divider);
-  display: flex;
-  gap: 8px;
-}
-
-.qb-tweaks-foot button {
-  flex: 1;
-  height: 32px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--fg-2);
-}
-
-.qb-tweaks-foot button.primary {
-  background: rgba(212, 175, 55, 0.10);
-  border-color: rgba(212, 175, 55, 0.30);
-  color: var(--gold-text);
-}
-
-/* =====================================================================
    Mobile bottom tab bar + responsive layout.
    ===================================================================== */
 
@@ -907,14 +619,20 @@
   .qb-cmd {
     margin: 0;
   }
+}
 
-  .qb-tweaks-fab {
-    bottom: 86px;
+/* Phones: the reader carries its own bar (navigation, display, audio), and
+   search is one tap away in the tab bar — give the page the top bar's height. */
+@media (max-width: 768px) {
+  .qb-topbar.is-reading {
+    display: none;
   }
+}
 
-  .qb-tweaks-panel {
-    bottom: 86px;
-    inset-inline: 12px;
-    width: auto;
-  }
+/* Focus mode (reader): only the mushaf remains. The recitation bar stays if
+   audio is playing — it is the one control a listener needs. */
+html.qb-immersive .qb-topbar,
+html.qb-immersive .qb-rail,
+html.qb-immersive .qb-tabbar {
+  display: none;
 }

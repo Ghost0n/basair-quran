@@ -42,11 +42,28 @@ const ROTATE_MS = 9000;
  * row (continue-reading + library stats), three entry tiles, and the latest
  * research sessions. One glance orients, one click reaches every room.
  */
+const LANDED_KEY = "qb.landed";
+
 export function HomeScreen() {
   const { setMode } = useShellMode();
   const formatNumber = useNumerals();
   const { actions } = useWorkspace();
-  const { preferences } = usePreferences();
+  const { preferences, ready } = usePreferences();
+
+  // Returning readers land in the reader: the first Home of a browser session
+  // with a saved position forwards to «القراءة» (which resumes there). Home is
+  // still one tap away (rail brand / tab bar) and never redirects twice.
+  const hasPosition = Boolean(preferences.last_position?.ayah_id || preferences.last_position?.page);
+  useEffect(() => {
+    if (!ready) return;
+    try {
+      if (window.sessionStorage.getItem(LANDED_KEY)) return;
+      window.sessionStorage.setItem(LANDED_KEY, "1");
+    } catch {
+      return; // no sessionStorage: never redirect (can't guarantee "only once")
+    }
+    if (hasPosition) setMode("reading", { replace: true });
+  }, [ready, hasPosition, setMode]);
   const mushaf = useMushaf();
   const savedPages = preferences.saved_pages ?? [];
 

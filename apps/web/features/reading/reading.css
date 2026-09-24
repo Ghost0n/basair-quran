@@ -106,113 +106,11 @@
   text-shadow: 0 2px 24px var(--gold-a40);
 }
 
-/* ---------- Header: surah card + nav tools ---------- */
-
-.qb-mushaf-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-  gap: 16px;
-  flex-shrink: 0;
-}
-
-.qb-surah-card {
-  display: flex;
-  align-items: baseline;
-  gap: 14px;
-  min-width: 0;
-}
-
-.qb-surah-card .h-name {
-  font-family: var(--font-arabic-display);
-  font-size: 28px;
-  line-height: 1.2; /* room for Amiri Quran's tall letters + diacritics */
-  color: var(--gold-text);
-}
-
-.qb-surah-card .h-meta {
-  color: var(--fg-3);
-  font-size: 13px;
-}
-
-.qb-surah-card .h-meta strong {
-  color: var(--fg-2);
-  font-weight: 600;
-}
-
-/* ---------- Surah progress gauge (continuous readers) ---------- */
-/* A pinned hairline under the header: how far the top of the viewport has read
-   into the CURRENT surah. Restores the sense of place the infinite scroll
-   loses, without repeating the surah name (the header carries that). RTL: the
-   fill grows from the right (inline-start = reading direction). */
-.qb-surah-progress {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-  margin-bottom: 10px;
-}
-
-.qb-surah-progress-track {
-  flex: 1;
-  min-width: 0;
-  block-size: 4px;
-  border-radius: 999px;
-  background: var(--gold-a12);
-  overflow: hidden;
-}
-
-.qb-surah-progress-fill {
-  display: block;
-  block-size: 100%;
-  border-radius: 999px;
-  background: linear-gradient(to left, var(--gold-400), var(--gold-a55));
-  /* Glide as the active page advances through the surah. */
-  transition: inline-size var(--motion-dur-base) var(--motion-ease-settle);
-}
-
-.qb-surah-progress-count {
-  flex-shrink: 0;
-  font-family: var(--font-arabic-ui);
-  font-variant-numeric: tabular-nums;
-  font-size: 11px;
-  letter-spacing: 0; /* Arabic: tracking breaks the joins */
-  color: var(--fg-3);
-  font-variant-numeric: tabular-nums;
-}
-
-/* Layout transition, not transform/opacity — collapse it for reduced motion. */
-@media (prefers-reduced-motion: reduce) {
-  .qb-surah-progress-fill {
-    transition: none;
-  }
-}
-
 .qb-mushaf-tools {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
-}
-
-/* Phones: let the jump selector take its own full-width row instead of
-   overflowing the pills at ~375px. */
-@media (max-width: 600px) {
-  .qb-jump-inline {
-    flex: 1 1 100%;
-  }
-}
-
-/* Persistent layout switcher in the reader header (Shift+M cycles it). Compact
-   so it rides the header row; wraps to its own line on narrow screens. */
-.qb-mushaf-modes {
-  flex: 0 0 auto;
-}
-
-.qb-tweak-seg.qb-mushaf-modes button {
-  padding: 5px 9px;
-  font-size: 11.5px;
 }
 
 .qb-pill {
@@ -252,138 +150,6 @@
   font-family: var(--font-arabic-ui);
   font-variant-numeric: tabular-nums;
   font-size: 11px;
-}
-
-/* ---------- Jump control bar (page/surah/ayah/juz) ---------- */
-
-.qb-jump-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 14px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-}
-
-.qb-jump-bar label {
-  font-size: 12px;
-  color: var(--fg-3);
-}
-
-.qb-jump-bar select,
-.qb-jump-bar input {
-  height: 34px;
-  padding: 0 32px 0 10px; /* room for custom arrow on the end */
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.20);
-  border: 1px solid var(--border);
-  color: var(--fg-1);
-  font-size: 13px;
-  font-family: var(--font-arabic-ui);
-  appearance: none;
-  -webkit-appearance: none;
-  transition: border-color 160ms var(--ease-out);
-}
-
-/* U1: custom dropdown arrow in gold */
-.qb-jump-bar select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23d4af37' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: left 10px center;
-  cursor: pointer;
-}
-
-.light .qb-jump-bar select,
-.light .qb-jump-bar input {
-  background-color: rgba(255, 255, 255, 0.6);
-}
-
-.light .qb-jump-bar select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a07a10' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
-
-.qb-jump-bar select:focus,
-.qb-jump-bar input:focus {
-  outline: none;
-  border-color: var(--gold-400);
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.12);
-}
-
-.qb-jump-bar input[type="number"] {
-  width: 84px;
-  -moz-appearance: textfield; /* Firefox: no native spinners */
-}
-
-.qb-jump-bar input[type="number"]::-webkit-inner-spin-button,
-.qb-jump-bar input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.qb-jump-go {
-  height: 34px;
-  padding: 0 14px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #eac54a, #c69e27);
-  color: #140f00;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  border: none;
-}
-
-/* Themed dropdown sizing inside the jump bar */
-.qb-jump-bar .qb-select {
-  min-width: 190px;
-}
-
-.qb-jump-bar .qb-select-btn {
-  height: 34px;
-}
-
-/* Inline jump selector — lives in the header tools row (no separate jump bar). */
-.qb-jump-inline {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  row-gap: 6px;
-}
-
-.qb-jump-inline .qb-select {
-  min-width: 150px;
-}
-
-.qb-jump-inline .qb-select-btn {
-  height: 32px;
-}
-
-.qb-jump-inline input[type="number"] {
-  height: 32px;
-  width: 72px;
-  padding: 0 10px;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.20);
-  border: 1px solid var(--border);
-  color: var(--fg-1);
-  font-size: 13px;
-  -moz-appearance: textfield;
-}
-
-.light .qb-jump-inline input[type="number"] {
-  background-color: rgba(255, 255, 255, 0.6);
-}
-
-.qb-jump-inline input[type="number"]::-webkit-inner-spin-button,
-.qb-jump-inline input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.qb-jump-inline input:focus {
-  outline: none;
-  border-color: var(--gold-400);
-  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.12);
 }
 
 /* ---------- The Mushaf page ---------- */
@@ -1026,231 +792,6 @@
   background: rgba(212, 175, 55, 0.08);
 }
 
-/* ---------- Mushaf footer ---------- */
-
-.qb-mushaf-foot {
-  flex-shrink: 0;
-  background: rgba(20, 18, 12, 0.7);
-  border: 1px solid rgba(212, 175, 55, 0.18);
-  border-top: none;
-  border-radius: 0 0 20px 20px;
-  padding: 9px 24px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  font-size: 12px;
-  color: var(--fg-3);
-  backdrop-filter: blur(12px);
-}
-
-.light .qb-mushaf-foot {
-  background: rgba(255, 253, 246, 0.85);
-}
-
-.qb-mushaf-foot .meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.qb-mushaf-foot .meta strong {
-  color: var(--fg-1);
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.qb-mushaf-foot .sep {
-  width: 1px;
-  height: 16px;
-  background: var(--divider);
-}
-
-/* Footer control that opens the play bar idle (pick reciter, then play). */
-.qb-foot-reciter {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 28px;
-  padding: 0 12px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--fg-2);
-  font-family: var(--font-arabic-ui);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out),
-    background var(--dur) var(--ease-out);
-}
-
-.qb-foot-reciter:hover {
-  border-color: var(--border-strong);
-  color: var(--gold-text);
-  background: var(--gold-a08);
-}
-
-.qb-foot-reciter > svg {
-  color: var(--gold-text);
-}
-
-/* Bookmark-this-page toggle. */
-.qb-foot-savepage {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--r-pill);
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--fg-3);
-  cursor: pointer;
-  transition: border-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out),
-    background var(--dur) var(--ease-out);
-}
-
-.qb-foot-savepage:hover {
-  border-color: var(--border-strong);
-  color: var(--gold-text);
-}
-
-.qb-foot-savepage.on {
-  color: var(--gold-text);
-  border-color: var(--gold-a40);
-  background: var(--gold-a12);
-}
-
-.qb-mushaf-foot .pager {
-  margin-inline-start: auto;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.qb-mushaf-foot .pager .nav {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  color: var(--gold-text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(212, 175, 55, 0.06);
-  cursor: pointer;
-  transition: all 180ms var(--ease-out);
-}
-
-.qb-mushaf-foot .pager .nav:hover:not(:disabled) {
-  background: rgba(212, 175, 55, 0.16);
-  border-color: rgba(212, 175, 55, 0.4);
-}
-
-.qb-mushaf-foot .pager .nav:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.qb-mushaf-foot .pager .pages {
-  font-family: var(--font-arabic-ui);
-  font-variant-numeric: tabular-nums;
-  color: var(--fg-2);
-  background: rgba(0, 0, 0, 0.18);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 12px;
-  font-size: 12px;
-}
-
-.light .qb-mushaf-foot .pager .pages {
-  background: rgba(255, 255, 255, 0.6);
-}
-
-/* The page indicator is click-to-edit: tap it to jump to any page. */
-.qb-mushaf-foot .pager button.pages {
-  cursor: pointer;
-  transition: border-color 160ms var(--ease-out), color 160ms var(--ease-out);
-}
-
-.qb-mushaf-foot .pager button.pages:hover {
-  border-color: rgba(212, 175, 55, 0.4);
-  color: var(--gold-text);
-}
-
-.qb-mushaf-foot .pager .pages.editing {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-}
-
-.qb-mushaf-foot .pager .pages.editing input {
-  width: 50px;
-  height: 24px;
-  border: 1px solid var(--gold-400);
-  border-radius: 6px;
-  background: rgba(0, 0, 0, 0.28);
-  color: var(--fg-1);
-  font-family: var(--font-arabic-ui);
-  font-variant-numeric: tabular-nums;
-  font-size: 12px;
-  text-align: center;
-  appearance: textfield;
-  -moz-appearance: textfield;
-  outline: none;
-}
-
-.qb-mushaf-foot .pager .pages.editing input::-webkit-inner-spin-button,
-.qb-mushaf-foot .pager .pages.editing input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.light .qb-mushaf-foot .pager .pages.editing input {
-  background: rgba(255, 255, 255, 0.8);
-}
-
-/* ---------- Inline audio mini-player (inert in Phase 2) ---------- */
-
-.qb-audio {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 32px;
-  padding: 0 10px 0 4px;
-  background: rgba(0, 0, 0, 0.18);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-}
-
-.light .qb-audio {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.qb-audio .label {
-  color: var(--fg-2);
-  font-size: 11px;
-}
-
-.qb-audio .play {
-  width: 26px;
-  height: 26px;
-  border-radius: 999px;
-  background: var(--gold-400);
-  color: #1a1207;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  cursor: pointer;
-}
-
-.qb-audio .play:disabled {
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
 /* ---------- Loading / empty / error ---------- */
 
 .qb-mushaf-state {
@@ -1279,11 +820,6 @@
     padding: 20px 18px 18px;
   }
 
-  .qb-mushaf-head {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .qb-recitation {
     flex-direction: column;
   }
@@ -1297,33 +833,6 @@
   .qb-recitation-ayah {
     font-size: 28px;
     padding: 20px;
-  }
-
-  /* The footer is a single no-wrap row on desktop; on phones let it wrap and
-     inflate the touch targets so nothing overflows at ~375px (WCAG 2.5.8).
-     This is the behaviour the .qb-mushaf-foot-hardened hook was reserved for. */
-  .qb-mushaf-foot-hardened {
-    flex-wrap: wrap;
-    gap: 8px 10px;
-    padding: 8px 12px;
-  }
-
-  .qb-foot-reciter {
-    height: 44px;
-  }
-
-  .qb-foot-savepage {
-    width: 44px;
-    height: 44px;
-  }
-
-  .qb-mushaf-foot .pager .nav {
-    width: 44px;
-    height: 44px;
-  }
-
-  .qb-mushaf-foot .pager .pages {
-    min-height: 44px;
   }
 }
 
@@ -1381,4 +890,763 @@
   100% {
     background-position: -200% 0;
   }
+}
+
+/* =====================================================================
+   Reader bar — one compact row: identity (tap → انتقل) + actions.
+   On phones it sits at the bottom of the reader (thumb reach), above the
+   tab bar; on larger screens at the top.
+   ===================================================================== */
+
+.qb-reader-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 6px 4px 8px;
+  flex-shrink: 0;
+  transition: opacity var(--motion-dur-base) var(--motion-ease-settle),
+    transform var(--motion-dur-base) var(--motion-ease-settle);
+}
+
+.qb-reader-bar .identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-width: 0;
+  padding: 2px 8px;
+  margin-inline-start: -8px;
+  background: none;
+  border: 0;
+  border-radius: var(--r-md);
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.qb-reader-bar .identity:hover .name,
+.qb-reader-bar .identity:focus-visible .name {
+  color: var(--gold-300);
+}
+
+.qb-reader-bar .identity .name {
+  font-family: var(--font-arabic-display);
+  font-size: 24px;
+  line-height: 1.5;
+  color: var(--gold-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.qb-reader-bar .identity .meta {
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--fg-3);
+  white-space: nowrap;
+}
+
+.qb-reader-bar .actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.qb-reader-bar .act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 40px;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid transparent;
+  background: none;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms var(--ease-out), color 160ms var(--ease-out), border-color 160ms var(--ease-out);
+}
+
+.qb-reader-bar .act.labelled {
+  border-color: var(--border);
+  background: rgba(0, 0, 0, 0.14);
+  padding: 0 14px;
+}
+
+.light .qb-reader-bar .act.labelled {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.qb-reader-bar .act:hover:not(:disabled) {
+  color: var(--gold-text);
+  background: var(--gold-a08);
+}
+
+.qb-reader-bar .act.on {
+  color: var(--gold-text);
+}
+
+.qb-reader-bar .act:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.qb-reader-bar .pager {
+  display: flex;
+  gap: 2px;
+  margin-inline-start: 6px;
+  padding-inline-start: 8px;
+  border-inline-start: 1px solid var(--border);
+}
+
+.qb-reader-bar .progress {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--gold-a08);
+  overflow: hidden;
+}
+
+.qb-reader-bar .progress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold-a40), var(--gold-400));
+  transition: inline-size var(--motion-dur-base) var(--motion-ease-settle);
+}
+
+/* The reading surface fills what the bar leaves; readers inside keep their own
+   flex:1 behaviour. touch-action lets the browser keep vertical scrolling while
+   our gesture hook reads horizontal swipes. */
+.qb-reader-surface {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Touch screens: swipe turns the page, so the arrows go; the labels shrink to
+   icons on narrow phones. */
+@media (hover: none) and (pointer: coarse) {
+  .qb-reader-bar .pager {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .qb-reader-bar {
+    order: 2;
+    min-height: 56px;
+    padding: 8px 2px calc(6px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border);
+  }
+
+  .qb-reader-bar .progress {
+    top: -1px;
+    bottom: auto;
+  }
+
+  .qb-reader-bar .identity .name {
+    font-size: 20px;
+  }
+
+  .qb-reader-bar .act {
+    min-width: 44px;
+    height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .qb-reader-bar .act.labelled {
+    padding: 0;
+    border-color: transparent;
+    background: none;
+  }
+
+  .qb-reader-bar .act.labelled .lbl {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .qb-reader-bar .identity .meta .of {
+    display: none;
+  }
+}
+
+/* ---------- Focus mode ---------- */
+
+.qb-mushaf-stage.is-immersive .qb-reader-bar {
+  display: none;
+}
+
+.qb-immersive-exit {
+  /* Fixed to the viewport: in focus mode the stage fills the screen, and the
+     page (a scroller) must never cover the only way back. */
+  position: fixed;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000; /* body-level: above every shell layer */
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-elev-2) 82%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 160ms var(--ease-out);
+}
+
+.qb-immersive-exit:hover,
+.qb-immersive-exit:focus-visible {
+  opacity: 1;
+}
+
+/* =====================================================================
+   Reader sheets («انتقل», «العرض») — bottom sheet on phones, centred
+   panel on larger screens.
+   ===================================================================== */
+
+.qb-rsheet {
+  position: fixed;
+  inset: 0;
+  /* Above the mobile tab bar (45) and the media bar. */
+  z-index: calc(var(--elev-toast) + 5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.qb-rsheet .backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(8, 6, 2, 0.55);
+  backdrop-filter: blur(2px);
+  animation: qbFade var(--motion-dur-fast) var(--motion-ease-settle) both;
+}
+
+.qb-rsheet .panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: min(720px, calc(100dvh - 48px));
+  border-radius: var(--r-xl);
+  border: 1px solid var(--border-strong, var(--border));
+  background: var(--bg-elev-2);
+  box-shadow: var(--shadow-3);
+  overflow: hidden;
+  animation: qbPopIn var(--motion-dur-base) var(--motion-ease-settle) both;
+}
+
+.qb-rsheet .panel:focus {
+  outline: none;
+}
+
+.qb-rsheet .grip {
+  display: none;
+}
+
+/* The panel's height is capped; only the scrolling body may shrink. */
+.qb-rsheet .head,
+.qb-rsheet .grip,
+.qb-nav-sheet .field,
+.qb-nav-sheet .command,
+.qb-nav-sheet .tabs {
+  flex-shrink: 0;
+}
+
+.qb-rsheet .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 8px;
+}
+
+.qb-rsheet .head h2 {
+  font-size: 22px;
+  color: var(--gold-text);
+}
+
+.qb-rsheet .close {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 0;
+  background: none;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+.qb-rsheet .close:hover {
+  color: var(--fg-1);
+  background: var(--gold-a08);
+}
+
+.qb-rsheet .body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 20px 20px;
+  overscroll-behavior: contain;
+}
+
+.qb-rsheet .label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-3);
+  margin-bottom: 10px;
+}
+
+.qb-rsheet .label .value {
+  color: var(--gold-text);
+  font-variant-numeric: tabular-nums;
+  margin-inline-start: 6px;
+}
+
+/* --- «انتقل» --- */
+
+.qb-nav-sheet .field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 20px 10px;
+  padding: 0 14px;
+  height: 48px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--fg-3);
+}
+
+.light .qb-nav-sheet .field {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.qb-nav-sheet .field:focus-within {
+  border-color: var(--gold-400);
+}
+
+.qb-nav-sheet .field input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: 0;
+  background: none;
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-size: 16px; /* ≥16px: no iOS zoom on focus */
+  outline: none;
+}
+
+.qb-nav-sheet .command {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 20px 10px;
+  padding: 12px 14px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--gold-a40);
+  background: var(--gold-a12);
+  color: var(--gold-text);
+  font-family: var(--font-arabic-ui);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: start;
+  cursor: pointer;
+}
+
+.qb-nav-sheet .tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 20px;
+  padding: 4px;
+  border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.light .qb-nav-sheet .tabs {
+  background: rgba(120, 92, 20, 0.07);
+}
+
+.qb-nav-sheet .tabs button {
+  flex: 1;
+  height: 38px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-nav-sheet .tabs button.active {
+  background: var(--gold-a18);
+  color: var(--gold-text);
+}
+
+.qb-nav-sheet .body {
+  padding-top: 10px;
+  min-height: 240px;
+}
+
+.qb-nav-sheet .surahs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.qb-nav-sheet .surahs button {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--fg-1);
+  text-align: start;
+  cursor: pointer;
+}
+
+.qb-nav-sheet .surahs button:hover,
+.qb-nav-sheet .surahs button:focus-visible {
+  background: var(--gold-a08);
+}
+
+.qb-nav-sheet .surahs button.current {
+  background: var(--gold-a12);
+}
+
+.qb-nav-sheet .surahs .num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--gold-a26);
+  color: var(--gold-text);
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.qb-nav-sheet .surahs .name {
+  font-family: var(--font-arabic-display);
+  font-size: 20px;
+  line-height: 1.6;
+}
+
+.qb-nav-sheet .surahs .meta {
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.qb-nav-sheet .empty {
+  padding: 32px 8px;
+  text-align: center;
+  color: var(--fg-3);
+}
+
+.qb-nav-sheet .juz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  gap: 8px;
+}
+
+.qb-nav-sheet .juz-grid button {
+  height: 52px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.12);
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.light .qb-nav-sheet .juz-grid button {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.qb-nav-sheet .juz-grid button:hover,
+.qb-nav-sheet .juz-grid button.current {
+  border-color: var(--gold-a55);
+  color: var(--gold-text);
+  background: var(--gold-a12);
+}
+
+.qb-nav-sheet .page-form label {
+  display: block;
+  font-size: 13px;
+  color: var(--fg-3);
+  margin: 12px 0 8px;
+}
+
+.qb-nav-sheet .page-form .row {
+  display: flex;
+  gap: 8px;
+}
+
+.qb-nav-sheet .page-form input {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+  font-size: 18px;
+}
+
+.qb-nav-sheet .page-form input[aria-invalid="true"] {
+  border-color: #c96a4a;
+}
+
+.qb-nav-sheet .page-form button {
+  height: 48px;
+  padding: 0 22px;
+  border-radius: var(--r-lg);
+  border: 0;
+  background: var(--gold-400);
+  color: #1a1207;
+  font-family: var(--font-arabic-ui);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-nav-sheet .page-form button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* --- «العرض» --- */
+
+.qb-display-sheet .panel {
+  width: min(480px, 100%);
+}
+
+.qb-display-sheet section + section {
+  margin-top: 22px;
+}
+
+.qb-display-sheet .modes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.qb-display-sheet .modes button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 6px 12px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.12);
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+}
+
+.light .qb-display-sheet .modes button {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.qb-display-sheet .modes button .t {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.qb-display-sheet .modes button .d {
+  font-size: 11px;
+  color: var(--fg-3);
+  text-align: center;
+}
+
+.qb-display-sheet .modes button.active {
+  border-color: var(--gold-400);
+  background: var(--gold-a12);
+  color: var(--gold-text);
+}
+
+.qb-display-sheet .size-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.qb-display-sheet .size-row input[type="range"] {
+  flex: 1;
+  accent-color: var(--gold-400);
+  height: 44px;
+}
+
+.qb-display-sheet .step {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-display);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.qb-display-sheet .step.big {
+  font-size: 26px;
+}
+
+.qb-display-sheet .step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.qb-display-sheet .split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.qb-display-sheet .seg {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.light .qb-display-sheet .seg {
+  background: rgba(120, 92, 20, 0.07);
+}
+
+.qb-display-sheet .seg button {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.qb-display-sheet .seg button.active {
+  background: var(--gold-a18);
+  color: var(--gold-text);
+}
+
+@media (max-width: 600px) {
+  .qb-rsheet {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .qb-rsheet .panel {
+    width: 100%;
+    max-height: 88dvh;
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    animation: qbSheetUp var(--motion-dur-base) var(--motion-ease-settle) both;
+  }
+
+  .qb-rsheet .grip {
+    display: block;
+    width: 40px;
+    height: 4px;
+    margin: 10px auto 0;
+    border-radius: 2px;
+    background: var(--border-strong, var(--border));
+  }
+
+  .qb-display-sheet .split {
+    grid-template-columns: 1fr;
+  }
+}
+
+@keyframes qbSheetUp {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Phones: the page is the screen — no outer card frame (it cost ~40px of
+   width), minimal gutters. */
+@media (max-width: 600px) {
+  .qb-mushaf-stage {
+    padding: 0 6px;
+  }
+
+  .qb-mushaf-page {
+    border: 0;
+    border-radius: 0;
+    padding: 10px 4px;
+    background: none;
+    box-shadow: none;
+  }
+
+  .light .qb-mushaf-page {
+    background: none;
+  }
+}
+
+/* The native search "clear" glyph renders in system blue — off-palette. */
+.qb-nav-sheet .field input::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
 }

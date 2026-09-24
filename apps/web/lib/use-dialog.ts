@@ -22,8 +22,12 @@ export function useDialog<T extends HTMLElement>(onClose: () => void) {
     const node = ref.current;
     const previouslyFocused = document.activeElement as HTMLElement | null;
 
-    const focusables = node ? Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)) : [];
-    (focusables[0] ?? node)?.focus();
+    // Respect an element that already took focus on mount (e.g. an autoFocus
+    // search field); otherwise focus the first focusable, else the dialog.
+    if (!node || !node.contains(document.activeElement)) {
+      const focusables = node ? Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)) : [];
+      (focusables[0] ?? node)?.focus();
+    }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {

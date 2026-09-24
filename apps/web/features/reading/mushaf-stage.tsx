@@ -2,28 +2,32 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
+import { createPortal } from "react-dom";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { ReaderLayout, SurahListItem } from "@q-basair/shared";
+import type { SurahListItem } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
 import { ErrorState } from "@/components/error-state";
 import { useWorkspace } from "@/features/shell/workspace-context";
-import { usePreferences } from "@/lib/preferences-context";
+import { Icon } from "@/components/icon";
+import { useNumerals, usePreferences } from "@/lib/preferences-context";
 
 import "./reading.css";
 
-import { MushafHeader } from "./components/mushaf-header";
-import { MushafFooter } from "./components/mushaf-footer";
-import { SurahProgress } from "./components/surah-progress";
+import { ReaderBar } from "./components/reader-bar";
+import { NavigateSheet, type NavigateTarget } from "./components/navigate-sheet";
+import { DisplaySheet } from "./components/display-sheet";
 import { TravelOverlay } from "./components/travel-overlay";
 import { type MorphTarget } from "./components/morph-popover";
 import { type GlyphSaveTarget } from "./components/glyph-page";
 import { PagedReader } from "./components/paged-reader";
 import { ScrollReader, type ScrollControls } from "./components/scroll-reader";
 import { AyahReader } from "./components/ayah-reader";
-import { useMushaf } from "./mushaf-context";
-import { useMushafLayout } from "./use-mushaf-layout";
+import { prefetchQuranPage, useMushaf } from "./mushaf-context";
+import { prefetchMushafLayout, useMushafLayout } from "./use-mushaf-layout";
+import { useReaderGestures } from "./use-reader-gestures";
+import { nextReaderMode } from "./reader-modes";
 import { useGlyphFit } from "./use-glyph-fit";
 import { useWideScreen, useShortViewport } from "./use-wide-screen";
 import { useSavedAyat } from "./use-saved-ayat";
@@ -33,9 +37,6 @@ const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 // Surahs are catalog data — fetch once per riwāyah per session (ayah counts
 // follow the riwāyah's numbering).
 const surahCache = new Map<number, SurahListItem[]>();
-
-// Reader layout cycle order for the Shift+M shortcut and the header switcher.
-const LAYOUT_ORDER: ReaderLayout[] = ["auto", "single", "spread", "scroll", "ayah"];
 
 // Facing-page pairing for the two-page spread. The Madani mushaf opens on the
 // (1,2),(3,4)… spreads: the odd page reads first (on the right, in RTL) and the
@@ -50,6 +51,7 @@ export function MushafStage() {
   const { state } = useWorkspace();
   const mushaf = useMushaf();
   const { preferences, updateAccount, updateAccountDebounced, ready } = usePreferences();
+  const formatNumber = useNumerals();
   const selectedMushaf = state.selectedMushaf;
 
   const [surahs, setSurahs] = useState<SurahListItem[]>(surahCache.get(selectedMushaf) ?? []);
@@ -58,6 +60,16 @@ export function MushafStage() {
   // left, back from the right). Applied to the Unicode reader only — the glyph
   // reader's fit engine can't survive a remount, so it stays un-animated.
   const [navDir, setNavDir] = useState<"fwd" | "back">("fwd");
+  // Reader sheets («انتقل», «العرض») and focus mode (all chrome hidden).
+  const [sheet, setSheet] = useState<"navigate" | "display" | null>(null);
+  const [immersive, setImmersive] = useState(false);
+
+  // Focus mode hides the shell chrome too (top bar, rail, tab bar) — a class on
+  // <html> lets shell.css react without threading state through the shell.
+  useEffect(() => {
+    document.documentElement.classList.toggle("qb-immersive", immersive);
+    return () => document.documentElement.classList.remove("qb-immersive");
+  }, [immersive]);
 
   const mushafRef = useRef(selectedMushaf);
   const currentPageRef = useRef<number | null>(null);
@@ -265,6 +277,30 @@ export function MushafStage() {
   useGlyphFit(spreadRef as RefObject<HTMLElement | null>, preferences.font_size, [layout, facing.layout, showSpread]);
 
   const totalPages = pageData?.total_pages ?? pageData?.max_page ?? 604;
+
+  // Warm the neighbouring pages (payload + layout + glyph font) so a page turn
+  // renders from memory instead of waiting on the network. A spread turns two
+  // pages at a time, so it warms the previous and next pairs.
+  const currentPageNumber = pageData?.page ?? null;
+  const spreadRight = showSpread && pair ? pair.right : null;
+  useEffect(() => {
+    if (continuousMode || currentPageNumber == null) return;
+    const targets =
+      spreadRight != null
+        ? [spreadRight - 2, spreadRight - 1, spreadRight + 2, spreadRight + 3]
+        : [currentPageNumber - 1, currentPageNumber + 1];
+    targets.forEach((target) => {
+      prefetchQuranPage(selectedMushaf, target, totalPages);
+      if (authentic) prefetchMushafLayout(selectedMushaf, target, totalPages);
+    });
+  }, [currentPageNumber, spreadRight, continuousMode, selectedMushaf, authentic, totalPages]);
+
+  const gestures = useReaderGestures({
+    swipeEnabled: !continuousMode,
+    onNext: () => goNextRef.current(),
+    onPrev: () => goPrevRef.current(),
+    onTap: () => setImmersive((value) => !value),
+  });
   function goPrev() {
     if (continuousMode && scrollControlsRef.current) {
       scrollControlsRef.current.scrollByPage(-1);
@@ -290,13 +326,15 @@ export function MushafStage() {
     }
   }
 
-  // Cycle the reader layout (auto → single → spread → scroll → ayah), skipping
-  // «صفحتان» when it isn't available. Shared by Shift+M and the header switcher.
+  // Shift+M cycles the three reading modes (صفحات → تمرير → آية آية).
   function cycleLayout() {
-    const order = LAYOUT_ORDER.filter((value) => value !== "spread" || spreadAvailable);
-    const idx = order.indexOf(preferences.reader_layout);
-    const next = order[(idx + 1) % order.length] ?? order[0];
-    void updateAccount({ reader_layout: next });
+    void updateAccount({ reader_layout: nextReaderMode(preferences.reader_layout) });
+  }
+
+  function navigateTo(target: NavigateTarget) {
+    if (target.type === "surah") void mushaf.loadBySurah(selectedMushaf, target.surah, target.ayah);
+    else if (target.type === "juz") void mushaf.loadByJuz(selectedMushaf, target.juz);
+    else void mushaf.loadPage(selectedMushaf, target.page, { persist: true });
   }
 
   // Reader-scoped keyboard shortcuts. PageUp/PageDown turn the page in every mode
@@ -306,9 +344,11 @@ export function MushafStage() {
   const goPrevRef = useRef(goPrev);
   const goNextRef = useRef(goNext);
   const cycleLayoutRef = useRef(cycleLayout);
+  const sheetOpenRef = useRef(false);
   goPrevRef.current = goPrev;
   goNextRef.current = goNext;
   cycleLayoutRef.current = cycleLayout;
+  sheetOpenRef.current = sheet !== null;
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -328,6 +368,12 @@ export function MushafStage() {
       } else if (e.shiftKey && e.code === "KeyM") {
         e.preventDefault();
         cycleLayoutRef.current();
+      } else if (!e.shiftKey && e.code === "KeyF" && !sheetOpenRef.current) {
+        // e.code: works on an Arabic keyboard layout too.
+        e.preventDefault();
+        setImmersive((value) => !value);
+      } else if (e.key === "Escape" && !sheetOpenRef.current) {
+        setImmersive(false);
       }
     }
     document.addEventListener("keydown", onKey);
@@ -394,28 +440,41 @@ export function MushafStage() {
     );
   }
 
+  // The bar names the first page READ: the right-hand page of a spread.
+  const displayPage = showSpread && pair ? pair.right : pageData.page ?? 1;
+  const displaySurahId =
+    (showSpread && rightLayout?.surahs?.[0]?.id) || pageData.ayahs[0]?.surah_id || undefined;
+
   return (
     <div
-      className={`qb-mushaf-stage${showSpread ? " is-spread" : ""}${scrollMode ? " is-scroll" : ""}${ayahMode ? " is-ayah" : ""}`}
+      className={`qb-mushaf-stage${showSpread ? " is-spread" : ""}${scrollMode ? " is-scroll" : ""}${ayahMode ? " is-ayah" : ""}${immersive ? " is-immersive" : ""}`}
     >
       {/* Shared SR hint: words reference this via aria-describedby so the analyze
           affordance is described once, instead of turning every word into a button. */}
       <span id="qb-word-hint" className="qb-sr-only">اضغط Enter لتحليل الكلمة صرفياً</span>
-      <MushafHeader
+      <ReaderBar
         pageData={pageData}
         surahs={surahs}
-        readerLayout={preferences.reader_layout}
-        spreadAvailable={spreadAvailable}
-        onSetLayout={(next) => void updateAccount({ reader_layout: next })}
-        onJumpSurah={(surahId, ayah) => void mushaf.loadBySurah(selectedMushaf, surahId, ayah)}
-        onJumpJuz={(juz) => void mushaf.loadByJuz(selectedMushaf, juz)}
+        displaySurahId={displaySurahId}
+        displayPage={displayPage}
+        isLoading={isLoading}
+        immersive={immersive}
+        onPrev={goPrev}
+        onNext={goNext}
+        onOpenNavigate={() => setSheet("navigate")}
+        onOpenDisplay={() => setSheet("display")}
+        onToggleImmersive={() => setImmersive((value) => !value)}
       />
 
-      {/* Continuous readers stream endlessly; the gauge restores a sense of
-          place within the current surah. The paged reader has discrete page
-          navigation + the footer counter, so it needs none. */}
-      {continuousMode ? <SurahProgress pageData={pageData} surahs={surahs} /> : null}
-
+      {/* The reading surface: touch swipe turns the page (paged modes), a tap on
+          the page background toggles focus mode. */}
+      <div
+        className="qb-reader-surface"
+        onPointerDown={gestures.onPointerDown}
+        onPointerUp={gestures.onPointerUp}
+        onPointerCancel={gestures.onPointerCancel}
+        onClick={gestures.onClick}
+      >
       {scrollMode ? (
         <ScrollReader
           mushafId={selectedMushaf}
@@ -471,14 +530,43 @@ export function MushafStage() {
         />
       )}
 
-      <MushafFooter
-        pageData={pageData}
-        riwayahLabel={state.edition.shortLabel}
-        isLoading={isLoading}
-        onPrev={goPrev}
-        onNext={goNext}
-        onJumpPage={(targetPage) => void mushaf.loadPage(selectedMushaf, targetPage, { persist: true })}
-      />
+      </div>
+
+      {/* Portaled to <body>: an ancestor's transform would otherwise trap this
+          fixed pill inside the (clipped) stage. */}
+      {immersive && typeof document !== "undefined"
+        ? createPortal(
+            <button
+              type="button"
+              className="qb-immersive-exit"
+              // Touch: exit on touchend and cancel the compatibility click —
+              // otherwise the delayed click lands on the tab bar that reappears
+              // under the finger. Mouse/keyboard use onClick.
+              onTouchEnd={(event) => {
+                event.preventDefault();
+                setImmersive(false);
+              }}
+              onClick={() => setImmersive(false)}
+              aria-label="إنهاء وضع التركيز"
+            >
+              <span>صفحة {formatNumber(displayPage)}</span>
+              <Icon name="shrink" size={14} />
+            </button>,
+            document.body,
+          )
+        : null}
+
+      {sheet === "navigate" ? (
+        <NavigateSheet
+          surahs={surahs}
+          currentSurahId={displaySurahId}
+          currentPage={displayPage}
+          currentJuz={pageData.juz}
+          onNavigate={navigateTo}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
+      {sheet === "display" ? <DisplaySheet onClose={() => setSheet(null)} /> : null}
 
       {/* Long-jump flourish — a gold wash + page-counter scrub over the stage,
           keyed so each far jump is a fresh, self-clearing overlay. */}
