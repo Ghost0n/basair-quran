@@ -4,10 +4,11 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 
 ## Current Capabilities
 
-- A Home landing as the default entry: a rotating āyah as the centerpiece, a
+- A Home landing for first visits: a rotating āyah as the centerpiece, a
   natural-language "اسأل/ابحث" bar (questions → Studio, terms → search), a desk row
-  (continue-reading + library stats), quick-entry tiles (read / search / study), and
-  the latest research sessions.
+  (continue-reading at the saved verse + library stats), and the latest research
+  sessions. Returning readers with a saved position land directly in the reader
+  (once per browser session).
 - One command bar (`⌘K` / `/`) that searches and navigates, and routes a
   natural-language question to the Studio (prefilled and submitted).
 - Smart exact-word search with safe handling for Arabic prefixes and Quranic orthography.
@@ -15,10 +16,16 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 - Compound phrase search within a single ayah.
 - High-confidence "did you mean" suggestions for close misses.
 - Quran page reader synchronized with the selected search result.
-- Multiple reader layouts — single page, two-page spread (authentic Hafs), continuous
-  vertical scroll, and an ayah-by-ayah list — chosen from Quick Settings or resolved
-  automatically per screen size (`reader_layout` preference; see
-  [docs/authentic-mushaf-reader.md](docs/authentic-mushaf-reader.md)).
+- A focused reader: one compact bar (surah · juz · page, «انتقل», «العرض», play
+  page, bookmark, focus mode, page arrows), a single «انتقل» sheet (surah search,
+  `2:255`, «صفحة 50», «جزء 30», juz grid), swipe to turn pages on touch screens,
+  focus mode (`F` or a tap on the page) that hides all chrome, and prefetching of the
+  neighbouring pages so turns are instant.
+- Three reading modes — «صفحات» (the printed page; a facing spread when two pages fit
+  at full size), «تمرير» (continuous pages) and «آية آية» (one verse per row) — with
+  one text-size setting that means the same thing in every mode. The default adapts:
+  continuous scroll on phones and landscape screens, pages elsewhere (see
+  [docs/api-contract.md](docs/api-contract.md) → Reader layout notes).
 - The Madani mushaf (Hafs, authentic line-faithful QCF pages) as the reader's single edition in this first version, chosen from Settings → «المصحف». The database also holds Qaloun, Warsh, Shuba, Douri, and Sousi for future standard editions; they are not exposed in the UI.
 - A persistent floating media bar (transport · reciter chip · seekable progress ·
   repeat/speed) shown across every screen; reciter selection lives in a filterable

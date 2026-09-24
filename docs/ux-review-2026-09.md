@@ -1,6 +1,7 @@
 # Q-Basair — UX, design & responsiveness review (2026-09-24)
 
 **State reviewed:** `feat/Q-Basair-11-mushaf-madani-unique` (Madani Ḥafṣ is the only edition).
+**Follow-up:** all six steps implemented on `feat/Q-Basair-12-refonte-lecteur` — see §7.
 **Method:** the production-shaped build (`NEXT_PUBLIC_AUTH_ENABLED=1`, authentic layout + QPC fonts
 built locally) driven in Chromium at 390×844 (phone), 844×390 (phone landscape), 820×1180
 (tablet), 1366×768 (laptop), 1920×1080 (desktop), dark + light, every reader layout, every
@@ -94,3 +95,43 @@ Severity: **P0** blocks a good first impression · **P1** fix before launch · *
 | 4 | Reader sizing: R4/R5/R6/R12 one sizing model, smarter `auto`, equal spread pages, 3 layouts | M–L |
 | 5 | Screens: S1 devices, D3 panel side, D2 touch targets, R10 ayah mode, S4 search density | M |
 | 6 | Code health (F3) — best done as part of step 3, not separately | M |
+
+---
+
+## 7. Status after `feat/Q-Basair-12-refonte-lecteur`
+
+| Finding | Status | How |
+|---|---|---|
+| R1 mobile chrome | ✅ | one compact bar at the bottom on phones; top bar hidden while reading on phones and short screens; no double frame — the page gets ~640 px of 844 (was ~330) |
+| R2 focus mode | ✅ | `F`, bar button, or a tap on the page; hides bar, top bar, rail, tab bar; exit pill without ghost clicks |
+| R3 swipe | ✅ | horizontal swipe turns pages (mushaf direction); arrows hidden on touch |
+| R4 sizing model | ✅ | the text size is the real size in scroll/ayah (scroll no longer zooms ×2.4); ayah glyphs match the other modes |
+| R5 smart spread | ✅ | spread chosen from the measured reading area (two pages ≈ one page's size) |
+| R6 equal spread pages | ✅ | shared width + height for both leaves |
+| R7 one navigation surface | ✅ | «انتقل» sheet replaces header pills/selects + footer page field; «العرض» replaces Quick Settings |
+| R8 page-turn latency | ✅ | neighbour prefetch (data + layout + glyph font, ±2 in spread) + in-memory caches |
+| R9 unwanted highlight | ✅ | surah/juz jumps select nothing; resume marker clears after 2.5 s (position kept) |
+| R10 ayah mode | ✅ | no double numbering, lighter rows |
+| R11 nested frames | ✅ | removed on phones and for authentic pages everywhere |
+| R12 opening spread | ◐ | equal frames + vertically centred; the printed pages 1–2 remain short by nature |
+| R13 header surah | ✅ | the bar names the right-hand (first read) page of a spread; no reflowing switcher |
+| R14 riwāyah label | ✅ | removed with the footer |
+| D1 Arabic tracking | ✅ | no monospace or letter-spacing on Arabic; digit-adjacent «·» (read as «٠») replaced |
+| D2 touch targets | ✅ | coarse-pointer hit areas (verse save, segments, close buttons, links) |
+| D3 panel side | ✅ | all panels at inline-start |
+| D4 bilingual kickers | ✅ | Latin suffixes removed (brand tagline kept) |
+| D5 top bar | ✅ | Quick Settings removed (→ «العرض»); `Ctrl K` hidden on touch |
+| D6 Home | ✅ | continue-reading from the account position (page + verse); returning readers land in the reader |
+| S1 devices | ✅ | device names from the User-Agent, current first, collapsed list, sign out others |
+| S2 root map on phones | ✅ | fluid grid; heading line-height fixed |
+| S3 fake languages | ✅ | language card removed (UI is Arabic-only in v1) |
+| S4 search density | ◐ | denser rows + larger pin target; a compact list mode is still a possible follow-up |
+| S5 login | ✅ | consistent labels, 16 px inputs (no iOS zoom) |
+| F1 morphology URL | ✅ | `?mushaf=` — the server reads the verse text |
+| F2 caching | ✅ | API `Cache-Control`, fonts `immutable`, nginx gzip |
+| F3 code health | ◐ | ~400 lines of dead CSS and 5 replaced components removed; the 1,150-line workspace hook split is still open |
+
+Verification: 42 screen/theme/size combinations with no console errors, failed API
+calls or horizontal overflow; scripted probes for swipe, focus mode (incl. ghost
+clicks), «انتقل» (`٢:٢٥٥`, surah filter), prefetch (turns hit no network),
+returning-reader landing, resume marker, legacy Qālūn notebook items.
