@@ -125,11 +125,11 @@ Severity: **P0** blocks a good first impression · **P1** fix before launch · *
 | S1 devices | ✅ | device names from the User-Agent, current first, collapsed list, sign out others |
 | S2 root map on phones | ✅ | fluid grid; heading line-height fixed |
 | S3 fake languages | ✅ | language card removed (UI is Arabic-only in v1) |
-| S4 search density | ◐ | denser rows + larger pin target; a compact list mode is still a possible follow-up |
+| S4 search density | ✅ | denser rows + larger pin target; compact one-line KWIC mode (Q-Basair-13) |
 | S5 login | ✅ | consistent labels, 16 px inputs (no iOS zoom) |
 | F1 morphology URL | ✅ | `?mushaf=` — the server reads the verse text |
 | F2 caching | ✅ | API `Cache-Control`, fonts `immutable`, nginx gzip |
-| F3 code health | ◐ | ~400 lines of dead CSS and 5 replaced components removed; the 1,150-line workspace hook split is still open |
+| F3 code health | ✅ | ~400 lines of dead CSS and 5 replaced components removed; workspace hook 1,158 → 859 lines (theme + helpers extracted, 21 unused fields and their state removed) — Q-Basair-13 |
 
 Verification: 42 screen/theme/size combinations with no console errors, failed API
 calls or horizontal overflow; scripted probes for swipe, focus mode (incl. ghost
