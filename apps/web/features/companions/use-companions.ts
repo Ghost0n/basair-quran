@@ -67,6 +67,8 @@ export function useCompanions() {
       setNotebook((current) =>
         current.some((item) => item.id === change.item.id) ? current : [change.item, ...current],
       );
+    } else if (change.kind === "updated") {
+      setNotebook((current) => current.map((item) => (item.id === change.item.id ? change.item : item)));
     } else {
       setNotebook((current) => current.filter((item) => item.id !== change.itemId));
     }

@@ -424,6 +424,17 @@ class ResearchAgentResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+# Themes: a fixed palette keeps highlights legible on both themes and on glyph pages.
+ThemeColor = Literal["gold", "sand", "green", "teal", "blue", "violet", "rose", "grey"]
+# Palette order (for automatic assignment): gold, the reader's selection colour, is not first.
+THEME_COLORS: tuple[str, ...] = ("green", "blue", "rose", "violet", "teal", "sand", "gold", "grey")
+MAX_THEME_NAME_CHARS = 60
+MAX_THEME_DESCRIPTION_CHARS = 500
+MAX_THEMES_PER_USER = 200
+MAX_THEMES_PER_ITEM = 12
+MAX_THEME_BOARD_BYTES = 256 * 1024
+
+
 class NotebookItem(BaseModel):
     id: int
     ayah_id: int
@@ -434,6 +445,8 @@ class NotebookItem(BaseModel):
     text: Optional[str] = None
     note: Optional[str] = None
     collection: Optional[str] = None
+    # Themes (مواضيع) this saved ayah is highlighted with; see ThemeSummary.
+    theme_ids: List[int] = Field(default_factory=list)
     created_at: int
 
 
@@ -446,6 +459,46 @@ class NotebookItemCreate(BaseModel):
     text: Optional[str] = Field(None, max_length=4000)
     note: Optional[str] = Field(None, max_length=2000)
     collection: Optional[str] = Field(None, max_length=120)
+    theme_ids: List[int] = Field(default_factory=list, max_length=MAX_THEMES_PER_ITEM)
+
+
+class NotebookItemThemes(BaseModel):
+    """Replace the themes of one saved ayah (an empty list keeps it saved, untagged)."""
+
+    theme_ids: List[int] = Field(default_factory=list, max_length=MAX_THEMES_PER_ITEM)
+
+
+class ThemeSummary(BaseModel):
+    """A theme (موضوع): a named highlight colour that groups saved ayahs by subject."""
+
+    id: int
+    name: str
+    color: ThemeColor
+    description: Optional[str] = None
+    item_count: int = 0
+    created_at: int
+    updated_at: int
+
+
+class ThemeDetail(ThemeSummary):
+    # The theme board (graph of its ayahs, notes and relations); opaque, versioned JSON.
+    board: Optional[dict] = None
+
+
+class ThemeCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=MAX_THEME_NAME_CHARS)
+    color: ThemeColor = "green"
+    description: Optional[str] = Field(None, max_length=MAX_THEME_DESCRIPTION_CHARS)
+
+
+class ThemeUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=MAX_THEME_NAME_CHARS)
+    color: Optional[ThemeColor] = None
+    description: Optional[str] = Field(None, max_length=MAX_THEME_DESCRIPTION_CHARS)
+
+
+class ThemeBoardSave(BaseModel):
+    board: dict
 
 
 class ResearchSessionSummary(BaseModel):

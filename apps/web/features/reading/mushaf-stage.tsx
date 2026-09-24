@@ -5,13 +5,16 @@ import type { RefObject } from "react";
 import { createPortal } from "react-dom";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { SurahListItem } from "@q-basair/shared";
+import type { QuranPageAyah, SurahListItem } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
 import { ErrorState } from "@/components/error-state";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { Icon } from "@/components/icon";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
+import { AyahMarksProvider, useShowHighlights, type AyahMark } from "@/features/themes/ayah-marks";
+import { ThemeSheet } from "@/features/themes/theme-sheet";
+import { useThemes } from "@/features/themes/themes-store";
 
 import "./reading.css";
 
@@ -30,7 +33,7 @@ import { useReaderGestures } from "./use-reader-gestures";
 import { nextReaderLayout, resolveReaderMode, spreadFits } from "./reader-modes";
 import { useGlyphFit } from "./use-glyph-fit";
 import { useCompactReader, useElementSize } from "./use-wide-screen";
-import { useSavedAyat } from "./use-saved-ayat";
+import { useSavedAyat, type SavableAyah } from "./use-saved-ayat";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -62,6 +65,8 @@ export function MushafStage() {
   const [navDir, setNavDir] = useState<"fwd" | "back">("fwd");
   // Reader sheets («انتقل», «العرض») and focus mode (all chrome hidden).
   const [sheet, setSheet] = useState<"navigate" | "display" | null>(null);
+  // «حفظ وتظليل»: the ayah whose save/theme sheet is open.
+  const [themeTarget, setThemeTarget] = useState<SavableAyah | null>(null);
   const [immersive, setImmersive] = useState(false);
 
   // Focus mode hides the shell chrome too (top bar, rail, tab bar) — a class on
@@ -239,19 +244,44 @@ export function MushafStage() {
     scrollControlsRef.current = controls;
   }, []);
 
-  // Save/un-save an ayah to the library (الدفتر) straight from the reader.
+  // Save an ayah to the library (الدفتر) straight from the reader and highlight
+  // it with themes: the bookmark opens «حفظ وتظليل» (which saves on open).
   const saved = useSavedAyat();
+  const { byId: themeById } = useThemes();
+  const showHighlights = useShowHighlights();
+
+  // Each saved ayah's highlight: its first (still existing) theme's colour.
+  const markOf = useCallback(
+    (ayahId: number): AyahMark => {
+      if (!saved.isSaved(ayahId)) return null;
+      const themes = saved.themeIdsOf(ayahId).map(themeById).filter((theme) => theme != null);
+      if (themes.length === 0) return { color: null, themes: 0 };
+      return { color: showHighlights ? themes[0].color : null, themes: themes.length };
+    },
+    [saved, themeById, showHighlights],
+  );
 
   // Glyph reader save: build the ayah payload from the clicked word + catalog.
   function handleGlyphSave(target: GlyphSaveTarget) {
     const surahName = surahs.find((item) => item.id === target.surahId)?.name ?? `${target.surahId}`;
-    saved.toggle({
+    setThemeTarget({
       ayah_id: target.ayahId,
       mushaf_id: pageData?.mushaf_id ?? selectedMushaf,
       surah_id: target.surahId,
       surah: surahName,
       ayah: target.ayah,
       text: target.text.trim(),
+    });
+  }
+
+  function handleAyahSave(ayah: QuranPageAyah) {
+    setThemeTarget({
+      ayah_id: ayah.ayah_id,
+      mushaf_id: ayah.mushaf_id,
+      surah_id: ayah.surah_id,
+      surah: ayah.surah,
+      ayah: ayah.ayah,
+      text: ayah.text.trim(),
     });
   }
 
@@ -447,6 +477,7 @@ export function MushafStage() {
     (showSpread && rightLayout?.surahs?.[0]?.id) || pageData.ayahs[0]?.surah_id || undefined;
 
   return (
+    <AyahMarksProvider value={markOf}>
     <div
       ref={stageRef}
       className={`qb-mushaf-stage${showSpread ? " is-spread" : ""}${scrollMode ? " is-scroll" : ""}${ayahMode ? " is-ayah" : ""}${immersive ? " is-immersive" : ""}`}
@@ -486,7 +517,7 @@ export function MushafStage() {
           authentic={authentic}
           selectedAyahId={mushaf.selectedAyahId}
           isSaved={saved.isSaved}
-          onToggleSave={saved.toggle}
+          onToggleSave={handleAyahSave}
           onGlyphSave={handleGlyphSave}
           onWordClick={handleWordClick}
           onWordKey={handleWordKey}
@@ -502,7 +533,7 @@ export function MushafStage() {
           authentic={authentic}
           selectedAyahId={mushaf.selectedAyahId}
           isSaved={saved.isSaved}
-          onToggleSave={saved.toggle}
+          onToggleSave={handleAyahSave}
           onGlyphSave={handleGlyphSave}
           onWordClick={handleWordClick}
           onWordKey={handleWordKey}
@@ -524,7 +555,7 @@ export function MushafStage() {
           spreadRef={spreadRef}
           selectedAyahId={mushaf.selectedAyahId}
           isSaved={saved.isSaved}
-          onToggleSave={saved.toggle}
+          onToggleSave={handleAyahSave}
           onGlyphSave={handleGlyphSave}
           onWordClick={handleWordClick}
           onWordKey={handleWordKey}
@@ -559,17 +590,30 @@ export function MushafStage() {
           )
         : null}
 
-      {sheet === "navigate" ? (
-        <NavigateSheet
-          surahs={surahs}
-          currentSurahId={displaySurahId}
-          currentPage={displayPage}
-          currentJuz={pageData.juz}
-          onNavigate={navigateTo}
-          onClose={() => setSheet(null)}
+      {/* Sheets are portaled to <body> so they layer above the mobile tab bar
+          (the stage is its own stacking context). */}
+      {sheet === "navigate"
+        ? createPortal(
+            <NavigateSheet
+              surahs={surahs}
+              currentSurahId={displaySurahId}
+              currentPage={displayPage}
+              currentJuz={pageData.juz}
+              onNavigate={navigateTo}
+              onClose={() => setSheet(null)}
+            />,
+            document.body,
+          )
+        : null}
+      {sheet === "display" ? createPortal(<DisplaySheet onClose={() => setSheet(null)} />, document.body) : null}
+      {themeTarget ? (
+        <ThemeSheet
+          key={themeTarget.ayah_id}
+          ayah={themeTarget}
+          saved={saved}
+          onClose={() => setThemeTarget(null)}
         />
       ) : null}
-      {sheet === "display" ? <DisplaySheet onClose={() => setSheet(null)} /> : null}
 
       {/* Long-jump flourish — a gold wash + page-counter scrub over the stage,
           keyed so each far jump is a fresh, self-clearing overlay. */}
@@ -582,5 +626,6 @@ export function MushafStage() {
         />
       ) : null}
     </div>
+    </AyahMarksProvider>
   );
 }

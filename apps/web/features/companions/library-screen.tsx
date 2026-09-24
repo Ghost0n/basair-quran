@@ -3,23 +3,27 @@
 import "./companions.css";
 
 import { useState } from "react";
+
+import "@/features/themes/themes.css";
 import { useRouter } from "next/navigation";
 
-import type { NotebookItem } from "@q-basair/shared";
+import type { NotebookItem, ThemeColor, ThemeSummary } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { useNumerals } from "@/lib/preferences-context";
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
+import { THEME_PALETTE } from "@/features/themes/palette";
+import { deleteTheme, updateTheme, useThemes } from "@/features/themes/themes-store";
 
 import { relativeAge, useCompanions } from "./use-companions";
 
 type LibraryTab = "verses" | "sessions" | "roots";
-type VerseView = "recent" | "collections";
+type VerseView = "recent" | "themes";
 type SessionFilter = "all" | "strict" | "tafssir";
 
-const UNFILED = "غير مُصنَّفة";
+const UNTAGGED = "بلا موضوع";
 const SESSION_FILTERS: { value: SessionFilter; label: string }[] = [
   { value: "all", label: "الكل" },
   { value: "strict", label: "القرآن وحدَه" },
@@ -56,11 +60,16 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
     setMode("reading");
   }
 
-  const collections = new Map<string, NotebookItem[]>();
-  for (const item of companions.notebook) {
-    const key = item.collection?.trim() || UNFILED;
-    collections.set(key, [...(collections.get(key) ?? []), item]);
-  }
+  const { themes, byId: themeById } = useThemes();
+  // Themes in creation order, each with its saved ayahs (an ayah can sit in
+  // several); ayahs without a (live) theme gather under «بلا موضوع».
+  const themeGroups = themes.map((theme) => ({
+    theme,
+    items: companions.notebook.filter((item) => item.theme_ids?.includes(theme.id)),
+  }));
+  const untagged = companions.notebook.filter(
+    (item) => !(item.theme_ids ?? []).some((themeId) => themeById(themeId) != null),
+  );
   const visibleSessions = companions.sessions.filter(
     (s) => sessionFilter === "all" || s.mode === sessionFilter,
   );
@@ -110,8 +119,8 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
               <button type="button" className={`qb-pill${verseView === "recent" ? " active" : ""}`} onClick={() => setVerseView("recent")}>
                 الأحدث
               </button>
-              <button type="button" className={`qb-pill${verseView === "collections" ? " active" : ""}`} onClick={() => setVerseView("collections")}>
-                حسب المجموعة
+              <button type="button" className={`qb-pill${verseView === "themes" ? " active" : ""}`} onClick={() => setVerseView("themes")}>
+                حسب الموضوع
               </button>
             </div>
 
@@ -125,8 +134,8 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                         {item.surah ?? "آية"} {item.ayah != null ? formatNumber(item.ayah) : ""}
                       </div>
                       <div className="meta">
-                        {item.text ? `${item.text.slice(0, 64)}` : ""}
-                        {item.collection ? ` · ${item.collection}` : ""} · {relativeAge(item.created_at)}
+                        <ThemeDots themeIds={item.theme_ids ?? []} themeById={themeById} />
+                        {item.text ? `${item.text.slice(0, 64)}` : ""}، {relativeAge(item.created_at)}
                       </div>
                     </button>
                     <button type="button" className="row-action" aria-label="حذف" onClick={() => void companions.deleteNotebookItem(item.id)}>
@@ -137,25 +146,26 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
               </div>
             ) : (
               <div className="qb-aux-grid">
-                {[...collections.entries()].map(([name, items]) => (
-                  <div key={name} className="qb-collection-card">
+                {themeGroups.map(({ theme, items }) => (
+                  <ThemeCard key={theme.id} theme={theme} count={items.length}>
+                    {items.map((item) => (
+                      <MiniVerse key={item.id} item={item} onOpen={openVerse} />
+                    ))}
+                  </ThemeCard>
+                ))}
+                {untagged.length > 0 ? (
+                  <div className="qb-collection-card">
                     <div className="head">
-                      <span className="name">{name}</span>
-                      <span className="count">{formatNumber(items.length)} آية</span>
+                      <span className="name">{UNTAGGED}</span>
+                      <span className="count">{formatNumber(untagged.length)} آية</span>
                     </div>
                     <div className="body">
-                      {items.map((item) => (
-                        <button key={item.id} type="button" className="qb-mini-verse" onClick={() => openVerse(item)}>
-                          <div className="ref">
-                            <Icon name="book" size={10} /> {item.surah ?? ""}{" "}
-                            {item.ayah != null ? formatNumber(item.ayah) : ""}
-                          </div>
-                          {item.text ? <div className="text">{item.text}</div> : null}
-                        </button>
+                      {untagged.map((item) => (
+                        <MiniVerse key={item.id} item={item} onOpen={openVerse} />
                       ))}
                     </div>
                   </div>
-                ))}
+                ) : null}
               </div>
             )}
           </>
@@ -225,6 +235,122 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
           </div>
         )
       ) : null}
+    </div>
+  );
+}
+
+function ThemeDots({
+  themeIds,
+  themeById,
+}: {
+  themeIds: number[];
+  themeById: (themeId: number) => ThemeSummary | null;
+}) {
+  const live = themeIds.map(themeById).filter((theme): theme is ThemeSummary => theme != null);
+  if (live.length === 0) return null;
+  return (
+    <span className="qb-theme-dots" aria-label={`المواضيع: ${live.map((theme) => theme.name).join("، ")}`}>
+      {live.map((theme) => (
+        <span key={theme.id} className="dot" data-hl={theme.color} title={theme.name} />
+      ))}
+    </span>
+  );
+}
+
+function MiniVerse({ item, onOpen }: { item: NotebookItem; onOpen: (item: NotebookItem) => void }) {
+  const formatNumber = useNumerals();
+  return (
+    <button type="button" className="qb-mini-verse" onClick={() => onOpen(item)}>
+      <div className="ref">
+        <Icon name="book" size={10} /> {item.surah ?? ""} {item.ayah != null ? formatNumber(item.ayah) : ""}
+      </div>
+      {item.text ? <div className="text">{item.text}</div> : null}
+    </button>
+  );
+}
+
+/** A theme's card: colour, name, count, and inline rename / recolour / delete. */
+function ThemeCard({ theme, count, children }: { theme: ThemeSummary; count: number; children: React.ReactNode }) {
+  const formatNumber = useNumerals();
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(theme.name);
+  const [confirming, setConfirming] = useState(false);
+
+  async function saveEdit(patch: { name?: string; color?: ThemeColor }) {
+    try {
+      await updateTheme(theme.id, patch);
+    } catch {
+      /* keep the current values; the card simply doesn't change */
+    }
+  }
+
+  return (
+    <div className="qb-collection-card qb-theme-card" data-hl={theme.color}>
+      <div className="head">
+        {editing ? (
+          <form
+            className="rename"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const trimmed = name.trim();
+              if (trimmed && trimmed !== theme.name) void saveEdit({ name: trimmed });
+              setEditing(false);
+            }}
+          >
+            <input value={name} onChange={(event) => setName(event.target.value)} maxLength={60} aria-label="اسم الموضوع" autoFocus />
+            <button type="submit" className="row-action" aria-label="حفظ الاسم">
+              <Icon name="check" size={15} />
+            </button>
+          </form>
+        ) : (
+          <span className="name">
+            <span className="dot" aria-hidden />
+            {theme.name}
+          </span>
+        )}
+        <span className="count">{formatNumber(count)} آية</span>
+        {!editing ? (
+          <button type="button" className="row-action" aria-label={`تعديل «${theme.name}»`} onClick={() => { setName(theme.name); setEditing(true); }}>
+            <Icon name="edit" size={14} />
+          </button>
+        ) : null}
+      </div>
+      {editing ? (
+        <div className="edit">
+          <div className="swatches" role="radiogroup" aria-label="لون الموضوع">
+            {THEME_PALETTE.map((entry) => (
+              <button
+                key={entry.key}
+                type="button"
+                role="radio"
+                aria-checked={theme.color === entry.key}
+                aria-label={entry.label}
+                className={`swatch${theme.color === entry.key ? " on" : ""}`}
+                data-hl={entry.key}
+                onClick={() => void saveEdit({ color: entry.key })}
+              />
+            ))}
+          </div>
+          {confirming ? (
+            <div className="confirm">
+              <span>حذف الموضوع؟ تبقى آياته محفوظة.</span>
+              <button type="button" className="danger" onClick={() => void deleteTheme(theme.id).catch(() => {})}>
+                حذف
+              </button>
+              <button type="button" onClick={() => setConfirming(false)}>
+                إلغاء
+              </button>
+            </div>
+          ) : (
+            <button type="button" className="delete" onClick={() => setConfirming(true)}>
+              <Icon name="trash" size={13} /> حذف الموضوع
+            </button>
+          )}
+        </div>
+      ) : null}
+      <div className="body">
+        {count === 0 ? <div className="empty">لا آيات بعد — ظلِّل آية بهذا الموضوع من القراءة.</div> : children}
+      </div>
     </div>
   );
 }

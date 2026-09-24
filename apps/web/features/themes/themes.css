@@ -1,0 +1,398 @@
+/* =====================================================================
+   Themes (مواضيع) — palette tokens, reader highlights, chips, theme sheet.
+   `--hl` is the soft fill painted behind a highlighted ayah; `--hl-ink` the
+   saturated tone for dots, swatches and the bookmark of a tagged ayah.
+   ===================================================================== */
+
+[data-hl="gold"]   { --hl: rgba(212, 175, 55, 0.20);  --hl-ink: #d4af37; }
+[data-hl="sand"]   { --hl: rgba(196, 150, 104, 0.22); --hl-ink: #c49668; }
+[data-hl="green"]  { --hl: rgba(96, 170, 110, 0.22);  --hl-ink: #5fae6e; }
+[data-hl="teal"]   { --hl: rgba(64, 170, 170, 0.22);  --hl-ink: #3fa9a9; }
+[data-hl="blue"]   { --hl: rgba(92, 140, 220, 0.24);  --hl-ink: #5c8cdc; }
+[data-hl="violet"] { --hl: rgba(150, 110, 210, 0.24); --hl-ink: #9670d2; }
+[data-hl="rose"]   { --hl: rgba(214, 100, 130, 0.22); --hl-ink: #d66482; }
+[data-hl="grey"]   { --hl: rgba(150, 150, 150, 0.24); --hl-ink: #9a9a9a; }
+
+/* Paper (light) theme: a touch stronger fill, darker ink for contrast. */
+.light [data-hl="gold"]   { --hl: rgba(212, 175, 55, 0.26);  --hl-ink: #9c7a12; }
+.light [data-hl="sand"]   { --hl: rgba(196, 150, 104, 0.28); --hl-ink: #8c6135; }
+.light [data-hl="green"]  { --hl: rgba(96, 170, 110, 0.26);  --hl-ink: #2f7a3e; }
+.light [data-hl="teal"]   { --hl: rgba(64, 170, 170, 0.26);  --hl-ink: #1f7777; }
+.light [data-hl="blue"]   { --hl: rgba(92, 140, 220, 0.26);  --hl-ink: #2f5ea8; }
+.light [data-hl="violet"] { --hl: rgba(150, 110, 210, 0.26); --hl-ink: #6441a0; }
+.light [data-hl="rose"]   { --hl: rgba(214, 100, 130, 0.24); --hl-ink: #a83256; }
+.light [data-hl="grey"]   { --hl: rgba(120, 120, 120, 0.22); --hl-ink: #5f5f5f; }
+
+/* --- Reader highlights (the selected ayah's gold block always wins) --- */
+
+.qb-glyph-hl,
+.qb-glyph-ayah-row.qb-hl,
+.qb-ayah-tok.qb-hl {
+  background: var(--hl);
+  border-radius: 6px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.qb-glyph-hl {
+  padding: 0 3px;
+}
+
+/* A tagged ayah's bookmark takes its theme colour; a second theme adds a dot. */
+.qb-save-ayah.on[data-hl],
+.qb-glyph-save.on[data-hl] {
+  color: var(--hl-ink);
+}
+
+.qb-save-ayah.multi,
+.qb-glyph-save.multi {
+  position: relative;
+}
+
+.qb-glyph-save.multi::after,
+.qb-save-ayah.multi::after {
+  content: "";
+  position: absolute;
+  top: -1px;
+  inset-inline-start: -1px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 1.5px var(--bg-elev-1);
+}
+
+/* --- Theme chip (sheet, library, board) --- */
+
+.qb-theme-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 140ms var(--ease-out), background 140ms var(--ease-out);
+}
+
+.qb-theme-chip .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--hl-ink);
+  flex-shrink: 0;
+}
+
+.qb-theme-chip:hover {
+  border-color: var(--hl-ink);
+}
+
+.qb-theme-chip.on {
+  background: var(--hl);
+  border-color: var(--hl-ink);
+  color: var(--fg-1);
+  font-weight: 700;
+}
+
+.qb-theme-chip:focus-visible {
+  outline: 2px solid var(--hl-ink);
+  outline-offset: 2px;
+}
+
+/* --- «حفظ وتظليل» sheet --- */
+
+.qb-theme-sheet .panel {
+  width: min(480px, 100%);
+}
+
+.qb-theme-sheet .head .ref {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.qb-theme-sheet .verse {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--gold-a08);
+  font-family: var(--font-arabic-display);
+  font-size: 18px;
+  line-height: 1.9;
+  color: var(--fg-1);
+}
+
+.qb-theme-sheet section + section {
+  margin-top: 18px;
+}
+
+.qb-theme-sheet .hint {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--fg-3);
+}
+
+.qb-theme-sheet .themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.qb-theme-sheet .new {
+  display: flex;
+  gap: 8px;
+}
+
+.qb-theme-sheet .new input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-size: 16px; /* ≥16px: no iOS zoom on focus */
+}
+
+.light .qb-theme-sheet .new input {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.qb-theme-sheet .new input:focus {
+  outline: none;
+  border-color: var(--gold-400);
+}
+
+.qb-theme-sheet .new .add,
+.qb-theme-sheet .foot .done {
+  height: 44px;
+  padding: 0 18px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--gold-a40);
+  background: var(--gold-a12);
+  color: var(--gold-text);
+  font-family: var(--font-arabic-ui);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-theme-sheet .new .add:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.qb-theme-sheet .swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.qb-theme-sheet .swatch {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: var(--hl-ink);
+  background-clip: content-box;
+  padding: 3px;
+  cursor: pointer;
+}
+
+.qb-theme-sheet .swatch.on {
+  border-color: var(--hl-ink);
+}
+
+.qb-theme-sheet .swatch:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 2px;
+}
+
+.qb-theme-sheet .error {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--danger-fg);
+}
+
+.qb-theme-sheet .foot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--border);
+}
+
+.qb-theme-sheet .foot .remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--danger-fg);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.qb-theme-sheet .foot .remove:hover {
+  background: rgba(201, 122, 122, 0.1);
+}
+
+/* --- Library: theme cards + dots --- */
+
+.qb-theme-dots {
+  display: inline-flex;
+  gap: 3px;
+  margin-inline-end: 6px;
+  vertical-align: middle;
+}
+
+.qb-theme-dots .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hl-ink);
+}
+
+.qb-theme-card .head {
+  gap: 8px;
+  background: linear-gradient(135deg, var(--hl), transparent);
+}
+
+.qb-theme-card .head .name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.qb-theme-card .head .name .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--hl-ink);
+  flex-shrink: 0;
+}
+
+.qb-theme-card .head .rename {
+  display: flex;
+  flex: 1;
+  gap: 6px;
+  min-width: 0;
+}
+
+.qb-theme-card .head .rename input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border);
+  background: var(--bg-elev-2);
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-size: 16px;
+}
+
+.qb-theme-card .edit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.qb-theme-card .swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.qb-theme-card .swatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: var(--hl-ink);
+  background-clip: content-box;
+  padding: 3px;
+  cursor: pointer;
+}
+
+.qb-theme-card .swatch.on {
+  border-color: var(--hl-ink);
+}
+
+.qb-theme-card .delete,
+.qb-theme-card .confirm button {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: none;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.qb-theme-card .delete,
+.qb-theme-card .confirm .danger {
+  color: var(--danger-fg);
+}
+
+.qb-theme-card .confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--fg-2);
+}
+
+.qb-theme-card .empty {
+  font-size: 13px;
+  color: var(--fg-3);
+  line-height: 1.8;
+}
+
+.qb-theme-card .head .row-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg-3);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.qb-theme-card .head .row-action:hover {
+  color: var(--hl-ink);
+  border-color: var(--hl-ink);
+}

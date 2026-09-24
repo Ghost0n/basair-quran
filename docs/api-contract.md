@@ -57,10 +57,33 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/quran-page`
 - `GET /api/mushaf-page-layout`
 - `GET /api/morphology`
-- `GET /api/notebook` · `POST /api/notebook` · `DELETE /api/notebook/{item_id}`
+- `GET /api/notebook` · `POST /api/notebook` · `DELETE /api/notebook/{item_id}` · `PUT /api/notebook/{item_id}/themes`
+- `GET /api/themes` · `POST /api/themes` · `GET /api/themes/{theme_id}` · `PATCH /api/themes/{theme_id}` · `PUT /api/themes/{theme_id}/board` · `DELETE /api/themes/{theme_id}`
 - `GET /api/sessions` · `GET /api/sessions/{session_id}` · `POST /api/sessions` · `DELETE /api/sessions/{session_id}`
 - `GET /api/roots` · `POST /api/roots` · `DELETE /api/roots/{root_id}`
 - `GET /api/user/preferences` · `PATCH /api/user/preferences`
+
+## Themes (مواضيع) notes
+
+Saving an ayah highlights it with themes — named colours that group saved ayahs by subject
+(design: `docs/research-workspace-spec.md` §1–2).
+
+- `ThemeSummary {id, name, color, description?, item_count, created_at, updated_at}`; `color` is one
+  of a fixed palette: `green, blue, rose, violet, teal, sand, gold, grey` (`422` otherwise). Names are
+  1–60 chars; at most 200 themes per user (`409` beyond).
+- `NotebookItem.theme_ids: int[]` (additive, defaults to `[]`). `POST /api/notebook` accepts
+  `theme_ids`; `PUT /api/notebook/{item_id}/themes {theme_ids}` replaces them (an empty list keeps the
+  ayah saved, untagged). Ids the user doesn't own are dropped silently; duplicates collapse; max 12.
+- `GET /api/themes/{id}` returns `ThemeDetail` = summary + `board` (the theme board JSON, `null` until
+  saved). The list endpoint never includes boards.
+- `PUT /api/themes/{id}/board {board}` stores the board as opaque JSON (≤ 256 KB, `413` beyond). Shape
+  (`packages/shared` `ThemeBoard`): `{v: 1, nodes: [{id, type: ayah|note|heading, x, y, w?, h?, data}],
+  edges: [{id, source, target, label?}], viewport?}`.
+- `DELETE /api/themes/{id}` deletes the theme and its board; its ayahs stay saved without it.
+- Migration: when `theme_ids` is added to an existing store, each distinct free-text `collection`
+  becomes a theme (per owner, colours in palette order). `collection` is still returned for compatibility.
+- Guest→account merge moves the device's themes with its notebook rows; undo moves them back; account
+  deletion erases them.
 
 ## Authentic Madani layout notes
 
@@ -224,7 +247,7 @@ This document freezes the backend contract that the future frontend migration wi
   the merge to the caller's own device rows.
 - `POST /api/auth/merge-guest-data` (auth) re-attributes **only the caller's own** guest (`user_id=0`) rows —
   those whose `guest_id` matches the presented `X-QBasair-Guest-Id` header — to the account (notebook,
-  sessions, followed roots, optionally preferences). A missing token merges nothing (fail-safe; no
+  themes, sessions, followed roots, optionally preferences). A missing token merges nothing (fail-safe; no
   cross-guest harvesting). Rows are **moved, never deleted**; the exact ids are journalled under an
   `undo_token`. The merge is idempotent and re-runnable (moved rows leave the guest scope), so later guest
   data stays claimable. `POST /api/auth/merge-guest-data/undo` flips those exact ids back to the guest,

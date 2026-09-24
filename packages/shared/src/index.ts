@@ -268,7 +268,67 @@ export interface NotebookItem {
   text?: string | null;
   note?: string | null;
   collection?: string | null;
+  /** Themes (مواضيع) this saved ayah is highlighted with. */
+  theme_ids: number[];
   created_at: number;
+}
+
+/** Fixed highlight palette — legible on both themes and on glyph pages. */
+export type ThemeColor = "gold" | "sand" | "green" | "teal" | "blue" | "violet" | "rose" | "grey";
+
+/** A theme (موضوع): a named highlight colour grouping saved ayahs by subject. */
+export interface ThemeSummary {
+  id: number;
+  name: string;
+  color: ThemeColor;
+  description?: string | null;
+  item_count: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export interface ThemeDetail extends ThemeSummary {
+  /** The theme board (graph of ayahs, notes, relations); versioned JSON, see ThemeBoard. */
+  board?: ThemeBoard | null;
+}
+
+export interface ThemeCreate {
+  name: string;
+  color?: ThemeColor;
+  description?: string | null;
+}
+
+export interface ThemeUpdate {
+  name?: string;
+  color?: ThemeColor;
+  description?: string | null;
+}
+
+export type ThemeBoardNodeType = "ayah" | "note" | "heading";
+
+export interface ThemeBoardNode {
+  id: string;
+  type: ThemeBoardNodeType;
+  x: number;
+  y: number;
+  w?: number;
+  h?: number;
+  /** ayah: { ayah_id, expanded? } · note: { text } · heading: { text } */
+  data: Record<string, unknown>;
+}
+
+export interface ThemeBoardEdge {
+  id: string;
+  source: string;
+  target: string;
+  label?: string | null;
+}
+
+export interface ThemeBoard {
+  v: 1;
+  nodes: ThemeBoardNode[];
+  edges: ThemeBoardEdge[];
+  viewport?: { x: number; y: number; zoom: number } | null;
 }
 
 export interface NotebookItemCreate {
@@ -280,6 +340,7 @@ export interface NotebookItemCreate {
   text?: string | null;
   note?: string | null;
   collection?: string | null;
+  theme_ids?: number[];
 }
 
 export interface ResearchSessionSummary {

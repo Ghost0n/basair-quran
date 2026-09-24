@@ -136,7 +136,7 @@ export function ConcordancePanel() {
       if (change.item.ayah_id != null) {
         setPinnedAyahIds((current) => new Set(current).add(change.item.ayah_id as number));
       }
-    } else if (change.ayahId != null) {
+    } else if (change.kind === "removed" && change.ayahId != null) {
       setPinnedAyahIds((current) => {
         if (!current.has(change.ayahId as number)) return current;
         const next = new Set(current);
