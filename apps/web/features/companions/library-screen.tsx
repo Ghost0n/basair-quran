@@ -75,7 +75,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
     <div className="qb-aux">
       <div className="qb-aux-h">
         <div>
-          <div className="kicker">الدفتر · LIBRARY</div>
+          <div className="kicker">الدفتر</div>
           <h2>الدفتر</h2>
           <div className="sub">
             {formatNumber(companions.notebook.length)} آية · {formatNumber(companions.sessions.length)} جلسة ·{" "}

@@ -98,7 +98,7 @@ export function MushafStage() {
     // resumes by its surah:ayah reference in the current edition.
     const pos = preferences.last_position;
     if (pos?.ayah_id && pos.mushaf_id === selectedMushaf) {
-      void mushaf.loadByAyah(selectedMushaf, pos.ayah_id);
+      void mushaf.loadByAyah(selectedMushaf, pos.ayah_id, [], { transient: true });
     } else if (pos?.surah && pos.ayah) {
       void mushaf.loadBySurah(selectedMushaf, pos.surah, pos.ayah);
     } else {
@@ -110,14 +110,25 @@ export function MushafStage() {
   // Persist the current reading position (the selected verse, else the page's
   // first ayah) so the next visit resumes exactly here. Debounced so rapid page
   // turns coalesce into a single write.
+  const persistedRef = useRef<{ page: number | null; ayahId: number } | null>(null);
   useEffect(() => {
     const pd = mushaf.pageData;
     if (!ready || !pd || !pd.ayahs.length) return;
+    // A selection clearing on the same page (e.g. the resume marker fading) is
+    // not a move — keep the exact verse that was saved.
+    if (
+      mushaf.selectedAyahId == null &&
+      persistedRef.current?.page === (pd.page ?? null) &&
+      pd.ayahs.some((a) => a.ayah_id === persistedRef.current?.ayahId)
+    ) {
+      return;
+    }
     const onPage =
       mushaf.selectedAyahId != null && pd.ayahs.some((a) => a.ayah_id === mushaf.selectedAyahId);
     const anchor = onPage
       ? pd.ayahs.find((a) => a.ayah_id === mushaf.selectedAyahId)!
       : pd.ayahs[0];
+    persistedRef.current = { page: pd.page ?? null, ayahId: anchor.ayah_id };
     updateAccountDebounced({
       last_position: {
         ayah_id: anchor.ayah_id,

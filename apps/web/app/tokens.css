@@ -149,6 +149,7 @@
 
   /* ---------- Typography — families ---------- */
   --font-arabic-display: 'Amiri Quran', 'Amiri', 'Reem Kufi', serif;  /* mushaf, ayahs, headings */
+  --font-arabic-heading: 'Amiri', 'Amiri Quran', serif;  /* UI headings: Amiri's metrics fit a line box (Amiri Quran's tall marks overflow it) */
   --font-arabic-mushaf:  'Amiri Quran', 'Amiri', serif;              /* alias — mushaf-only contexts */
   --font-arabic-ui:      'Cairo', 'Inter', system-ui, sans-serif;    /* UI chrome, body */
   --font-arabic-kufi:    'Reem Kufi', 'Cairo', sans-serif;           /* surah titles, deck */
@@ -173,15 +174,15 @@
      line and the glyph-page basmala so they no longer drift (0.72 vs 0.92). */
   --basmala-scale:  0.8;
 
-  --lh-tight: 1.2;
+  --lh-tight: 1.4;      /* Arabic display faces carry tashkeel above/below — 1.2 clipped/overlapped */
   --lh-snug: 1.45;
   --lh-body: 1.7;
   --lh-mushaf: 2.25;     /* mushaf reading */
 
   --tracking-tight: -0.01em;
   --tracking-normal: 0;
-  --tracking-wide: 0.02em;
-  --tracking-uppercase: 0.06em;
+  --tracking-wide: 0; /* Arabic-first UI: tracking breaks cursive joins */
+  --tracking-uppercase: 0; /* kept as a token for Latin-only labels */
 }
 
 /* =====================================================================

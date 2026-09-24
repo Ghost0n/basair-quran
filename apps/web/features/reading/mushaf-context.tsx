@@ -42,6 +42,8 @@ export type TravelJump = { from: number; to: number; id: number };
 // (delta 1, or 2 for a spread) and the scroll reader's page-by-page streaming
 // stay silent; only a real leap earns the wash + counter.
 const FAR_JUMP_MIN = 5;
+// How long a resume marker stays on the verse before it clears itself.
+const TRANSIENT_SELECTION_MS = 2500;
 
 export type MushafController = {
   pageData: QuranPageResponse | null;
@@ -55,7 +57,12 @@ export type MushafController = {
   clearTravel: () => void;
   bodyRef: RefObject<HTMLDivElement | null>;
   loadPage: (mushafId: number, page: number, options?: LoadOptions) => Promise<void>;
-  loadByAyah: (mushafId: number, ayahId: number, highlights?: number[]) => Promise<void>;
+  loadByAyah: (
+    mushafId: number,
+    ayahId: number,
+    highlights?: number[],
+    options?: { transient?: boolean },
+  ) => Promise<void>;
   loadBySurah: (mushafId: number, surah: number, ayah?: number) => Promise<void>;
   loadByJuz: (mushafId: number, juz: number) => Promise<void>;
   /**
@@ -161,8 +168,19 @@ function useMushafController(): MushafController {
     [applyResult],
   );
 
+  // A "transient" selection (resume marker) clears itself after a moment, so the
+  // reader doesn't keep a verse boxed that the user never asked to select.
+  const transientTimerRef = useRef<number | null>(null);
+  const markTransient = useCallback((ayahId: number) => {
+    if (transientTimerRef.current) window.clearTimeout(transientTimerRef.current);
+    transientTimerRef.current = window.setTimeout(() => {
+      setSelectedAyahId((current) => (current === ayahId ? null : current));
+      transientTimerRef.current = null;
+    }, TRANSIENT_SELECTION_MS);
+  }, []);
+
   const loadByAyah = useCallback(
-    async (mushafId: number, ayahId: number, highlights: number[] = []) => {
+    async (mushafId: number, ayahId: number, highlights: number[] = [], options: { transient?: boolean } = {}) => {
       setIsLoading(true);
       setError(null);
       setSelectedAyahId(ayahId);
@@ -171,6 +189,7 @@ function useMushafController(): MushafController {
         const data = await api.getQuranPageForAyah(mushafId, ayahId);
         if (!data.found) throw new Error(NOT_FOUND);
         applyResult(data, false);
+        if (options.transient) markTransient(ayahId);
       } catch (err) {
         reportError("reader", err);
         setError(err instanceof Error ? err.message : READER_ERROR);
@@ -178,7 +197,7 @@ function useMushafController(): MushafController {
         setIsLoading(false);
       }
     },
-    [applyResult],
+    [applyResult, markTransient],
   );
 
   const loadBySurah = useCallback(
@@ -189,7 +208,8 @@ function useMushafController(): MushafController {
       try {
         const data = await api.getQuranPageForSurah(mushafId, surah, ayah);
         if (!data.found) throw new Error(NOT_FOUND);
-        setSelectedAyahId(data.selected_ayah_id ?? null);
+        // Only a targeted verse is selected; a plain surah jump selects nothing.
+        setSelectedAyahId(ayah ? data.selected_ayah_id ?? null : null);
         applyResult(data, true);
       } catch (err) {
         reportError("reader", err);
@@ -209,7 +229,7 @@ function useMushafController(): MushafController {
       try {
         const data = await api.getQuranPageForJuz(mushafId, juz);
         if (!data.found) throw new Error(NOT_FOUND);
-        setSelectedAyahId(data.selected_ayah_id ?? null);
+        setSelectedAyahId(null);
         applyResult(data, true);
       } catch (err) {
         reportError("reader", err);

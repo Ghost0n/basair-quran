@@ -27,15 +27,6 @@ const LAYOUT_OPTIONS: { value: ReaderLayout; label: string; authenticOnly?: bool
   { value: "ayah", label: "آية آية" },
 ];
 
-const LANGUAGE_OPTIONS: { value: string; label: string }[] = [
-  { value: "ar", label: "العربية" },
-  { value: "en", label: "English" },
-  { value: "fr", label: "Français" },
-  { value: "tr", label: "Türkçe" },
-  { value: "id", label: "Bahasa" },
-  { value: "ur", label: "اردو" },
-];
-
 const DEPTH_OPTIONS: { value: "fast" | "balanced" | "deep"; label: string }[] = [
   { value: "fast", label: "سريع" },
   { value: "balanced", label: "متوازن" },
@@ -44,7 +35,8 @@ const DEPTH_OPTIONS: { value: "fast" | "balanced" | "deep"; label: string }[] = 
 
 /**
  * Settings — the CANONICAL home for every preference: account & session,
- * reading & muṣḥaf, display, guided research, and interface language. Quick
+ * reading & muṣḥaf, display, and guided research. (The UI is Arabic-only in v1;
+ * `ui_language` stays in the API for the future i18n work.) Quick
  * Settings (the ⚙ top-bar popover) is a shortcut to the handful of these a
  * reader changes mid-session; both write the same account preferences, so they
  * stay in lockstep. Theme delegates to its workspace home; the rest (including
@@ -62,7 +54,7 @@ export function SettingsScreen() {
   return (
     <div className="qb-settings">
       <div className="qb-settings-h">
-        <div className="kicker">الإعدادات · SETTINGS</div>
+        <div className="kicker">الإعدادات</div>
         <h2>التفضيلات</h2>
         <div className="sub">
           كلّ الإعدادات هنا. «الإعدادات السريعة» (زرّ ⚙ أعلى الشاشة) اختصارٌ لأكثرها استعمالاً أثناء
@@ -233,27 +225,6 @@ export function SettingsScreen() {
           </div>
         </section>
 
-        <section className="qb-setting-card">
-          <h3>اللغة</h3>
-          <p className="card-sub">لغة واجهة الاستخدام.</p>
-          <div className="qb-setting-row">
-            <label>لغة الواجهة</label>
-            <SelectMenu
-              className="qb-setting-menu"
-              ariaLabel="لغة الواجهة"
-              value={account.ui_language}
-              options={LANGUAGE_OPTIONS.map((option) => ({
-                value: option.value,
-                label: option.value === "ar" ? option.label : `${option.label} — قريباً`,
-              }))}
-              onChange={(next) => void updateAccount({ ui_language: next })}
-            />
-          </div>
-          <div className="qb-settings-note">
-            القرآن الكريم لا يُترجَم. تغيير اللغة يُبدّل واجهة الاستخدام فقط؛ نصّ الآيات يبقى بالعربية دائماً.
-            (ترجمة الواجهة الكاملة قيد الإعداد.)
-          </div>
-        </section>
       </div>
     </div>
   );

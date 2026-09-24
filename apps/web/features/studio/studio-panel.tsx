@@ -147,7 +147,7 @@ export function StudioPanel() {
 
         <div className="qb-side-head" style={{ borderBottom: "none", padding: "14px 20px 4px" }}>
           <div>
-            <div className="kicker">جلسة الدراسة · STUDIO</div>
+            <div className="kicker">جلسة الدراسة</div>
             <h3 style={{ fontSize: 20 }}>{active?.title ?? "جلسة جديدة"}</h3>
             <div className="meta">
               {formatNumber(active?.messages.length ?? 0)} رسالة ·{" "}

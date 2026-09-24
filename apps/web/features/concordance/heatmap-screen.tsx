@@ -101,7 +101,7 @@ export function HeatmapScreen() {
     <div className="qb-aux">
       <div className="qb-aux-h">
         <div>
-          <div className="kicker">البانوراما · CONCORDANCE HEATMAP</div>
+          <div className="kicker">خريطة انتشار الجذر</div>
           <h2>{distribution?.root ?? root}</h2>
           <div className="sub">
             {loading
