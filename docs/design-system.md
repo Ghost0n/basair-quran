@@ -110,3 +110,10 @@ The mushaf page and Quran text stay opaque.
    text that must not be cut (e.g. a title) with `data-fit-watch`, and write one CSS rule per
    `[data-fit="k"]` level saying what goes first. `lib/auto-fit.ts` measures and picks the lowest
    level that fits, and re-measures on resize, text change, font load and language change.
+7. Borders are implicit. A surface is shaped by light — the glass top highlight (`--glass-edge`),
+   its tint and its shadow — not by an outline: `--glass-rim` is almost transparent and there is
+   no uniform inner ring. Use `--border` (faint) for wells and cards, `--border-accent` for
+   hover/selected, `--border-focus` + `--focus-glow` for focus/open, and `--divider-fade`
+   (`border-image: var(--divider-fade) 1`) for row dividers so they fade out at both ends.
+   Selection glows (`--seg-on-shadow`, soft gold halo) instead of being outlined. Never hard-code a
+   gold `rgba(212, 175, 55, …)` border.

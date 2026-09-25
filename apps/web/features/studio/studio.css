@@ -17,6 +17,7 @@
   gap: 4px;
   padding: 8px 12px 0;
   border-bottom: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
   flex-shrink: 0;
   flex-wrap: wrap;
 }
@@ -183,7 +184,7 @@
 
 .qb-msg.bot {
   background: rgba(212, 175, 55, 0.06);
-  border: 1px solid rgba(212, 175, 55, 0.22);
+  border: 1px solid var(--border-accent);
   padding: 14px;
   /* Skeleton→answer crossfade: the answer arrives in place, container keeps its
      dimensions (no pop-in). */
@@ -274,7 +275,7 @@
 }
 
 .qb-msg.bot .ev-row:hover {
-  border-color: rgba(212, 175, 55, 0.45);
+  border-color: var(--border-accent);
 }
 
 .qb-msg.bot .ev-row .num {
@@ -367,6 +368,7 @@
   flex-shrink: 0;
   padding: 14px 20px 18px;
   border-top: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
   background: rgba(0, 0, 0, 0.18);
 }
 
@@ -389,7 +391,7 @@
 }
 
 .qb-composer .input-wrap:focus-within {
-  border-color: rgba(212, 175, 55, 0.5);
+  border-color: var(--border-accent);
 }
 
 .qb-composer textarea {
@@ -464,7 +466,7 @@
 
 .qb-composer .tool-chip.active {
   color: var(--gold-text);
-  border-color: rgba(212, 175, 55, 0.30);
+  border-color: var(--border-accent);
   background: rgba(212, 175, 55, 0.08);
 }
 
@@ -510,7 +512,7 @@
 
 .qb-studio-settings input:focus {
   outline: none;
-  border-color: var(--gold-400);
+  border-color: var(--border-focus);
 }
 
 /* A session centred on one ayah (reader «تفسير» tool). */

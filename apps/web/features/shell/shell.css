@@ -129,7 +129,7 @@
   color: var(--gold-text);
   background-color: var(--gold-a12);
   background-image: var(--glass-sheen);
-  border-color: var(--gold-a40);
+  border-color: var(--border-accent);
   box-shadow: var(--glass-edge), 0 6px 18px rgba(212, 175, 55, 0.14);
 }
 
@@ -305,7 +305,7 @@
 
 .qb-cmd:hover,
 .qb-cmd:focus-within {
-  border-color: var(--gold-a40);
+  border-color: var(--border-accent);
   box-shadow: var(--glass-edge), var(--glass-shadow-lift), 0 0 0 4px var(--gold-a08);
 }
 
@@ -361,7 +361,7 @@
   font-size: 15px;
   color: var(--gold-text-bright);
   background: rgba(212, 175, 55, 0.08);
-  border: 1px solid rgba(212, 175, 55, 0.22);
+  border: 1px solid var(--border-accent);
   border-radius: 999px;
   padding: 4px 14px;
   cursor: pointer;
@@ -387,7 +387,7 @@
   color: var(--gold-text);
   font-size: 12px;
   font-weight: 700;
-  border: 1px solid rgba(212, 175, 55, 0.25);
+  border: 1px solid var(--border-accent);
   white-space: nowrap;
 }
 
@@ -536,7 +536,7 @@
 
 .qb-icon-btn.gold {
   color: var(--gold-text);
-  border-color: rgba(212, 175, 55, 0.30);
+  border-color: var(--border-accent);
   background: rgba(212, 175, 55, 0.08);
 }
 
@@ -600,7 +600,7 @@
   padding: 4px 12px;
   border-radius: 999px;
   background: rgba(212, 175, 55, 0.10);
-  border: 1px solid rgba(212, 175, 55, 0.30);
+  border: 1px solid var(--border-accent);
   color: var(--gold-text);
   font-family: var(--font-arabic-ui);
   font-variant-numeric: tabular-nums;
@@ -705,7 +705,7 @@
 .qb-tabbar-btn.active .tile {
   background-color: var(--gold-a12);
   background-image: var(--glass-sheen);
-  border-color: var(--gold-a40);
+  border-color: var(--border-accent);
   box-shadow: var(--glass-edge);
 }
 

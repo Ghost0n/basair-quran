@@ -421,7 +421,7 @@ code, .mono {
   cursor: pointer;
   color: var(--gold-text);
   background: rgba(212, 175, 55, 0.10);
-  border: 1px solid rgba(212, 175, 55, 0.30);
+  border: 1px solid var(--border-accent);
   transition: background var(--dur) var(--ease-out);
 }
 

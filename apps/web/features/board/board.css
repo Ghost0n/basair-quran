@@ -95,7 +95,7 @@
 }
 
 .qb-board-bar .tools button:hover {
-  border-color: var(--gold-a40);
+  border-color: var(--border-accent);
   color: var(--gold-text);
 }
 
@@ -149,7 +149,7 @@
   height: 40px;
   padding: 0 16px;
   border-radius: var(--r-pill);
-  border: 1px solid var(--gold-a40);
+  border: 1px solid var(--border-accent);
   background: var(--gold-a12);
   color: var(--gold-text);
   font-family: var(--font-arabic-ui);
@@ -251,7 +251,7 @@
 }
 
 .qb-bnode.sel {
-  border-color: var(--gold-400);
+  border-color: var(--border-focus);
   box-shadow: 0 0 0 2px var(--gold-a40), var(--shadow-2, 0 4px 18px rgba(0, 0, 0, 0.25));
 }
 
@@ -335,6 +335,7 @@
   line-height: 1.9;
   color: var(--fg-2);
   border-bottom: 1px solid var(--divider, var(--border));
+  border-image: var(--divider-fade) 1;
 }
 
 .qb-bnode.ayah .mini p.center {
@@ -405,7 +406,7 @@
 }
 
 .qb-resize-line {
-  border-color: var(--gold-400) !important;
+  border-color: var(--border-focus) !important;
 }
 
 .qb-resize-handle {
@@ -467,7 +468,7 @@
 }
 
 .qb-edge-editor .chips button:hover {
-  border-color: var(--gold-a40);
+  border-color: var(--border-accent);
   color: var(--gold-text);
 }
 
