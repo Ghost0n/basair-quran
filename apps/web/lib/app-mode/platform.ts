@@ -29,6 +29,8 @@ export interface FileStore {
   remove(prefix: string): Promise<void>;
   /** Total bytes stored under a prefix. */
   size(prefix: string): Promise<number>;
+  /** Download a URL straight to a file (native: no CORS, no round trip through JS); returns its size. */
+  download?(url: string, path: string): Promise<number>;
 }
 
 export interface DevicePlatform {

@@ -93,6 +93,52 @@ Server side: `GET /api/offline/{name}` serves `build/offline/`
 (`QBASAIR_OFFLINE_PACKS_PATH`), and the app's origin must be in
 `QBASAIR_CORS_ORIGINS` (see `docs/api-contract.md`).
 
+## Android
+
+`apps/mobile` is the Capacitor shell (`app.qbasair.quran`, "Basair"): its
+`android/` project is committed; the web assets it serves are copied from
+`apps/web/out` by `cap sync` and are not.
+
+- **Databases:** the bundled `core.db` is copied into the app's databases on
+  first launch (native SQLite). `assets/databases/core.version` records its
+  data version: an app update with new data replaces the copy and applies
+  the installed narration packs again from the files kept on the device, so
+  downloads survive updates. Installed translations live in their own
+  database and are untouched.
+- **Storage:** settings, the user's data, kept packs and recitations are
+  files in the app's private storage (`@capacitor/filesystem`); recitations
+  are downloaded natively (no CORS) and played from the device.
+- **Fonts:** the mushaf fonts ship in the bundle; the interface fonts
+  (Amiri, Cairo) are downloaded into it at build time.
+- **Icons and splash:** `python apps/mobile/scripts/make_icons.py` draws them
+  (the ۞ mark in gold on the app's dark background) into `android/app/src/main/res`.
+
+### Building
+
+CI: `.github/workflows/android.yml` runs on changes to the app on `develop` /
+`main`, on `android-v*` tags and on demand. It builds the Quran data (fonts,
+`quran.db`, the Madani layout), the offline core and packs (verified), the
+app bundle, then `assembleDebug`, `assembleRelease` and `bundleRelease`, and
+uploads the APKs, the AAB and the packs as artifacts. Versions: `versionCode`
+is the run number, `versionName` the tag (`android-v1.2.0`) or `0.1.<run>`.
+
+- Signing: repository secrets `ANDROID_KEYSTORE_BASE64` (the `.jks`, base64),
+  `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
+  Without them the release outputs are unsigned; the debug APK installs as is.
+- The server: repository variable `QBASAIR_REMOTE_ORIGIN` (e.g.
+  `https://basair.example`), which must serve `/api/offline/*` (publish the
+  `basair-offline-packs` artifact to `QBASAIR_OFFLINE_PACKS_PATH`) and list
+  `https://localhost` in `QBASAIR_CORS_ORIGINS`.
+
+Locally (Android Studio + SDK 36, JDK 21):
+
+```bash
+python scripts/build_offline_packs.py
+pnpm --filter @q-basair/web build:app
+pnpm --filter @q-basair/mobile sync          # cap sync android
+pnpm --filter @q-basair/mobile open          # opens Android Studio
+```
+
 ## Tests
 
 - `packages/offline-engine`: the parity suite — the device answers the same
