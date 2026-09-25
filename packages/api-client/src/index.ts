@@ -1,5 +1,15 @@
 import type {
   AyahReaderResponse,
+  CommentItem,
+  FeedPage,
+  LikeResult,
+  ModerationDecision,
+  ModerationQueue,
+  PostDetail,
+  PostSummary,
+  PublishRequest,
+  PublishResult,
+  ReportCreate,
   DocumentAudit,
   ResearchDocument,
   ResearchDocumentSave,
@@ -400,6 +410,61 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
     },
     deleteDocument(documentId: string): Promise<DeleteResult> {
       return request<DeleteResult>(`/documents/${encodeURIComponent(documentId)}`, { method: "DELETE" });
+    },
+    publishDocument(documentId: string, body: PublishRequest): Promise<PublishResult> {
+      return request<PublishResult>(`/documents/${encodeURIComponent(documentId)}/publish`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
+    },
+    getFeed(cursor?: string | null, limit = 20): Promise<FeedPage> {
+      const params = new URLSearchParams({ limit: String(limit) });
+      if (cursor) params.set("cursor", cursor);
+      return request<FeedPage>(`/community/feed?${params.toString()}`);
+    },
+    getMyPosts(): Promise<PostSummary[]> {
+      return request<PostSummary[]>("/community/mine");
+    },
+    getPost(postId: string): Promise<PostDetail> {
+      return request<PostDetail>(`/community/posts/${encodeURIComponent(postId)}`);
+    },
+    withdrawPost(postId: string): Promise<DeleteResult> {
+      return request<DeleteResult>(`/community/posts/${encodeURIComponent(postId)}`, { method: "DELETE" });
+    },
+    setLike(postId: string, liked: boolean): Promise<LikeResult> {
+      return request<LikeResult>(`/community/posts/${encodeURIComponent(postId)}/like`, {
+        method: liked ? "POST" : "DELETE",
+      });
+    },
+    getComments(postId: string): Promise<CommentItem[]> {
+      return request<CommentItem[]>(`/community/posts/${encodeURIComponent(postId)}/comments`);
+    },
+    addComment(postId: string, body: string): Promise<CommentItem> {
+      return request<CommentItem>(`/community/posts/${encodeURIComponent(postId)}/comments`, {
+        method: "POST",
+        body: JSON.stringify({ body }),
+      });
+    },
+    deleteComment(commentId: number): Promise<DeleteResult> {
+      return request<DeleteResult>(`/community/comments/${commentId}`, { method: "DELETE" });
+    },
+    report(report: ReportCreate): Promise<DeleteResult> {
+      return request<DeleteResult>("/community/reports", { method: "POST", body: JSON.stringify(report) });
+    },
+    getModerationQueue(): Promise<ModerationQueue> {
+      return request<ModerationQueue>("/moderation/queue");
+    },
+    decidePost(postId: string, decision: ModerationDecision): Promise<PostDetail> {
+      return request<PostDetail>(`/moderation/posts/${encodeURIComponent(postId)}/decision`, {
+        method: "POST",
+        body: JSON.stringify(decision),
+      });
+    },
+    hideComment(commentId: number): Promise<DeleteResult> {
+      return request<DeleteResult>(`/moderation/comments/${commentId}/hide`, { method: "POST" });
+    },
+    resolveReport(reportId: number): Promise<DeleteResult> {
+      return request<DeleteResult>(`/moderation/reports/${reportId}/resolve`, { method: "POST" });
     },
     getThemes(): Promise<ThemeSummary[]> {
       return request<ThemeSummary[]>("/themes");

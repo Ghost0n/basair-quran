@@ -221,6 +221,8 @@ def get_rate_limit(bucket: str) -> tuple[float, int]:
         return window, _read_int_env("QBASAIR_RATE_LIMIT_AUTH_MAX", 20)
     if bucket == "research":
         return window, _read_int_env("QBASAIR_RATE_LIMIT_RESEARCH_MAX", 60)
+    if bucket == "community":
+        return window, _read_int_env("QBASAIR_RATE_LIMIT_COMMUNITY_MAX", 30)
     return window, 0
 
 

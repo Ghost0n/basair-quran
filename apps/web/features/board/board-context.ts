@@ -10,6 +10,8 @@ export type BoardContextValue = {
   itemFor: (nodeId: string) => NotebookItem | null;
   updateData: (nodeId: string, patch: Record<string, unknown>) => void;
   openInReader: (item: NotebookItem) => void;
+  /** A shared (post) board: notes/headings render as text, nothing is editable. */
+  readOnly?: boolean;
 };
 
 export const BoardContext = createContext<BoardContextValue | null>(null);

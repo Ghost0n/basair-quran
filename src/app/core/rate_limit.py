@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import deque
+import re
 import time
 
 from src.app.core import config
@@ -20,8 +21,14 @@ _LIMITED_PATHS = {
 _hits: dict[tuple[str, str], deque[float]] = {}
 
 
+# Community writes (publish, comment, report) share a bucket; ids vary, so match by pattern.
+_COMMUNITY_WRITE = re.compile(r"^/api/(documents/[^/]+/publish|community/posts/[^/]+/comments|community/reports)$")
+
+
 def bucket_for_path(path: str) -> str | None:
     normalized = path.rstrip("/") or path
+    if _COMMUNITY_WRITE.match(normalized):
+        return "community"
     return _LIMITED_PATHS.get(normalized)
 
 

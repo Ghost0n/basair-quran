@@ -1,0 +1,504 @@
+/* =====================================================================
+   Q-Basair — Liquid glass design layer
+   ---------------------------------------------------------------------
+   One material for every floating surface (bars, rails, sheets, cards,
+   popovers): a translucent tint over a backdrop blur, a specular sheen on
+   the top edge, a hairline rim and a soft depth shadow. Plus the shared
+   primitives every page uses (buttons, segmented controls, chips, empty
+   states, skeletons) and the motion vocabulary (rise, page enter, springy
+   press, cross-page view transitions).
+
+   Reading surfaces stay OPAQUE (mushaf pages, ayah text): glass is for
+   chrome, never for the Quran text itself.
+   ===================================================================== */
+
+:root {
+  /* Material */
+  --glass-tint: rgba(28, 25, 18, 0.56);
+  --glass-tint-strong: rgba(26, 23, 16, 0.78);
+  --glass-tint-soft: rgba(40, 36, 26, 0.34);
+  --glass-blur: 22px;
+  --glass-saturate: 165%;
+  --glass-rim: rgba(255, 244, 214, 0.09);
+  --glass-rim-strong: rgba(212, 175, 55, 0.22);
+  --glass-sheen: linear-gradient(180deg, rgba(255, 250, 235, 0.075) 0%, rgba(255, 250, 235, 0.015) 38%, transparent 70%);
+  --glass-edge: inset 0 1px 0 rgba(255, 248, 225, 0.10), inset 0 0 0 1px rgba(255, 244, 214, 0.03);
+  --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 14px 40px rgba(0, 0, 0, 0.32);
+  --glass-shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.26), 0 22px 56px rgba(0, 0, 0, 0.42);
+
+  /* Motion */
+  --spring: cubic-bezier(0.34, 1.5, 0.64, 1);
+  --spring-soft: cubic-bezier(0.22, 1.2, 0.36, 1);
+  --press-scale: 0.97;
+
+  /* Ambient light behind the glass: the page gets slow, very soft colour
+     fields so translucency has something to refract. */
+  --aurora-1: rgba(212, 175, 55, 0.16);
+  --aurora-2: rgba(64, 150, 150, 0.08);
+  --aurora-3: rgba(201, 138, 91, 0.10);
+}
+
+.light,
+.light-mode,
+[data-theme="light"] {
+  --glass-tint: rgba(255, 252, 243, 0.58);
+  --glass-tint-strong: rgba(255, 251, 240, 0.84);
+  --glass-tint-soft: rgba(255, 252, 243, 0.40);
+  --glass-rim: rgba(255, 255, 255, 0.72);
+  --glass-rim-strong: rgba(164, 129, 41, 0.28);
+  --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0.18) 40%, transparent 72%);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  --glass-shadow: 0 1px 2px rgba(120, 90, 30, 0.08), 0 14px 40px rgba(120, 90, 30, 0.14);
+  --glass-shadow-lift: 0 2px 6px rgba(120, 90, 30, 0.10), 0 24px 56px rgba(120, 90, 30, 0.20);
+  --aurora-1: rgba(212, 175, 55, 0.20);
+  --aurora-2: rgba(64, 150, 150, 0.08);
+  --aurora-3: rgba(201, 138, 91, 0.12);
+}
+
+/* ---------- Ambient page light ---------- */
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20vmax;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38vmax 30vmax at 82% 8%, var(--aurora-1), transparent 70%),
+    radial-gradient(34vmax 28vmax at 12% 78%, var(--aurora-2), transparent 70%),
+    radial-gradient(30vmax 26vmax at 60% 60%, var(--aurora-3), transparent 72%);
+  animation: qbAurora 38s var(--ease-in-out) infinite alternate;
+}
+
+@keyframes qbAurora {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-3vmax, 2vmax, 0) scale(1.06);
+  }
+}
+
+/* ---------- The material ---------- */
+
+.qb-glass,
+.qb-glass-bar,
+.qb-glass-strong {
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.qb-glass {
+  border-radius: var(--r-xl);
+}
+
+.qb-glass-strong {
+  background-color: var(--glass-tint-strong);
+}
+
+/* Bars: edge-to-edge chrome, only a bottom hairline. Denser tint: content
+   scrolls underneath, and the bar's own text must stay crisp over it. */
+.qb-glass-bar {
+  background-color: var(--glass-tint-strong);
+  border-width: 0 0 1px;
+  border-radius: 0;
+  box-shadow: inset 0 -1px 0 var(--glass-rim), 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Browsers without backdrop-filter: a denser tint keeps text legible. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .qb-glass,
+  .qb-glass-bar,
+  .qb-glass-strong {
+    background-color: var(--glass-tint-strong);
+  }
+}
+
+/* Interactive glass lifts toward the pointer. */
+.qb-glass.is-interactive {
+  transition:
+    transform var(--motion-dur-base) var(--spring-soft),
+    box-shadow var(--motion-dur-base) var(--motion-ease-settle),
+    border-color var(--motion-dur-base) var(--motion-ease-settle);
+}
+
+@media (hover: hover) {
+  .qb-glass.is-interactive:hover {
+    transform: translateY(-2px);
+    border-color: var(--glass-rim-strong);
+    box-shadow: var(--glass-edge), var(--glass-shadow-lift);
+  }
+}
+
+/* ---------- Buttons ---------- */
+
+.qb-btn {
+  --btn-bg: var(--glass-tint-soft);
+  --btn-fg: var(--fg-2);
+  --btn-rim: var(--glass-rim);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--btn-rim);
+  background-color: var(--btn-bg);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge);
+  color: var(--btn-fg);
+  font-family: var(--font-arabic-ui);
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition:
+    transform var(--motion-dur-instant) var(--motion-ease-settle),
+    background-color var(--motion-dur-fast) var(--motion-ease-settle),
+    border-color var(--motion-dur-fast) var(--motion-ease-settle),
+    color var(--motion-dur-fast) var(--motion-ease-settle),
+    box-shadow var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-btn:hover:not(:disabled) {
+  --btn-rim: var(--glass-rim-strong);
+  --btn-fg: var(--gold-text);
+}
+
+.qb-btn:active:not(:disabled) {
+  transform: scale(var(--press-scale));
+}
+
+.qb-btn:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 2px;
+}
+
+.qb-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.qb-btn.primary {
+  --btn-bg: transparent;
+  --btn-fg: #1a1305;
+  --btn-rim: rgba(255, 236, 170, 0.55);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 55%),
+    linear-gradient(135deg, #f0cf5c, #c99a22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 6px 18px rgba(201, 154, 34, 0.35);
+}
+
+.qb-btn.primary:hover:not(:disabled) {
+  --btn-fg: #1a1305;
+  --btn-rim: rgba(255, 240, 190, 0.8);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 8px 26px rgba(201, 154, 34, 0.48);
+}
+
+.qb-btn.ghost {
+  --btn-bg: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.qb-btn.ok {
+  --btn-fg: #6fbf80;
+  --btn-rim: rgba(96, 170, 110, 0.45);
+}
+
+.qb-btn.warn {
+  --btn-fg: var(--warn-fg);
+  --btn-rim: rgba(216, 180, 106, 0.45);
+}
+
+.qb-btn.danger,
+.qb-btn.danger-text {
+  --btn-fg: var(--danger-fg);
+}
+
+.qb-btn.danger {
+  --btn-rim: rgba(201, 122, 122, 0.45);
+}
+
+.qb-btn.block {
+  display: flex;
+  width: 100%;
+  min-height: 46px;
+}
+
+.qb-btn.like.on {
+  --btn-fg: #e0768f;
+  --btn-rim: rgba(224, 118, 143, 0.45);
+}
+
+.qb-btn.like.on .qb-icon {
+  animation: qbHeartPop var(--motion-dur-slow) var(--spring);
+}
+
+@keyframes qbHeartPop {
+  0% {
+    transform: scale(0.6);
+  }
+  60% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Round icon button (back, close, row actions). */
+.qb-icon-round {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-soft);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge);
+  color: var(--fg-2);
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  transition: transform var(--motion-dur-instant) var(--motion-ease-settle), color var(--motion-dur-fast),
+    border-color var(--motion-dur-fast);
+}
+
+.qb-icon-round:hover {
+  color: var(--gold-text);
+  border-color: var(--glass-rim-strong);
+}
+
+.qb-icon-round:active {
+  transform: scale(0.92);
+}
+
+.qb-icon-round.small {
+  width: 32px;
+  height: 32px;
+}
+
+/* ---------- Segmented control ---------- */
+
+.qb-segmented {
+  display: inline-flex;
+  gap: 2px;
+  padding: 4px;
+  margin-bottom: 18px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-soft);
+  box-shadow: var(--glass-edge);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.qb-segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--fg-3);
+  font-family: var(--font-arabic-ui);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-base) var(--spring-soft), color var(--motion-dur-fast),
+    box-shadow var(--motion-dur-base);
+}
+
+.qb-segmented button:hover {
+  color: var(--fg-1);
+}
+
+.qb-segmented button.on {
+  color: var(--gold-text);
+  background-color: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+
+/* ---------- Chips ---------- */
+
+.qb-chip,
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-rim);
+  background: var(--gold-a08);
+  color: var(--gold-text);
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+/* ---------- Empty / loading / feedback ---------- */
+
+.qb-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 20px;
+  border-radius: var(--r-xl);
+  border: 1px dashed var(--border-strong);
+  color: var(--fg-3);
+  font-size: 14px;
+  text-align: center;
+}
+
+.qb-empty p {
+  margin: 0;
+}
+
+.qb-skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.qb-skeleton-list span,
+.qb-skeleton-page {
+  display: block;
+  height: 120px;
+  border-radius: var(--r-xl);
+  background: linear-gradient(100deg, var(--glass-tint-soft) 20%, var(--gold-a08) 40%, var(--glass-tint-soft) 60%);
+  background-size: 300% 100%;
+  animation: qbShimmer 1.4s linear infinite;
+}
+
+.qb-skeleton-page {
+  flex: 1;
+  margin: 24px;
+  height: auto;
+  min-height: 60vh;
+}
+
+@keyframes qbShimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+.qb-toast-inline {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--glass-rim-strong);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge);
+  color: var(--gold-text);
+  font-size: 13px;
+  animation: qbRise var(--motion-dur-slow) var(--spring-soft) both;
+}
+
+/* ---------- Motion vocabulary ---------- */
+
+.qb-rise {
+  animation: qbRise var(--motion-dur-slow) var(--spring-soft) both;
+}
+
+.qb-page-enter {
+  animation: qbPageEnter var(--motion-dur-slow) var(--motion-ease-settle) both;
+}
+
+@keyframes qbRise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+@keyframes qbPageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Cross-mode navigation (setMode wraps it in startViewTransition): the whole
+   page cross-fades with a slight depth move; the shared omnibar still morphs. */
+::view-transition-old(root) {
+  animation: qbVtOut var(--motion-dur-base) var(--motion-ease-exit) both;
+}
+
+::view-transition-new(root) {
+  animation: qbVtIn var(--motion-dur-slow) var(--motion-ease-settle) both;
+}
+
+@keyframes qbVtOut {
+  to {
+    opacity: 0;
+    transform: scale(0.992);
+    filter: blur(3px);
+  }
+}
+
+@keyframes qbVtIn {
+  from {
+    opacity: 0;
+    transform: scale(1.008);
+    filter: blur(3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before {
+    animation: none;
+  }
+
+  .qb-rise,
+  .qb-page-enter,
+  .qb-toast-inline,
+  .qb-btn.like.on .qb-icon {
+    animation: none;
+  }
+
+  .qb-skeleton-list span,
+  .qb-skeleton-page {
+    animation: none;
+  }
+
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+
+  .qb-glass.is-interactive:hover {
+    transform: none;
+  }
+}

@@ -23,6 +23,7 @@ const SAVED_DESTINATIONS: RailDestination[] = [
   // الدفتر consolidates the former Notebook / Bookmarks / History / Roots
   // surfaces (all views of the same saved data) into one tabbed library.
   { mode: "notebook", icon: "notebook", label: "الدفتر" },
+  { mode: "community", icon: "users", label: "المجتمع" },
 ];
 
 export function LeftRail() {
@@ -85,7 +86,12 @@ function RailButton({
   onSelect: (next: ShellMode) => void;
 }) {
   // A theme board belongs to the library (الدفتر).
-  const isActive = destination.mode === activeMode || (destination.mode === "notebook" && (activeMode === "board" || activeMode === "document"));
+  // Sub-pages light their parent: a board / document belongs to the library,
+  // a post to the community.
+  const isActive =
+    destination.mode === activeMode ||
+    (destination.mode === "notebook" && (activeMode === "board" || activeMode === "document")) ||
+    (destination.mode === "community" && activeMode === "post");
   // Double-effect: clicking the ACTIVE button collapses what it opened — back to
   // the reader (the resting surface). The reader is the resting surface itself,
   // so clicking it while active does nothing (null = no navigation).

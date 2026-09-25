@@ -130,8 +130,11 @@ export function NoteNode({ id, data, selected }: NodeProps) {
   const ref = useAutoFocus(data, id);
   return (
     <div className={`qb-bnode note${selected ? " sel" : ""}`} dir="rtl">
-      <NodeResizer isVisible={selected} minWidth={180} minHeight={80} lineClassName="qb-resize-line" handleClassName="qb-resize-handle" />
+      <NodeResizer isVisible={selected && !board.readOnly} minWidth={180} minHeight={80} lineClassName="qb-resize-line" handleClassName="qb-resize-handle" />
       <Handles />
+      {board.readOnly ? (
+        <p className="note-text">{String(data.text ?? "")}</p>
+      ) : (
       <textarea
         ref={ref}
         className="nodrag nowheel"
@@ -141,6 +144,7 @@ export function NoteNode({ id, data, selected }: NodeProps) {
         aria-label="ملاحظة"
         onChange={(event) => board.updateData(id, { text: event.target.value })}
       />
+      )}
     </div>
   );
 }
@@ -152,6 +156,9 @@ export function HeadingNode({ id, data, selected }: NodeProps) {
   return (
     <div className={`qb-bnode heading${selected ? " sel" : ""}`} dir="rtl">
       <Handles />
+      {board.readOnly ? (
+        <h4 className="heading-text">{String(data.text ?? "")}</h4>
+      ) : (
       <input
         ref={ref}
         className="nodrag"
@@ -161,6 +168,7 @@ export function HeadingNode({ id, data, selected }: NodeProps) {
         aria-label="عنوان"
         onChange={(event) => board.updateData(id, { text: event.target.value })}
       />
+      )}
     </div>
   );
 }

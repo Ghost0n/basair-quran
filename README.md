@@ -40,9 +40,11 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 - Research documents («الأبحاث»): a structured, versioned research format (sections, quoted ayahs
   verified against the mushaf, notes, references, AI sections labelled), created from a Studio
   session («حوّل إلى بحث»), a theme board («صدّر كبحث») or from scratch; exported as Markdown / JSON
-  or shared as a verse / research card image. Private for now — the pre-publication audit and the
-  community guidelines (`docs/community-guidelines.md`, `docs/ai-audit-agent.md`) are ready for
-  community sharing.
+  or shared as a verse / research card image. Publishing to the community runs a blocking audit, then
+  an AI audit agent that fails closed to human moderation.
+- Community («المجتمع»): a feed of published researches (public or link-only), post pages with the
+  document and its read-only board, likes, comments, reports, and a moderation queue for admins —
+  governed by `docs/community-guidelines.md`.
 - A persistent floating media bar (transport · reciter chip · seekable progress ·
   repeat/speed) shown across every screen; reciter selection lives in a filterable
   sheet opened from the bar or the rail.

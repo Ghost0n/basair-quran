@@ -3,7 +3,7 @@
 import "./documents.css";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type {
@@ -26,6 +26,7 @@ import { useShellMode } from "@/features/shell/mode-context";
 import { TafssirDisclaimer } from "@/features/studio/tafssir-disclaimer";
 
 import { documentToMarkdown } from "./convert";
+import { PublishSheet } from "./publish-sheet";
 import { downloadBlob, renderShareCard, shareOrDownload } from "./share-card";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
@@ -69,6 +70,7 @@ export function DocumentScreen() {
   const params = useSearchParams();
   const documentId = params.get("id") ?? "";
   const { setMode } = useShellMode();
+  const router = useRouter();
   const mushaf = useMushaf();
   const formatNumber = useNumerals();
 
@@ -81,6 +83,7 @@ export function DocumentScreen() {
   const [surahs, setSurahs] = useState<SurahListItem[]>([]);
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [publishing, setPublishing] = useState(false);
   const dirtyRef = useRef(false);
   const timerRef = useRef<number | null>(null);
   const docRef = useRef<ResearchDocumentSave | null>(null);
@@ -319,6 +322,9 @@ export function DocumentScreen() {
           <button type="button" onClick={() => void runAudit()}>
             <Icon name="shieldCheck" size={15} /> <span className="lbl">جاهزية النشر</span>
           </button>
+          <button type="button" className="publish" onClick={() => setPublishing(true)}>
+            <Icon name="users" size={15} /> <span className="lbl">نشر</span>
+          </button>
         </div>
       </div>
 
@@ -342,7 +348,7 @@ export function DocumentScreen() {
         />
         <div className="stats">
           {formatNumber(doc.sections.length)} أقسام، {formatNumber(ayahTotal)} آية
-          {meta ? `، الإصدار ${formatNumber(meta.version)}` : ""}، خاصّ بك
+          {meta ? `، الإصدار ${formatNumber(meta.version)}` : ""}
         </div>
 
         {doc.provenance.mode === "tafssir" ? <TafssirDisclaimer /> : null}
@@ -356,7 +362,7 @@ export function DocumentScreen() {
         {audit ? (
           <div className={`qb-doc-audit${audit.publishable ? " ok" : ""}`}>
             <div className="head">
-              <strong>{audit.publishable ? "البحث جاهز للنشر حين تُتاح المشاركة" : "قبل النشر:"}</strong>
+              <strong>{audit.publishable ? "البحث جاهز للنشر" : "قبل النشر:"}</strong>
               <button type="button" onClick={() => setAudit(null)} aria-label="إغلاق">
                 <Icon name="close" size={14} />
               </button>
@@ -370,7 +376,7 @@ export function DocumentScreen() {
               ))}
             </ul>
             <p className="fine">
-              مشاركة الأبحاث مع المجتمع قادمة: تمرّ قبلها بهذه الفحوص وبمراجعة آلية ثم بشرية وفق إرشادات المجتمع.
+              عند النشر تمرّ هذه الفحوص، ثم مراجعة آلية وبشرية عند الحاجة وفق إرشادات المجتمع.
             </p>
           </div>
         ) : null}
@@ -484,6 +490,18 @@ export function DocumentScreen() {
           references={doc.references}
           onChange={(references) => update({ references })}
         />
+
+        {publishing ? (
+          <PublishSheet
+            documentId={documentId}
+            beforePublish={async () => {
+              if (timerRef.current) window.clearTimeout(timerRef.current);
+              await save();
+            }}
+            onClose={() => setPublishing(false)}
+            onOpenPost={(postId) => router.push(`/?mode=post&id=${encodeURIComponent(postId)}`)}
+          />
+        ) : null}
 
         <div className="danger-zone">
           {confirmDelete ? (

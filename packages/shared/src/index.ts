@@ -344,6 +344,139 @@ export interface DocumentAudit {
   checks: AuditCheck[];
 }
 
+// ---------------------------------------------------------------------------
+// Community — publishing, feed, likes, comments, reports, moderation
+// ---------------------------------------------------------------------------
+
+export type PostStatus = "pending_review" | "published" | "changes_requested" | "rejected" | "withdrawn" | "removed";
+export type GuidelineRule =
+  | "misattribution"
+  | "ruling_as_fact"
+  | "unlabelled_ai"
+  | "disrespect"
+  | "sectarian_attack"
+  | "integrity"
+  | "spam_promo"
+  | "personal_data"
+  | "other";
+
+export interface PublishRequest {
+  visibility: "public" | "unlisted";
+  accept_guidelines: boolean;
+}
+
+export interface AuditIssue {
+  section_id: string;
+  rule: GuidelineRule;
+  severity: "low" | "medium" | "high";
+  quote?: string | null;
+  explanation_ar: string;
+  suggestion_ar?: string | null;
+}
+
+export interface AiAudit {
+  verdict: "pass" | "review" | "reject";
+  issues: AuditIssue[];
+  model?: string | null;
+  fallback_reason?: string | null;
+}
+
+export interface PublishResult {
+  status: "blocked" | "pending_review" | "published";
+  post_id?: string | null;
+  audit: DocumentAudit;
+  ai_audit?: AiAudit | null;
+}
+
+export interface PostSummary {
+  id: string;
+  title: string;
+  summary?: string | null;
+  author_name: string;
+  visibility: "public" | "unlisted";
+  status: PostStatus;
+  mode?: "strict" | "tafssir" | null;
+  created_from: string;
+  has_board: boolean;
+  ayah_count: number;
+  like_count: number;
+  comment_count: number;
+  liked_by_me: boolean;
+  is_mine: boolean;
+  published_at?: number | null;
+  updated_at: number;
+  excerpt?: { surah_id: number; ayah: number; text: string } | null;
+}
+
+export interface PostReview {
+  stage: "deterministic" | "ai" | "human";
+  verdict: string;
+  issues: Record<string, unknown>[];
+  note?: string | null;
+  created_at: number;
+}
+
+/** A read-only copy of the theme board a post's document came from. */
+export interface PostBoardSnapshot {
+  theme: { name: string; color: ThemeColor };
+  board: ThemeBoard;
+  ayahs: Record<string, { surah_id: number; surah: string; ayah: number; text: string }>;
+}
+
+export interface PostDetail extends PostSummary {
+  document: Omit<ResearchDocumentSave, "visibility"> & { id: string; version: number };
+  board?: PostBoardSnapshot | null;
+  reviews: PostReview[];
+}
+
+export interface FeedPage {
+  posts: PostSummary[];
+  next_cursor?: string | null;
+}
+
+export interface CommentItem {
+  id: number;
+  post_id: string;
+  author_name: string;
+  body: string;
+  is_mine: boolean;
+  status: "visible" | "hidden";
+  created_at: number;
+}
+
+export interface LikeResult {
+  liked: boolean;
+  like_count: number;
+}
+
+export interface ReportCreate {
+  target_type: "post" | "comment";
+  target_id: string;
+  rule: GuidelineRule;
+  note?: string | null;
+}
+
+export interface ReportItem {
+  id: number;
+  target_type: "post" | "comment";
+  target_id: string;
+  rule: string;
+  note?: string | null;
+  status: "open" | "resolved";
+  created_at: number;
+  target_preview?: string | null;
+}
+
+export interface ModerationDecision {
+  decision: "publish" | "reject" | "request_changes" | "remove";
+  note?: string | null;
+}
+
+export interface ModerationQueue {
+  posts: PostDetail[];
+  reports: ReportItem[];
+}
+
 /** GET /api/ayah-reader — an ayah with its neighbours in the same surah. */
 export interface ReaderAyah {
   ayah_id: number;

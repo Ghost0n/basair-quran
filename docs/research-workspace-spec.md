@@ -1,8 +1,7 @@
 # Research workspace — themes, board, reader toolbox, contextual tafssir, research format
 
-**Status:** implemented in phases Q-Basair-14 → 18 (see §7). Community publishing itself
-(feeds, likes, comments, moderation UI) is the next step; its format, guidelines
-(`docs/community-guidelines.md`) and audit (`docs/ai-audit-agent.md`) are ready.
+**Status:** implemented in phases Q-Basair-14 → 19 (see §7); the community (publishing, feed,
+likes, comments, reports, moderation, AI audit) shipped in Q-Basair-19.
 **Principles (AGENTS.md):** Quran text is the evidence; strict mode stays Quran-only;
 Tafssir stays labelled experimental; user data is private by default; nothing here
 changes search results or the strict research contract.
@@ -133,3 +132,4 @@ A document can only become `public` after an audit:
 | 3 | `feat/Q-Basair-16-toolbox` | toolbox registry + grammar / highlight / selection / tafssir tools + counts |
 | 4 | `feat/Q-Basair-17-lavoie-theme` | theme board (graph) with notes, relations, mini readers |
 | 5 | `feat/Q-Basair-18-format-recherche` | research document format + conversions + share formats + quote verification + guidelines + audit design |
+| 6 | `feat/Q-Basair-19-communaute` | publishing pipeline, AI audit agent, feed, post pages (document + read-only board), likes, comments, reports, moderation |

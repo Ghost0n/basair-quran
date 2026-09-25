@@ -4,6 +4,7 @@ import "./tokens.css";
 import "./tokens-motion.css";
 import "./globals.css";
 import "./motion.css";
+import "./glass.css";
 
 export const metadata: Metadata = {
   title: "بصائر القرآن",

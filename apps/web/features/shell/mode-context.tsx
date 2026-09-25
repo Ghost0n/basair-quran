@@ -18,6 +18,9 @@ export const SHELL_MODES = [
   "board",
   // البحث — a research document editor (`&id=<doc id>`).
   "document",
+  // المجتمع — the community feed, and one shared post (`&id=<post id>`).
+  "community",
+  "post",
 ] as const;
 
 export type ShellMode = (typeof SHELL_MODES)[number];

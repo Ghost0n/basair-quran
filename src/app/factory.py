@@ -9,6 +9,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from src.app.core import config, http_cache, rate_limit
 from src.app.routes import (
     auth_router,
+    community_router,
     companions_router,
     health_router,
     mushafs_router,
@@ -116,6 +117,7 @@ def create_app() -> FastAPI:
             {"name": "search", "description": "Suggestion and search endpoints."},
             {"name": "reader", "description": "Reader and Quran page endpoints."},
             {"name": "research", "description": "Strict-context Quran research agent endpoints."},
+            {"name": "community", "description": "Publishing, feed, likes, comments, reports and moderation."},
         ],
     )
     app.add_middleware(
@@ -133,7 +135,7 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=config.get_cors_origins(),
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
     if config.is_auth_enabled():
@@ -151,6 +153,8 @@ def create_app() -> FastAPI:
     app.include_router(search_router, dependencies=open_dependencies)
     app.include_router(reader_router, dependencies=open_dependencies)
     app.include_router(companions_router, dependencies=open_dependencies)
+    # Community: reading is open; writes check the resolved user in the route.
+    app.include_router(community_router, dependencies=open_dependencies)
     app.include_router(research_router, dependencies=gated_dependencies)
     return app
 

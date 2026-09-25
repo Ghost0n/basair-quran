@@ -1,0 +1,355 @@
+"use client";
+
+import "./community.css";
+import "@/features/documents/documents.css";
+
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+
+import { createQBasairApiClient } from "@q-basair/api-client";
+import type { CommentItem, GuidelineRule, PostDetail, SurahListItem } from "@q-basair/shared";
+
+import { Icon } from "@/components/icon";
+import { API_BASE_URL } from "@/lib/config";
+import { useNumerals } from "@/lib/preferences-context";
+import { BoardView } from "@/features/board/board-view";
+import { relativeAge } from "@/features/companions/use-companions";
+import { DocumentView } from "@/features/documents/document-view";
+import { renderShareCard, shareOrDownload } from "@/features/documents/share-card";
+import { useMushaf } from "@/features/reading/mushaf-context";
+import { useShellMode } from "@/features/shell/mode-context";
+import { TafssirDisclaimer } from "@/features/studio/tafssir-disclaimer";
+
+import { REPORT_RULES, RULE_LABEL, STATUS_LABEL } from "./labels";
+import { useCommunityAccess } from "./use-community-access";
+
+const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
+
+/** One shared research: the document (and its board), likes, sharing, comments. */
+export function PostScreen() {
+  const params = useSearchParams();
+  const postId = params.get("id") ?? "";
+  const { setMode } = useShellMode();
+  const mushaf = useMushaf();
+  const formatNumber = useNumerals();
+  const access = useCommunityAccess();
+
+  const [post, setPost] = useState<PostDetail | null>(null);
+  const [status, setStatus] = useState<"loading" | "ready" | "missing">("loading");
+  const [view, setView] = useState<"document" | "board">("document");
+  const [comments, setComments] = useState<CommentItem[]>([]);
+  const [draft, setDraft] = useState("");
+  const [flash, setFlash] = useState<string | null>(null);
+  const [reporting, setReporting] = useState<{ type: "post" | "comment"; id: string } | null>(null);
+  const [surahs, setSurahs] = useState<SurahListItem[]>([]);
+
+  useEffect(() => {
+    api.getSurahs(2).then(setSurahs).catch(() => {});
+  }, []);
+  const surahName = (surahId: number) => surahs.find((surah) => surah.id === surahId)?.name ?? String(surahId);
+
+  useEffect(() => {
+    let cancelled = false;
+    setStatus("loading");
+    api
+      .getPost(postId)
+      .then((loaded) => {
+        if (cancelled) return;
+        setPost(loaded);
+        setStatus("ready");
+        if (loaded.status === "published") api.getComments(postId).then((list) => !cancelled && setComments(list)).catch(() => {});
+      })
+      .catch(() => !cancelled && setStatus("missing"));
+    return () => {
+      cancelled = true;
+    };
+  }, [postId]);
+
+  function say(message: string) {
+    setFlash(message);
+    window.setTimeout(() => setFlash((current) => (current === message ? null : current)), 3200);
+  }
+
+  function requireAccount(): boolean {
+    if (access.canWrite) return true;
+    say("سجّل الدخول لتتفاعل مع المجتمع.");
+    return false;
+  }
+
+  async function toggleLike() {
+    if (!post || !requireAccount()) return;
+    const next = !post.liked_by_me;
+    setPost({ ...post, liked_by_me: next, like_count: post.like_count + (next ? 1 : -1) });
+    try {
+      const result = await api.setLike(post.id, next);
+      setPost((current) => (current ? { ...current, liked_by_me: result.liked, like_count: result.like_count } : current));
+    } catch {
+      setPost((current) => (current ? { ...current, liked_by_me: !next, like_count: post.like_count } : current));
+    }
+  }
+
+  async function sendComment() {
+    const body = draft.trim();
+    if (!post || !body || !requireAccount()) return;
+    try {
+      const created = await api.addComment(post.id, body);
+      setComments((current) => [...current, created]);
+      setPost((current) => (current ? { ...current, comment_count: current.comment_count + 1 } : current));
+      setDraft("");
+    } catch (err) {
+      say(err instanceof Error && /روابط/.test(err.message) ? "التعليق يحوي روابط كثيرة." : "تعذّر إرسال التعليق.");
+    }
+  }
+
+  async function removeComment(comment: CommentItem) {
+    await api.deleteComment(comment.id).catch(() => {});
+    setComments((current) => current.filter((entry) => entry.id !== comment.id));
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/?mode=post&id=${encodeURIComponent(postId)}`);
+      say("نُسخ الرابط.");
+    } catch {
+      say("تعذّر النسخ.");
+    }
+  }
+
+  async function shareCard() {
+    if (!post) return;
+    try {
+      const blob = await renderShareCard({
+        kind: "research",
+        title: post.title,
+        summary: post.summary,
+        meta: `${post.author_name}، ${formatNumber(post.ayah_count)} آية`,
+        excerpt: post.excerpt?.text ?? null,
+      });
+      const result = await shareOrDownload(blob, "basair-post.png", post.title);
+      say(result === "shared" ? "تمت المشاركة." : "حُفظت البطاقة صورةً.");
+    } catch {
+      say("تعذّر إنشاء البطاقة.");
+    }
+  }
+
+  async function sendReport(rule: GuidelineRule, note: string) {
+    if (!reporting || !requireAccount()) return;
+    try {
+      await api.report({ target_type: reporting.type, target_id: reporting.id, rule, note: note || null });
+      say("وصل البلاغ إلى المشرفين. شكراً لك.");
+    } catch {
+      say("تعذّر إرسال البلاغ.");
+    }
+    setReporting(null);
+  }
+
+  async function withdraw() {
+    if (!post) return;
+    await api.withdrawPost(post.id).catch(() => {});
+    setMode("community");
+  }
+
+  function openAyah(surahId: number, ayah: number, ayahId?: number | null) {
+    if (ayahId) void mushaf.loadByAyah(2, ayahId, []);
+    else void mushaf.loadBySurah(2, surahId, ayah);
+    setMode("reading");
+  }
+
+  if (status === "missing") {
+    return (
+      <div className="qb-doc-state">
+        <p>هذا المنشور غير متاح.</p>
+        <button type="button" onClick={() => setMode("community")}>إلى المجتمع</button>
+      </div>
+    );
+  }
+  if (!post) return <div className="qb-skeleton-page" aria-hidden />;
+
+  const latestHuman = post.reviews.find((review) => review.stage === "human");
+  const latestAi = post.reviews.find((review) => review.stage === "ai");
+  const aiIssues = (latestAi?.issues ?? []) as { rule?: string; explanation_ar?: string; suggestion_ar?: string; quote?: string }[];
+
+  return (
+    <div className="qb-post qb-page-enter" dir="rtl">
+      <div className="qb-post-bar qb-glass-bar">
+        <button type="button" className="qb-icon-round" onClick={() => setMode("community")} aria-label="إلى المجتمع">
+          <Icon name="chevRight" size={18} />
+        </button>
+        <span className="crumb">المجتمع</span>
+        <div className="acts">
+          {post.status === "published" ? (
+            <>
+              <button type="button" className={`qb-btn like${post.liked_by_me ? " on" : ""}`} onClick={() => void toggleLike()} aria-pressed={post.liked_by_me}>
+                <Icon name={post.liked_by_me ? "heartFilled" : "heart"} size={15} /> {formatNumber(post.like_count)}
+              </button>
+              <button type="button" className="qb-btn ghost" onClick={() => void copyLink()}>
+                <Icon name="link" size={15} /> <span className="lbl">الرابط</span>
+              </button>
+              <button type="button" className="qb-btn ghost" onClick={() => void shareCard()}>
+                <Icon name="share" size={15} /> <span className="lbl">بطاقة</span>
+              </button>
+              {!post.is_mine ? (
+                <button type="button" className="qb-btn ghost" onClick={() => setReporting({ type: "post", id: post.id })} aria-label="إبلاغ">
+                  <Icon name="flag" size={15} />
+                </button>
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="qb-post-body">
+        {flash ? <div className="qb-toast-inline" role="status">{flash}</div> : null}
+
+        {post.is_mine && post.status !== "published" ? (
+          <div className={`qb-review-banner s-${post.status} qb-glass`}>
+            <strong>{STATUS_LABEL[post.status]}</strong>
+            {post.status === "pending_review" ? <p>يراجع المشرفون بحثك قبل ظهوره في المجتمع.</p> : null}
+            {latestHuman?.note ? <p>ملاحظة المشرف: {latestHuman.note}</p> : null}
+            {aiIssues.length ? (
+              <ul>
+                {aiIssues.map((issue, index) => (
+                  <li key={index}>
+                    <b>{RULE_LABEL[(issue.rule ?? "other") as GuidelineRule] ?? issue.rule}:</b> {issue.explanation_ar}
+                    {issue.suggestion_ar ? <span className="suggest"> — {issue.suggestion_ar}</span> : null}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
+
+        <header className="qb-post-head">
+          <div className="author">
+            <span className="avatar" aria-hidden>{post.author_name.trim().charAt(0) || "ب"}</span>
+            <span>
+              <b>{post.author_name}</b>
+              <small>{relativeAge(post.published_at ?? post.updated_at)}{post.visibility === "unlisted" ? "، برابط فقط" : ""}</small>
+            </span>
+          </div>
+          <h1>{post.title}</h1>
+          {post.summary ? <p className="summary">{post.summary}</p> : null}
+        </header>
+
+        {post.mode === "tafssir" ? <TafssirDisclaimer /> : null}
+
+        {post.board ? (
+          <div className="qb-segmented" role="tablist" aria-label="عرض المنشور">
+            <button type="button" role="tab" aria-selected={view === "document"} className={view === "document" ? "on" : ""} onClick={() => setView("document")}>
+              <Icon name="page" size={14} /> البحث
+            </button>
+            <button type="button" role="tab" aria-selected={view === "board"} className={view === "board" ? "on" : ""} onClick={() => setView("board")}>
+              <Icon name="graph" size={14} /> اللوحة
+            </button>
+          </div>
+        ) : null}
+
+        {view === "board" && post.board ? (
+          <div className="qb-post-board qb-glass">
+            <BoardView snapshot={post.board} onOpenAyah={(item) => openAyah(item.surah_id ?? 1, item.ayah ?? 1, item.ayah_id)} />
+          </div>
+        ) : (
+          <DocumentView
+            sections={post.document.sections}
+            references={post.document.references}
+            surahName={surahName}
+            onOpenAyah={openAyah}
+          />
+        )}
+
+        {post.is_mine ? (
+          <div className="qb-post-owner">
+            <button type="button" className="qb-btn ghost danger-text" onClick={() => void withdraw()}>
+              <Icon name="trash" size={14} /> سحب المنشور
+            </button>
+          </div>
+        ) : null}
+
+        {post.status === "published" ? (
+          <section className="qb-comments">
+            <h2>
+              التعليقات <span className="count">{formatNumber(comments.length)}</span>
+            </h2>
+            {comments.map((comment, index) => (
+              <div key={comment.id} className="qb-comment qb-rise" style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}>
+                <span className="avatar" aria-hidden>{comment.author_name.trim().charAt(0) || "ب"}</span>
+                <div className="bubble">
+                  <div className="meta">
+                    <b>{comment.author_name}</b> <small>{relativeAge(comment.created_at)}</small>
+                  </div>
+                  <p>{comment.body}</p>
+                </div>
+                {comment.is_mine || access.isModerator ? (
+                  <button type="button" className="qb-icon-round small" onClick={() => void removeComment(comment)} aria-label="حذف التعليق">
+                    <Icon name="trash" size={13} />
+                  </button>
+                ) : (
+                  <button type="button" className="qb-icon-round small" onClick={() => setReporting({ type: "comment", id: String(comment.id) })} aria-label="إبلاغ عن التعليق">
+                    <Icon name="flag" size={13} />
+                  </button>
+                )}
+              </div>
+            ))}
+            {access.canWrite ? (
+              <form
+                className="qb-composer qb-glass"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void sendComment();
+                }}
+              >
+                <textarea
+                  value={draft}
+                  onChange={(event) => setDraft(event.target.value.slice(0, 2000))}
+                  placeholder="أضف تعليقاً يثري البحث… (ناقش الفكرة لا الشخص)"
+                  aria-label="تعليق"
+                  rows={2}
+                />
+                <button type="submit" className="qb-btn primary" disabled={!draft.trim()}>
+                  <Icon name="send" size={14} /> تعليق
+                </button>
+              </form>
+            ) : (
+              <a className="qb-btn ghost" href="/login">سجّل الدخول لتعلّق</a>
+            )}
+          </section>
+        ) : null}
+      </div>
+
+      {reporting ? <ReportSheet onClose={() => setReporting(null)} onSend={sendReport} /> : null}
+    </div>
+  );
+}
+
+function ReportSheet({ onClose, onSend }: { onClose: () => void; onSend: (rule: GuidelineRule, note: string) => void }) {
+  const [rule, setRule] = useState<GuidelineRule>("other");
+  const [note, setNote] = useState("");
+  return (
+    <div className="qb-rsheet" role="dialog" aria-modal="true" aria-label="إبلاغ">
+      <div className="backdrop" onClick={onClose} aria-hidden />
+      <div className="panel" tabIndex={-1}>
+        <div className="grip" aria-hidden />
+        <div className="head">
+          <h2>إبلاغ المشرفين</h2>
+          <button type="button" className="close" onClick={onClose} aria-label="إغلاق">
+            <Icon name="close" size={18} />
+          </button>
+        </div>
+        <div className="body qb-report">
+          <div className="label">ما البند المخالَف؟</div>
+          <div className="rules" role="radiogroup">
+            {REPORT_RULES.map((entry) => (
+              <button key={entry} type="button" role="radio" aria-checked={rule === entry} className={rule === entry ? "on" : ""} onClick={() => setRule(entry)}>
+                {RULE_LABEL[entry]}
+              </button>
+            ))}
+          </div>
+          <textarea value={note} onChange={(event) => setNote(event.target.value.slice(0, 500))} placeholder="تفصيل اختياري…" rows={3} aria-label="تفصيل البلاغ" />
+          <button type="button" className="qb-btn primary block" onClick={() => onSend(rule, note.trim())}>
+            إرسال البلاغ
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
