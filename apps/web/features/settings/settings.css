@@ -48,10 +48,14 @@
 }
 
 .qb-setting-card {
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  background: var(--bg-elev-1);
   padding: 16px 18px;
+  background: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), 0 8px 24px rgba(0, 0, 0, 0.14);
+  -webkit-backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  border-radius: var(--r-2xl);
 }
 
 .qb-setting-card h3 {
@@ -106,21 +110,20 @@
 
 .qb-setting-seg {
   display: flex;
-  padding: 3px;
-  background: rgba(0, 0, 0, 0.20);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  padding: 4px;
+  background: var(--glass-tint-soft);
+  border: 1px solid var(--glass-rim);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+  border-radius: var(--r-pill);
   gap: 2px;
-}
-
-.light .qb-setting-seg {
-  background: rgba(255, 255, 255, 0.5);
 }
 
 .qb-setting-seg button {
   flex: 1;
-  padding: 7px 8px;
-  border-radius: 7px;
+  padding: 8px 10px;
+  border-radius: var(--r-pill);
+  transition: background-color var(--motion-dur-base) var(--spring-soft), color var(--motion-dur-fast),
+    box-shadow var(--motion-dur-base);
   font-size: 12px;
   color: var(--fg-2);
   font-weight: 600;
@@ -143,13 +146,16 @@
 }
 
 .qb-setting-seg button.active {
-  background: linear-gradient(135deg, #eac54a, #c69e27);
-  color: #140f00;
+  background: var(--seg-on-bg);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--seg-on-shadow);
+  color: var(--gold-text);
 }
 
 .qb-setting-seg button.active.copper {
-  background: linear-gradient(135deg, #d49a6a, #a66838);
-  color: #1a0f06;
+  background: var(--seg-copper-bg);
+  background-image: var(--glass-sheen);
+  color: var(--tafssir-fg);
 }
 
 .qb-setting-slider {

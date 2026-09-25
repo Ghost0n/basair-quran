@@ -15,8 +15,15 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-  padding: 10px 20px;
-  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+  margin: 4px 20px 12px;
+  border-radius: 22px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 .qb-doc-bar .back {
@@ -60,11 +67,14 @@
   align-items: center;
   gap: 6px;
   height: 38px;
-  padding: 0 12px;
+  padding: 0 14px;
   border-radius: var(--r-pill);
-  border: 1px solid var(--border);
-  background: none;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-soft);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge);
   color: var(--fg-2);
+  transition: transform var(--motion-dur-instant), border-color var(--motion-dur-fast), color var(--motion-dur-fast);
   font-family: var(--font-arabic-ui);
   font-size: 13px;
   font-weight: 600;
@@ -155,9 +165,13 @@
 .qb-doc-audit {
   margin-bottom: 16px;
   padding: 12px 14px;
-  border-radius: var(--r-lg);
-  border: 1px solid rgba(201, 122, 122, 0.4);
-  background: var(--bg-elev-1);
+  background: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), 0 8px 24px rgba(0, 0, 0, 0.14);
+  -webkit-backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  border-radius: var(--r-xl);
 }
 
 .qb-doc-audit.ok {
@@ -228,9 +242,13 @@
 
 .qb-doc-section {
   padding: 12px 14px;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--border);
-  background: var(--bg-elev-1);
+  background: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), 0 8px 24px rgba(0, 0, 0, 0.14);
+  -webkit-backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  border-radius: var(--r-xl);
 }
 
 .qb-doc-section.kind-ai_answer {
@@ -571,5 +589,30 @@
 
   .qb-doc-body .title {
     font-size: 26px;
+  }
+}
+
+.qb-doc-bar .acts button:active,
+.qb-board-bar .tools button:active {
+  transform: scale(var(--press-scale));
+}
+
+/* «نشر» is the page's primary action. */
+.qb-doc-bar .acts button.publish {
+  border-color: rgba(255, 236, 170, 0.55);
+  background: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
+  color: #1a1305;
+  font-weight: 800;
+}
+
+.qb-doc-bar .acts button.publish:hover {
+  color: #1a1305;
+}
+
+@media (max-width: 640px) {
+  .qb-doc-bar,
+  .qb-board-bar {
+    margin: 4px 10px 10px;
   }
 }

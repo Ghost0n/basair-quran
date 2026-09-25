@@ -139,7 +139,7 @@ export function ReaderBar({
         </button>
         <button
           type="button"
-          className="act"
+          className="act focus-toggle"
           onClick={onToggleImmersive}
           aria-pressed={immersive}
           aria-label={immersive ? "إنهاء وضع التركيز" : "وضع التركيز (F)"}

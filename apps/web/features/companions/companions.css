@@ -238,10 +238,14 @@
 }
 
 .qb-collection-card {
-  border: 1px solid var(--border);
-  border-radius: var(--r-lg);
-  background: var(--bg-elev-1);
   overflow: hidden;
+  background: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), 0 8px 24px rgba(0, 0, 0, 0.14);
+  -webkit-backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  border-radius: var(--r-xl);
 }
 
 .qb-collection-card .head {
@@ -317,11 +321,13 @@
   align-items: center;
   gap: 16px;
   padding: 14px 18px;
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  background: var(--bg-elev-1);
   /* Rows mount in a soft cascade; `backwards` keeps transform free afterwards. */
   animation: qbRise var(--dur) var(--ease-out) backwards;
+  background: var(--glass-tint-soft);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge);
+  border-radius: var(--r-lg);
 }
 
 /* Pure-CSS stagger, capped at the first ten rows (the visible fold). */
@@ -399,25 +405,42 @@
 
 /* ---------- Library tabs (unified الدفتر) ---------- */
 
+/* Library tabs: the shared glass segmented track (see .qb-segmented). */
 .qb-lib-tabs {
   display: flex;
   gap: 2px;
   margin-bottom: 20px;
-  border-bottom: 1px solid var(--divider);
+  padding: 4px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-rim);
+  background: var(--glass-tint-soft);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.qb-lib-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .qb-lib-tab {
+  flex: 1 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
   background: none;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-radius: var(--r-pill);
   color: var(--fg-3);
   font-family: var(--font-arabic-ui);
-  font-size: 14px;
-  font-weight: 600;
-  padding: 8px 16px;
-  margin-bottom: -1px;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 0 14px;
   cursor: pointer;
-  transition: color 160ms var(--ease-out), border-color 160ms var(--ease-out);
+  white-space: nowrap;
+  transition: color var(--motion-dur-fast), background-color var(--motion-dur-base) var(--spring-soft),
+    box-shadow var(--motion-dur-base);
 }
 
 .qb-lib-tab .n {
@@ -434,7 +457,9 @@
 
 .qb-lib-tab.active {
   color: var(--gold-text);
-  border-bottom-color: var(--gold-400);
+  background: var(--seg-on-bg);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--seg-on-shadow);
 }
 
 .qb-lib-tab.active .n {

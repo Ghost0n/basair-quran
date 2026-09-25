@@ -45,6 +45,10 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 - Community («المجتمع»): a feed of published researches (public or link-only), post pages with the
   document and its read-only board, likes, comments, reports, and a moderation queue for admins —
   governed by `docs/community-guidelines.md`.
+- A "liquid glass" design system (`docs/design-system.md`): one translucent material for all chrome
+  (floating rail and tab dock, capsule bars, glass sheets and panes), glossy gold for actions, a
+  shared selected state, spring micro-interactions and view-transition page changes — with the
+  mushaf itself kept opaque and reduced-motion respected.
 - A persistent floating media bar (transport · reciter chip · seekable progress ·
   repeat/speed) shown across every screen; reciter selection lives in a filterable
   sheet opened from the bar or the rail.

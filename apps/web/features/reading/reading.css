@@ -117,32 +117,36 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.18);
-  border: 1px solid var(--border);
+  height: 36px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-soft);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge);
   color: var(--fg-2);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 700;
   font-family: var(--font-arabic-ui);
   cursor: pointer;
-  transition: all 180ms var(--ease-out);
-}
-
-.light .qb-pill {
-  background: rgba(255, 255, 255, 0.5);
+  transition: color var(--motion-dur-fast), border-color var(--motion-dur-fast),
+    background-color var(--motion-dur-base) var(--spring-soft), transform var(--motion-dur-instant);
 }
 
 .qb-pill:hover {
   color: var(--gold-text);
-  border-color: rgba(212, 175, 55, 0.30);
+  border-color: var(--glass-rim-strong);
+}
+
+.qb-pill:active {
+  transform: scale(var(--press-scale));
 }
 
 .qb-pill.active {
   color: var(--gold-text);
-  background: rgba(212, 175, 55, 0.12);
-  border-color: rgba(212, 175, 55, 0.40);
+  background-color: var(--seg-on-bg);
+  box-shadow: var(--seg-on-shadow);
+  border-color: var(--gold-a40);
 }
 
 .qb-pill .num {
@@ -704,17 +708,19 @@
 
 .qb-morph-pop {
   position: absolute;
-  background: rgba(20, 18, 12, 0.97);
-  border: 1px solid rgba(212, 175, 55, 0.32);
-  border-radius: 14px;
+  border: 1px solid var(--glass-rim-strong);
+  background-color: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  border-radius: var(--r-xl);
   width: 320px;
   /* Extra top room so a display-font word with tall stacked marks (e.g. the
      high rounded-zero on ٱدْعُوا۟) can't paint above the card onto the mushaf. */
   padding: 16px 14px 14px;
-  box-shadow: var(--shadow-3), 0 0 0 1px rgba(212, 175, 55, 0.10);
-  backdrop-filter: blur(20px);
+  box-shadow: var(--glass-edge), var(--glass-shadow-lift);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   z-index: var(--elev-popover);
-  animation: qbPopIn var(--dur-fast) var(--ease-out);
+  animation: qbPopIn var(--motion-dur-base) var(--spring-soft);
   transform-origin: top;
 }
 
@@ -909,14 +915,23 @@
    tab bar; on larger screens at the top.
    ===================================================================== */
 
+/* A glass capsule floating over the reading room. */
 .qb-reader-bar {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  min-height: 52px;
-  padding: 6px 4px 8px;
+  min-height: 56px;
+  margin: 2px 0 10px;
+  padding: 6px 10px 6px 12px;
+  border-radius: 22px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   flex-shrink: 0;
   transition: opacity var(--motion-dur-base) var(--motion-ease-settle),
     transform var(--motion-dur-base) var(--motion-ease-settle);
@@ -929,7 +944,6 @@
   gap: 0;
   min-width: 0;
   padding: 2px 8px;
-  margin-inline-start: -8px;
   background: none;
   border: 0;
   border-radius: var(--r-md);
@@ -989,13 +1003,15 @@
 }
 
 .qb-reader-bar .act.labelled {
-  border-color: var(--border);
-  background: rgba(0, 0, 0, 0.14);
+  border-color: var(--glass-rim);
+  background-color: var(--glass-tint-soft);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge);
   padding: 0 14px;
 }
 
-.light .qb-reader-bar .act.labelled {
-  background: rgba(255, 255, 255, 0.5);
+.qb-reader-bar .act:active:not(:disabled) {
+  transform: scale(var(--press-scale));
 }
 
 .qb-reader-bar .act:hover:not(:disabled) {
@@ -1022,7 +1038,7 @@
 
 .qb-reader-bar .progress {
   position: absolute;
-  inset-inline: 0;
+  inset-inline: 22px;
   bottom: 0;
   height: 2px;
   border-radius: 2px;
@@ -1060,8 +1076,9 @@
   .qb-reader-bar {
     order: 2;
     min-height: 56px;
-    padding: 8px 2px calc(6px + env(safe-area-inset-bottom, 0px));
-    border-top: 1px solid var(--border);
+    margin: 8px 0 6px;
+    padding: 6px 8px 6px 10px;
+    background-color: var(--glass-tint-strong);
   }
 
   .qb-reader-bar .progress {
@@ -1096,6 +1113,12 @@
   }
 
   .qb-reader-bar .identity .meta .of {
+    display: none;
+  }
+
+  /* A tap on the page toggles focus mode on phones; the button's room goes to
+     the surah name. */
+  .qb-reader-bar .act.focus-toggle {
     display: none;
   }
 }
@@ -1156,8 +1179,9 @@
 .qb-rsheet .backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(8, 6, 2, 0.55);
-  backdrop-filter: blur(2px);
+  background: rgba(8, 6, 2, 0.42);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
+  backdrop-filter: blur(6px) saturate(120%);
   animation: qbFade var(--motion-dur-fast) var(--motion-ease-settle) both;
 }
 
@@ -1167,12 +1191,15 @@
   flex-direction: column;
   width: min(560px, 100%);
   max-height: min(720px, calc(100dvh - 48px));
-  border-radius: var(--r-xl);
-  border: 1px solid var(--border-strong, var(--border));
-  background: var(--bg-elev-2);
-  box-shadow: var(--shadow-3);
+  border-radius: var(--r-2xl);
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow-lift);
+  -webkit-backdrop-filter: blur(28px) saturate(var(--glass-saturate));
+  backdrop-filter: blur(28px) saturate(var(--glass-saturate));
   overflow: hidden;
-  animation: qbPopIn var(--motion-dur-base) var(--motion-ease-settle) both;
+  animation: qbSheetIn var(--motion-dur-slow) var(--spring-soft) both;
 }
 
 .qb-rsheet .panel:focus {
@@ -1494,16 +1521,18 @@
   align-items: center;
   gap: 4px;
   padding: 14px 6px 12px;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.12);
+  border-radius: var(--r-xl);
+  border: 1px solid var(--glass-rim);
+  background: var(--glass-tint-soft);
   color: var(--fg-2);
   font-family: var(--font-arabic-ui);
   cursor: pointer;
+  transition: transform var(--motion-dur-instant) var(--motion-ease-settle), border-color var(--motion-dur-fast),
+    background-color var(--motion-dur-base);
 }
 
-.light .qb-display-sheet .modes button {
-  background: rgba(255, 255, 255, 0.5);
+.qb-display-sheet .modes button:active {
+  transform: scale(var(--press-scale));
 }
 
 .qb-display-sheet .modes button .t {
@@ -1518,8 +1547,10 @@
 }
 
 .qb-display-sheet .modes button.active {
-  border-color: var(--gold-400);
-  background: var(--gold-a12);
+  border-color: var(--gold-a55);
+  background: var(--seg-on-bg);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--seg-on-shadow);
   color: var(--gold-text);
 }
 
@@ -1568,11 +1599,9 @@
   gap: 4px;
   padding: 4px;
   border-radius: var(--r-pill);
-  background: rgba(0, 0, 0, 0.16);
-}
-
-.light .qb-display-sheet .seg {
-  background: rgba(120, 92, 20, 0.07);
+  background: var(--glass-tint-soft);
+  border: 1px solid var(--glass-rim);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
 .qb-display-sheet .seg button {
@@ -1593,7 +1622,9 @@
 }
 
 .qb-display-sheet .seg button.active {
-  background: var(--gold-a18);
+  background: var(--seg-on-bg);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--seg-on-shadow);
   color: var(--gold-text);
 }
 
@@ -1606,9 +1637,10 @@
   .qb-rsheet .panel {
     width: 100%;
     max-height: 88dvh;
-    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    border-radius: 28px 28px 0 0;
+    border-bottom: 0;
     padding-bottom: env(safe-area-inset-bottom, 0px);
-    animation: qbSheetUp var(--motion-dur-base) var(--motion-ease-settle) both;
+    animation: qbSheetUp var(--motion-dur-slow) var(--spring-soft) both;
   }
 
   .qb-rsheet .grip {
@@ -1622,6 +1654,17 @@
 
   .qb-display-sheet .split {
     grid-template-columns: 1fr;
+  }
+}
+
+@keyframes qbSheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 

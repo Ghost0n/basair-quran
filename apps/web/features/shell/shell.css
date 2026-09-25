@@ -27,41 +27,51 @@
   isolation: isolate;
 }
 
+/* Ambient light behind the glass chrome: slow, soft colour fields (see
+   app/glass.css) so the translucent surfaces have something to refract. */
 .qb-frame::before {
   content: "";
   position: fixed;
-  inset: 0;
+  inset: -20vmax;
   pointer-events: none;
   background:
-    radial-gradient(900px 600px at 85% 15%, rgba(212, 175, 55, 0.07), transparent 55%),
-    radial-gradient(700px 500px at 10% 85%, rgba(212, 175, 55, 0.05), transparent 55%);
+    radial-gradient(38vmax 30vmax at 82% 8%, var(--aurora-1), transparent 70%),
+    radial-gradient(34vmax 28vmax at 12% 80%, var(--aurora-2), transparent 70%),
+    radial-gradient(30vmax 26vmax at 55% 55%, var(--aurora-3), transparent 72%);
+  animation: qbAurora 38s var(--ease-in-out) infinite alternate;
   z-index: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-frame::before {
+    animation: none;
+  }
 }
 
 /* ---------- Left rail ---------- */
 
+/* A floating glass column, inset from the window edge. */
 .qb-rail {
   position: sticky;
   top: 0;
-  width: 84px;
-  flex: 0 0 84px;
-  height: 100%;
+  width: 80px;
+  flex: 0 0 80px;
   align-self: stretch;
-  background: linear-gradient(180deg, rgba(20, 18, 12, 0.78), rgba(14, 12, 8, 0.72));
-  border-inline-start: 1px solid var(--border);
+  margin-block: 10px;
+  margin-inline-start: 10px;
+  border-radius: 26px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 18px 0;
-  gap: 6px;
+  padding: 14px 0;
+  gap: 4px;
   z-index: 5;
-  backdrop-filter: blur(20px);
-}
-
-.light .qb-rail,
-.light-mode .qb-rail {
-  background: linear-gradient(180deg, rgba(255, 253, 247, 0.85), rgba(244, 237, 219, 0.82));
-  border-inline-start-color: rgba(164, 129, 41, 0.20);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 .qb-rail-brand-btn {
@@ -85,10 +95,10 @@
 }
 
 .qb-rail-btn {
-  width: 68px;
-  min-height: 52px;
+  width: 64px;
+  min-height: 54px;
   padding: 7px 2px;
-  border-radius: 12px;
+  border-radius: 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -99,19 +109,51 @@
   border: 1px solid transparent;
   cursor: pointer;
   position: relative;
-  transition: color var(--dur) var(--ease-out), background var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out);
+  transition: color var(--motion-dur-base) var(--motion-ease-settle),
+    background-color var(--motion-dur-base) var(--motion-ease-settle),
+    border-color var(--motion-dur-base) var(--motion-ease-settle),
+    transform var(--motion-dur-instant) var(--motion-ease-settle),
+    box-shadow var(--motion-dur-base) var(--motion-ease-settle);
 }
 
 .qb-rail-btn:hover {
   color: var(--gold-text);
-  background: rgba(212, 175, 55, 0.06);
+  background-color: var(--gold-a08);
 }
 
+.qb-rail-btn:active {
+  transform: scale(0.94);
+}
+
+/* Active: a lit glass gel with a gold rim. */
 .qb-rail-btn.active {
   color: var(--gold-text);
-  background: rgba(212, 175, 55, 0.12);
-  border-color: rgba(212, 175, 55, 0.30);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  background-color: var(--gold-a12);
+  background-image: var(--glass-sheen);
+  border-color: var(--gold-a40);
+  box-shadow: var(--glass-edge), 0 6px 18px rgba(212, 175, 55, 0.14);
+}
+
+.qb-rail-btn.active .qb-icon {
+  animation: qbRailPop var(--motion-dur-slow) var(--spring);
+}
+
+@keyframes qbRailPop {
+  0% {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-rail-btn.active .qb-icon {
+    animation: none;
+  }
 }
 
 .qb-rail-divider {
@@ -177,14 +219,8 @@
   align-items: center;
   gap: 16px;
   padding: 0 24px;
-  border-bottom: 1px solid var(--divider);
-  background: linear-gradient(180deg, var(--bg-elev-1), color-mix(in srgb, var(--bg-elev-1) 88%, transparent));
-  backdrop-filter: blur(14px);
-}
-
-.light .qb-topbar,
-.light-mode .qb-topbar {
-  background: linear-gradient(180deg, rgba(255, 253, 247, 0.92), rgba(255, 253, 247, 0.78));
+  /* Transparent chrome: the command bar is the one floating glass object. */
+  background: transparent;
 }
 
 .qb-crumbs {
@@ -214,34 +250,34 @@
   max-width: 720px;
   min-width: 220px;
   margin: 0 auto;
-  height: 44px;
-  border-radius: 14px;
-  background: rgba(0, 0, 0, 0.20);
-  border: 1px solid var(--border);
+  height: 46px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 12px;
+  padding: 0 16px;
   position: relative;
-  transition: border-color var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out), background var(--dur) var(--ease-out);
-}
-
-.light .qb-cmd,
-.light-mode .qb-cmd {
-  background: rgba(255, 255, 255, 0.55);
+  transition: border-color var(--motion-dur-base) var(--motion-ease-settle),
+    box-shadow var(--motion-dur-base) var(--motion-ease-settle),
+    transform var(--motion-dur-base) var(--spring-soft);
 }
 
 .qb-cmd:hover,
 .qb-cmd:focus-within {
-  border-color: rgba(212, 175, 55, 0.45);
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.10);
+  border-color: var(--gold-a40);
+  box-shadow: var(--glass-edge), var(--glass-shadow-lift), 0 0 0 4px var(--gold-a08);
 }
 
 /* In Search mode the command bar is the focal point — a persistent gold ring. */
 .qb-cmd.is-search-active {
-  border-color: rgba(212, 175, 55, 0.55);
-  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.14);
-  background: rgba(212, 175, 55, 0.05);
+  border-color: var(--gold-a55);
+  box-shadow: var(--glass-edge), var(--glass-shadow), 0 0 0 4px var(--gold-a12);
 }
 
 /* Empty-search hint surfaced directly beneath the command bar. */
@@ -249,11 +285,16 @@
   position: absolute;
   inset-inline-start: 0;
   inset-inline-end: 0;
-  top: calc(100% + 6px);
-  background: var(--bg-elev-2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-3);
+  top: calc(100% + 8px);
+  border-radius: var(--r-xl);
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow-lift);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  animation: qbPopIn var(--motion-dur-base) var(--spring-soft) both;
+  transform-origin: top center;
   z-index: 200;
   padding: 12px 14px;
   display: flex;
@@ -362,11 +403,16 @@
   position: absolute;
   inset-inline-start: 0;
   inset-inline-end: 0;
-  top: calc(100% + 6px);
-  background: var(--bg-elev-2);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-3);
+  top: calc(100% + 8px);
+  border-radius: var(--r-xl);
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow-lift);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  animation: qbPopIn var(--motion-dur-base) var(--spring-soft) both;
+  transform-origin: top center;
   max-height: 360px;
   overflow-y: auto;
   z-index: 200;
@@ -377,8 +423,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  border-radius: 8px;
+  padding: 9px 12px;
+  border-radius: 14px;
   width: 100%;
   background: transparent;
   border: none;
@@ -431,9 +477,9 @@
 }
 
 .qb-icon-btn {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -479,11 +525,14 @@
 .qb-placeholder-card {
   max-width: 560px;
   text-align: center;
-  background: var(--bg-elev-1);
-  border: 1px solid var(--border);
-  border-radius: var(--r-xl);
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border-radius: var(--r-2xl);
   padding: 48px 40px;
-  box-shadow: var(--shadow-2);
 }
 
 .qb-placeholder-card .kicker {
@@ -557,12 +606,19 @@
 }
 
 .qb-tabbar-btn .tile {
-  width: 40px;
+  width: 44px;
   height: 30px;
-  border-radius: 10px;
+  border-radius: var(--r-pill);
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 1px solid transparent;
+  transition: background-color var(--motion-dur-base) var(--spring-soft),
+    border-color var(--motion-dur-base), transform var(--motion-dur-instant);
+}
+
+.qb-tabbar-btn:active .tile {
+  transform: scale(0.9);
 }
 
 .qb-tabbar-btn .label {
@@ -575,7 +631,10 @@
 }
 
 .qb-tabbar-btn.active .tile {
-  background: rgba(212, 175, 55, 0.12);
+  background-color: var(--gold-a12);
+  background-image: var(--glass-sheen);
+  border-color: var(--gold-a40);
+  box-shadow: var(--glass-edge);
 }
 
 @media (max-width: 768px) {
@@ -583,26 +642,30 @@
     display: none;
   }
 
+  /* A floating glass dock. */
   .qb-tabbar {
     display: flex;
     position: fixed;
-    inset-inline: 0;
-    bottom: 0;
-    height: 72px;
-    padding-bottom: env(safe-area-inset-bottom, 0);
-    background: rgba(14, 12, 8, 0.96);
-    border-top: 1px solid var(--border);
-    backdrop-filter: blur(20px);
+    inset-inline: 10px;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    height: 64px;
+    padding: 0 4px;
+    border-radius: 24px;
+    border: 1px solid var(--glass-rim);
+    background-color: var(--glass-tint-strong);
+    background-image: var(--glass-sheen);
+    box-shadow: var(--glass-edge), var(--glass-shadow-lift);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     z-index: 45;
   }
 
-  .light .qb-tabbar,
-  .light-mode .qb-tabbar {
-    background: rgba(255, 253, 247, 0.97);
+  .qb-tabbar-btn {
+    padding: 6px 0;
   }
 
   .qb-main {
-    padding-bottom: 72px;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }
 
   .qb-topbar {

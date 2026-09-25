@@ -55,18 +55,21 @@
   width: 440px;
   flex: 0 0 440px;
   min-width: 0;
-  border-inline-end: 1px solid var(--divider);
-  background: linear-gradient(180deg, rgba(33, 30, 22, 0.55), rgba(20, 18, 12, 0.55));
+  /* A floating glass pane beside the mushaf. */
+  margin-block: 4px 10px;
+  margin-inline-start: 10px;
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  backdrop-filter: blur(14px);
   animation: qbPanelIn var(--dur) var(--ease-out);
-}
-
-.light .qb-side-panel {
-  background: linear-gradient(180deg, rgba(252, 247, 231, 0.7), rgba(244, 236, 216, 0.6));
+  background: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border-radius: 26px;
 }
 
 .qb-side-head {
@@ -214,9 +217,6 @@
 
 .qb-verse-row {
   padding: 10px 14px 12px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(0, 0, 0, 0.10));
-  border: 1px solid var(--border);
-  border-radius: 14px;
   margin-bottom: 8px;
   cursor: pointer;
   transition: border-color 200ms var(--ease-out), transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
@@ -228,10 +228,11 @@
      so the completed animation never locks `transform` and breaks the hover lift. */
   animation: qbRise var(--motion-dur-base) var(--motion-ease-settle) backwards;
   animation-delay: calc(var(--i, 0) * var(--motion-stagger-base));
-}
-
-.light .qb-verse-row {
-  background: linear-gradient(180deg, rgba(255, 253, 246, 0.7), rgba(244, 236, 216, 0.5));
+  background: var(--glass-tint-soft);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge);
+  border-radius: var(--r-lg);
 }
 
 .qb-verse-row:hover {
@@ -565,6 +566,7 @@
     width: 100%;
     flex: 1 1 auto;
     border-inline-end: none;
+    margin: 0 0 10px;
   }
 }
 

@@ -14,8 +14,15 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 20px;
-  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+  margin: 4px 20px 12px;
+  border-radius: 22px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 .qb-board-bar .back {
@@ -73,11 +80,14 @@
   align-items: center;
   gap: 6px;
   height: 40px;
-  padding: 0 12px;
+  padding: 0 14px;
   border-radius: var(--r-pill);
-  border: 1px solid var(--border);
-  background: none;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-soft);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge);
   color: var(--fg-2);
+  transition: transform var(--motion-dur-instant), border-color var(--motion-dur-fast), color var(--motion-dur-fast);
   font-family: var(--font-arabic-ui);
   font-size: 13px;
   font-weight: 600;
@@ -230,11 +240,14 @@
 
 .qb-bnode {
   position: relative;
-  border-radius: var(--r-lg);
-  border: 1px solid var(--border);
-  background: var(--bg-elev-2);
-  box-shadow: var(--shadow-2, 0 4px 18px rgba(0, 0, 0, 0.25));
   color: var(--fg-1);
+  background: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), 0 8px 24px rgba(0, 0, 0, 0.14);
+  -webkit-backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  border-radius: var(--r-xl);
 }
 
 .qb-bnode.sel {
