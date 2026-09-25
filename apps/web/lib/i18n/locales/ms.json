@@ -626,6 +626,15 @@
  "فسِّر الآية {0} من سورة {1} في سياقها: ما قبلها وما بعدها ومقصد السورة.": "Tafsirkan ayat {0} daripada Surah {1} dalam konteksnya: sebelum, selepas dan maksud surah.",
  "في البحث {0} آية، هذه {1} منها.": "Kajian ini mengandungi {0} ayat; ini {1} daripadanya.",
  "فيروزي": "Firus",
+ "قبل {0} دقيقة": {
+  "other": "{0} minit lalu"
+ },
+ "قبل {0} ساعة": {
+  "other": "{0} jam lalu"
+ },
+ "قبل {0} يوم": {
+  "other": "{0} hari lalu"
+ },
  "قبل النشر:": "Sebelum menerbitkan:",
  "قراءة {0} د": "{0} min bacaan",
  "قراءة تفسيرية": "Bacaan tafsir",

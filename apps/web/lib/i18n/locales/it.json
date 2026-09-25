@@ -642,6 +642,18 @@
  "فسِّر الآية {0} من سورة {1} في سياقها: ما قبلها وما بعدها ومقصد السورة.": "Spiega il versetto {0} della Sura {1} nel suo contesto: ciò che lo precede e lo segue, e lo scopo della sura.",
  "في البحث {0} آية، هذه {1} منها.": "La ricerca ha {0} versetti; questi sono {1} di essi.",
  "فيروزي": "Turchese",
+ "قبل {0} دقيقة": {
+  "one": "{0} minuto fa",
+  "other": "{0} minuti fa"
+ },
+ "قبل {0} ساعة": {
+  "one": "{0} ora fa",
+  "other": "{0} ore fa"
+ },
+ "قبل {0} يوم": {
+  "one": "{0} giorno fa",
+  "other": "{0} giorni fa"
+ },
  "قبل النشر:": "Prima di pubblicare:",
  "قراءة {0} د": "{0} min di lettura",
  "قراءة تفسيرية": "Lettura esegetica",

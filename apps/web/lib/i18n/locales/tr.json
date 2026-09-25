@@ -642,6 +642,18 @@
  "فسِّر الآية {0} من سورة {1} في سياقها: ما قبلها وما بعدها ومقصد السورة.": "{1} Suresi'nin {0}. ayetini bağlamı içinde açıkla: öncesi, sonrası ve surenin maksadı.",
  "في البحث {0} آية، هذه {1} منها.": "Araştırmada {0} ayet var; bunlar onların {1} tanesi.",
  "فيروزي": "Turkuaz",
+ "قبل {0} دقيقة": {
+  "one": "{0} dakika önce",
+  "other": "{0} dakika önce"
+ },
+ "قبل {0} ساعة": {
+  "one": "{0} saat önce",
+  "other": "{0} saat önce"
+ },
+ "قبل {0} يوم": {
+  "one": "{0} gün önce",
+  "other": "{0} gün önce"
+ },
  "قبل النشر:": "Yayınlamadan önce:",
  "قراءة {0} د": "{0} dk okuma",
  "قراءة تفسيرية": "Tefsir okuması",

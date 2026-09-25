@@ -9,22 +9,51 @@ import { API_BASE_URL } from "@/lib/config";
 import { toArabicDigits } from "@/lib/numerals";
 import { emitNotebookChange, useNotebookSync } from "@/lib/notebook-sync";
 
-import { activeLocale, t } from "@/lib/i18n";
+import { activeLocale, t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
-/** Relative age in Arabic from a unix-seconds timestamp (Arabic-Indic digits by default). */
+const intlRelative = new Map<string, Intl.RelativeTimeFormat | null>();
+
+/**
+ * `Intl.RelativeTimeFormat` for the locale, or null when the runtime has no
+ * real data for it (some browsers ship without Bosnian, Azerbaijani, Uzbek or
+ * Albanian relative times and print "-3 h" or fall back to English).
+ */
+function relativeFormat(locale: string): Intl.RelativeTimeFormat | null {
+  if (!intlRelative.has(locale)) {
+    let format: Intl.RelativeTimeFormat | null = null;
+    try {
+      const candidate = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+      const sample = candidate.format(-3, "hour");
+      const resolved = candidate.resolvedOptions().locale.split("-")[0];
+      if (resolved === locale.split("-")[0] && !/^[-−]/.test(sample)) format = candidate;
+    } catch {
+      format = null;
+    }
+    intlRelative.set(locale, format);
+  }
+  return intlRelative.get(locale) ?? null;
+}
+
+/** Relative age from a unix-seconds timestamp, in the interface language (Arabic-Indic digits by default). */
 export function relativeAge(unixSeconds: number, format: (n: number | string) => string = toArabicDigits): string {
   const deltaSeconds = Math.max(0, Math.floor(Date.now() / 1000) - unixSeconds);
   if (deltaSeconds < 60) return t("الآن");
-  // Intl gets the grammar right in every interface language (plurals, word order);
-  // `format` then applies the reader's chosen digit script.
-  const rtf = new Intl.RelativeTimeFormat(activeLocale(), { numeric: "auto" });
   const minutes = Math.floor(deltaSeconds / 60);
-  if (minutes < 60) return format(rtf.format(-minutes, "minute"));
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return format(rtf.format(-hours, "hour"));
-  return format(rtf.format(-Math.floor(hours / 24), "day"));
+  const days = Math.floor(hours / 24);
+  // Intl gets the grammar right where it has data (plurals, word order, "yesterday");
+  // `format` then applies the reader's chosen digit script. Otherwise use the dictionary.
+  const rtf = relativeFormat(activeLocale());
+  if (rtf) {
+    if (minutes < 60) return format(rtf.format(-minutes, "minute"));
+    if (hours < 24) return format(rtf.format(-hours, "hour"));
+    return format(rtf.format(-days, "day"));
+  }
+  if (minutes < 60) return tn("قبل {0} دقيقة", minutes, { 0: format(minutes) });
+  if (hours < 24) return tn("قبل {0} ساعة", hours, { 0: format(hours) });
+  return tn("قبل {0} يوم", days, { 0: format(days) });
 }
 
 /**

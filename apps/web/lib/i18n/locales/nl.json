@@ -642,6 +642,18 @@
  "فسِّر الآية {0} من سورة {1} في سياقها: ما قبلها وما بعدها ومقصد السورة.": "Leg vers {0} van soera {1} uit in zijn context: wat eraan voorafgaat en erop volgt, en het doel van de soera.",
  "في البحث {0} آية، هذه {1} منها.": "Het onderzoek bevat {0} verzen; dit zijn er {1} van.",
  "فيروزي": "Turquoise",
+ "قبل {0} دقيقة": {
+  "one": "{0} minuut geleden",
+  "other": "{0} minuten geleden"
+ },
+ "قبل {0} ساعة": {
+  "one": "{0} uur geleden",
+  "other": "{0} uur geleden"
+ },
+ "قبل {0} يوم": {
+  "one": "{0} dag geleden",
+  "other": "{0} dagen geleden"
+ },
  "قبل النشر:": "Voor het publiceren:",
  "قراءة {0} د": "{0} min lezen",
  "قراءة تفسيرية": "Tafsir-lezing",
