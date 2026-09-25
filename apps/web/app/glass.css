@@ -68,6 +68,57 @@
   --aurora-3: rgba(201, 138, 91, 0.12);
 }
 
+/* Phones and touch devices: a lighter blur radius keeps scrolling smooth on
+   modest GPUs; the glass still reads as glass. */
+@media (max-width: 640px), (pointer: coarse) {
+  :root {
+    --glass-blur: 20px;
+    --glass-blur-strong: 26px;
+    --glass-saturate: 165%;
+  }
+}
+
+/* «تقليل الشفافية» — the system setting (unless the device chose otherwise)
+   or the per-device choice in Settings: every blurred surface becomes an
+   opaque tint. Declared on body so it wins over the light-theme tokens. */
+:root[data-transparency="reduced"] body {
+  --glass-tint: rgb(30, 27, 20);
+  --glass-tint-strong: rgb(27, 24, 17);
+  --glass-tint-soft: rgb(36, 32, 24);
+}
+
+:root[data-transparency="reduced"] body.light {
+  --glass-tint: rgb(252, 248, 237);
+  --glass-tint-strong: rgb(250, 246, 234);
+  --glass-tint-soft: rgb(247, 242, 229);
+}
+
+:root[data-transparency="reduced"] *,
+:root[data-transparency="reduced"] *::before,
+:root[data-transparency="reduced"] *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root body {
+    --glass-tint: rgb(30, 27, 20);
+    --glass-tint-strong: rgb(27, 24, 17);
+    --glass-tint-soft: rgb(36, 32, 24);
+  }
+  :root body.light {
+    --glass-tint: rgb(252, 248, 237);
+    --glass-tint-strong: rgb(250, 246, 234);
+    --glass-tint-soft: rgb(247, 242, 229);
+  }
+  *,
+  *::before,
+  *::after {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+}
+
 /* ---------- Ambient page light ---------- */
 
 body::before {

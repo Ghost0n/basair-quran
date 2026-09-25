@@ -328,15 +328,27 @@ function ThemeDots({
   );
 }
 
+/** Past this length the two-line clamp hides part of the ayah, so offer «المزيد». */
+const MINI_VERSE_CLAMP_CHARS = 90;
+
 function MiniVerse({ item, onOpen }: { item: NotebookItem; onOpen: (item: NotebookItem) => void }) {
   const formatNumber = useNumerals();
+  const [expanded, setExpanded] = useState(false);
+  const long = (item.text?.length ?? 0) > MINI_VERSE_CLAMP_CHARS;
   return (
-    <button type="button" className="qb-mini-verse" onClick={() => onOpen(item)}>
-      <div className="ref">
-        <Icon name="book" size={10} /> {item.surah ?? ""} {item.ayah != null ? formatNumber(item.ayah) : ""}
-      </div>
-      {item.text ? <div className="text">{item.text}</div> : null}
-    </button>
+    <div className={`qb-mini-verse${expanded ? " expanded" : ""}`}>
+      <button type="button" className="open" onClick={() => onOpen(item)}>
+        <span className="ref">
+          <Icon name="book" size={10} /> {item.surah ?? ""} {item.ayah != null ? formatNumber(item.ayah) : ""}
+        </span>
+        {item.text ? <span className="text">{item.text}</span> : null}
+      </button>
+      {long ? (
+        <button type="button" className="more" aria-expanded={expanded} onClick={() => setExpanded((value) => !value)}>
+          {expanded ? "أقلّ" : "الآية كاملة"}
+        </button>
+      ) : null}
+    </div>
   );
 }
 
