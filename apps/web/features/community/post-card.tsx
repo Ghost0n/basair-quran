@@ -8,7 +8,7 @@ import { useNumerals } from "@/lib/preferences-context";
 
 import { STATUS_LABEL } from "./labels";
 
-import { t } from "@/lib/i18n";
+import { t, tn } from "@/lib/i18n";
 
 export type PostCardActions = {
   onLike?: (post: PostSummary) => void;
@@ -112,7 +112,7 @@ export function PostCard({
               <Icon name="comment" size={15} /> {formatNumber(post.comment_count)}
             </button>
             <span className="stat">
-              <Icon name="book" size={14} /> {formatNumber(post.ayah_count)} {t("آية")}
+              <Icon name="book" size={14} /> {tn("{0} آية", post.ayah_count, { 0: formatNumber(post.ayah_count) })}
             </span>
             <span className="grow" />
             <button
@@ -138,7 +138,7 @@ export function PostCard({
               <Icon name="comment" size={14} /> {formatNumber(post.comment_count)}
             </span>
             <span className="stat">
-              <Icon name="book" size={14} /> {formatNumber(post.ayah_count)} {t("آية")}
+              <Icon name="book" size={14} /> {tn("{0} آية", post.ayah_count, { 0: formatNumber(post.ayah_count) })}
             </span>
           </>
         )}

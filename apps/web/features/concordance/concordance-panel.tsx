@@ -17,7 +17,7 @@ import { getVerseSelectionKey, kwicWindow, renderHighlightedVerseText } from "@/
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
-import { t } from "@/lib/i18n";
+import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -193,7 +193,7 @@ export function ConcordancePanel() {
           <h3>{primary ? primary.root : t("البحث")}</h3>
           <div className="meta">
             {primary
-              ? t("{0} موضع، {1} آية", { 0: formatNumber(totalOccurrences), 1: formatNumber(totalVerses) })
+              ? tn("{0} موضع", totalOccurrences, { 0: formatNumber(totalOccurrences) }) + t("، ") + tn("{0} آية", totalVerses, { 0: formatNumber(totalVerses) })
               : t("اكتب جذراً أو كلمة في شريط الأوامر")}
           </div>
         </div>
@@ -274,7 +274,7 @@ export function ConcordancePanel() {
           <div className="qb-root-summary">
             <div className="root-disp">{primary.root}</div>
             <div className="root-gloss">
-              {primary.search_type === "root" ? t("جذر قرآني") : t("بحث لفظي")} · {results.length > 1 ? t("{0} مجموعة", { 0: formatNumber(results.length) }) : t("مجموعة واحدة")}
+              {primary.search_type === "root" ? t("جذر قرآني") : t("بحث لفظي")} · {tn("{0} مجموعة", results.length, { 0: formatNumber(results.length) })}
             </div>
             <div className="root-stats">
               <div className="s">

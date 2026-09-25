@@ -30,7 +30,7 @@ import { PublishSheet } from "./publish-sheet";
 import { downloadBlob } from "./share-card";
 import { ShareStudio, type ShareArtifact } from "./share-studio";
 
-import { t } from "@/lib/i18n";
+import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const SAVE_DELAY_MS = 1200;
@@ -336,7 +336,9 @@ export function DocumentScreen() {
           rows={2}
         />
         <div className="stats">
-          {formatNumber(doc.sections.length)} {t("أقسام،")} {formatNumber(ayahTotal)} {t("آية")}
+          {tn("{0} قسم", doc.sections.length, { 0: formatNumber(doc.sections.length) })}
+          {t("، ")}
+          {tn("{0} آية", ayahTotal, { 0: formatNumber(ayahTotal) })}
           {meta ? t("، الإصدار {0}", { 0: formatNumber(meta.version) }) : ""}
         </div>
 

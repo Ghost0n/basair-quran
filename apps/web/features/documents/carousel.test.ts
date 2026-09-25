@@ -22,7 +22,7 @@ describe("buildCarousel", () => {
     expect(slides.map((slide) => slide.kind)).toEqual(["research", "verse", "verse", "verse", "closing"]);
     expect(slides.map((slide) => slide.counter)).toEqual(["1 / 5", "2 / 5", "3 / 5", "4 / 5", "5 / 5"]);
     const [cover, first, second, third] = slides;
-    expect(cover).toMatchObject({ meta: "3 آية، 2 سور، مريم", excerpt: null, badge: null });
+    expect(cover).toMatchObject({ meta: "3 آيات، سورتان، مريم", excerpt: null, badge: null });
     expect(first).toMatchObject({ text: "نص 2:153", reference: "سورة س2، الآية 153", note: "أولاً الصبر عند البلاء", noteLabel: null });
     expect(second).toMatchObject({ note: null });
     expect(third).toMatchObject({ note: "خلاصة آلية", noteLabel: AI_NOTE_LABEL });

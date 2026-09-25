@@ -15,7 +15,7 @@ import { useWorkspace } from "@/features/shell/workspace-context";
 
 import "./concordance.css";
 
-import { t } from "@/lib/i18n";
+import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -109,7 +109,7 @@ export function HeatmapScreen() {
             {loading
               ? t("جارٍ حساب الانتشار…")
               : distribution?.found
-                ? t("{0} موضع في {1} سورة", { 0: formatNumber(distribution.total), 1: formatNumber(distribution.surah_count) })
+                ? `${tn("{0} موضع", distribution.total, { 0: formatNumber(distribution.total) })} · ${tn("{0} سورة", distribution.surah_count, { 0: formatNumber(distribution.surah_count) })}`
                 : t("لا توجد مواضع لهذا الجذر.")}
           </div>
         </div>
@@ -126,7 +126,7 @@ export function HeatmapScreen() {
                   type="button"
                   className="qb-heat-cell"
                   data-level={intensity(count)}
-                  title={t("{0} — {1} موضع", { 0: surah.name, 1: formatNumber(count) })}
+                  title={`${surah.name} — ${tn("{0} موضع", count, { 0: formatNumber(count) })}`}
                   onClick={() => {
                     void mushaf.loadBySurah(state.selectedMushaf, surah.id);
                     setMode("reading");
@@ -149,7 +149,7 @@ export function HeatmapScreen() {
                     <span className="icon-tile">{formatNumber(item.surah_id)}</span>
                     <div className="grow">
                       <div className="title">{t("سورة")} {item.surah}</div>
-                      <div className="meta">{formatNumber(item.count)} {t("موضع")}</div>
+                      <div className="meta">{tn("{0} موضع", item.count, { 0: formatNumber(item.count) })}</div>
                     </div>
                   </div>
                 ))}

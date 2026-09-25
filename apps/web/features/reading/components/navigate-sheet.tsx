@@ -9,7 +9,7 @@ import { useNumerals } from "@/lib/preferences-context";
 import { parseNavCommand, surahMatches, toAsciiDigits, TOTAL_PAGES } from "@/lib/quran-nav";
 import { useDialog } from "@/lib/use-dialog";
 
-import { t } from "@/lib/i18n";
+import { t, tn } from "@/lib/i18n";
 
 type Tab = "surah" | "juz" | "page";
 
@@ -173,7 +173,7 @@ export function NavigateSheet({
                       <span className="name">{surah.name}</span>
                       <span className="meta">
                         {surah.type === "medinan" ? t("مدنيّة") : surah.type === "meccan" ? t("مكّيّة") : ""}
-                        {surah.ayah_count ? t("، {0} آية", { 0: formatNumber(surah.ayah_count) }) : ""}
+                        {surah.ayah_count ? t("، ") + tn("{0} آية", surah.ayah_count, { 0: formatNumber(surah.ayah_count) }) : ""}
                       </span>
                     </button>
                   </li>

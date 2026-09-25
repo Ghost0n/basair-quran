@@ -28,7 +28,7 @@ import {
 } from "./share-card";
 import { buildZip } from "./zip";
 
-import { t } from "@/lib/i18n";
+import { t, tn } from "@/lib/i18n";
 
 export type ShareArtifact = "research" | "verse" | "carousel" | "print";
 
@@ -245,7 +245,7 @@ export function ShareStudio({
       blobs.map(async (blob, index) => ({ name: fileName(index), data: new Uint8Array(await blob.arrayBuffer()) })),
     );
     downloadBlob(new Blob([buildZip(entries)], { type: "application/zip" }), `${slug(research.title)}.zip`);
-    setNote(t("حُفظت {0} شرائح في ملف مضغوط.", { 0: formatNumber(entries.length) }));
+    setNote(tn("حُفظت {0} شريحة في ملف مضغوط.", entries.length, { 0: formatNumber(entries.length) }));
   }
 
   async function download() {
@@ -409,7 +409,9 @@ export function ShareStudio({
 
                 {artifact === "carousel" ? (
                   <p className="hint">
-                    {formatNumber(previews.length || cards.length)} {t("شرائح: غلاف، ثم آية في كل شريحة مع ملاحظة قسمها، ثم خاتمة. تُشارَك معاً أو تُحفظ في ملف مضغوط.")}
+                    {t("{0}: غلاف، ثم آية في كل شريحة مع ملاحظة قسمها، ثم خاتمة. تُشارَك معاً أو تُحفظ في ملف مضغوط.", {
+                      0: tn("{0} شريحة", previews.length || cards.length, { 0: formatNumber(previews.length || cards.length) }),
+                    })}
                   </p>
                 ) : null}
                 {research.mode === "tafssir" ? (

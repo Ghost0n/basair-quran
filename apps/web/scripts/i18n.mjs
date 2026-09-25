@@ -22,6 +22,7 @@ const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..")
 const SCAN_DIRS = ["app", "components", "features", "lib"];
 const CATALOG = path.join(ROOT, "lib/i18n/catalog.json");
 const LOCALES_DIR = path.join(ROOT, "lib/i18n/locales");
+const PLURALS = path.join(ROOT, "lib/i18n/plurals.json");
 
 const ARABIC = /[؀-ۿ]/;
 // Uthmani-only marks: alef wasla, small high/low Quranic annotation signs.
@@ -57,7 +58,7 @@ function listFiles() {
 }
 
 function isTCall(node) {
-  return ts.isCallExpression(node) && ts.isIdentifier(node.expression) && /^(t|tt)$/.test(node.expression.text);
+  return ts.isCallExpression(node) && ts.isIdentifier(node.expression) && /^(t|tt|tn)$/.test(node.expression.text);
 }
 
 function enclosingFunction(node) {
@@ -253,6 +254,7 @@ function wrapFile(file) {
 
 function collectCatalog() {
   const ids = new Map();
+  const plurals = new Set();
   for (const file of listFiles()) {
     const source = fs.readFileSync(file, "utf8");
     const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, file.endsWith("x") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
@@ -260,6 +262,7 @@ function collectCatalog() {
       if (isTCall(node) && node.arguments.length && (ts.isStringLiteral(node.arguments[0]) || ts.isNoSubstitutionTemplateLiteral(node.arguments[0]))) {
         const id = node.arguments[0].text;
         if (!ids.has(id)) ids.set(id, path.relative(ROOT, file));
+        if (node.expression.text === "tn") plurals.add(id);
       }
       ts.forEachChild(node, visit);
     };
@@ -273,18 +276,33 @@ function collectCatalog() {
       if (!ids.has(id)) ids.set(id, "lib/i18n/extra-messages.ts");
     }
   }
-  return [...ids.keys()].sort((a, b) => a.localeCompare(b, "ar"));
+  const byArabic = (a, b) => a.localeCompare(b, "ar");
+  return { catalog: [...ids.keys()].sort(byArabic), plurals: [...plurals].sort(byArabic) };
 }
+
+/**
+ * Plural categories a locale's entry must spell out (besides `other`). The
+ * Romance "many" category only applies to millions, where `other` reads fine.
+ */
+function requiredCategories(locale) {
+  const skip = new Set(["other", "zero"]);
+  if (["fr", "es", "pt", "it", "ca"].includes(locale)) skip.add("many");
+  return new Intl.PluralRules(locale).resolvedOptions().pluralCategories.filter((name) => !skip.has(name));
+}
+
+const isSubset = (small, big) => small.split(",").filter(Boolean).every((name) => big.split(",").includes(name));
 
 function placeholders(text) {
   return [...text.matchAll(/\{(\w+)\}/g)].map((match) => match[1]).sort().join(",");
 }
 
 function check() {
-  const catalog = collectCatalog();
+  const { catalog, plurals } = collectCatalog();
+  const pluralIds = new Set(plurals);
   let ok = true;
   const stored = fs.existsSync(CATALOG) ? JSON.parse(fs.readFileSync(CATALOG, "utf8")) : [];
-  if (JSON.stringify(stored) !== JSON.stringify(catalog)) {
+  const storedPlurals = fs.existsSync(PLURALS) ? JSON.parse(fs.readFileSync(PLURALS, "utf8")) : [];
+  if (JSON.stringify(stored) !== JSON.stringify(catalog) || JSON.stringify(storedPlurals) !== JSON.stringify(plurals)) {
     console.error("catalog.json is out of date — run: node scripts/i18n.mjs catalog");
     ok = false;
   }
@@ -299,9 +317,22 @@ function check() {
   const ids = new Set(catalog);
   for (const file of fs.readdirSync(LOCALES_DIR).filter((name) => name.endsWith(".json")).sort()) {
     const messages = JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, file), "utf8"));
+    const locale = file.replace(".json", "");
     let translated = 0;
     for (const [id, value] of Object.entries(messages)) {
       if (!ids.has(id)) continue; // stale entries are harmless; `catalog --prune` style cleanup is manual
+      if (pluralIds.has(id)) {
+        const forms = typeof value === "string" ? { other: value } : value;
+        const missing = requiredCategories(locale).filter((name) => !forms[name]?.trim());
+        if (!forms.other?.trim() || missing.length) {
+          console.error(`${file}: plural ${JSON.stringify(id)} needs ${["other", ...missing].join(", ")}`);
+          ok = false;
+        } else if (Object.values(forms).some((form) => !isSubset(placeholders(form), placeholders(id)))) {
+          console.error(`${file}: placeholder mismatch for ${JSON.stringify(id)}`);
+          ok = false;
+        } else translated += 1;
+        continue;
+      }
       if (typeof value !== "string" || !value.trim()) continue;
       if (placeholders(id) !== placeholders(value)) {
         console.error(`${file}: placeholder mismatch for ${JSON.stringify(id)}`);
@@ -324,9 +355,10 @@ if (command === "report") {
   for (const file of targets) total += wrapFile(file);
   console.log(`wrapped ${total} literals`);
 } else if (command === "catalog") {
-  const catalog = collectCatalog();
+  const { catalog, plurals } = collectCatalog();
   fs.writeFileSync(CATALOG, JSON.stringify(catalog, null, 1) + "\n");
-  console.log(`${catalog.length} messages → ${path.relative(ROOT, CATALOG)}`);
+  fs.writeFileSync(PLURALS, JSON.stringify(plurals, null, 1) + "\n");
+  console.log(`${catalog.length} messages (${plurals.length} plural) → ${path.relative(ROOT, CATALOG)}`);
 } else if (command === "check") {
   process.exit(check() ? 0 : 1);
 } else {
