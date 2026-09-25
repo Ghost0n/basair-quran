@@ -76,6 +76,9 @@ jobs:
           distribution: temurin
           java-version: "21"
       - uses: android-actions/setup-android@v3
+        with:
+          # The default ("tools") no longer exists in the SDK repository.
+          packages: platform-tools
       - name: Android SDK packages
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
 
