@@ -23,8 +23,14 @@ export const LOCALES: LocaleInfo[] = [
   { code: "es", native: "Español", dir: "ltr", numerals: "latin" },
   { code: "de", native: "Deutsch", dir: "ltr", numerals: "latin" },
   { code: "pt", native: "Português", dir: "ltr", numerals: "latin" },
+  { code: "it", native: "Italiano", dir: "ltr", numerals: "latin" },
+  { code: "nl", native: "Nederlands", dir: "ltr", numerals: "latin" },
   { code: "ru", native: "Русский", dir: "ltr", numerals: "latin" },
   { code: "tr", native: "Türkçe", dir: "ltr", numerals: "latin" },
+  { code: "az", native: "Azərbaycanca", dir: "ltr", numerals: "latin" },
+  { code: "uz", native: "Oʻzbekcha", dir: "ltr", numerals: "latin" },
+  { code: "bs", native: "Bosanski", dir: "ltr", numerals: "latin" },
+  { code: "sq", native: "Shqip", dir: "ltr", numerals: "latin" },
   { code: "fa", native: "فارسی", dir: "rtl", numerals: "persian" },
   { code: "ur", native: "اردو", dir: "rtl", numerals: "persian" },
   { code: "id", native: "Bahasa Indonesia", dir: "ltr", numerals: "latin" },
@@ -32,6 +38,8 @@ export const LOCALES: LocaleInfo[] = [
   { code: "bn", native: "বাংলা", dir: "ltr", numerals: "latin" },
   { code: "hi", native: "हिन्दी", dir: "ltr", numerals: "latin" },
   { code: "zh", native: "中文", dir: "ltr", numerals: "latin" },
+  { code: "ja", native: "日本語", dir: "ltr", numerals: "latin" },
+  { code: "ko", native: "한국어", dir: "ltr", numerals: "latin" },
   { code: "sw", native: "Kiswahili", dir: "ltr", numerals: "latin" },
 ];
 
