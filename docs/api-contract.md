@@ -137,6 +137,8 @@ Publishing and the community (guidelines: `docs/community-guidelines.md`; agent:
   - `sort=latest` (default): newest first, keyset pagination (`next_cursor`).
   - `sort=top` («الأبرز»): the 500 most recent matches ranked by
     `(likes + 2·comments + 1) / (age_hours + 2)^1.4`, offset pagination (the cursor is opaque either way).
+    The ranked ids are cached per filter set for 60 s (and dropped on any publish, like, comment,
+    moderation or withdrawal), so paging walks one stable ranking.
   - `q` (≤120 chars): every word must appear in the title, summary, tags or section text; matching
     ignores diacritics and folds أ/إ/آ/ٱ→ا, ى→ي, ة→ه.
   - `surah` (1–114): posts quoting an ayah of that surah. `tag`: a whole tag (a leading `#` is
