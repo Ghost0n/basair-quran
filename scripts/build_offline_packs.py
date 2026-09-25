@@ -5,6 +5,9 @@ The phone ships with a small *core* and downloads everything else on demand:
 * ``core.db`` — the shared tables (surahs, roots, morphology variants, the
   mushaf list) plus the default narration (Ḥafṣ, with its Madani page layout)
   and every index, so any pack installed later is searchable immediately.
+  It also carries ``morphology_segments`` — the Quranic Arabic Corpus file
+  (``data/quran-morphology.txt``, parsed at runtime by the server) as rows,
+  so the on-device engine answers word analysis without the text file.
 * ``narration-<id>.db`` — one per other narration (Qālūn, Warsh, …): only that
   narration's rows of ``ayahs``, ``ayah_words``, ``word_occurrences`` and its
   page layout, with their original ids. Installing a pack is a plain insert
@@ -152,7 +155,7 @@ def _finish_db(connection: sqlite3.Connection, info: dict[str, str]) -> None:
 # --------------------------------------------------------------------------
 
 
-def build_core(source: sqlite3.Connection, path: Path, mushaf_id: int) -> dict:
+def build_core(source: sqlite3.Connection, path: Path, mushaf_id: int, morphology: Path | None = None) -> dict:
     tables = [t for t in _tables(source) if t in SHARED_TABLES or t in _mushaf_filters(mushaf_id)]
     target = sqlite3.connect(path)
     for table in tables:
@@ -168,9 +171,42 @@ def build_core(source: sqlite3.Connection, path: Path, mushaf_id: int) -> dict:
     # Every index of the source, so installed narration packs are searchable too.
     for sql in _index_sql(source, tables):
         target.execute(sql)
+    if morphology is not None and morphology.exists():
+        rows["morphology_segments"] = add_morphology(target, morphology)
+        digest.update(f"morphology_segments:{table_digest(target, 'morphology_segments')[1]}".encode())
     version = digest.hexdigest()[:16]
     _finish_db(target, {"kind": "core", "mushaf_id": str(mushaf_id), "version": version, "format": str(FORMAT_VERSION)})
     return {"rows": rows, "version": version}
+
+
+MORPHOLOGY_SEGMENTS_SQL = """CREATE TABLE morphology_segments (
+    surah INTEGER NOT NULL, ayah INTEGER NOT NULL, word INTEGER NOT NULL, segment INTEGER NOT NULL,
+    form TEXT NOT NULL, tag TEXT NOT NULL, features TEXT NOT NULL,
+    PRIMARY KEY (surah, ayah, word, segment)
+) WITHOUT ROWID"""
+
+
+def add_morphology(target: sqlite3.Connection, morphology: Path) -> int:
+    """Store the morphology file's segment lines in core.db, skipping the lines
+    the server's parser skips (so both read exactly the same segments)."""
+    rows = []
+    with open(morphology, encoding="utf-8") as handle:
+        for line in handle:
+            parts = line.rstrip("\n").split("\t")
+            if len(parts) < 4:
+                continue
+            location = parts[0].split(":")
+            if len(location) != 4:
+                continue
+            try:
+                surah, ayah, word, segment = (int(value) for value in location)
+            except ValueError:
+                continue
+            rows.append((surah, ayah, word, segment, parts[1], parts[2], parts[3]))
+    target.execute(MORPHOLOGY_SEGMENTS_SQL)
+    target.executemany("INSERT INTO morphology_segments VALUES (?, ?, ?, ?, ?, ?, ?)", rows)
+    target.commit()
+    return len(rows)
 
 
 def build_narration(source: sqlite3.Connection, path: Path, mushaf_id: int) -> dict:
@@ -266,6 +302,7 @@ def build(
     locales_ts: Path,
     sources_path: Path,
     output: Path,
+    morphology: Path | None = None,
     core_mushaf: int = CORE_MUSHAF_ID,
     log: Callable[[str], None] = print,
 ) -> dict:
@@ -283,7 +320,7 @@ def build(
             return {"id": pack_id, "kind": kind, "file": file, "size": path.stat().st_size,
                     "sha256": _sha256_file(path), "version": meta["version"], **extra}
 
-        core = build_core(source, staging / "core.db", core_mushaf)
+        core = build_core(source, staging / "core.db", core_mushaf, morphology)
         core_name = next(m for m in mushafs if m[0] == core_mushaf)
         log(f"core: mushaf {core_mushaf} ({core_name[1]}) {core['rows']}")
         manifest: dict = {
@@ -460,6 +497,7 @@ def main_cli(argv: list[str] | None = None) -> int:
     parser.add_argument("--locales", type=Path, default=ROOT / "apps" / "web" / "lib" / "i18n" / "locales")
     parser.add_argument("--locales-ts", type=Path, default=ROOT / "apps" / "web" / "lib" / "i18n" / "locales.ts")
     parser.add_argument("--sources", type=Path, default=ROOT / "scripts" / "translation_sources.json")
+    parser.add_argument("--morphology", type=Path, default=ROOT / "data" / "quran-morphology.txt")
     parser.add_argument("--output", type=Path, default=ROOT / "build" / "offline")
     parser.add_argument("--core-mushaf", type=int, default=CORE_MUSHAF_ID)
     parser.add_argument("--verify", action="store_true", help="check reassembly and core search/reader parity")
@@ -467,7 +505,7 @@ def main_cli(argv: list[str] | None = None) -> int:
 
     manifest = build(quran_db=args.db, translations_db=args.translations, locales_dir=args.locales,
                      locales_ts=args.locales_ts, sources_path=args.sources, output=args.output,
-                     core_mushaf=args.core_mushaf)
+                     morphology=args.morphology, core_mushaf=args.core_mushaf)
     sized = [manifest["core"]] + [p for p in manifest["packs"] if "size" in p]
     total = sum(p["size"] for p in sized)
     print(f"core.db: {manifest['core']['size'] / 1e6:.1f} MB · {len(manifest['packs'])} packs · {total / 1e6:.1f} MB in all")

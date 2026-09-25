@@ -508,6 +508,17 @@ def test_text_count_without_scopes_and_validation(api_client):
     assert api_client.get("/api/text-count", params={"text": "ًٌ", "mushaf": 1}).status_code == 422
 
 
+def test_text_count_counts_boundary_ayahs_on_their_starting_page(api_client):
+    # Some narrations store an ayah that straddles two pages as "85-86".
+    import sqlite3
+
+    with sqlite3.connect(main.get_db_path()) as connection:
+        connection.execute("UPDATE ayahs SET page = '2-3' WHERE mushaf_id = 1 AND surah_id = 1 AND number_in_surah = 11")
+    main.close_db_connection()
+    body = api_client.get("/api/text-count", params={"text": "shared verse", "mushaf": 1, "surah": 1, "page": 2}).json()
+    assert body["phrase"]["page"] == 2
+
+
 def test_text_count_arabic_normalization():
     from src.app.services import quran_service
 
