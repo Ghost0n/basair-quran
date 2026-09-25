@@ -26,6 +26,15 @@
   --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 14px 40px rgba(0, 0, 0, 0.32);
   --glass-shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.26), 0 22px 56px rgba(0, 0, 0, 0.42);
 
+  /* Gold: the glossy "gel" for primary actions, and the tinted gel for a
+     selected segment / tab. One definition, used everywhere. */
+  --gold-gel: linear-gradient(180deg, rgba(255, 255, 255, 0.34), transparent 55%),
+    linear-gradient(135deg, #f0cf5c, #c99a22);
+  --gold-gel-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 6px 18px rgba(201, 154, 34, 0.32);
+  --seg-on-bg: rgba(212, 175, 55, 0.17);
+  --seg-on-shadow: var(--glass-edge), inset 0 0 0 1px rgba(212, 175, 55, 0.34), 0 3px 12px rgba(0, 0, 0, 0.16);
+  --seg-copper-bg: rgba(201, 138, 91, 0.2);
+
   /* Motion */
   --spring: cubic-bezier(0.34, 1.5, 0.64, 1);
   --spring-soft: cubic-bezier(0.22, 1.2, 0.36, 1);
@@ -192,9 +201,8 @@ body::before {
   --btn-bg: transparent;
   --btn-fg: #1a1305;
   --btn-rim: rgba(255, 236, 170, 0.55);
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 55%),
-    linear-gradient(135deg, #f0cf5c, #c99a22);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 6px 18px rgba(201, 154, 34, 0.35);
+  background-image: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
 }
 
 .qb-btn.primary:hover:not(:disabled) {
@@ -330,15 +338,14 @@ body::before {
 
 .qb-segmented button.on {
   color: var(--gold-text);
-  background-color: var(--glass-tint-strong);
+  background-color: var(--seg-on-bg);
   background-image: var(--glass-sheen);
-  box-shadow: var(--glass-edge), 0 2px 10px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--seg-on-shadow);
 }
 
 /* ---------- Chips ---------- */
 
-.qb-chip,
-.chip {
+.qb-chip {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -499,6 +506,55 @@ body::before {
   }
 
   .qb-glass.is-interactive:hover {
+    transform: none;
+  }
+}
+
+/* Every top-level screen settles in the same way (the view transition handles
+   the cross-fade between modes; this is the content's own soft arrival). */
+.qb-aux,
+.qb-settings,
+.qb-home-inner,
+.qb-board,
+.qb-doc,
+.qb-community,
+.qb-post-body {
+  animation: qbPageEnter var(--motion-dur-slow) var(--motion-ease-settle) both;
+}
+
+/* Cards lift toward the pointer, consistently. */
+@media (hover: hover) {
+  .qb-home-gridcard,
+  .qb-home-card,
+  .qb-collection-card,
+  .qb-setting-card {
+    transition: transform var(--motion-dur-base) var(--spring-soft), box-shadow var(--motion-dur-base),
+      border-color var(--motion-dur-base);
+  }
+
+  .qb-home-gridcard:hover,
+  .qb-home-card:hover,
+  .qb-collection-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--glass-rim-strong);
+    box-shadow: var(--glass-edge), var(--glass-shadow-lift);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-aux,
+  .qb-settings,
+  .qb-home-inner,
+  .qb-board,
+  .qb-doc,
+  .qb-community,
+  .qb-post-body {
+    animation: none;
+  }
+
+  .qb-home-gridcard:hover,
+  .qb-home-card:hover,
+  .qb-collection-card:hover {
     transform: none;
   }
 }

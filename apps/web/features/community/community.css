@@ -132,24 +132,24 @@
   color: var(--fg-3);
 }
 
-.qb-post-card .chip.tafssir {
+.qb-post-card .qb-chip.tafssir {
   background: var(--tafssir-bg);
   color: var(--tafssir-fg);
 }
 
-.qb-post-card .chip.status.s-published {
+.qb-post-card .qb-chip.status.s-published {
   color: #6fbf80;
   background: rgba(96, 170, 110, 0.12);
 }
 
-.qb-post-card .chip.status.s-pending_review,
-.qb-post-card .chip.status.s-changes_requested {
+.qb-post-card .qb-chip.status.s-pending_review,
+.qb-post-card .qb-chip.status.s-changes_requested {
   color: var(--warn-fg);
   background: rgba(216, 180, 106, 0.12);
 }
 
-.qb-post-card .chip.status.s-rejected,
-.qb-post-card .chip.status.s-removed {
+.qb-post-card .qb-chip.status.s-rejected,
+.qb-post-card .qb-chip.status.s-removed {
   color: var(--danger-fg);
   background: rgba(201, 122, 122, 0.12);
 }
@@ -265,12 +265,14 @@
 
 .qb-post-bar {
   position: sticky;
-  top: 0;
+  top: 4px;
   z-index: 5;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 20px;
+  margin: 4px 20px 0;
+  padding: 8px 12px;
+  border-radius: 22px;
 }
 
 .qb-post-bar .crumb {
@@ -433,7 +435,7 @@
   overflow-wrap: anywhere;
 }
 
-.qb-composer {
+.qb-comment-composer {
   display: flex;
   align-items: flex-end;
   gap: 10px;
@@ -441,7 +443,7 @@
   padding: 10px;
 }
 
-.qb-composer textarea {
+.qb-comment-composer textarea {
   flex: 1;
   min-width: 0;
   padding: 8px 10px;
@@ -901,7 +903,7 @@
   }
 
   .qb-post-bar {
-    padding: 8px 12px;
+    margin: 4px 10px 0;
   }
 
   .qb-post-body {

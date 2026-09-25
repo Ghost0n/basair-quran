@@ -71,22 +71,21 @@
 
 .qb-mode-tabs {
   display: flex;
-  padding: 6px;
-  background: rgba(0, 0, 0, 0.20);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  padding: 4px;
+  background: var(--glass-tint-soft);
+  border: 1px solid var(--glass-rim);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+  border-radius: var(--r-pill);
   margin: 14px 20px 8px;
   flex-shrink: 0;
 }
 
-.light .qb-mode-tabs {
-  background: rgba(255, 255, 255, 0.5);
-}
-
 .qb-mode-tab {
   flex: 1;
-  padding: 8px 10px;
-  border-radius: 8px;
+  padding: 9px 10px;
+  border-radius: var(--r-pill);
+  transition: background-color var(--motion-dur-base) var(--spring-soft), color var(--motion-dur-fast),
+    box-shadow var(--motion-dur-base);
   font-size: 12px;
   color: var(--fg-2);
   font-weight: 600;
@@ -100,13 +99,17 @@
 }
 
 .qb-mode-tab.active.strict {
-  background: linear-gradient(135deg, #eac54a, #c69e27);
-  color: #140f00;
+  background: var(--seg-on-bg);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--seg-on-shadow);
+  color: var(--gold-text);
 }
 
 .qb-mode-tab.active.tafssir {
-  background: linear-gradient(135deg, #d49a6a, #a66838);
-  color: #1a0f06;
+  background: var(--seg-copper-bg);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), inset 0 0 0 1px rgba(201, 138, 91, 0.4);
+  color: var(--tafssir-fg);
 }
 
 /* ---------- Tafssir disclaimer ---------- */
@@ -155,8 +158,10 @@
 }
 
 .qb-msg.user {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border);
+  background: var(--glass-tint-soft);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge);
 }
 
 .qb-msg.user .lbl {
@@ -415,7 +420,8 @@
 }
 
 .qb-composer .send {
-  background: linear-gradient(135deg, #eac54a, #caa028);
+  background: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
   color: #140f00;
   height: 32px;
   padding: 0 14px;

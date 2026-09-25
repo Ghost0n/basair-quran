@@ -67,7 +67,8 @@
 }
 
 .qb-studio-auth .primary {
-  background: linear-gradient(135deg, #eac54a, #c69e27);
+  background: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
   color: #140f00;
 }
 

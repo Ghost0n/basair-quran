@@ -35,14 +35,14 @@ export function PostCard({
             <span className="author">{post.author_name}</span>
             <span className="when">{relativeAge(when)}</span>
           </span>
-          {post.mode === "tafssir" ? <span className="chip tafssir">تفسيرية تجريبية</span> : null}
+          {post.mode === "tafssir" ? <span className="qb-chip tafssir">تفسيرية تجريبية</span> : null}
           {post.has_board ? (
-            <span className="chip">
+            <span className="qb-chip">
               <Icon name="graph" size={11} /> لوحة
             </span>
           ) : null}
-          {showStatus ? <span className={`chip status s-${post.status}`}>{STATUS_LABEL[post.status]}</span> : null}
-          {showStatus && post.visibility === "unlisted" ? <span className="chip">برابط فقط</span> : null}
+          {showStatus ? <span className={`qb-chip status s-${post.status}`}>{STATUS_LABEL[post.status]}</span> : null}
+          {showStatus && post.visibility === "unlisted" ? <span className="qb-chip">برابط فقط</span> : null}
         </div>
         <h3>{post.title}</h3>
         {post.summary ? <p className="summary">{post.summary}</p> : null}

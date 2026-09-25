@@ -25,11 +25,15 @@
   padding: 10px 14px calc(14px + env(safe-area-inset-bottom, 0px));
   border-top-left-radius: var(--r-xl);
   border-top-right-radius: var(--r-xl);
-  border: 1px solid var(--border-strong);
   border-bottom: none;
-  background: var(--bg-elev-3);
-  box-shadow: var(--shadow-3);
   animation: qbRise var(--motion-dur-slow) var(--motion-ease-settle) both;
+  background: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border-bottom: 0;
 }
 
 .qb-more .grip {
@@ -122,6 +126,8 @@
 }
 
 .qb-more .seg > span.on {
-  background: linear-gradient(135deg, #eac54a, #c69e27);
-  color: #140f00;
+  background: var(--seg-on-bg);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--seg-on-shadow);
+  color: var(--gold-text);
 }

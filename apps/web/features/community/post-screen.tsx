@@ -171,7 +171,7 @@ export function PostScreen() {
 
   return (
     <div className="qb-post qb-page-enter" dir="rtl">
-      <div className="qb-post-bar qb-glass-bar">
+      <div className="qb-post-bar qb-glass-strong">
         <button type="button" className="qb-icon-round" onClick={() => setMode("community")} aria-label="إلى المجتمع">
           <Icon name="chevRight" size={18} />
         </button>
@@ -292,7 +292,7 @@ export function PostScreen() {
             ))}
             {access.canWrite ? (
               <form
-                className="qb-composer qb-glass"
+                className="qb-comment-composer qb-glass"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void sendComment();

@@ -65,10 +65,13 @@
   z-index: calc(var(--elev-toast) + 6);
   padding: 6px;
   border-radius: var(--r-lg);
-  border: 1px solid var(--border-strong, var(--border));
-  background: var(--bg-elev-2);
-  box-shadow: var(--shadow-3);
   animation: qbPopIn var(--motion-dur-fast) var(--motion-ease-settle) both;
+  background: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 .qb-toolbox-menu button {
@@ -137,10 +140,13 @@
   margin-inline: auto;
   padding: 10px 12px 12px;
   border-radius: var(--r-xl);
-  border: 1px solid var(--border-strong, var(--border));
-  background: var(--bg-elev-2);
-  box-shadow: var(--shadow-3);
   animation: qbSheetUp var(--motion-dur-base) var(--motion-ease-settle) both;
+  background: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 .qb-selection-bar .row {
@@ -328,4 +334,11 @@
   font-size: 11px;
   line-height: 1.7;
   color: var(--fg-3);
+}
+
+/* Phones: sit above the floating tab dock instead of over it. */
+@media (max-width: 768px) {
+  .qb-selection-bar {
+    bottom: calc(82px + env(safe-area-inset-bottom, 0px));
+  }
 }

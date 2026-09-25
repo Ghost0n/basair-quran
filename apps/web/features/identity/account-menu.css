@@ -17,12 +17,15 @@
   position: fixed;
   z-index: calc(var(--elev-popover) + 1);
   width: 264px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-lg);
-  background: var(--bg-elev-3);
-  box-shadow: var(--shadow-3);
   overflow: hidden;
   animation: qbRise var(--motion-dur-base) var(--motion-ease-settle) both;
+  background: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border-radius: var(--r-xl);
 }
 
 .qb-account-head {
