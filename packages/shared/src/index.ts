@@ -393,15 +393,22 @@ export interface PostSummary {
   title: string;
   summary?: string | null;
   author_name: string;
+  /** Filters the feed to this author's posts (`FeedQuery.author`). */
+  author_id?: number | null;
   visibility: "public" | "unlisted";
   status: PostStatus;
   mode?: "strict" | "tafssir" | null;
   created_from: string;
   has_board: boolean;
   ayah_count: number;
+  tags: string[];
+  surah_ids: number[];
+  reading_minutes: number;
   like_count: number;
   comment_count: number;
   liked_by_me: boolean;
+  /** A private bookmark — only the viewer sees it. */
+  saved_by_me: boolean;
   is_mine: boolean;
   published_at?: number | null;
   updated_at: number;
@@ -447,6 +454,30 @@ export interface CommentItem {
 export interface LikeResult {
   liked: boolean;
   like_count: number;
+}
+
+export interface SaveResult {
+  saved: boolean;
+}
+
+export interface TagCount {
+  tag: string;
+  count: number;
+}
+
+/** `GET /api/community/feed` filters. `sort=top` ranks by engagement decayed by age. */
+export interface FeedQuery {
+  cursor?: string | null;
+  limit?: number;
+  sort?: "latest" | "top";
+  q?: string;
+  surah?: number | null;
+  tag?: string | null;
+  mode?: "strict" | "tafssir" | null;
+  board?: boolean;
+  author?: number | null;
+  /** The viewer's saved posts (needs an account when auth is enabled). */
+  saved?: boolean;
 }
 
 export interface ReportCreate {

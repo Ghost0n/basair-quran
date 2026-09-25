@@ -5,6 +5,8 @@ comment, report) needs an account when auth is enabled; moderation needs an
 admin. With auth disabled (single-user/local) the local user may do both.
 """
 
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException, Query, Request
 
 from src.app.core import config
@@ -21,6 +23,8 @@ from src.app.models.api import (
     PublishRequest,
     PublishResult,
     ReportCreate,
+    SaveResult,
+    TagCount,
 )
 from src.app.services import app_data_service, community_service
 
@@ -72,9 +76,34 @@ def publish(request: Request, document_id: str, payload: PublishRequest) -> Publ
 
 
 @router.get("/community/feed", response_model=FeedPage, response_model_exclude_none=True)
-def feed(request: Request, cursor: str | None = Query(None, max_length=200), limit: int = Query(20, ge=1, le=50)) -> FeedPage:
+def feed(
+    request: Request,
+    cursor: str | None = Query(None, max_length=200),
+    limit: int = Query(20, ge=1, le=50),
+    sort: Literal["latest", "top"] = Query("latest"),
+    q: str | None = Query(None, max_length=120),
+    surah: int | None = Query(None, ge=1, le=114),
+    tag: str | None = Query(None, max_length=40),
+    mode: Literal["strict", "tafssir"] | None = Query(None),
+    board: bool = Query(False),
+    author: int | None = Query(None, ge=0),
+    saved: bool = Query(False),
+) -> FeedPage:
+    """Public posts. `sort=latest` (keyset cursor) or `top` (trending, offset cursor); `q` matches
+    title, summary, tags and section text (diacritics-insensitive); `saved` needs a signed-in viewer."""
     viewer_id, _, _ = _viewer(request)
-    return FeedPage(**community_service.feed(viewer_id, cursor, limit))
+    if saved and viewer_id is None:
+        _require_user(request)
+    return FeedPage(
+        **community_service.feed(
+            viewer_id, cursor, limit, sort=sort, q=q, surah=surah, tag=tag, mode=mode, board=board, author=author, saved=saved
+        )
+    )
+
+
+@router.get("/community/tags", response_model=list[TagCount])
+def tags(limit: int = Query(20, ge=1, le=50)) -> list[TagCount]:
+    return [TagCount(**item) for item in community_service.popular_tags(limit)]
 
 
 @router.get("/community/mine", response_model=list[PostSummary], response_model_exclude_none=True)
@@ -112,6 +141,24 @@ def unlike(request: Request, post_id: str) -> LikeResult:
     user_id, _, _ = _require_user(request)
     try:
         return LikeResult(**community_service.set_like(post_id, user_id, False))
+    except community_service.CommunityError as exc:
+        _raise(exc)
+
+
+@router.put("/community/posts/{post_id}/save", response_model=SaveResult)
+def save(request: Request, post_id: str) -> SaveResult:
+    user_id, _, _ = _require_user(request)
+    try:
+        return SaveResult(**community_service.set_saved(post_id, user_id, True))
+    except community_service.CommunityError as exc:
+        _raise(exc)
+
+
+@router.delete("/community/posts/{post_id}/save", response_model=SaveResult)
+def unsave(request: Request, post_id: str) -> SaveResult:
+    user_id, _, _ = _require_user(request)
+    try:
+        return SaveResult(**community_service.set_saved(post_id, user_id, False))
     except community_service.CommunityError as exc:
         _raise(exc)
 

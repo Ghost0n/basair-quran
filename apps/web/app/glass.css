@@ -400,6 +400,12 @@ body::before {
   box-shadow: var(--seg-on-shadow);
 }
 
+/* Tafssir (experimental) selection keeps its copper identity. */
+.qb-segmented button.on.copper {
+  color: var(--tafssir-fg);
+  background-color: var(--seg-copper-bg);
+}
+
 /* ---------- Chips ---------- */
 
 .qb-chip {

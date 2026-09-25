@@ -108,9 +108,77 @@ def ensure_tables() -> None:
                 created_at INTEGER NOT NULL
             );
             CREATE INDEX IF NOT EXISTS idx_reports_status ON reports (status, created_at);
+
+            CREATE TABLE IF NOT EXISTS post_saves (
+                post_id TEXT NOT NULL,
+                user_id INTEGER NOT NULL,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY (post_id, user_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_saves_user ON post_saves (user_id, created_at);
             """
         )
+        # Feed filter columns (Q-Basair-23), derived from the snapshot: added to
+        # older databases, then backfilled for the rows that predate them.
+        columns = {row["name"] for row in connection.execute("PRAGMA table_info(posts)")}
+        for name, ddl in _INDEX_COLUMNS.items():
+            if name not in columns:
+                connection.execute(f"ALTER TABLE posts ADD COLUMN {name} {ddl}")
+        stale = connection.execute("SELECT id, snapshot FROM posts WHERE indexed = 0").fetchall()
+        for row in stale:
+            fields = _index_fields(json.loads(row["snapshot"]))
+            connection.execute(
+                "UPDATE posts SET surahs = ?, tags = ?, search_text = ?, mode = ?, has_board = ?, indexed = 1 WHERE id = ?",
+                (fields["surahs"], fields["tags"], fields["search_text"], fields["mode"], fields["has_board"], row["id"]),
+            )
         connection.commit()
+
+
+_INDEX_COLUMNS = {
+    "surahs": "TEXT NOT NULL DEFAULT ''",
+    "tags": "TEXT NOT NULL DEFAULT ''",
+    "search_text": "TEXT NOT NULL DEFAULT ''",
+    "mode": "TEXT",
+    "has_board": "INTEGER NOT NULL DEFAULT 0",
+    "indexed": "INTEGER NOT NULL DEFAULT 0",
+}
+
+MAX_TAGS = 8
+_SEARCH_FOLD = str.maketrans({"\u0649": "\u064a", "\u0629": "\u0647"})
+
+
+def search_norm(text: str) -> str:
+    """Normalisation shared by the stored search text and the query: no
+    diacritics, one alef, ى→ي, ة→ه, lower-case Latin, single spaces."""
+    return quran_service.normalize_query_search(text or "").translate(_SEARCH_FOLD).lower()
+
+
+def clean_tags(tags) -> list[str]:
+    seen: list[str] = []
+    for tag in tags or []:
+        value = " ".join(str(tag).replace("|", " ").replace("#", " ").split())[:40]
+        if value and value not in seen:
+            seen.append(value)
+    return seen[:MAX_TAGS]
+
+
+def _index_fields(payload: dict) -> dict:
+    """Denormalised filter columns for a post snapshot (`|`-delimited lists so
+    `instr()` matches whole values)."""
+    document = payload.get("document") or {}
+    surah_ids = sorted(
+        {int(ref["surah_id"]) for section in document.get("sections", []) for ref in section.get("ayahs", []) if ref.get("surah_id")}
+    )
+    tags = clean_tags(document.get("tags"))
+    parts = [document.get("title") or "", document.get("summary") or "", " ".join(tags)]
+    parts += [(section.get("title") or "") + " " + (section.get("body") or "") for section in document.get("sections", [])]
+    return {
+        "surahs": "|" + "|".join(str(surah) for surah in surah_ids) + "|" if surah_ids else "",
+        "tags": "|" + "|".join(search_norm(tag) for tag in tags) + "|" if tags else "",
+        "search_text": search_norm(" ".join(parts))[:6000],
+        "mode": (document.get("provenance") or {}).get("mode"),
+        "has_board": 1 if payload.get("board") else 0,
+    }
 
 
 # ----------------------------------------------------------------------
@@ -206,6 +274,8 @@ def publish_document(
     board = _board_snapshot(document, user_id)
     payload = {"document": snapshot, "board": board, "excerpt": _excerpt(document)}
 
+    fields = _index_fields(payload)
+
     ai_audit = audit_agent_service.run_ai_audit(snapshot)
     status = "published" if ai_audit["verdict"] == "pass" else "pending_review"
     now = int(time.time())
@@ -218,7 +288,8 @@ def publish_document(
             post_id = existing["id"]
             connection.execute(
                 "UPDATE posts SET snapshot = ?, title = ?, visibility = ?, status = ?, document_version = ?, "
-                "author_name = ?, updated_at = ?, published_at = ? WHERE id = ?",
+                "author_name = ?, updated_at = ?, published_at = ?, surahs = ?, tags = ?, search_text = ?, mode = ?, "
+                "has_board = ?, indexed = 1 WHERE id = ?",
                 (
                     json.dumps(payload, ensure_ascii=False),
                     document["title"],
@@ -228,6 +299,11 @@ def publish_document(
                     author_name,
                     now,
                     (existing["published_at"] or now) if status == "published" else existing["published_at"],
+                    fields["surahs"],
+                    fields["tags"],
+                    fields["search_text"],
+                    fields["mode"],
+                    fields["has_board"],
                     post_id,
                 ),
             )
@@ -235,7 +311,8 @@ def publish_document(
             post_id = f"post-{secrets.token_urlsafe(9)}"
             connection.execute(
                 "INSERT INTO posts (id, user_id, author_name, document_id, document_version, snapshot, title, "
-                "visibility, status, created_at, updated_at, published_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "visibility, status, created_at, updated_at, published_at, surahs, tags, search_text, mode, has_board, "
+                "indexed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
                 (
                     post_id,
                     user_id,
@@ -249,6 +326,11 @@ def publish_document(
                     now,
                     now,
                     now if status == "published" else None,
+                    fields["surahs"],
+                    fields["tags"],
+                    fields["search_text"],
+                    fields["mode"],
+                    fields["has_board"],
                 ),
             )
         _record_review(connection, post_id, document["version"], "deterministic", "pass", issues=audit["checks"])
@@ -272,24 +354,46 @@ def publish_document(
 # ----------------------------------------------------------------------
 
 
-def _summary(row, viewer_id: int | None, liked: set[str]) -> dict:
+WORDS_PER_MINUTE = 180
+TRENDING_WINDOW = 500
+TRENDING_GRAVITY = 1.4
+
+
+def _reading_minutes(document: dict) -> int:
+    words = 0
+    for section in document.get("sections", []):
+        words += len(((section.get("title") or "") + " " + (section.get("body") or "")).split())
+        words += sum(len((ref.get("text") or "").split()) for ref in section.get("ayahs", []))
+    words += len((document.get("summary") or "").split())
+    return max(1, round(words / WORDS_PER_MINUTE))
+
+
+def _summary(row, viewer_id: int | None, liked: set[str], saved: set[str] = frozenset()) -> dict:
     payload = json.loads(row["snapshot"])
     document = payload.get("document") or {}
     provenance = document.get("provenance") or {}
+    surah_ids = sorted(
+        {int(ref["surah_id"]) for section in document.get("sections", []) for ref in section.get("ayahs", []) if ref.get("surah_id")}
+    )
     return {
         "id": row["id"],
         "title": row["title"],
         "summary": document.get("summary"),
         "author_name": row["author_name"],
+        "author_id": int(row["user_id"]),
         "visibility": row["visibility"],
         "status": row["status"],
         "mode": provenance.get("mode"),
         "created_from": provenance.get("created_from", "manual"),
         "has_board": bool(payload.get("board")),
         "ayah_count": sum(len(section.get("ayahs", [])) for section in document.get("sections", [])),
+        "tags": clean_tags(document.get("tags")),
+        "surah_ids": surah_ids,
+        "reading_minutes": _reading_minutes(document),
         "like_count": int(row["like_count"]),
         "comment_count": int(row["comment_count"]),
         "liked_by_me": row["id"] in liked,
+        "saved_by_me": row["id"] in saved,
         "is_mine": viewer_id is not None and int(row["user_id"]) == viewer_id,
         "published_at": row["published_at"],
         "updated_at": int(row["updated_at"]),
@@ -297,14 +401,22 @@ def _summary(row, viewer_id: int | None, liked: set[str]) -> dict:
     }
 
 
-def _liked_set(connection, viewer_id: int | None, post_ids: list[str]) -> set[str]:
+def _viewer_set(connection, table: str, viewer_id: int | None, post_ids: list[str]) -> set[str]:
     if viewer_id is None or not post_ids:
         return set()
     placeholders = ", ".join("?" for _ in post_ids)
     rows = connection.execute(
-        f"SELECT post_id FROM post_likes WHERE user_id = ? AND post_id IN ({placeholders})", (viewer_id, *post_ids)
+        f"SELECT post_id FROM {table} WHERE user_id = ? AND post_id IN ({placeholders})", (viewer_id, *post_ids)
     ).fetchall()
     return {row["post_id"] for row in rows}
+
+
+def _liked_set(connection, viewer_id: int | None, post_ids: list[str]) -> set[str]:
+    return _viewer_set(connection, "post_likes", viewer_id, post_ids)
+
+
+def _saved_set(connection, viewer_id: int | None, post_ids: list[str]) -> set[str]:
+    return _viewer_set(connection, "post_saves", viewer_id, post_ids)
 
 
 def _encode_cursor(published_at: int, post_id: str) -> str:
@@ -320,23 +432,123 @@ def _decode_cursor(cursor: str) -> tuple[int, str] | None:
         return None
 
 
-def feed(viewer_id: int | None, cursor: str | None = None, limit: int = FEED_PAGE_SIZE) -> dict:
-    """Published public posts, newest first (keyset pagination)."""
+def _encode_offset(offset: int) -> str:
+    return base64.urlsafe_b64encode(f"o:{offset}".encode()).decode()
+
+
+def _decode_offset(cursor: str | None) -> int:
+    if not cursor:
+        return 0
+    try:
+        raw = base64.urlsafe_b64decode(cursor.encode()).decode()
+        return max(0, int(raw.split(":", 1)[1])) if raw.startswith("o:") else 0
+    except (ValueError, UnicodeDecodeError, IndexError):
+        return 0
+
+
+def trending_score(like_count: int, comment_count: int, age_seconds: float) -> float:
+    """«الأبرز»: engagement (a comment weighs two likes) decayed by age, so a
+    new post with a few reactions can pass an old one with many."""
+    hours = max(0.0, age_seconds) / 3600
+    return (like_count + 2 * comment_count + 1) / ((hours + 2) ** TRENDING_GRAVITY)
+
+
+def feed(
+    viewer_id: int | None,
+    cursor: str | None = None,
+    limit: int = FEED_PAGE_SIZE,
+    *,
+    sort: str = "latest",
+    q: str | None = None,
+    surah: int | None = None,
+    tag: str | None = None,
+    mode: str | None = None,
+    board: bool = False,
+    author: int | None = None,
+    saved: bool = False,
+) -> dict:
+    """Published public posts with optional filters. `latest` is newest first
+    (keyset pagination); `top` ranks the most recent ``TRENDING_WINDOW``
+    matches by :func:`trending_score` (offset pagination)."""
     limit = max(1, min(limit, 50))
-    where = "status = 'published' AND visibility = 'public'"
+    where = ["status = 'published'", "visibility = 'public'"]
     params: list = []
-    position = _decode_cursor(cursor) if cursor else None
-    if position:
-        where += " AND (published_at < ? OR (published_at = ? AND id < ?))"
-        params += [position[0], position[0], position[1]]
+    for token in search_norm(q or "").split()[:6]:
+        where.append("instr(search_text, ?) > 0")
+        params.append(token)
+    if surah:
+        where.append("instr(surahs, ?) > 0")
+        params.append(f"|{int(surah)}|")
+    tag_key = search_norm(clean_tags([tag])[0]) if tag and clean_tags([tag]) else ""
+    if tag_key:
+        where.append("instr(tags, ?) > 0")
+        params.append(f"|{tag_key}|")
+    if mode in ("strict", "tafssir"):
+        where.append("mode = ?")
+        params.append(mode)
+    if board:
+        where.append("has_board = 1")
+    if author is not None:
+        where.append("user_id = ?")
+        params.append(int(author))
+    if saved:
+        if viewer_id is None:
+            return {"posts": [], "next_cursor": None}
+        where.append("EXISTS (SELECT 1 FROM post_saves s WHERE s.post_id = posts.id AND s.user_id = ?)")
+        params.append(viewer_id)
+
+    with app_data_service.connect() as connection:
+        if sort == "top":
+            rows = connection.execute(
+                f"SELECT * FROM posts WHERE {' AND '.join(where)} ORDER BY published_at DESC LIMIT ?",
+                (*params, TRENDING_WINDOW),
+            ).fetchall()
+            now = time.time()
+            ranked = sorted(
+                rows,
+                key=lambda row: (
+                    -trending_score(int(row["like_count"]), int(row["comment_count"]), now - (row["published_at"] or now)),
+                    -(row["published_at"] or 0),
+                    row["id"],
+                ),
+            )
+            offset = _decode_offset(cursor)
+            page = ranked[offset : offset + limit]
+            next_cursor = _encode_offset(offset + limit) if offset + limit < len(ranked) else None
+        else:
+            position = _decode_cursor(cursor) if cursor else None
+            if position:
+                where.append("(published_at < ? OR (published_at = ? AND id < ?))")
+                params += [position[0], position[0], position[1]]
+            rows = connection.execute(
+                f"SELECT * FROM posts WHERE {' AND '.join(where)} ORDER BY published_at DESC, id DESC LIMIT ?",
+                (*params, limit + 1),
+            ).fetchall()
+            page = rows[:limit]
+            next_cursor = _encode_cursor(page[-1]["published_at"], page[-1]["id"]) if len(rows) > limit else None
+        ids = [row["id"] for row in page]
+        liked = _liked_set(connection, viewer_id, ids)
+        saved_ids = _saved_set(connection, viewer_id, ids)
+    return {"posts": [_summary(row, viewer_id, liked, saved_ids) for row in page], "next_cursor": next_cursor}
+
+
+def popular_tags(limit: int = 20) -> list[dict]:
+    """The most used tags among recent public posts (display form of the first use)."""
+    counts: dict[str, int] = {}
+    display: dict[str, str] = {}
     with app_data_service.connect() as connection:
         rows = connection.execute(
-            f"SELECT * FROM posts WHERE {where} ORDER BY published_at DESC, id DESC LIMIT ?", (*params, limit + 1)
+            "SELECT snapshot FROM posts WHERE status = 'published' AND visibility = 'public' AND tags != '' "
+            "ORDER BY published_at DESC LIMIT 1000"
         ).fetchall()
-        page = rows[:limit]
-        liked = _liked_set(connection, viewer_id, [row["id"] for row in page])
-    next_cursor = _encode_cursor(page[-1]["published_at"], page[-1]["id"]) if len(rows) > limit else None
-    return {"posts": [_summary(row, viewer_id, liked) for row in page], "next_cursor": next_cursor}
+    for row in rows:
+        document = (json.loads(row["snapshot"]).get("document")) or {}
+        for tag in clean_tags(document.get("tags")):
+            key = search_norm(tag)
+            counts[key] = counts.get(key, 0) + 1
+            display.setdefault(key, tag)
+    ranked = sorted(counts.items(), key=lambda item: (-item[1], display[item[0]]))
+    return [{"tag": display[key], "count": count} for key, count in ranked[:limit]]
 
 
 def my_posts(user_id: int) -> list[dict]:
@@ -344,8 +556,10 @@ def my_posts(user_id: int) -> list[dict]:
         rows = connection.execute(
             "SELECT * FROM posts WHERE user_id = ? AND status != 'withdrawn' ORDER BY updated_at DESC", (user_id,)
         ).fetchall()
-        liked = _liked_set(connection, user_id, [row["id"] for row in rows])
-    return [_summary(row, user_id, liked) for row in rows]
+        ids = [row["id"] for row in rows]
+        liked = _liked_set(connection, user_id, ids)
+        saved = _saved_set(connection, user_id, ids)
+    return [_summary(row, user_id, liked, saved) for row in rows]
 
 
 def _reviews(connection, post_id: str) -> list[dict]:
@@ -379,11 +593,12 @@ def get_post(post_id: str, viewer_id: int | None, is_moderator: bool = False) ->
         if row is None or not _can_view(row, viewer_id, is_moderator):
             return None
         liked = _liked_set(connection, viewer_id, [post_id])
+        saved = _saved_set(connection, viewer_id, [post_id])
         is_owner = viewer_id is not None and int(row["user_id"]) == viewer_id
         reviews = _reviews(connection, post_id) if (is_owner or is_moderator) else []
     payload = json.loads(row["snapshot"])
     return {
-        **_summary(row, viewer_id, liked),
+        **_summary(row, viewer_id, liked, saved),
         "document": payload.get("document") or {},
         "board": payload.get("board"),
         "reviews": reviews,
@@ -426,6 +641,21 @@ def set_like(post_id: str, user_id: int, liked: bool) -> dict:
         connection.execute("UPDATE posts SET like_count = ? WHERE id = ?", (count, post_id))
         connection.commit()
     return {"liked": liked, "like_count": int(count)}
+
+
+def set_saved(post_id: str, user_id: int, saved: bool) -> dict:
+    """«احفظ» — a private bookmark; only the viewer sees it (no public count)."""
+    with app_data_service.connect() as connection:
+        _published(connection, post_id)
+        if saved:
+            connection.execute(
+                "INSERT OR IGNORE INTO post_saves (post_id, user_id, created_at) VALUES (?, ?, ?)",
+                (post_id, user_id, int(time.time())),
+            )
+        else:
+            connection.execute("DELETE FROM post_saves WHERE post_id = ? AND user_id = ?", (post_id, user_id))
+        connection.commit()
+    return {"saved": saved}
 
 
 def _comment_row(row, viewer_id: int | None) -> dict:
@@ -616,7 +846,9 @@ def delete_user_content(user_id: int) -> None:
             connection.execute("DELETE FROM post_likes WHERE post_id = ?", (post_id,))
             connection.execute("DELETE FROM post_comments WHERE post_id = ?", (post_id,))
             connection.execute("DELETE FROM post_reviews WHERE post_id = ?", (post_id,))
+            connection.execute("DELETE FROM post_saves WHERE post_id = ?", (post_id,))
         connection.execute("DELETE FROM posts WHERE user_id = ?", (user_id,))
+        connection.execute("DELETE FROM post_saves WHERE user_id = ?", (user_id,))
         affected = {row["post_id"] for row in connection.execute("SELECT DISTINCT post_id FROM post_likes WHERE user_id = ?", (user_id,))}
         affected |= {row["post_id"] for row in connection.execute("SELECT DISTINCT post_id FROM post_comments WHERE user_id = ?", (user_id,))}
         connection.execute("DELETE FROM post_likes WHERE user_id = ?", (user_id,))

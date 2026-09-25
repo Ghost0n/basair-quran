@@ -226,3 +226,106 @@ def test_account_deletion_removes_community_content(api_client):
     community_service.delete_user_content(7)
     post = api_client.get(f"/api/community/posts/{post_id}").json()
     assert post["like_count"] == 0 and post["comment_count"] == 0
+
+
+def _publish_note(api_client, title, body="نص", **overrides):
+    document = _document(
+        api_client, title=title, sections=[{"id": "n", "kind": "note", "body": body}], **overrides
+    )
+    return _publish(api_client, document["id"]).json()["post_id"]
+
+
+def test_feed_filters_search_surah_tag_mode_board_author(api_client):
+    research_agent_service.set_llm_provider_for_tests(AuditProvider({"verdict": "pass", "issues": []}))
+    patience = _publish(api_client, _document(api_client, tags=["الصبر", "#تدبر"])["id"]).json()["post_id"]
+    gratitude = _publish_note(
+        api_client, "الشكر والنعمة", body="تأمّلٌ في الشُّكرِ — قراءة تفسيرية تجريبية.", tags=["الشكر"], summary="عن النعمة والشكر.",
+        provenance={"mode": "tafssir", "created_from": "manual"},
+    )
+
+    def ids(**params):
+        return [post["id"] for post in api_client.get("/api/community/feed", params=params).json()["posts"]]
+
+    # Search is diacritics- and hamza-insensitive and also matches section text.
+    assert ids(q="الشكر") == [gratitude]
+    assert ids(q="تاملات") == [patience]
+    assert ids(q="نعمة") == [gratitude]
+    assert ids(q="مفتاح الفرج") == [patience]
+    assert ids(q="غير موجود") == []
+    # Surah: only posts quoting an ayah of that surah.
+    assert ids(surah=1) == [patience]
+    # Tags match whole tags (the stored form drops «#»).
+    assert ids(tag="تدبر") == [patience]
+    assert ids(tag="#الصبر") == [patience]
+    assert ids(tag="الص") == []
+    assert ids(mode="tafssir") == [gratitude]
+    assert ids(mode="strict") == [patience]
+    assert ids(board=True) == []
+    assert set(ids(author=community_service.app_data_service.DEFAULT_USER_ID)) == {patience, gratitude}
+    assert ids(author=999) == []
+
+    summary = api_client.get("/api/community/feed", params={"tag": "الصبر"}).json()["posts"][0]
+    assert summary["tags"] == ["الصبر", "تدبر"]
+    assert summary["surah_ids"] == [1]
+    assert summary["reading_minutes"] == 1
+    assert summary["author_id"] == community_service.app_data_service.DEFAULT_USER_ID
+
+    tags = api_client.get("/api/community/tags").json()
+    assert {item["tag"] for item in tags} == {"الصبر", "تدبر", "الشكر"}
+
+
+def test_trending_sort_weighs_engagement_against_age(api_client):
+    research_agent_service.set_llm_provider_for_tests(AuditProvider({"verdict": "pass", "issues": []}))
+    older = _publish_note(api_client, "قديم")
+    newer = _publish_note(api_client, "جديد")
+    with community_service.app_data_service.connect() as connection:
+        connection.execute("UPDATE posts SET published_at = published_at - 3600 WHERE id = ?", (older,))
+        connection.commit()
+    # Latest: newest first. Top with no reactions: the newer post wins too.
+    latest = [post["id"] for post in api_client.get("/api/community/feed").json()["posts"]]
+    assert latest == [newer, older]
+    for user in (11, 12, 13):
+        community_service.set_like(older, user, True)
+    community_service.add_comment(older, 11, "زائر", "تعليق")
+    page1 = api_client.get("/api/community/feed", params={"sort": "top", "limit": 1}).json()
+    assert [post["id"] for post in page1["posts"]] == [older]
+    page2 = api_client.get(
+        "/api/community/feed", params={"sort": "top", "limit": 1, "cursor": page1["next_cursor"]}
+    ).json()
+    assert [post["id"] for post in page2["posts"]] == [newer] and page2.get("next_cursor") is None
+    # A much older post needs far more engagement to stay on top.
+    assert community_service.trending_score(3, 1, 3600) > community_service.trending_score(0, 0, 0)
+    assert community_service.trending_score(3, 1, 30 * 86400) < community_service.trending_score(0, 0, 0)
+
+
+def test_saved_posts_are_private_bookmarks(api_client):
+    research_agent_service.set_llm_provider_for_tests(AuditProvider({"verdict": "pass", "issues": []}))
+    kept = _publish_note(api_client, "محفوظ")
+    _publish_note(api_client, "غير محفوظ")
+    assert api_client.put(f"/api/community/posts/{kept}/save").json() == {"saved": True}
+    assert api_client.put(f"/api/community/posts/{kept}/save").json() == {"saved": True}  # idempotent
+    saved = api_client.get("/api/community/feed", params={"saved": True}).json()["posts"]
+    assert [post["id"] for post in saved] == [kept] and saved[0]["saved_by_me"] is True
+    assert api_client.get(f"/api/community/posts/{kept}").json()["saved_by_me"] is True
+    assert api_client.delete(f"/api/community/posts/{kept}/save").json() == {"saved": False}
+    assert api_client.get("/api/community/feed", params={"saved": True}).json()["posts"] == []
+    assert api_client.put("/api/community/posts/nope/save").status_code == 404
+
+
+def test_saved_feed_requires_an_account_when_auth_is_enabled(tmp_path, monkeypatch):
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        assert client.get("/api/community/feed", params={"saved": True}).status_code == 401
+        assert client.put("/api/community/posts/x/save").status_code == 401
+    finally:
+        finalize()
+
+
+def test_existing_posts_are_backfilled_with_filter_columns(api_client):
+    research_agent_service.set_llm_provider_for_tests(AuditProvider({"verdict": "pass", "issues": []}))
+    post_id = _publish(api_client, _document(api_client, tags=["الصبر"])["id"]).json()["post_id"]
+    with community_service.app_data_service.connect() as connection:
+        connection.execute("UPDATE posts SET surahs = '', tags = '', search_text = '', indexed = 0 WHERE id = ?", (post_id,))
+        connection.commit()
+    community_service.ensure_tables()
+    assert [post["id"] for post in api_client.get("/api/community/feed", params={"tag": "الصبر", "surah": 1}).json()["posts"]] == [post_id]

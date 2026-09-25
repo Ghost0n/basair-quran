@@ -42,9 +42,11 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   session («حوّل إلى بحث»), a theme board («صدّر كبحث») or from scratch; exported as Markdown / JSON
   or shared as a verse / research card image. Publishing to the community runs a blocking audit, then
   an AI audit agent that fails closed to human moderation.
-- Community («المجتمع»): a feed of published researches (public or link-only), post pages with the
-  document and its read-only board, likes, comments, reports, and a moderation queue for admins —
-  governed by `docs/community-guidelines.md`.
+- Community («المجتمع»): a feed of published researches (public or link-only) — latest or trending
+  («الأبرز»), searchable, filterable by surah, tag, research mode, board or author, with infinite
+  scroll — post pages with the document and its read-only board, likes, private bookmarks
+  («المحفوظة»), link sharing, comments, reports, and a moderation queue for admins — governed by
+  `docs/community-guidelines.md`.
 - A "liquid glass" design system (`docs/design-system.md`): one translucent material for all chrome
   (floating rail and tab dock, capsule bars, glass sheets and panes), glossy gold for actions, a
   shared selected state, spring micro-interactions and view-transition page changes — with the
