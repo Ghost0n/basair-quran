@@ -267,7 +267,7 @@ export function PostScreen() {
         {post.mode === "tafssir" ? <TafssirDisclaimer /> : null}
 
         {post.board ? (
-          <div className="qb-segmented" role="tablist" aria-label={t("عرض المنشور")}>
+          <div className="qb-segmented qb-fit-track" data-autofit="1" role="tablist" aria-label={t("عرض المنشور")}>
             <button type="button" role="tab" aria-selected={view === "document"} className={view === "document" ? "on" : ""} onClick={() => setView("document")}>
               <Icon name="page" size={14} /> {t("البحث")}
             </button>

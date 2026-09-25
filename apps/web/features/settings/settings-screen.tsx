@@ -92,7 +92,7 @@ export function SettingsScreen() {
           <p className="card-sub">{edition.description}</p>
           <div className="qb-setting-row">
             <label>{t("طريقة القراءة")}</label>
-            <div className="qb-setting-seg" role="group" aria-label={t("طريقة القراءة")}>
+            <div className="qb-setting-seg qb-fit-choice" data-autofit="2" role="group" aria-label={t("طريقة القراءة")}>
               {READER_MODES.map((item) => (
                 <button
                   key={item.mode}
@@ -137,7 +137,7 @@ export function SettingsScreen() {
           </div>
           <div className="qb-setting-row">
             <label>{t("السمة")}</label>
-            <div className="qb-setting-seg">
+            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
               <button
                 type="button"
                 className={state.theme === "dark" ? "active" : ""}
@@ -158,7 +158,7 @@ export function SettingsScreen() {
           </div>
           <div className="qb-setting-row">
             <label>{t("الشفافية")}</label>
-            <div className="qb-setting-seg">
+            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
               <button
                 type="button"
                 className={transparency === "auto" ? "active" : ""}
@@ -180,7 +180,7 @@ export function SettingsScreen() {
           <p className="card-sub fine">{t("«مُعتِمة» تُلغي التمويه خلف الأشرطة واللوحات: أوضح للقراءة وأخفّ على الأجهزة المتواضعة. تُحفظ لهذا الجهاز.")}</p>
           <div className="qb-setting-row">
             <label>{t("الأرقام")}</label>
-            <div className="qb-setting-seg">
+            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
               {NUMERAL_OPTIONS.map((option) => (
                 <button
                   key={option.value}
@@ -201,7 +201,7 @@ export function SettingsScreen() {
           <p className="card-sub">{t("الوضع الافتراضي وعُمق القراءة في الدراسة.")}</p>
           <div className="qb-setting-row">
             <label>{t("الوضع الافتراضي")}</label>
-            <div className="qb-setting-seg">
+            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
               <button
                 type="button"
                 className={account.research.default_mode === "strict" ? "active" : ""}
@@ -247,7 +247,7 @@ export function SettingsScreen() {
           ) : null}
           <div className="qb-setting-row">
             <label>{t("عُمق القراءة التفسيرية")}</label>
-            <div className="qb-setting-seg">
+            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
               {DEPTH_OPTIONS.map((option) => (
                 <button
                   key={option.value}

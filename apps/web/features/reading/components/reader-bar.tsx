@@ -99,10 +99,10 @@ export function ReaderBar({
   const progress = Math.min(100, Math.max(0, (displayPage / totalPages) * 100));
 
   return (
-    <div className="qb-reader-bar">
+    <div className="qb-reader-bar" data-autofit="4">
       <button type="button" className="identity" onClick={onOpenNavigate} aria-label={t("{0} — انتقل", { 0: surahName })}>
-        <span className="name">{surahName}</span>
-        <span className="meta">
+        <span className="name" data-fit-watch>{surahName}</span>
+        <span className="meta" data-fit-watch>
           {juzLabel ? <>{t("الجزء {0}", { 0: juzLabel })}{t("، ")}</> : null}
           {t("صفحة {0}", { 0: formatNumber(displayPage) })}
           <span className="of">{t(" من {0}", { 0: formatNumber(totalPages) })}</span>
@@ -111,11 +111,11 @@ export function ReaderBar({
 
       <div className="actions">
         <ToolPicker compact={compact} />
-        <button type="button" className="act labelled" onClick={onOpenNavigate} aria-label={t("انتقل")} title={t("انتقل (سورة · آية · جزء · صفحة)")}>
+        <button type="button" className="act labelled go-btn" onClick={onOpenNavigate} aria-label={t("انتقل")} title={t("انتقل (سورة · آية · جزء · صفحة)")}>
           <Icon name="compass" size={18} />
           <span className="lbl">{t("انتقل")}</span>
         </button>
-        <button type="button" className="act labelled" onClick={onOpenDisplay} aria-label={t("العرض")} title={t("العرض (طريقة القراءة · حجم الخطّ)")}>
+        <button type="button" className="act labelled display-btn" onClick={onOpenDisplay} aria-label={t("العرض")} title={t("العرض (طريقة القراءة · حجم الخطّ)")}>
           <Icon name="textSize" size={18} />
           <span className="lbl">{t("العرض")}</span>
         </button>

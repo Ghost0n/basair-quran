@@ -236,7 +236,7 @@ export function LoginPageShell() {
         onSubmit={handleSubmit}
         style={{ animation: "qbRise 500ms var(--motion-ease-settle) 160ms both" }}
       >
-        <div className="qb-auth-tabs" role="tablist">
+        <div className="qb-auth-tabs qb-fit-choice" data-autofit="2" role="tablist">
           <button
             type="button"
             role="tab"

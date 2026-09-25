@@ -43,7 +43,7 @@ export function AccountMenu({ onOpenSettings }: AccountMenuProps) {
     return (
       <a className="qb-rail-btn" href="/login" title={t("تسجيل الدخول")} aria-label={t("تسجيل الدخول")}>
         <Icon name="user" size={19} />
-        <span className="qb-rail-label">{t("دخول")}</span>
+        <span className="qb-rail-label" data-fit-watch>{t("دخول")}</span>
       </a>
     );
   }
@@ -88,7 +88,7 @@ export function AccountMenu({ onOpenSettings }: AccountMenuProps) {
         title={user.name || user.email}
       >
         <UserAvatar motif={motif} size={28} />
-        <span className="qb-rail-label">{t("حسابي")}</span>
+        <span className="qb-rail-label" data-fit-watch>{t("حسابي")}</span>
       </button>
 
       {open ? (

@@ -107,11 +107,13 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
         </div>
       </div>
 
-      <div className="qb-lib-tabs">
+      <div className="qb-lib-tabs qb-fit-track" data-autofit="1" role="tablist">
         {TABS.map((t) => (
           <button
             key={t.value}
             type="button"
+            role="tab"
+            aria-selected={tab === t.value}
             className={`qb-lib-tab${tab === t.value ? " active" : ""}`}
             onClick={() => setTab(t.value)}
           >

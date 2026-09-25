@@ -50,7 +50,7 @@ export function LeftRail() {
   };
 
   return (
-    <aside className="qb-rail" aria-label={t("القائمة الجانبية")}>
+    <aside className="qb-rail" data-autofit="3" aria-label={t("القائمة الجانبية")}>
       <button
         type="button"
         className="qb-rail-brand-btn"
@@ -124,7 +124,7 @@ function RailButton({
       data-rail-notebook={destination.mode === "notebook" ? "" : undefined}
     >
       <Icon name={destination.icon} size={19} />
-      <span className="qb-rail-label">{destination.label}</span>
+      <span className="qb-rail-label" data-fit-watch>{destination.label}</span>
     </button>
   );
 }

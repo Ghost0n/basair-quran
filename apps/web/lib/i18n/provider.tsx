@@ -2,6 +2,7 @@
 
 import { createContext, Fragment, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 
+import { startAutoFit } from "@/lib/auto-fit";
 import { ensureScriptFont, scriptFamily } from "@/lib/script-fonts";
 
 import { LOCALE_CODES, SOURCE_LOCALE, localeInfo, matchLocale, type LocaleInfo } from "./locales";
@@ -105,6 +106,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     }
     setLocaleState(info.code);
   }, []);
+
+  // Controls re-measure their labels in every language (see lib/auto-fit.ts).
+  useEffect(() => startAutoFit(), []);
 
   useEffect(() => {
     const stored = readStored();
