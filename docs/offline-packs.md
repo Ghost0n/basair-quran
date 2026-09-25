@@ -9,7 +9,7 @@ added on the server appears in the app's catalogue without an app update.
 
 | Pack | Contents | Size (current data) |
 |---|---|---|
-| `core.db` (in the app) | shared tables (surahs, roots, morphology variants, the list of narrations) + the Madani mushaf (Ḥafṣ, mushaf 2) with its 604-page layout + every index | ~47 MB |
+| `core.db` (in the app) | shared tables (surahs, roots, morphology variants, the list of narrations) + the Madani mushaf (Ḥafṣ, mushaf 2) with its 604-page layout + every index + `morphology_segments` (the word-analysis lines of `data/quran-morphology.txt`) | ~53 MB |
 | `narration-<id>.db` | one other narration (Qālūn, Warsh, Shuʿba, al-Dūrī, al-Sūsī): its `ayahs`, `ayah_words`, `word_occurrences` (and page layout, if any) with their original ids | ~11.5 MB each |
 | `translation-<slug>.db` | one translation of meanings, verbatim, with translator, source and version | 1–3 MB each |
 | `interface-<code>.json` | one interface dictionary (Arabic, the source language, is an empty dictionary) | ~60 KB each |
@@ -38,6 +38,11 @@ installing one is a plain insert of its tables into the device's `core.db`
 (in one transaction, after checking the SHA-256), and removing one is a delete
 by `mushaf_id`. The core already holds every index, so an installed narration is
 searchable immediately.
+
+## Answering on the device
+
+The phone answers the Quran routes itself with `packages/offline-engine`
+(see `docs/offline-engine.md`), reading `core.db` and the installed packs.
 
 ## Verification
 

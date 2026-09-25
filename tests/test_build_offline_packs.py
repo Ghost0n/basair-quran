@@ -99,10 +99,16 @@ def sources(tmp_path: Path) -> dict:
         '{ code: "en", native: "English", dir: "ltr" },\n',
         encoding="utf-8",
     )
+    morphology = tmp_path / "quran-morphology.txt"
+    morphology.write_text(
+        "1:1:1:1\tبِ\tP\tP|PREF|LEM:ب\n1:1:1:2\tسْمِ\tN\tROOT:سمو|LEM:اسْم|M|GEN\n"
+        "# a comment line\nbad:location\tx\tN\tLEM:x\n",
+        encoding="utf-8",
+    )
     sources_json = tmp_path / "translation_sources.json"
     sources_json.write_text(json.dumps({"quranenc": {"preferred": {"fr": ["french_montada", "french_hameedullah"]}}}), encoding="utf-8")
     return {"quran_db": quran, "translations_db": translations, "locales_dir": locales,
-            "locales_ts": locales_ts, "sources_path": sources_json}
+            "locales_ts": locales_ts, "sources_path": sources_json, "morphology": morphology}
 
 
 def _build(sources: dict, output: Path) -> dict:
@@ -126,6 +132,16 @@ def test_core_holds_only_the_core_narration_and_the_shared_tables(sources, tmp_p
     assert _count(core, "SELECT COUNT(*) FROM mushaf_layout_lines") == 1
     assert _count(core, "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'idx_layout_lines_page'") == 1
     assert manifest["core"]["mushaf_id"] == CORE
+
+
+def test_core_carries_the_morphology_segments_the_server_parses(sources, tmp_path):
+    manifest = _build(sources, tmp_path / "out")
+    core = tmp_path / "out" / "core.db"
+    with sqlite3.connect(core) as connection:
+        rows = connection.execute("SELECT surah, ayah, word, segment, form, tag, features FROM morphology_segments ORDER BY segment").fetchall()
+    # Malformed lines are skipped exactly as src/app/services/morphology_service.py skips them.
+    assert rows == [(1, 1, 1, 1, "بِ", "P", "P|PREF|LEM:ب"), (1, 1, 1, 2, "سْمِ", "N", "ROOT:سمو|LEM:اسْم|M|GEN")]
+    assert manifest["core"]["version"] != _build({**sources, "morphology": None}, tmp_path / "bare")["core"]["version"]
 
 
 def test_a_narration_pack_holds_only_its_rows_with_original_ids(sources, tmp_path):

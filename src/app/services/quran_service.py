@@ -192,7 +192,9 @@ def _count_corpus(mushaf_id: int) -> list[tuple[int, int, tuple[str, ...], str]]
     corpus = []
     for row in rows:
         simple = normalize_count_text(row["text_simple"] or "")
-        corpus.append((int(row["surah_id"]), int(row["page"] or 0), tuple(simple.split()), simple.replace(" ", "")))
+        # A page value can be a boundary range ("85-86"): the ayah counts on its starting page.
+        page_span = parse_page_span(row["page"])
+        corpus.append((int(row["surah_id"]), page_span[0] if page_span else 0, tuple(simple.split()), simple.replace(" ", "")))
     with _count_corpus_lock:
         _count_corpus_cache[mushaf_id] = corpus
     return corpus
@@ -211,7 +213,7 @@ def count_text(mushaf_id: int, text: str, surah: int | None = None, page: int | 
     Deterministic and rasm-based: counted on the mushaf's undiacritized text with
     the search normalization (alif forms folded, lone hamza and tatweel dropped).
     A phrase counts as a whole-word sequence inside one ayah; `page` is the
-    ayah's starting page.
+    ayah's starting page (the first page of a boundary range like "85-86").
     """
     normalized = normalize_count_text(text)
     phrase = tuple(normalized.split())
