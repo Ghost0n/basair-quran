@@ -15,7 +15,8 @@ import { useNumerals } from "@/lib/preferences-context";
 import { BoardView } from "@/features/board/board-view";
 import { relativeAge } from "@/features/companions/use-companions";
 import { DocumentView } from "@/features/documents/document-view";
-import { renderShareCard, shareOrDownload } from "@/features/documents/share-card";
+import { ShareStudio } from "@/features/documents/share-studio";
+import { postUrl } from "./share-link";
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { useShellMode } from "@/features/shell/mode-context";
 import { TafssirDisclaimer } from "@/features/studio/tafssir-disclaimer";
@@ -41,6 +42,7 @@ export function PostScreen() {
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [draft, setDraft] = useState("");
   const [flash, setFlash] = useState<string | null>(null);
+  const [sharing, setSharing] = useState(false);
   const [reporting, setReporting] = useState<{ type: "post" | "comment"; id: string } | null>(null);
   const [surahs, setSurahs] = useState<SurahListItem[]>([]);
 
@@ -131,27 +133,10 @@ export function PostScreen() {
 
   async function copyLink() {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/?mode=post&id=${encodeURIComponent(postId)}`);
+      await navigator.clipboard.writeText(postUrl(postId));
       say("نُسخ الرابط.");
     } catch {
       say("تعذّر النسخ.");
-    }
-  }
-
-  async function shareCard() {
-    if (!post) return;
-    try {
-      const blob = await renderShareCard({
-        kind: "research",
-        title: post.title,
-        summary: post.summary,
-        meta: `${post.author_name}، ${formatNumber(post.ayah_count)} آية`,
-        excerpt: post.excerpt?.text ?? null,
-      });
-      const result = await shareOrDownload(blob, "basair-post.png", post.title);
-      say(result === "shared" ? "تمت المشاركة." : "حُفظت البطاقة صورةً.");
-    } catch {
-      say("تعذّر إنشاء البطاقة.");
     }
   }
 
@@ -217,8 +202,8 @@ export function PostScreen() {
               <button type="button" className="qb-btn ghost" onClick={() => void copyLink()}>
                 <Icon name="link" size={15} /> <span className="lbl">الرابط</span>
               </button>
-              <button type="button" className="qb-btn ghost" onClick={() => void shareCard()}>
-                <Icon name="share" size={15} /> <span className="lbl">بطاقة</span>
+              <button type="button" className="qb-btn ghost" onClick={() => setSharing(true)}>
+                <Icon name="share" size={15} /> <span className="lbl">مشاركة</span>
               </button>
               {!post.is_mine ? (
                 <button type="button" className="qb-btn ghost" onClick={() => setReporting({ type: "post", id: post.id })} aria-label="إبلاغ">
@@ -363,6 +348,22 @@ export function PostScreen() {
       </div>
 
       {reporting ? <ReportSheet onClose={() => setReporting(null)} onSend={sendReport} /> : null}
+      {sharing ? (
+        <ShareStudio
+          research={{
+            title: post.title,
+            summary: post.summary,
+            mode: post.mode ?? null,
+            sections: post.document.sections,
+            aiSectionIds: post.document.provenance?.ai_sections ?? [],
+            author: post.author_name,
+            url: post.status === "published" ? postUrl(post.id) : null,
+          }}
+          references={post.document.references}
+          surahName={surahName}
+          onClose={() => setSharing(false)}
+        />
+      ) : null}
     </div>
   );
 }

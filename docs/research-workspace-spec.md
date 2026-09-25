@@ -1,7 +1,8 @@
 # Research workspace — themes, board, reader toolbox, contextual tafssir, research format
 
 **Status:** implemented in phases Q-Basair-14 → 19 (see §7); the community (publishing, feed,
-likes, comments, reports, moderation, AI audit) shipped in Q-Basair-19.
+likes, comments, reports, moderation, AI audit) shipped in Q-Basair-19, feed search/filters and
+saved posts in Q-Basair-23, and the artifacts studio in Q-Basair-24.
 **Principles (AGENTS.md):** Quran text is the evidence; strict mode stays Quran-only;
 Tafssir stays labelled experimental; user data is private by default; nothing here
 changes search results or the strict research contract.
@@ -101,9 +102,20 @@ AyahRef = { mushaf_id, surah_id, ayah, ayah_id, text }   // text verified agains
   document; documents are editable (title, summary, section notes, order).
 - Every `AyahRef.text` is verified against the database on save (see §6.2); AI sections
   are flagged, and a Tafssir-mode document carries the experimental disclaimer.
-- Export: Markdown, JSON, and **share formats** — a verse card image (the ayah in the
-  Quran font, reference, optional note) and a research card (title, summary, ayah count)
-  via the Web Share API / download.
+- Export: Markdown, JSON, and the **«مشاركة» studio** (Q-Basair-24), opened from a document or
+  a community post, with a live preview:
+  - **research card** (title, summary, ayah/surah count, author, first ayah);
+  - **verse card** (any quoted ayah with its reference, optionally its section's note — an
+    AI-generated note is labelled «ملاحظة مولَّدة آلياً»);
+  - **carousel** (سلسلة شرائح): a cover, one slide per quoted ayah (the section's note on its
+    first ayah), a closing slide (the post link when published) — at most 10 slides, numbered;
+    shared as several images or downloaded as a ZIP;
+  - **print / PDF**: a clean A4 rendition (title, summary, ayahs in the Quran face, notes,
+    references, footer) through the browser's print dialog.
+  - Sizes 4:5 (1080×1350), square (1080×1080) and story (1080×1920); styles «ليلي», «ورقي»,
+    «زمرّدي» — remembered per device. A Tafssir-mode research carries «قراءة تفسيرية تجريبية»
+    on the cover and closing slide, and the disclaimer in print. Everything renders locally on
+    a canvas (no network).
 
 ## 6. Community (later) — guidelines and the AI audit, designed now
 
@@ -133,3 +145,5 @@ A document can only become `public` after an audit:
 | 4 | `feat/Q-Basair-17-lavoie-theme` | theme board (graph) with notes, relations, mini readers |
 | 5 | `feat/Q-Basair-18-format-recherche` | research document format + conversions + share formats + quote verification + guidelines + audit design |
 | 6 | `feat/Q-Basair-19-communaute` | publishing pipeline, AI audit agent, feed, post pages (document + read-only board), likes, comments, reports, moderation |
+| 7 | `feat/Q-Basair-23-fil-communaute` | feed: latest/trending, search, filters (surah, tag, mode, board, author), saved posts, link sharing, infinite scroll |
+| 8 | `feat/Q-Basair-24-artefacts-recherche` | «مشاركة» studio: research/verse cards in 3 sizes and 3 styles, carousel (ZIP / multi-image share), print / PDF |

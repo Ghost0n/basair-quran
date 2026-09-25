@@ -616,3 +616,396 @@
     margin: 4px 10px 10px;
   }
 }
+
+/* =====================================================================
+   «مشاركة» — research artifacts studio (cards, carousel, print).
+   ===================================================================== */
+
+.qb-share-studio .panel {
+  width: min(940px, 100%);
+  max-height: min(820px, calc(100dvh - 48px));
+}
+
+.qb-share-studio .kinds {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.qb-share-studio .kinds button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 6px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--glass-rim);
+  background: var(--glass-tint-soft);
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.5;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-base) var(--spring-soft), color var(--motion-dur-fast),
+    box-shadow var(--motion-dur-base), transform var(--motion-dur-fast) var(--spring);
+}
+
+.qb-share-studio .kinds button:hover:not(:disabled) {
+  color: var(--fg-1);
+  border-color: var(--glass-rim-strong);
+}
+
+.qb-share-studio .kinds button:active:not(:disabled) {
+  transform: scale(var(--press-scale));
+}
+
+.qb-share-studio .kinds button.on {
+  color: var(--gold-text);
+  background-color: var(--seg-on-bg);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--seg-on-shadow);
+}
+
+.qb-share-studio .kinds button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.qb-share-studio .studio {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.qb-share-studio .preview-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.qb-share-studio .preview {
+  position: relative;
+  width: 100%;
+  max-height: 560px;
+  margin: 0 auto;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--glass-tint-soft);
+  box-shadow: var(--glass-shadow-lift);
+}
+
+/* Keep tall formats inside the panel: the width follows the height cap. */
+.qb-share-studio .preview.f-story {
+  width: auto;
+  height: 560px;
+}
+
+.qb-share-studio .preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  animation: qbFade var(--motion-dur-base) var(--motion-ease-settle) both;
+}
+
+.qb-share-studio .preview .qb-skeleton-page {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  min-height: 0;
+}
+
+.qb-share-studio .thumbs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 2px 2px 4px;
+  scrollbar-width: thin;
+}
+
+.qb-share-studio .thumbs button {
+  flex: 0 0 52px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  overflow: hidden;
+  background: none;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity var(--motion-dur-fast), border-color var(--motion-dur-fast);
+}
+
+.qb-share-studio .thumbs button.on,
+.qb-share-studio .thumbs button:hover {
+  opacity: 1;
+}
+
+.qb-share-studio .thumbs button.on {
+  border-color: var(--gold-400, var(--gold-text));
+}
+
+.qb-share-studio .thumbs img {
+  display: block;
+  width: 100%;
+}
+
+.qb-share-studio .controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.qb-share-studio .group .label {
+  margin-bottom: 8px;
+}
+
+.qb-share-studio .qb-segmented {
+  margin-bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.qb-share-studio .qb-segmented button {
+  flex: 1 1 auto;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.qb-share-studio .swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.qb-share-studio .swatches button {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg-3);
+  font-family: var(--font-arabic-ui);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-share-studio .swatches .sw {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  border: 2px solid var(--glass-rim);
+  font-family: var(--font-arabic-heading);
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.6;
+  box-shadow: var(--glass-edge);
+  transition: transform var(--motion-dur-fast) var(--spring), border-color var(--motion-dur-fast);
+}
+
+.qb-share-studio .swatches button.on {
+  color: var(--gold-text);
+}
+
+.qb-share-studio .swatches button.on .sw {
+  border-color: var(--gold-400, var(--gold-text));
+  transform: translateY(-2px);
+}
+
+.qb-share-studio .check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+.qb-share-studio .check input {
+  accent-color: var(--gold-400, #d4af37);
+}
+
+.qb-share-studio .hint {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--fg-3);
+}
+
+.qb-share-studio .hint.copper {
+  color: var(--tafssir-fg);
+}
+
+.qb-share-studio .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.qb-share-studio .actions .qb-btn {
+  flex: 1 1 140px;
+  justify-content: center;
+}
+
+.qb-share-studio .controls .qb-toast-inline {
+  margin: 0;
+}
+
+.qb-share-studio .print-pane {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--r-lg);
+  border: 1px dashed var(--border-strong, var(--border));
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--fg-2);
+}
+
+.qb-share-studio .print-pane p {
+  margin: 0;
+}
+
+@media (max-width: 760px) {
+  .qb-share-studio .studio {
+    grid-template-columns: 1fr;
+  }
+  .qb-share-studio .preview {
+    max-width: 320px;
+    max-height: 440px;
+  }
+  .qb-share-studio .preview.f-story {
+    height: 440px;
+  }
+}
+
+@media (max-width: 480px) {
+  .qb-share-studio .kinds {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* --- Print / PDF: only the print sheet is printed --- */
+
+.qb-print-sheet {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 18mm 16mm;
+  }
+
+  body > :not(.qb-print-sheet) {
+    display: none !important;
+  }
+
+  body::before {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+  }
+
+  .qb-print-sheet {
+    display: block;
+    color: #1f1a10;
+    background: #fff;
+    font-family: var(--font-arabic-ui);
+    font-size: 12pt;
+    line-height: 1.8;
+  }
+
+  .qb-print-sheet header {
+    margin-bottom: 18pt;
+    padding-bottom: 12pt;
+    border-bottom: 1.5pt solid #b08d2c;
+  }
+
+  .qb-print-sheet .brand {
+    font-family: var(--font-arabic-heading);
+    font-size: 13pt;
+    font-weight: 700;
+    color: #8f6a12;
+  }
+
+  .qb-print-sheet h1 {
+    margin: 4pt 0;
+    font-family: var(--font-arabic-heading);
+    font-size: 24pt;
+    line-height: 1.6;
+    color: #1f1a10;
+  }
+
+  .qb-print-sheet .meta {
+    font-size: 10pt;
+    color: #6b5d3f;
+  }
+
+  .qb-print-sheet .summary {
+    margin: 8pt 0 0;
+    font-size: 12pt;
+  }
+
+  .qb-print-sheet .disclaimer {
+    margin: 10pt 0 0;
+    padding: 6pt 10pt;
+    border: 1pt solid #c98a5b;
+    border-radius: 6pt;
+    color: #8a4f25;
+    font-size: 10pt;
+  }
+
+  .qb-print-sheet .qb-docview-section {
+    break-inside: avoid-page;
+  }
+
+  .qb-print-sheet blockquote.ayah {
+    break-inside: avoid;
+    background: #faf5e6 !important;
+    border-color: #b08d2c !important;
+  }
+
+  .qb-print-sheet blockquote.ayah p {
+    color: #1f1a10 !important;
+  }
+
+  .qb-print-sheet blockquote.ayah .ref {
+    color: #8f6a12 !important;
+  }
+
+  .qb-print-sheet footer {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 24pt;
+    padding-top: 8pt;
+    border-top: 0.75pt solid #d9c9a0;
+    font-size: 9pt;
+    color: #6b5d3f;
+  }
+
+  .qb-print-sheet * {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+    box-shadow: none !important;
+    animation: none !important;
+  }
+}

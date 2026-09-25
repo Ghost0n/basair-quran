@@ -39,8 +39,9 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   into a scrollable mini reader of its passage. The board autosaves as the theme's metadata.
 - Research documents («الأبحاث»): a structured, versioned research format (sections, quoted ayahs
   verified against the mushaf, notes, references, AI sections labelled), created from a Studio
-  session («حوّل إلى بحث»), a theme board («صدّر كبحث») or from scratch; exported as Markdown / JSON
-  or shared as a verse / research card image. Publishing to the community runs a blocking audit, then
+  session («حوّل إلى بحث»), a theme board («صدّر كبحث») or from scratch; exported as Markdown / JSON,
+  or through the «مشاركة» studio as a research or verse card, a numbered carousel (ZIP or
+  multi-image share) or a print / PDF page — in 4:5, square or story size and three styles. Publishing to the community runs a blocking audit, then
   an AI audit agent that fails closed to human moderation.
 - Community («المجتمع»): a feed of published researches (public or link-only) — latest or trending
   («الأبرز»), searchable, filterable by surah, tag, research mode, board or author, with infinite

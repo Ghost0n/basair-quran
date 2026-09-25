@@ -27,7 +27,8 @@ import { TafssirDisclaimer } from "@/features/studio/tafssir-disclaimer";
 
 import { documentToMarkdown } from "./convert";
 import { PublishSheet } from "./publish-sheet";
-import { downloadBlob, renderShareCard, shareOrDownload } from "./share-card";
+import { downloadBlob } from "./share-card";
+import { ShareStudio, type ShareArtifact } from "./share-studio";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const SAVE_DELAY_MS = 1200;
@@ -84,6 +85,7 @@ export function DocumentScreen() {
   const [shareNote, setShareNote] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [sharing, setSharing] = useState<{ artifact: ShareArtifact; ayahKey?: string } | null>(null);
   const dirtyRef = useRef(false);
   const timerRef = useRef<number | null>(null);
   const docRef = useRef<ResearchDocumentSave | null>(null);
@@ -227,41 +229,6 @@ export function DocumentScreen() {
 
   const ayahTotal = doc?.sections.reduce((sum, section) => sum + section.ayahs.length, 0) ?? 0;
 
-  async function shareResearchCard() {
-    if (!doc) return;
-    setShareNote(null);
-    const firstAyah = doc.sections.flatMap((section) => section.ayahs)[0];
-    try {
-      const blob = await renderShareCard({
-        kind: "research",
-        title: doc.title,
-        summary: doc.summary,
-        meta: `${formatNumber(doc.sections.length)} أقسام، ${formatNumber(ayahTotal)} آية`,
-        excerpt: firstAyah?.text ?? null,
-      });
-      const result = await shareOrDownload(blob, "basair-research.png", doc.title);
-      setShareNote(result === "shared" ? "تمت المشاركة." : "حُفظت البطاقة صورةً.");
-    } catch {
-      setShareNote("تعذّر إنشاء البطاقة.");
-    }
-  }
-
-  async function shareVerseCard(ref: AyahRef, note?: string | null) {
-    setShareNote(null);
-    try {
-      const blob = await renderShareCard({
-        kind: "verse",
-        text: ref.text,
-        reference: `سورة ${surahName(ref.surah_id)}، الآية ${formatNumber(ref.ayah)}`,
-        note: note ?? null,
-      });
-      const result = await shareOrDownload(blob, `basair-${ref.surah_id}-${ref.ayah}.png`, ref.text);
-      setShareNote(result === "shared" ? "تمت المشاركة." : "حُفظت البطاقة صورةً.");
-    } catch {
-      setShareNote("تعذّر إنشاء البطاقة.");
-    }
-  }
-
   async function removeDocument() {
     try {
       await api.deleteDocument(documentId);
@@ -310,8 +277,8 @@ export function DocumentScreen() {
           {saveLabel}
         </span>
         <div className="acts">
-          <button type="button" onClick={() => void shareResearchCard()}>
-            <Icon name="share" size={15} /> <span className="lbl">بطاقة</span>
+          <button type="button" onClick={() => setSharing({ artifact: "research" })}>
+            <Icon name="share" size={15} /> <span className="lbl">مشاركة</span>
           </button>
           <button type="button" onClick={exportMarkdown}>
             <Icon name="download" size={15} /> <span className="lbl">Markdown</span>
@@ -443,7 +410,11 @@ export function DocumentScreen() {
                             >
                               ﴿{surahName(ref.surah_id)}: {formatNumber(ref.ayah)}﴾
                             </button>
-                            <button type="button" className="mini" onClick={() => void shareVerseCard(ref)}>
+                            <button
+                              type="button"
+                              className="mini"
+                              onClick={() => setSharing({ artifact: "verse", ayahKey: `${section.id}:${ref.surah_id}:${ref.ayah}` })}
+                            >
                               <Icon name="share" size={12} /> بطاقة
                             </button>
                             <button
@@ -490,6 +461,22 @@ export function DocumentScreen() {
           references={doc.references}
           onChange={(references) => update({ references })}
         />
+
+        {sharing ? (
+          <ShareStudio
+            research={{
+              title: doc.title,
+              summary: doc.summary,
+              mode: doc.provenance.mode ?? null,
+              sections: doc.sections,
+              aiSectionIds: doc.provenance.ai_sections,
+            }}
+            references={doc.references}
+            surahName={surahName}
+            initial={sharing}
+            onClose={() => setSharing(null)}
+          />
+        ) : null}
 
         {publishing ? (
           <PublishSheet
