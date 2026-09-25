@@ -765,8 +765,17 @@
     display: none;
   }
 
+  /* Phones: the search bar is the top bar — centred, full width. The theme
+     toggle lives in «المزيد» and Settings instead of crowding it. */
   .qb-cmd {
-    margin: 0;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  .qb-top-actions {
+    display: none;
   }
 }
 
