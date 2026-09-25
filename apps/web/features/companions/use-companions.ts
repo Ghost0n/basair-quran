@@ -6,6 +6,7 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type { FollowedRoot, NotebookItem, ResearchDocumentSummary, ResearchSessionSummary } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
+import { sanitizeErrorMessage } from "@/lib/error-report";
 import { toArabicDigits } from "@/lib/numerals";
 import { emitNotebookChange, useNotebookSync } from "@/lib/notebook-sync";
 
@@ -88,7 +89,7 @@ export function useCompanions() {
       setRoots(rootList);
       setDocuments(documentList);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t("تعذّر تحميل بيانات الدفتر."));
+      setError(err instanceof Error ? sanitizeErrorMessage(err.message) : t("تعذّر تحميل بيانات الدفتر."));
     } finally {
       setLoading(false);
     }
