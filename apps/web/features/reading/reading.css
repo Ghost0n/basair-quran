@@ -721,7 +721,7 @@
 .qb-morph-pop {
   position: absolute;
   border: 1px solid var(--glass-rim-strong);
-  background-color: var(--glass-tint-strong);
+  background-color: var(--glass-tint-overlay);
   background-image: var(--glass-sheen);
   border-radius: var(--r-xl);
   width: 320px;
@@ -1234,7 +1234,7 @@
   max-height: min(720px, calc(100dvh - 48px));
   border-radius: var(--r-2xl);
   border: 1px solid var(--glass-rim);
-  background-color: var(--glass-tint-strong);
+  background-color: var(--glass-tint-overlay);
   background-image: var(--glass-sheen);
   box-shadow: var(--glass-edge), var(--glass-shadow-lift);
   -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
