@@ -11,6 +11,7 @@ import { HeatmapScreen } from "@/features/concordance/heatmap-screen";
 import { SettingsScreen } from "@/features/settings/settings-screen";
 import { BoardScreen } from "@/features/board/board-screen";
 import { DocumentScreen } from "@/features/documents/document-screen";
+import { OnlineOnly } from "@/features/app-mode/online-only";
 import { CommunityScreen } from "@/features/community/community-screen";
 import { PostScreen } from "@/features/community/post-screen";
 
@@ -53,10 +54,19 @@ function WorkspacePage() {
       return <BoardScreen />;
     case "document":
       return <DocumentScreen />;
+    // Community lives on the server: the standalone app shows it when online.
     case "community":
-      return <CommunityScreen />;
+      return (
+        <OnlineOnly>
+          <CommunityScreen />
+        </OnlineOnly>
+      );
     case "post":
-      return <PostScreen />;
+      return (
+        <OnlineOnly>
+          <PostScreen />
+        </OnlineOnly>
+      );
     default:
       return <WorkspaceCanvas mode="reading" />;
   }

@@ -9,6 +9,8 @@ import type { NumeralScript } from "@q-basair/shared";
 import { SelectMenu } from "@/components/select-menu";
 import { AccountSettings } from "@/features/identity/account-settings";
 import { LanguageSelect } from "./language-select";
+import { DownloadsSettings } from "@/features/app-mode/downloads-settings";
+
 import { TranslationsSettings } from "./translations-settings";
 import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
 import { READER_MODES, resolveReaderMode } from "@/features/reading/reader-modes";
@@ -123,6 +125,8 @@ export function SettingsScreen() {
         </section>
 
         <TranslationsSettings />
+
+        <DownloadsSettings />
 
         <AccountSettings />
 

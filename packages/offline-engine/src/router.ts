@@ -6,6 +6,7 @@
  * null and the caller decides (network when online, an offline state if not).
  */
 import type { SqlDriver } from "./db";
+import { LocalStore, type StateStorage, handleLocal, isLocalRoute } from "./local-store";
 import { MorphologyEngine } from "./morphology";
 import { RECITERS } from "./models.generated";
 import {
@@ -132,17 +133,22 @@ export type OfflineApiOptions = {
   quran: SqlDriver;
   /** Installed translation packs, merged (null when none is installed). */
   translations?: SqlDriver | null;
+  /** Where the user's own data (notebook, themes, sessions, …) is kept; omit to leave those routes to the network. */
+  userData?: StateStorage | null;
+  clock?: () => number;
 };
 
 export class OfflineApi {
   readonly quran: QuranEngine;
   readonly morphology: MorphologyEngine;
+  readonly store: LocalStore | null;
   private translations: SqlDriver | null;
 
   constructor(private readonly options: OfflineApiOptions) {
     this.quran = new QuranEngine(options.quran);
     this.morphology = new MorphologyEngine(options.quran);
     this.translations = options.translations ?? null;
+    this.store = options.userData ? new LocalStore({ storage: options.userData, quran: this.quran, clock: options.clock }) : null;
   }
 
   /** After a pack is installed or removed. */
@@ -156,7 +162,7 @@ export class OfflineApi {
     const url = new URL(request.url, "http://offline.invalid");
     const method = (request.method ?? "GET").toUpperCase();
     const route = ROUTES[`${method} ${url.pathname.replace(/\/+$/, "")}`];
-    if (!route) return null;
+    if (!route) return this.store ? handleLocal(this.store, method, url.pathname, request.body) : null;
     try {
       return await route.call(this, url.searchParams, request.body);
     } catch (error) {
@@ -166,8 +172,9 @@ export class OfflineApi {
   }
 
   /** Whether a path is answered on the device (the rest needs the network). */
-  static handles(method: string, path: string): boolean {
-    return `${method.toUpperCase()} ${path.replace(/\/+$/, "")}` in ROUTES;
+  handles(method: string, path: string): boolean {
+    const key = `${method.toUpperCase()} ${path.replace(/\/+$/, "")}`;
+    return key in ROUTES || (this.store !== null && isLocalRoute(method.toUpperCase(), path));
   }
 
   // --- catalog ----------------------------------------------------------------

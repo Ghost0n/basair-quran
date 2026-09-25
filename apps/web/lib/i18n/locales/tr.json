@@ -836,5 +836,21 @@
  "يظهر في المجتمع للجميع": "Toplulukta herkese görünür",
  "يفسّر": "Açıklar",
  "يقابل": "Karşılaştırır",
- "يوصي بالرفض": "Reddi önerir"
+ "يوصي بالرفض": "Reddi önerir",
+ "اختر لغتك. تُنزَّل الواجهة وترجمة معاني القرآن بهذه اللغة، ويمكنك تغييرها لاحقًا من الإعدادات.": "Dilinizi seçin. Arayüz ve Kur'an meallerinden biri bu dilde indirilir; daha sonra Ayarlar'dan değiştirebilirsiniz.",
+ "التلاوات": "Tilavetler",
+ "التنزيلات": "İndirilenler",
+ "الروايات": "Rivayetler",
+ "السور المحفوظة: {0}": "Kaydedilen sureler: {0}",
+ "الفهرس غير متاح دون اتصال.": "Katalog çevrimdışı kullanılamıyor.",
+ "المصاحف والترجمات واللغات والتلاوات للاستعمال دون اتصال.": "Çevrimdışı kullanım için mushaflar, mealler, diller ve tilavetler.",
+ "تحتاج هذه اللغة إلى اتصال لتنزيلها.": "Bu dili indirmek için bağlantı gerekir.",
+ "تحديث": "Güncelle",
+ "تعذّر التنزيل. تحقّق من الاتصال ثم أعد المحاولة.": "İndirme başarısız oldu. Bağlantınızı kontrol edip yeniden deneyin.",
+ "جارٍ تنزيل حزمة اللغة… {0}": "Dil paketi indiriliyor… {0}",
+ "دون اتصال: الإنجليزية والعربية متاحتان الآن، وتُنزَّل اللغات الأخرى عند الاتصال.": "Çevrimdışı: İngilizce ve Arapça şimdi kullanılabilir; diğer diller bağlandığınızda indirilir.",
+ "مثبّت": "Yüklü",
+ "مرحبًا بك في بصائر": "Basair'e hoş geldiniz",
+ "يتطلّب هذا القسم اتصالًا بالإنترنت.": "Bu bölüm internet bağlantısı gerektirir.",
+ "يعمل القرآن والبحث والدفتر دون اتصال؛ أما الاستوديو والمجتمع والحساب فتحتاج إلى الشبكة.": "Kur'an, arama ve defteriniz çevrimdışı çalışır; Stüdyo, Topluluk ve hesabınız ağa ihtiyaç duyar."
 }

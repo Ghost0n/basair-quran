@@ -1,0 +1,163 @@
+/* The standalone app: onboarding, downloads and offline states (docs/offline-app.md). */
+
+.qb-onboarding {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  overflow-y: auto;
+  background: var(--bg);
+  color: var(--fg-1);
+}
+
+.qb-onboarding-card {
+  width: min(560px, 100%);
+  display: grid;
+  gap: 16px;
+  text-align: center;
+}
+
+.qb-onboarding-mark {
+  font-family: var(--font-arabic-heading, "Amiri", serif);
+  font-size: 44px;
+  color: var(--gold-400);
+  line-height: 1.2;
+}
+
+.qb-onboarding h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.qb-onboarding .lead,
+.qb-onboarding .hint {
+  margin: 0;
+  color: var(--fg-3);
+  line-height: 1.6;
+}
+
+.qb-onboarding-languages {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.qb-onboarding-languages button {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface-soft);
+  color: inherit;
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.qb-onboarding-languages button:hover:not(:disabled),
+.qb-onboarding-languages button:focus-visible {
+  border-color: var(--border-accent);
+  outline: none;
+  box-shadow: var(--focus-glow);
+}
+
+.qb-onboarding-languages button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.qb-onboarding-languages button[aria-busy="true"] {
+  opacity: 1;
+  border-color: var(--border-focus);
+}
+
+.qb-onboarding-status {
+  color: var(--fg-3);
+}
+
+.qb-onboarding-bar,
+.qb-download-bar {
+  margin-top: 8px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.qb-onboarding-bar span,
+.qb-download-bar span {
+  display: block;
+  height: 100%;
+  background: var(--gold-400);
+  transition: width 0.2s;
+}
+
+.qb-onboarding-error {
+  margin: 0;
+  color: var(--danger-fg);
+}
+
+/* Downloads (Settings) */
+
+.qb-downloads-group {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.qb-downloads-group h4 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-3);
+}
+
+.qb-download-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.qb-download-row:last-child {
+  border-bottom: 0;
+}
+
+.qb-download-row .name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.qb-download-row .meta {
+  color: var(--fg-3);
+  font-size: 12px;
+}
+
+.qb-download-row .bar-wrap {
+  flex: 0 0 80px;
+}
+
+/* A screen that needs the network, shown offline */
+
+.qb-online-only {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  min-height: 50vh;
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--fg-3);
+}
+
+.qb-online-only h3 {
+  margin: 0;
+  color: var(--fg-1);
+}

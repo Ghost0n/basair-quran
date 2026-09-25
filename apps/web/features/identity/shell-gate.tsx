@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
+import { APP_MODE } from "@/lib/app-mode/config";
 import { AUTH_ENABLED } from "@/lib/config";
 import { continueAsGuest, hasChosenGuest, identityApi } from "@/features/auth/identity-flow";
 
@@ -13,13 +14,16 @@ type Decision = "loading" | "landing" | "enter";
  * ShellGate — the app's front door. When auth is enabled and the visitor is
  * neither signed in nor has chosen guest browsing, it shows the Landing page
  * instead of the workspace. Once they sign in or pick "continue as guest",
- * the workspace renders. With auth disabled it's a passthrough (legacy).
+ * the workspace renders. With auth disabled it's a passthrough (legacy), and
+ * so is the standalone app: it opens straight away, offline-first (onboarding
+ * is its front door, and signing in is offered from the account menu).
  */
 export function ShellGate({ children }: { children: ReactNode }) {
-  const [decision, setDecision] = useState<Decision>(AUTH_ENABLED ? "loading" : "enter");
+  const gated = AUTH_ENABLED && !APP_MODE;
+  const [decision, setDecision] = useState<Decision>(gated ? "loading" : "enter");
 
   useEffect(() => {
-    if (!AUTH_ENABLED) return;
+    if (!gated) return;
     if (hasChosenGuest()) {
       setDecision("enter");
       return;
@@ -37,7 +41,7 @@ export function ShellGate({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [gated]);
 
   if (decision === "loading") {
     // A calm, empty page-bg while the session resolves (no jarring flash).

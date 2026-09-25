@@ -61,6 +61,10 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   routes ported to TypeScript, held to the server's exact JSON by a parity suite —
   `python scripts/offline_parity.py && pnpm --filter @q-basair/offline-engine test`
   (see `docs/offline-engine.md`).
+- Standalone Android app, offline-first: the same web app built as a static bundle
+  (`pnpm --filter @q-basair/web build:app`) that answers the Quran and the user's data on the device,
+  starts with a language choice (interface + translation in one), and downloads narrations,
+  translations, languages and recitations on demand (see `docs/offline-app.md`).
 - Community («المجتمع»): a feed of published researches (public or link-only) — latest or trending
   («الأبرز»), searchable, filterable by surah, tag, research mode, board or author, with infinite
   scroll — post pages with the document and its read-only board, likes, private bookmarks

@@ -6,6 +6,7 @@ import "@/features/concordance/concordance.css";
 
 import { ConcordancePanel } from "@/features/concordance/concordance-panel";
 import { MushafStage } from "@/features/reading/mushaf-stage";
+import { OnlineOnly } from "@/features/app-mode/online-only";
 import { StudioPanel } from "@/features/studio/studio-panel";
 import { useIsMobile } from "@/lib/use-is-mobile";
 
@@ -33,7 +34,7 @@ export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
   const isCompact = useIsMobile(COMPACT_WORKSPACE);
 
   const panel =
-    mode === "search" ? <ConcordancePanel /> : mode === "studio" ? <StudioPanel /> : null;
+    mode === "search" ? <ConcordancePanel /> : mode === "studio" ? <OnlineOnly><StudioPanel /></OnlineOnly> : null;
 
   if (isCompact) {
     return <div className="qb-workspace-canvas">{panel ?? <MushafStage />}</div>;
@@ -48,7 +49,11 @@ export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
       {/* Every panel opens on the same side — inline-start (the right in RTL),
           next to the rail that summoned it; the mushaf keeps the rest. */}
       {mode === "search" ? <ConcordancePanel /> : null}
-      {mode === "studio" ? <StudioPanel /> : null}
+      {mode === "studio" ? (
+        <OnlineOnly>
+          <StudioPanel />
+        </OnlineOnly>
+      ) : null}
       <MushafStage />
     </div>
   );

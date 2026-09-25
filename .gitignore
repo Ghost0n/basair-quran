@@ -42,3 +42,6 @@ data/translation_cache/
 
 # Offline data packs (scripts/build_offline_packs.py) — generated
 /build/
+
+# Standalone app build (static export, see docs/offline-app.md)
+apps/web/out/

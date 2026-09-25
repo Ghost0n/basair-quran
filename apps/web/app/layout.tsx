@@ -6,6 +6,7 @@ import "./globals.css";
 import "./motion.css";
 import "./glass.css";
 
+import { AppModeRoot } from "@/features/app-mode/app-mode-root";
 import { LOCALE_INIT_SCRIPT } from "@/lib/i18n/init-script";
 import { I18nProvider } from "@/lib/i18n/provider";
 
@@ -53,7 +54,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body suppressHydrationWarning>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-        <I18nProvider>{children}</I18nProvider>
+        <I18nProvider>
+          <AppModeRoot>{children}</AppModeRoot>
+        </I18nProvider>
       </body>
     </html>
   );

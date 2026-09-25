@@ -836,5 +836,21 @@
  "يظهر في المجتمع للجميع": "Visível para todos na comunidade",
  "يفسّر": "Explica",
  "يقابل": "Contrasta com",
- "يوصي بالرفض": "Recomenda rejeição"
+ "يوصي بالرفض": "Recomenda rejeição",
+ "اختر لغتك. تُنزَّل الواجهة وترجمة معاني القرآن بهذه اللغة، ويمكنك تغييرها لاحقًا من الإعدادات.": "Escolha o seu idioma. A interface e uma tradução do sentido do Alcorão nesse idioma são descarregadas; pode alterá-lo mais tarde nas Definições.",
+ "التلاوات": "Recitações",
+ "التنزيلات": "Transferências",
+ "الروايات": "Leituras (riwāyāt)",
+ "السور المحفوظة: {0}": "Suratas guardadas: {0}",
+ "الفهرس غير متاح دون اتصال.": "O catálogo não está disponível offline.",
+ "المصاحف والترجمات واللغات والتلاوات للاستعمال دون اتصال.": "Mushafs, traduções, idiomas e recitações para usar offline.",
+ "تحتاج هذه اللغة إلى اتصال لتنزيلها.": "Este idioma precisa de ligação para ser descarregado.",
+ "تحديث": "Atualizar",
+ "تعذّر التنزيل. تحقّق من الاتصال ثم أعد المحاولة.": "A transferência falhou. Verifique a ligação e tente novamente.",
+ "جارٍ تنزيل حزمة اللغة… {0}": "A transferir o pacote de idioma… {0}",
+ "دون اتصال: الإنجليزية والعربية متاحتان الآن، وتُنزَّل اللغات الأخرى عند الاتصال.": "Offline: o inglês e o árabe estão disponíveis agora; os outros idiomas são descarregados quando estiver ligado.",
+ "مثبّت": "Instalado",
+ "مرحبًا بك في بصائر": "Bem-vindo ao Basair",
+ "يتطلّب هذا القسم اتصالًا بالإنترنت.": "Esta secção precisa de ligação à Internet.",
+ "يعمل القرآن والبحث والدفتر دون اتصال؛ أما الاستوديو والمجتمع والحساب فتحتاج إلى الشبكة.": "O Alcorão, a pesquisa e o seu caderno funcionam offline; o Estúdio, a Comunidade e a sua conta precisam da rede."
 }

@@ -836,5 +836,21 @@
  "يظهر في المجتمع للجميع": "Zichtbaar voor iedereen in de gemeenschap",
  "يفسّر": "Legt uit",
  "يقابل": "Staat tegenover",
- "يوصي بالرفض": "Raadt afwijzing aan"
+ "يوصي بالرفض": "Raadt afwijzing aan",
+ "اختر لغتك. تُنزَّل الواجهة وترجمة معاني القرآن بهذه اللغة، ويمكنك تغييرها لاحقًا من الإعدادات.": "Kies je taal. De interface en een vertaling van de betekenissen van de Koran in die taal worden gedownload; je kunt dit later wijzigen in Instellingen.",
+ "التلاوات": "Recitaties",
+ "التنزيلات": "Downloads",
+ "الروايات": "Lezingen (riwāyāt)",
+ "السور المحفوظة: {0}": "Opgeslagen soera's: {0}",
+ "الفهرس غير متاح دون اتصال.": "De catalogus is offline niet beschikbaar.",
+ "المصاحف والترجمات واللغات والتلاوات للاستعمال دون اتصال.": "Mushafs, vertalingen, talen en recitaties voor offline gebruik.",
+ "تحتاج هذه اللغة إلى اتصال لتنزيلها.": "Voor deze taal is een verbinding nodig om te downloaden.",
+ "تحديث": "Bijwerken",
+ "تعذّر التنزيل. تحقّق من الاتصال ثم أعد المحاولة.": "Het downloaden is mislukt. Controleer je verbinding en probeer het opnieuw.",
+ "جارٍ تنزيل حزمة اللغة… {0}": "Taalpakket wordt gedownload… {0}",
+ "دون اتصال: الإنجليزية والعربية متاحتان الآن، وتُنزَّل اللغات الأخرى عند الاتصال.": "Offline: Engels en Arabisch zijn nu beschikbaar; andere talen worden gedownload zodra je verbonden bent.",
+ "مثبّت": "Geïnstalleerd",
+ "مرحبًا بك في بصائر": "Welkom bij Basair",
+ "يتطلّب هذا القسم اتصالًا بالإنترنت.": "Voor dit onderdeel is een internetverbinding nodig.",
+ "يعمل القرآن والبحث والدفتر دون اتصال؛ أما الاستوديو والمجتمع والحساب فتحتاج إلى الشبكة.": "De Koran, zoeken en je notitieboek werken offline; Studio, Community en je account hebben het netwerk nodig."
 }

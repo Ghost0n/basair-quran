@@ -855,5 +855,21 @@
  "يظهر في المجتمع للجميع": "Vidljivo svima u zajednici",
  "يفسّر": "Objašnjava",
  "يقابل": "U suprotnosti je s",
- "يوصي بالرفض": "Preporučuje odbijanje"
+ "يوصي بالرفض": "Preporučuje odbijanje",
+ "اختر لغتك. تُنزَّل الواجهة وترجمة معاني القرآن بهذه اللغة، ويمكنك تغييرها لاحقًا من الإعدادات.": "Odaberite jezik. Preuzimaju se interfejs i prijevod značenja Kur'ana na tom jeziku; kasnije ga možete promijeniti u Postavkama.",
+ "التلاوات": "Učenja",
+ "التنزيلات": "Preuzimanja",
+ "الروايات": "Predaje (rivajeti)",
+ "السور المحفوظة: {0}": "Sačuvane sure: {0}",
+ "الفهرس غير متاح دون اتصال.": "Katalog nije dostupan bez veze.",
+ "المصاحف والترجمات واللغات والتلاوات للاستعمال دون اتصال.": "Mushafi, prijevodi, jezici i učenja za korištenje bez veze.",
+ "تحتاج هذه اللغة إلى اتصال لتنزيلها.": "Za preuzimanje ovog jezika potrebna je veza.",
+ "تحديث": "Ažuriraj",
+ "تعذّر التنزيل. تحقّق من الاتصال ثم أعد المحاولة.": "Preuzimanje nije uspjelo. Provjerite vezu i pokušajte ponovo.",
+ "جارٍ تنزيل حزمة اللغة… {0}": "Preuzima se jezički paket… {0}",
+ "دون اتصال: الإنجليزية والعربية متاحتان الآن، وتُنزَّل اللغات الأخرى عند الاتصال.": "Bez veze: engleski i arapski su odmah dostupni; ostali jezici se preuzimaju kada se povežete.",
+ "مثبّت": "Instalirano",
+ "مرحبًا بك في بصائر": "Dobro došli u Basair",
+ "يتطلّب هذا القسم اتصالًا بالإنترنت.": "Ovaj dio zahtijeva internetsku vezu.",
+ "يعمل القرآن والبحث والدفتر دون اتصال؛ أما الاستوديو والمجتمع والحساب فتحتاج إلى الشبكة.": "Kur'an, pretraga i vaša bilježnica rade bez veze; Studio, Zajednica i vaš račun trebaju mrežu."
 }

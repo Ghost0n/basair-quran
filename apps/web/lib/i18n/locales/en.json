@@ -836,5 +836,21 @@
  "يظهر في المجتمع للجميع": "Visible to everyone in the community",
  "يفسّر": "Explains",
  "يقابل": "Contrasts with",
- "يوصي بالرفض": "Recommends rejection"
+ "يوصي بالرفض": "Recommends rejection",
+ "اختر لغتك. تُنزَّل الواجهة وترجمة معاني القرآن بهذه اللغة، ويمكنك تغييرها لاحقًا من الإعدادات.": "Choose your language. The interface and a translation of the Quran's meanings in that language are downloaded; you can change it later in Settings.",
+ "التلاوات": "Recitations",
+ "التنزيلات": "Downloads",
+ "الروايات": "Narrations",
+ "السور المحفوظة: {0}": "Saved surahs: {0}",
+ "الفهرس غير متاح دون اتصال.": "The catalogue is unavailable offline.",
+ "المصاحف والترجمات واللغات والتلاوات للاستعمال دون اتصال.": "Mushafs, translations, languages and recitations for offline use.",
+ "تحتاج هذه اللغة إلى اتصال لتنزيلها.": "This language needs a connection to download.",
+ "تحديث": "Update",
+ "تعذّر التنزيل. تحقّق من الاتصال ثم أعد المحاولة.": "The download failed. Check your connection and try again.",
+ "جارٍ تنزيل حزمة اللغة… {0}": "Downloading the language pack… {0}",
+ "دون اتصال: الإنجليزية والعربية متاحتان الآن، وتُنزَّل اللغات الأخرى عند الاتصال.": "Offline: English and Arabic are available now; other languages download once you're connected.",
+ "مثبّت": "Installed",
+ "مرحبًا بك في بصائر": "Welcome to Basair",
+ "يتطلّب هذا القسم اتصالًا بالإنترنت.": "This section needs an internet connection.",
+ "يعمل القرآن والبحث والدفتر دون اتصال؛ أما الاستوديو والمجتمع والحساب فتحتاج إلى الشبكة.": "The Quran, search and your notebook work offline; Studio, Community and your account need the network."
 }

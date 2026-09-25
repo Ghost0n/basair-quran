@@ -66,6 +66,22 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/sessions` · `GET /api/sessions/{session_id}` · `POST /api/sessions` · `DELETE /api/sessions/{session_id}`
 - `GET /api/roots` · `POST /api/roots` · `DELETE /api/roots/{root_id}`
 - `GET /api/user/preferences` · `PATCH /api/user/preferences`
+- `GET /api/offline/{name}` — the standalone app's downloadable packs (see below)
+
+## Standalone app notes
+
+- The Android app answers the Quran routes (catalog, search, suggestions, reader, layout, count,
+  morphology, translations) and the user-data routes (notebook, themes, documents, sessions, roots,
+  preferences) **on the device**, with `packages/offline-engine`, and must return the same JSON as
+  this API. A change to any of those routes or to their models is ported there too; the parity suite
+  (`docs/offline-engine.md`) fails otherwise.
+- `GET /api/offline/{name}` serves the files of `scripts/build_offline_packs.py`
+  (`QBASAIR_OFFLINE_PACKS_PATH`, default `build/offline/`): `manifest.json` (`Cache-Control:
+  no-cache`), `narration-<id>.db`, `translation-<slug>.db`, `interface-<code>.json`
+  (`public, max-age=86400`). Other names are `404`. Open without sign-in.
+- The app calls the server from its own origin (`https://localhost` on Android): add it to
+  `QBASAIR_CORS_ORIGINS`. It authenticates with `Authorization: Bearer <token>` (the `token` of
+  `AuthSessionResponse`), never cookies.
 
 ## Text count notes (reader «تحديد» → «إحصاء»)
 
@@ -75,7 +91,7 @@ This document freezes the backend contract that the future frontend migration wi
 - Deterministic and rasm-based: counted on the mushaf's undiacritized text with the search
   normalization (alif forms folded to ا, lone hamza and tatweel dropped). A phrase counts as a
   whole-word sequence inside one ayah (so «رب العالمين» does not count «لرب العالمين»); `page` is the
-  ayah's starting page.
+  ayah's starting page (the first page of a boundary range such as `"85-86"`).
 - `text` is 1–300 chars and at most 12 words (`422` otherwise, or when it has no letters to count).
   Cached like search (`public, max-age=600`).
 

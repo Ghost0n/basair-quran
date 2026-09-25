@@ -14,6 +14,7 @@ from src.app.routes import (
     companions_router,
     health_router,
     mushafs_router,
+    offline_router,
     reader_router,
     research_router,
     search_router,
@@ -119,6 +120,7 @@ def create_app() -> FastAPI:
             {"name": "reader", "description": "Reader and Quran page endpoints."},
             {"name": "research", "description": "Strict-context Quran research agent endpoints."},
             {"name": "community", "description": "Publishing, feed, likes, comments, reports and moderation."},
+            {"name": "offline", "description": "Downloadable data packs for the standalone app."},
         ],
     )
     app.add_middleware(
@@ -157,6 +159,8 @@ def create_app() -> FastAPI:
     # Community: reading is open; writes check the resolved user in the route.
     app.include_router(community_router, dependencies=open_dependencies)
     app.include_router(translations_router, dependencies=open_dependencies)
+    # The standalone app's pack downloads (open: a phone installs before any sign-in).
+    app.include_router(offline_router)
     app.include_router(research_router, dependencies=gated_dependencies)
     return app
 

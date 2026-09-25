@@ -84,6 +84,12 @@ def set_translations_db_path(path: str) -> None:
     _translations_db_path = Path(path)
 
 
+def get_offline_packs_path() -> str:
+    """The standalone app's downloadable packs (built by scripts/build_offline_packs.py)."""
+    raw_path = os.environ.get("QBASAIR_OFFLINE_PACKS_PATH")
+    return str(Path(raw_path) if raw_path else BASE_DIR / "build" / "offline")
+
+
 def get_research_sources_path() -> str:
     raw_path = os.environ.get("QBASAIR_RESEARCH_SOURCES_PATH")
     return str(Path(raw_path) if raw_path else _research_sources_path)
