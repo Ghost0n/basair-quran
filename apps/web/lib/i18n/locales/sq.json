@@ -836,5 +836,21 @@
  "يظهر في المجتمع للجميع": "I dukshëm për të gjithë në komunitet",
  "يفسّر": "Shpjegon",
  "يقابل": "Kundërvihet me",
- "يوصي بالرفض": "Rekomandon refuzimin"
+ "يوصي بالرفض": "Rekomandon refuzimin",
+ "اختر لغتك. تُنزَّل الواجهة وترجمة معاني القرآن بهذه اللغة، ويمكنك تغييرها لاحقًا من الإعدادات.": "Zgjidhni gjuhën. Shkarkohen ndërfaqja dhe një përkthim i kuptimeve të Kuranit në atë gjuhë; mund ta ndryshoni më vonë te Cilësimet.",
+ "التلاوات": "Leximet",
+ "التنزيلات": "Shkarkimet",
+ "الروايات": "Transmetimet (rivajetet)",
+ "السور المحفوظة: {0}": "Suret e ruajtura: {0}",
+ "الفهرس غير متاح دون اتصال.": "Katalogu nuk është i disponueshëm pa lidhje.",
+ "المصاحف والترجمات واللغات والتلاوات للاستعمال دون اتصال.": "Mus'hafë, përkthime, gjuhë dhe lexime për përdorim pa lidhje.",
+ "تحتاج هذه اللغة إلى اتصال لتنزيلها.": "Kjo gjuhë kërkon lidhje për t'u shkarkuar.",
+ "تحديث": "Përditëso",
+ "تعذّر التنزيل. تحقّق من الاتصال ثم أعد المحاولة.": "Shkarkimi dështoi. Kontrolloni lidhjen dhe provoni përsëri.",
+ "جارٍ تنزيل حزمة اللغة… {0}": "Po shkarkohet paketa e gjuhës… {0}",
+ "دون اتصال: الإنجليزية والعربية متاحتان الآن، وتُنزَّل اللغات الأخرى عند الاتصال.": "Pa lidhje: anglishtja dhe arabishtja janë të disponueshme tani; gjuhët e tjera shkarkohen kur të lidheni.",
+ "مثبّت": "E instaluar",
+ "مرحبًا بك في بصائر": "Mirë se vini në Basair",
+ "يتطلّب هذا القسم اتصالًا بالإنترنت.": "Kjo pjesë kërkon lidhje me internetin.",
+ "يعمل القرآن والبحث والدفتر دون اتصال؛ أما الاستوديو والمجتمع والحساب فتحتاج إلى الشبكة.": "Kurani, kërkimi dhe fletorja juaj funksionojnë pa lidhje; Studio, Komuniteti dhe llogaria juaj kanë nevojë për rrjetin."
 }

@@ -14,6 +14,7 @@ import {
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type { MushafItem, ReciterItem, SurahListItem } from "@q-basair/shared";
 
+import { APP_MODE } from "@/lib/app-mode/config";
 import { API_BASE_URL } from "@/lib/config";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { usePreferences } from "@/lib/preferences-context";
@@ -121,12 +122,26 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     (position: RecitationPosition, activeReciter: ReciterItem | null) => {
       const audio = audioRef.current;
       if (!audio || !activeReciter) return;
-      audio.src = `${activeReciter.audio_base}/${pad3(position.surah)}${pad3(position.ayah)}.mp3`;
-      audio.playbackRate = speed;
-      void audio.play().then(
-        () => setIsPlaying(true),
-        () => setIsPlaying(false),
-      );
+      const remote = `${activeReciter.audio_base}/${pad3(position.surah)}${pad3(position.ayah)}.mp3`;
+      const start = (src: string) => {
+        audio.src = src;
+        audio.playbackRate = speed;
+        void audio.play().then(
+          () => setIsPlaying(true),
+          () => setIsPlaying(false),
+        );
+      };
+      if (!APP_MODE) {
+        start(remote);
+        return;
+      }
+      // The standalone app plays a downloaded surah from the device.
+      void import("@/lib/app-mode/audio")
+        .then(({ localAudioUrl }) => localAudioUrl(activeReciter.id, position.surah, position.ayah))
+        .then(
+          (local) => start(local ?? remote),
+          () => start(remote),
+        );
     },
     [speed],
   );

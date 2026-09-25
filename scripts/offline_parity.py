@@ -170,6 +170,101 @@ def build_requests(db: Path, mushaf: int, sample: int, seed: int, has_translatio
     return requests
 
 
+def user_data_scenario(db: Path, mushaf: int) -> list[dict]:
+    """A scripted session over the user's own data (companion routes).
+
+    ``capture`` names the id a response returns so later steps can use it as
+    ``{name}`` (document ids are random, so they are compared by name).
+    """
+    with sqlite3.connect(f"file:{db}?mode=ro", uri=True) as connection:
+        surah, ayah, text = connection.execute(
+            "SELECT surah_id, number_in_surah, text_uthmani FROM ayahs WHERE mushaf_id = ? ORDER BY global_index LIMIT 1", (mushaf,)
+        ).fetchone()
+    quote = {"mushaf_id": mushaf, "surah_id": surah, "ayah": ayah, "text": ""}
+    document = {
+        "title": "بحث", "summary": "ملخص تجريبي", "tags": [" صبر ", "صبر", "", "x" * 50],
+        "sections": [
+            {"id": "s1", "kind": "ayahs", "ayahs": [quote, {**quote, "text": text}, {**quote, "text": "نص آخر"}, {**quote, "ayah": 280}]},
+            {"id": "s2", "kind": "ai_answer", "body": "جواب"},
+        ],
+        "references": [{"kind": "ayah", "label": "مرجع", "locator": f"{surah}:{ayah}"}, {"kind": "ayah", "label": "خطأ", "locator": "x"}],
+        "provenance": {"mode": "tafssir", "ai_sections": ["s2"], "created_from": "studio"},
+    }
+    steps: list[dict] = [
+        {"method": "GET", "url": "/api/user/preferences"},
+        {"method": "PATCH", "url": "/api/user/preferences", "body": {"theme": "light", "research": {"depth": "deep"}, "last_position": {"ayah_id": 5, "page": 2}}},
+        {"method": "PATCH", "url": "/api/user/preferences", "body": {"font_size": 30, "saved_pages": [{"page": 3, "mushaf_id": mushaf}], "translations": ["a", "b"]}},
+        {"method": "PATCH", "url": "/api/user/preferences", "body": {"font_size": 99}},
+        {"method": "GET", "url": "/api/user/preferences"},
+        {"method": "POST", "url": "/api/themes", "body": {"name": "  صبر  ", "color": "blue", "description": "  "}},
+        {"method": "POST", "url": "/api/themes", "body": {"name": "شكر"}},
+        {"method": "POST", "url": "/api/themes", "body": {"name": ""}},
+        {"method": "POST", "url": "/api/themes", "body": {"name": "x", "color": "pink"}},
+        {"method": "POST", "url": "/api/notebook", "body": {"ayah_id": 1, "mushaf_id": mushaf, "surah": "الفاتحة", "theme_ids": [2, 1, 2, 99]}},
+        {"method": "POST", "url": "/api/notebook", "body": {"ayah_id": 2, "note": "ملاحظة"}},
+        {"method": "POST", "url": "/api/notebook", "body": {"ayah_id": 0}},
+        {"method": "PUT", "url": "/api/notebook/2/themes", "body": {"theme_ids": [1]}},
+        {"method": "PUT", "url": "/api/notebook/99/themes", "body": {"theme_ids": [1]}},
+        {"method": "GET", "url": "/api/notebook"},
+        {"method": "GET", "url": "/api/themes"},
+        {"method": "PATCH", "url": "/api/themes/1", "body": {"name": " صبر جميل ", "description": " وصف "}},
+        {"method": "PATCH", "url": "/api/themes/99", "body": {"name": "x"}},
+        {"method": "PUT", "url": "/api/themes/1/board", "body": {"board": {"v": 1, "nodes": [{"id": "n1", "x": 1.5}], "edges": []}}},
+        {"method": "PUT", "url": "/api/themes/1/board", "body": {"board": {"blob": "x" * (300 * 1024)}}},
+        {"method": "GET", "url": "/api/themes/1"},
+        {"method": "GET", "url": "/api/themes/abc"},
+        {"method": "DELETE", "url": "/api/themes/2"},
+        {"method": "DELETE", "url": "/api/themes/2"},
+        {"method": "GET", "url": "/api/notebook"},
+        {"method": "GET", "url": "/api/themes"},
+        {"method": "DELETE", "url": "/api/notebook/1"},
+        {"method": "DELETE", "url": "/api/notebook/1"},
+        {"method": "POST", "url": "/api/sessions", "body": {"id": "s-1", "messages": [{"role": "user", "content": "سؤال"}]}},
+        {"method": "POST", "url": "/api/sessions", "body": {"id": "s-2", "title": "ثانية", "mode": "tafssir"}},
+        {"method": "POST", "url": "/api/sessions", "body": {"id": "s-1", "title": "أولى", "messages": []}},
+        {"method": "POST", "url": "/api/sessions", "body": {"id": "s-3", "messages": [{"t": "x" * (600 * 1024)}]}},
+        {"method": "GET", "url": "/api/sessions"},
+        {"method": "GET", "url": "/api/sessions/s-1"},
+        {"method": "GET", "url": "/api/sessions/none"},
+        {"method": "DELETE", "url": "/api/sessions/s-2"},
+        {"method": "POST", "url": "/api/roots", "body": {"root_text": " رحم ", "root_id": 3, "occurrences": 339}},
+        {"method": "POST", "url": "/api/roots", "body": {"root_text": "رحم"}},
+        {"method": "POST", "url": "/api/roots", "body": {"root_text": "علم"}},
+        {"method": "GET", "url": "/api/roots"},
+        {"method": "DELETE", "url": "/api/roots/1"},
+        {"method": "POST", "url": "/api/documents", "body": document, "capture": "doc1"},
+        {"method": "POST", "url": "/api/documents", "body": {"title": "ثان", "sections": [{"id": "a"}, {"id": "a"}]}},
+        {"method": "POST", "url": "/api/documents", "body": {"title": "ثالث", "sections": [{"id": "a", "body": "نص"}]}, "capture": "doc2"},
+        {"method": "GET", "url": "/api/documents/{doc1}"},
+        {"method": "GET", "url": "/api/documents/{doc1}/audit"},
+        {"method": "PUT", "url": "/api/documents/{doc1}", "body": {**document, "title": "بحث معدل", "provenance": {"mode": "strict"}}},
+        {"method": "GET", "url": "/api/documents/{doc1}/audit"},
+        {"method": "GET", "url": "/api/documents/{doc2}/audit"},
+        {"method": "PUT", "url": "/api/documents/doc-missing", "body": {"title": "x"}},
+        {"method": "GET", "url": "/api/documents"},
+        {"method": "DELETE", "url": "/api/documents/{doc2}"},
+        {"method": "GET", "url": "/api/documents"},
+    ]
+    return [{**step, "user_data": True} for step in steps]
+
+
+class _Missing(dict):
+    """A step that uses an id nobody captured keeps the placeholder (and gets a 404)."""
+
+    def __missing__(self, key: str) -> str:
+        return key
+
+
+def _mask_ids(value, names: dict[str, str]):
+    if isinstance(value, dict):
+        return {k: _mask_ids(v, names) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_mask_ids(v, names) for v in value]
+    if isinstance(value, str) and value in names:
+        return "{" + names[value] + "}"
+    return value
+
+
 def record(requests: list[dict], db: Path, translations: Path | None) -> list[dict]:
     sys.path.insert(0, str(ROOT))
     try:
@@ -181,20 +276,35 @@ def record(requests: list[dict], db: Path, translations: Path | None) -> list[di
     finally:
         sys.path.pop(0)
 
+    from src.app.services import app_data_service, research_document_service
+
     main.set_db_path(str(db))
     config.set_translations_db_path(str(translations or (Path(tempfile.gettempdir()) / "qbasair-no-translations.db")))
     translation_service.reset_connection()
+    # User data: a fresh store and a clock that ticks once per request (the engine replays the same clock).
+    app_db = Path(tempfile.mkdtemp(prefix="qbasair-parity-")) / "app_data.db"
+    original_app_db = main.get_app_db_path()
+    main.set_app_db_path(str(app_db))
+    app_data_service.ensure_app_db()
+    clock = {"now": 1_700_000_000}
+    fake_time = type("FakeTime", (), {"time": staticmethod(lambda: clock["now"])})
+    real_times = (app_data_service.time, research_document_service.time)
+    app_data_service.time = research_document_service.time = fake_time
+    captures: dict[str, str] = {}
     cases = []
     with TestClient(main.app) as client:
         pending = list(requests)
         while pending:
             request = pending.pop(0)
-            if request["method"] == "POST":
-                response = client.post(request["url"], json=request.get("body"))
-            else:
-                response = client.get(request["url"])
+            clock["now"] += 1
+            url = request["url"].format_map(_Missing(captures)) if request.get("user_data") else request["url"]
+            response = client.request(request["method"], url, json=request.get("body"))
             body = response.json()
-            cases.append({**request, "status": response.status_code, "json": body})
+            if request.get("capture") and response.status_code == 200:
+                captures[request["capture"]] = body["id"]
+            if request.get("user_data"):
+                body = _mask_ids(body, {value: name for name, value in captures.items()})
+            cases.append({**request, "status": response.status_code, "json": body, "clock": clock["now"]})
             # Follow a paginated result to its next page, as the UI does.
             if request["url"].startswith("/api/search-v2") and response.status_code == 200 and not request.get("followed"):
                 for result in body.get("results", [])[:2]:
@@ -203,6 +313,8 @@ def record(requests: list[dict], db: Path, translations: Path | None) -> list[di
                         extra = urlencode({"result_key": result["result_key"], "page": min(result["total_pages"], 2 + len(cases) % 3)})
                         pending.append({"method": "GET", "url": f"{base}&{extra}", "followed": True})
     main.close_db_connection()
+    app_data_service.time, research_document_service.time = real_times
+    main.set_app_db_path(original_app_db)
     return [{k: v for k, v in case.items() if k != "followed"} for case in cases]
 
 
@@ -243,7 +355,7 @@ def main_cli(argv: list[str] | None = None) -> int:
     if not db.exists():
         print(f"{db} not found — run python scripts/build_offline_packs.py first (or pass --fixture)")
         return 1
-    requests = build_requests(db, mushaf, args.sample, args.seed, translations is not None)
+    requests = build_requests(db, mushaf, args.sample, args.seed, translations is not None) + user_data_scenario(db, mushaf)
     cases = record(requests, db, translations)
     manifest = {"quran_db": str(db), "translations_db": str(translations) if translations else None, "mushaf": mushaf, "cases": cases}
     (args.out / "cases.json").write_text(json.dumps(manifest, ensure_ascii=False) + "\n", encoding="utf-8")

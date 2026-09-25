@@ -836,5 +836,21 @@
  "يظهر في المجتمع للجميع": "Visible par tous dans la communauté",
  "يفسّر": "Explique",
  "يقابل": "S'oppose à",
- "يوصي بالرفض": "Recommande le refus"
+ "يوصي بالرفض": "Recommande le refus",
+ "اختر لغتك. تُنزَّل الواجهة وترجمة معاني القرآن بهذه اللغة، ويمكنك تغييرها لاحقًا من الإعدادات.": "Choisissez votre langue. L'interface et une traduction du sens du Coran dans cette langue sont téléchargées ; vous pourrez la changer plus tard dans les Réglages.",
+ "التلاوات": "Récitations",
+ "التنزيلات": "Téléchargements",
+ "الروايات": "Lectures (riwāyāt)",
+ "السور المحفوظة: {0}": "Sourates enregistrées : {0}",
+ "الفهرس غير متاح دون اتصال.": "Le catalogue n'est pas disponible hors ligne.",
+ "المصاحف والترجمات واللغات والتلاوات للاستعمال دون اتصال.": "Moushafs, traductions, langues et récitations pour une utilisation hors ligne.",
+ "تحتاج هذه اللغة إلى اتصال لتنزيلها.": "Cette langue nécessite une connexion pour être téléchargée.",
+ "تحديث": "Mettre à jour",
+ "تعذّر التنزيل. تحقّق من الاتصال ثم أعد المحاولة.": "Le téléchargement a échoué. Vérifiez votre connexion et réessayez.",
+ "جارٍ تنزيل حزمة اللغة… {0}": "Téléchargement du pack de langue… {0}",
+ "دون اتصال: الإنجليزية والعربية متاحتان الآن، وتُنزَّل اللغات الأخرى عند الاتصال.": "Hors ligne : l'anglais et l'arabe sont disponibles dès maintenant ; les autres langues se téléchargent une fois connecté.",
+ "مثبّت": "Installé",
+ "مرحبًا بك في بصائر": "Bienvenue sur Basair",
+ "يتطلّب هذا القسم اتصالًا بالإنترنت.": "Cette section nécessite une connexion Internet.",
+ "يعمل القرآن والبحث والدفتر دون اتصال؛ أما الاستوديو والمجتمع والحساب فتحتاج إلى الشبكة.": "Le Coran, la recherche et votre carnet fonctionnent hors ligne ; le Studio, la Communauté et votre compte ont besoin du réseau."
 }

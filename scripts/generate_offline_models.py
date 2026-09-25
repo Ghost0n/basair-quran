@@ -31,9 +31,32 @@ ROOT_MODELS = [
     "LegacySearchResponse", "PaginatedSearchResponse", "SearchResultPageResponse", "RootDistributionResponse",
     "AyahReaderResponse", "AyahReaderMoreResponse", "QuranPageResponse", "MushafPageLayoutResponse",
     "TextCountResponse", "MorphologyResponse", "TranslationInfo", "TranslationAyahsResponse",
+    # The user's own data, kept on the device (notebook, themes, sessions, roots, documents, preferences).
+    "NotebookItem", "NotebookItemCreate", "NotebookItemThemes", "ThemeSummary", "ThemeDetail", "ThemeCreate",
+    "ThemeUpdate", "ThemeBoardSave", "ResearchSessionSummary", "ResearchSessionDetail", "ResearchSessionSave",
+    "ResearchDocumentSave", "ResearchDocument", "ResearchDocumentSummary", "DocumentAudit", "FollowedRoot",
+    "FollowedRootCreate", "DeleteResult", "UserPreferences", "UserPreferencesUpdate",
+]
+
+# Constants the local user-data store enforces exactly like the server.
+CONSTANTS = [
+    "THEME_COLORS", "MAX_THEMES_PER_USER", "MAX_THEMES_PER_ITEM", "MAX_THEME_BOARD_BYTES", "MAX_SESSION_MESSAGES_BYTES",
+    "MAX_DOCUMENT_BYTES", "MAX_DOCUMENTS_PER_USER", "RESEARCH_DOCUMENT_VERSION", "MUSHAF_EDITION_IDS",
+    "DEFAULT_MUSHAF_EDITION",
 ]
 
 SCALARS = {int: "int", float: "float", str: "str", bool: "bool"}
+
+
+def _constraints(metadata) -> dict:
+    """min/max length and ge/le bounds from a field's (or Annotated type's) metadata."""
+    out: dict = {}
+    for item in metadata or []:
+        for attr, key in (("min_length", "min_length"), ("max_length", "max_length"), ("ge", "ge"), ("le", "le")):
+            value = getattr(item, attr, None)
+            if value is not None:
+                out[key] = value
+    return out
 
 
 def _type(annotation, models: dict, pending: list) -> dict:
@@ -41,6 +64,12 @@ def _type(annotation, models: dict, pending: list) -> dict:
 
     origin = typing.get_origin(annotation)
     args = typing.get_args(annotation)
+    if origin is typing.Annotated:
+        return {**_type(args[0], models, pending), **_constraints(args[1:])}
+    if annotation is typing.Any:
+        return {"kind": "any"}
+    if annotation is dict or origin in (dict, typing.Dict):
+        return {"kind": "dict"}
     if origin in (typing.Union, types.UnionType):
         members = [a for a in args if a is not type(None)]
         inner = _type(members[0], models, pending) if len(members) == 1 else {"kind": "union", "of": [_type(m, models, pending) for m in members]}
@@ -83,9 +112,10 @@ def build_spec() -> dict:
         model = getattr(api, name)
         fields = []
         for field_name, info in model.model_fields.items():
-            field = {"name": field_name, "type": _type(info.annotation, models, pending)}
+            field = {"name": field_name, "type": {**_type(info.annotation, models, pending), **_constraints(info.metadata)}}
             if info.default_factory is not None:
-                field["default"] = info.default_factory()
+                default = info.default_factory()
+                field["default"] = default.model_dump(mode="json") if hasattr(default, "model_dump") else default
             elif info.default is not PydanticUndefined:
                 field["default"] = info.default
             fields.append(field)
@@ -93,7 +123,20 @@ def build_spec() -> dict:
     return dict(sorted(models.items()))
 
 
-def render(spec: dict, reciter_list: list[dict]) -> str:
+def constants() -> dict:
+    sys.path.insert(0, str(ROOT))
+    try:
+        from src.app.models import api
+        from src.app.services import app_data_service
+    finally:
+        sys.path.pop(0)
+    values = {name: getattr(api, name) for name in CONSTANTS}
+    values["DEFAULT_PREFERENCES"] = app_data_service.DEFAULT_PREFERENCES
+    values["DEFAULT_USER_ID"] = app_data_service.DEFAULT_USER_ID
+    return {name: list(value) if isinstance(value, tuple) else value for name, value in values.items()}
+
+
+def render(spec: dict, reciter_list: list[dict], constant_values: dict | None = None) -> str:
     dump = lambda value: json.dumps(value, ensure_ascii=False)  # noqa: E731
     body = "{\n" + ",\n".join(
         f"  {dump(name)}: [\n" + ",\n".join(f"    {dump(field)}" for field in fields) + "\n  ]"
@@ -105,7 +148,9 @@ def render(spec: dict, reciter_list: list[dict]) -> str:
         'import type { ModelSpec } from "./shape";\n\n'
         f"export const MODELS: Record<string, ModelSpec> = {body};\n\n"
         "// src/app/services/reciter_service.py (audio streams from each reciter's public audio_base).\n"
-        "export const RECITERS = [\n" + "".join(f"  {dump(r)},\n" for r in reciter_list) + "];\n"
+        "export const RECITERS = [\n" + "".join(f"  {dump(r)},\n" for r in reciter_list) + "];\n\n"
+        "// src/app/models/api.py and src/app/services/app_data_service.py constants.\n"
+        + "".join(f"export const {name} = {dump(value)};\n" for name, value in (constant_values or {}).items())
     )
 
 
@@ -113,7 +158,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--check", action="store_true", help="fail if the generated file is out of date")
     args = parser.parse_args(argv)
-    content = render(build_spec(), reciters())
+    content = render(build_spec(), reciters(), constants())
     if args.check:
         current = OUTPUT.read_text(encoding="utf-8") if OUTPUT.exists() else ""
         if current != content:

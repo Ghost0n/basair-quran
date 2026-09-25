@@ -836,5 +836,21 @@
  "يظهر في المجتمع للجميع": "İcmada hamıya görünür",
  "يفسّر": "İzah edir",
  "يقابل": "Ziddir",
- "يوصي بالرفض": "Rəddi tövsiyə edir"
+ "يوصي بالرفض": "Rəddi tövsiyə edir",
+ "اختر لغتك. تُنزَّل الواجهة وترجمة معاني القرآن بهذه اللغة، ويمكنك تغييرها لاحقًا من الإعدادات.": "Dilinizi seçin. İnterfeys və Quranın mənalarının bu dildə tərcüməsi yüklənir; sonra Ayarlardan dəyişə bilərsiniz.",
+ "التلاوات": "Qiraətlər",
+ "التنزيلات": "Yükləmələr",
+ "الروايات": "Rəvayətlər",
+ "السور المحفوظة: {0}": "Saxlanmış surələr: {0}",
+ "الفهرس غير متاح دون اتصال.": "Kataloq oflayn mövcud deyil.",
+ "المصاحف والترجمات واللغات والتلاوات للاستعمال دون اتصال.": "Oflayn istifadə üçün mushaflar, tərcümələr, dillər və qiraətlər.",
+ "تحتاج هذه اللغة إلى اتصال لتنزيلها.": "Bu dili yükləmək üçün bağlantı lazımdır.",
+ "تحديث": "Yenilə",
+ "تعذّر التنزيل. تحقّق من الاتصال ثم أعد المحاولة.": "Yükləmə alınmadı. Bağlantını yoxlayın və yenidən cəhd edin.",
+ "جارٍ تنزيل حزمة اللغة… {0}": "Dil paketi yüklənir… {0}",
+ "دون اتصال: الإنجليزية والعربية متاحتان الآن، وتُنزَّل اللغات الأخرى عند الاتصال.": "Oflayn: ingilis və ərəb dilləri indi mövcuddur; digər dillər bağlandıqda yüklənir.",
+ "مثبّت": "Quraşdırılıb",
+ "مرحبًا بك في بصائر": "Basair-ə xoş gəlmisiniz",
+ "يتطلّب هذا القسم اتصالًا بالإنترنت.": "Bu bölmə internet bağlantısı tələb edir.",
+ "يعمل القرآن والبحث والدفتر دون اتصال؛ أما الاستوديو والمجتمع والحساب فتحتاج إلى الشبكة.": "Quran, axtarış və dəftəriniz oflayn işləyir; Studiya, İcma və hesabınız şəbəkə tələb edir."
 }

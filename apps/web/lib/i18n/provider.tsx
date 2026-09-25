@@ -30,10 +30,23 @@ const I18nContext = createContext<I18nValue>({
 
 const cache = new Map<string, Promise<Dictionary>>();
 
+/**
+ * The web app bundles every dictionary (one chunk each). The standalone app
+ * bundles only English and reads the others from downloaded interface packs;
+ * the build-time constant keeps the other chunks out of its export.
+ */
+const importDictionary: (code: string) => Promise<Dictionary> =
+  process.env.NEXT_PUBLIC_APP_MODE === "1"
+    ? (code) =>
+        code === "en"
+          ? import("./locales/en.json").then((module) => (module.default ?? module) as Dictionary)
+          : import("@/lib/app-mode/interface-packs").then(({ installedDictionary }) => installedDictionary(code) as Promise<Dictionary>)
+    : (code) => import(`./locales/${code}.json`).then((module) => (module.default ?? module) as Dictionary);
+
 function loadDictionary(code: string): Promise<Dictionary> {
   let pending = cache.get(code);
   if (!pending) {
-    pending = import(`./locales/${code}.json`).then((module) => (module.default ?? module) as Dictionary);
+    pending = importDictionary(code);
     cache.set(code, pending);
     pending.catch(() => cache.delete(code));
   }
@@ -92,7 +105,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
         ]);
         setActiveDictionary(info.code, messages, fallback);
       } catch {
-        return; // dictionary unavailable: stay in the current language
+        // Dictionary unavailable: stay in the current language (the app build
+        // falls back to its bundled English when a language pack is missing).
+        if (process.env.NEXT_PUBLIC_APP_MODE === "1" && info.code !== "en") return apply("en", false);
+        return;
       }
     }
     applyDocument(info);
@@ -113,7 +129,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const stored = readStored();
     if (stored) setExplicit(true);
-    const initial = stored ?? matchLocale(navigator.languages?.length ? [navigator.languages[0]] : [navigator.language]);
+    // The standalone app starts in English until onboarding asks for a language.
+    const initial =
+      stored ??
+      (process.env.NEXT_PUBLIC_APP_MODE === "1" ? "en" : matchLocale(navigator.languages?.length ? [navigator.languages[0]] : [navigator.language]));
     if (initial === SOURCE_LOCALE) {
       applyDocument(localeInfo(SOURCE_LOCALE));
       reveal();

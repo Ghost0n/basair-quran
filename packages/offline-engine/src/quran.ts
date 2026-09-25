@@ -207,6 +207,28 @@ export class QuranEngine {
     return row ? row.text_uthmani : null;
   }
 
+  /** get_ayah_verse: one ayah as a search-verse record (no highlights), or null. */
+  async getAyahVerse(mushafId: number, surah: number, ayah: number): Promise<Row | null> {
+    const row = await one(
+      this.db,
+      `SELECT a.id AS ayah_id, a.mushaf_id, s.name_arabic AS surah_name, a.surah_id, a.number_in_surah, a.text_uthmani, a.global_index
+       FROM ayahs a JOIN surahs s ON s.id = a.surah_id
+       WHERE a.mushaf_id = ? AND a.surah_id = ? AND a.number_in_surah = ?`,
+      [mushafId, surah, ayah],
+    );
+    if (row === null) return null;
+    return {
+      ayah_id: row.ayah_id,
+      mushaf_id: row.mushaf_id,
+      surah: row.surah_name,
+      surah_id: row.surah_id,
+      ayah: row.number_in_surah,
+      text: row.text_uthmani,
+      global_index: row.global_index,
+      highlights: [],
+    };
+  }
+
   // --- surfaces ---------------------------------------------------------------
 
   async resolveExactWordSurfaces(qSimple: string): Promise<string[]> {

@@ -16,9 +16,17 @@ together by a parity suite, not by trust.
 | `GET /api/quran-page`, `/api/mushaf-page-layout`, `/api/ayah-reader`, `/api/ayah-reader-more`, `/api/text-count`, `/api/morphology` | `src/app/routes/reader.py` + `quran_service.py`, `morphology_service.py` |
 | `GET /api/translations`, `/api/translations/ayahs` | `src/app/routes/translations.py` + `translation_service.py` |
 
-Everything else — accounts, the research agent, Community, notebook sync — is
-not answered on the device: `OfflineApi.handle()` returns `null` and the app
-decides (the network when online, an explicit offline state otherwise).
+With a `userData` storage, it also answers the user's own data — notebook,
+themes and boards, research documents (with quoted-ayah verification and the
+publication audit), research sessions, followed roots and preferences — from
+a local JSON store (`src/local-store.ts`, ported from `app_data_service.py`
+and `research_document_service.py`): same validation, limits, ordering and
+shapes, plus tombstones for account sync.
+
+Everything else — accounts, the research agent, Community — is not answered
+on the device: `OfflineApi.handle()` returns `null` and the app decides (the
+network when online, an explicit offline state otherwise; see
+`docs/offline-app.md`).
 
 ```ts
 import { OfflineApi } from "@q-basair/offline-engine";
@@ -74,7 +82,12 @@ requests drawn from the database itself — words (plain and diacritized), roots
 2–3-word phrases, typos of both (did-you-mean), prefixes (suggestions), Latin
 transliterations, the follow-up result pages, reader pages and locators, page
 layouts, ayah readers, counts, morphology, translations, and invalid input — and
-records each status and JSON. The test requires identical JSON (and, for
+records each status and JSON. It then plays a scripted session over the
+user's own data (themes, notebook, boards, sessions, roots, documents with
+matching / mismatching / missing quotes, audits, preferences, and every error
+case) against a fresh store with a clock that ticks once per request; the
+engine replays it with the same clock (random document ids are compared by
+name). The test requires identical JSON (and, for
 FastAPI's own validation errors, the same status). Other databases and
 narrations: `--db data/quran.db --mushaf 1` (add `morphology_segments` for the
 morphology cases), `--seed`, `--sample`.

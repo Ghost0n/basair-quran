@@ -817,5 +817,21 @@
  "يظهر في المجتمع للجميع": "Tampil untuk semua orang di komunitas",
  "يفسّر": "Menjelaskan",
  "يقابل": "Berlawanan dengan",
- "يوصي بالرفض": "Menyarankan penolakan"
+ "يوصي بالرفض": "Menyarankan penolakan",
+ "اختر لغتك. تُنزَّل الواجهة وترجمة معاني القرآن بهذه اللغة، ويمكنك تغييرها لاحقًا من الإعدادات.": "Pilih bahasa Anda. Antarmuka dan terjemahan makna Al-Qur'an dalam bahasa itu akan diunduh; Anda dapat mengubahnya nanti di Pengaturan.",
+ "التلاوات": "Tilawah",
+ "التنزيلات": "Unduhan",
+ "الروايات": "Riwayat bacaan",
+ "السور المحفوظة: {0}": "Surah tersimpan: {0}",
+ "الفهرس غير متاح دون اتصال.": "Katalog tidak tersedia saat offline.",
+ "المصاحف والترجمات واللغات والتلاوات للاستعمال دون اتصال.": "Mushaf, terjemahan, bahasa, dan tilawah untuk digunakan secara offline.",
+ "تحتاج هذه اللغة إلى اتصال لتنزيلها.": "Bahasa ini memerlukan koneksi untuk diunduh.",
+ "تحديث": "Perbarui",
+ "تعذّر التنزيل. تحقّق من الاتصال ثم أعد المحاولة.": "Unduhan gagal. Periksa koneksi Anda lalu coba lagi.",
+ "جارٍ تنزيل حزمة اللغة… {0}": "Mengunduh paket bahasa… {0}",
+ "دون اتصال: الإنجليزية والعربية متاحتان الآن، وتُنزَّل اللغات الأخرى عند الاتصال.": "Offline: bahasa Inggris dan Arab tersedia sekarang; bahasa lain diunduh setelah Anda terhubung.",
+ "مثبّت": "Terpasang",
+ "مرحبًا بك في بصائر": "Selamat datang di Basair",
+ "يتطلّب هذا القسم اتصالًا بالإنترنت.": "Bagian ini memerlukan koneksi internet.",
+ "يعمل القرآن والبحث والدفتر دون اتصال؛ أما الاستوديو والمجتمع والحساب فتحتاج إلى الشبكة.": "Al-Qur'an, pencarian, dan buku catatan Anda berfungsi offline; Studio, Komunitas, dan akun Anda memerlukan jaringan."
 }

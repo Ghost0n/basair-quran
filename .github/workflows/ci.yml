@@ -51,6 +51,10 @@ jobs:
         run: pnpm --filter @q-basair/web i18n:check
       - name: Build web
         run: pnpm --filter @q-basair/web build
+      - name: Build the standalone app bundle (static export)
+        env:
+          NEXT_PUBLIC_APP_MODE: "1"
+        run: pnpm --filter @q-basair/web exec next build
 
   offline-engine:
     name: Offline engine (server parity)

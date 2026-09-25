@@ -5,7 +5,7 @@ const apiOrigin = process.env.QBASAIR_API_ORIGIN ?? "http://127.0.0.1:8001";
 const workspaceRoot = fileURLToPath(new URL("../..", import.meta.url));
 const standaloneOutput = process.env.NEXT_STANDALONE === "1";
 
-const nextConfig: NextConfig = {
+const webConfig: NextConfig = {
   ...(standaloneOutput
     ? {
         output: "standalone" as const,
@@ -33,4 +33,14 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// The standalone (Android) app: a static export (`out/`) served from the
+// device, with /api answered on the device (lib/app-mode). There is no server,
+// so no rewrites, headers or middleware (".tsx" pages only leaves middleware.ts out).
+const appConfig: NextConfig = {
+  output: "export",
+  pageExtensions: ["app.tsx", "tsx", "ts", "jsx", "js"],
+  images: { unoptimized: true },
+  distDir: "out",
+};
+
+export default process.env.NEXT_PUBLIC_APP_MODE === "1" ? appConfig : webConfig;

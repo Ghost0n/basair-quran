@@ -836,5 +836,21 @@
  "يظهر في المجتمع للجميع": "Unaonekana kwa wote katika jumuiya",
  "يفسّر": "Inafasiri",
  "يقابل": "Inalinganisha na",
- "يوصي بالرفض": "Inapendekeza kukataa"
+ "يوصي بالرفض": "Inapendekeza kukataa",
+ "اختر لغتك. تُنزَّل الواجهة وترجمة معاني القرآن بهذه اللغة، ويمكنك تغييرها لاحقًا من الإعدادات.": "Chagua lugha yako. Kiolesura na tafsiri ya maana za Qur'ani kwa lugha hiyo vitapakuliwa; unaweza kuibadilisha baadaye katika Mipangilio.",
+ "التلاوات": "Visomo",
+ "التنزيلات": "Vipakuliwa",
+ "الروايات": "Riwaya",
+ "السور المحفوظة: {0}": "Sura zilizohifadhiwa: {0}",
+ "الفهرس غير متاح دون اتصال.": "Katalogi haipatikani bila mtandao.",
+ "المصاحف والترجمات واللغات والتلاوات للاستعمال دون اتصال.": "Misahafu, tafsiri, lugha na visomo kwa matumizi bila mtandao.",
+ "تحتاج هذه اللغة إلى اتصال لتنزيلها.": "Lugha hii inahitaji muunganisho ili kupakuliwa.",
+ "تحديث": "Sasisha",
+ "تعذّر التنزيل. تحقّق من الاتصال ثم أعد المحاولة.": "Upakuaji umeshindikana. Angalia muunganisho wako kisha ujaribu tena.",
+ "جارٍ تنزيل حزمة اللغة… {0}": "Inapakua kifurushi cha lugha… {0}",
+ "دون اتصال: الإنجليزية والعربية متاحتان الآن، وتُنزَّل اللغات الأخرى عند الاتصال.": "Bila mtandao: Kiingereza na Kiarabu vinapatikana sasa; lugha nyingine zitapakuliwa ukiunganishwa.",
+ "مثبّت": "Imesakinishwa",
+ "مرحبًا بك في بصائر": "Karibu Basair",
+ "يتطلّب هذا القسم اتصالًا بالإنترنت.": "Sehemu hii inahitaji muunganisho wa intaneti.",
+ "يعمل القرآن والبحث والدفتر دون اتصال؛ أما الاستوديو والمجتمع والحساب فتحتاج إلى الشبكة.": "Qur'ani, utafutaji na daftari lako hufanya kazi bila mtandao; Studio, Jumuiya na akaunti yako vinahitaji mtandao."
 }

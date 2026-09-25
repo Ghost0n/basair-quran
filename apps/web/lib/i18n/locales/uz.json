@@ -836,5 +836,21 @@
  "يظهر في المجتمع للجميع": "Hamjamiyatdagi hammaga ko‘rinadi",
  "يفسّر": "Tushuntiradi",
  "يقابل": "Qarama-qarshi",
- "يوصي بالرفض": "Rad etishni tavsiya qiladi"
+ "يوصي بالرفض": "Rad etishni tavsiya qiladi",
+ "اختر لغتك. تُنزَّل الواجهة وترجمة معاني القرآن بهذه اللغة، ويمكنك تغييرها لاحقًا من الإعدادات.": "Tilingizni tanlang. Interfeys va Qur'on ma'nolarining shu tildagi tarjimasi yuklab olinadi; keyin Sozlamalarda o'zgartirishingiz mumkin.",
+ "التلاوات": "Qiroatlar",
+ "التنزيلات": "Yuklab olinganlar",
+ "الروايات": "Rivoyatlar",
+ "السور المحفوظة: {0}": "Saqlangan suralar: {0}",
+ "الفهرس غير متاح دون اتصال.": "Katalog oflayn rejimda mavjud emas.",
+ "المصاحف والترجمات واللغات والتلاوات للاستعمال دون اتصال.": "Oflayn foydalanish uchun mushaflar, tarjimalar, tillar va qiroatlar.",
+ "تحتاج هذه اللغة إلى اتصال لتنزيلها.": "Bu tilni yuklab olish uchun ulanish kerak.",
+ "تحديث": "Yangilash",
+ "تعذّر التنزيل. تحقّق من الاتصال ثم أعد المحاولة.": "Yuklab bo'lmadi. Ulanishni tekshiring va qayta urinib ko'ring.",
+ "جارٍ تنزيل حزمة اللغة… {0}": "Til paketi yuklanmoqda… {0}",
+ "دون اتصال: الإنجليزية والعربية متاحتان الآن، وتُنزَّل اللغات الأخرى عند الاتصال.": "Oflayn: ingliz va arab tillari hozir mavjud; boshqa tillar ulanganingizda yuklanadi.",
+ "مثبّت": "O'rnatilgan",
+ "مرحبًا بك في بصائر": "Basair'ga xush kelibsiz",
+ "يتطلّب هذا القسم اتصالًا بالإنترنت.": "Bu bo'lim internet ulanishini talab qiladi.",
+ "يعمل القرآن والبحث والدفتر دون اتصال؛ أما الاستوديو والمجتمع والحساب فتحتاج إلى الشبكة.": "Qur'on, qidiruv va daftaringiz oflayn ishlaydi; Studiya, Hamjamiyat va hisobingiz tarmoqni talab qiladi."
 }
