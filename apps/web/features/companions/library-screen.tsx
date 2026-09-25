@@ -138,7 +138,9 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                       </div>
                       <div className="meta">
                         <ThemeDots themeIds={item.theme_ids ?? []} themeById={themeById} />
-                        {item.text ? `${item.text.slice(0, 64)}` : ""}، {relativeAge(item.created_at)}
+                        {item.text ? <span className="qb-quran-snip">{item.text.slice(0, 64)}</span> : null}
+                        {item.text ? "، " : ""}
+                        {relativeAge(item.created_at, formatNumber)}
                       </div>
                     </button>
                     <button type="button" className="row-action" aria-label="حذف" onClick={() => void companions.deleteNotebookItem(item.id)}>

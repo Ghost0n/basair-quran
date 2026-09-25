@@ -291,8 +291,8 @@
   background-color: var(--glass-tint-strong);
   background-image: var(--glass-sheen);
   box-shadow: var(--glass-edge), var(--glass-shadow-lift);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
   animation: qbPopIn var(--motion-dur-base) var(--spring-soft) both;
   transform-origin: top center;
   z-index: 200;
@@ -409,8 +409,8 @@
   background-color: var(--glass-tint-strong);
   background-image: var(--glass-sheen);
   box-shadow: var(--glass-edge), var(--glass-shadow-lift);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
   animation: qbPopIn var(--motion-dur-base) var(--spring-soft) both;
   transform-origin: top center;
   max-height: 360px;
@@ -541,10 +541,11 @@
 }
 
 .qb-placeholder-card h2 {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   color: var(--gold-text);
   font-size: var(--fs-2xl);
   margin-bottom: 12px;
+  line-height: var(--lh-heading);
 }
 
 .qb-placeholder-card p {

@@ -44,10 +44,11 @@
 /* The brand, whispered — the shell rail carries the seal; the wordmark appears
    here only so the product name exists somewhere visible on first paint. */
 .qb-home-ayah-hero .kicker {
-  font-family: var(--font-arabic-kufi);
+  font-family: var(--font-arabic-heading);
   font-size: var(--fs-xs);
   letter-spacing: var(--tracking-uppercase);
   color: var(--fg-mute);
+  line-height: var(--lh-heading);
 }
 
 .qb-home-ayah-hero .ayah-text {
@@ -183,8 +184,8 @@
   background-image: var(--glass-sheen);
   border: 1px solid var(--glass-rim);
   box-shadow: var(--glass-edge), 0 8px 24px rgba(0, 0, 0, 0.14);
-  -webkit-backdrop-filter: blur(16px) saturate(var(--glass-saturate));
-  backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border-radius: var(--r-xl);
 }
 
@@ -217,9 +218,9 @@
 }
 
 .qb-home-gridcard .lead {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   font-size: var(--fs-lg);
-  line-height: 1.5;
+  line-height: var(--lh-heading);
   color: var(--fg-1);
   margin-top: 6px;
   overflow: hidden;
@@ -227,6 +228,8 @@
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  /* Room for Arabic marks inside the clamp. */
+  padding-block: 0.3em;
 }
 
 .qb-home-gridcard .lead.sm {
@@ -302,8 +305,8 @@
   background-image: var(--glass-sheen);
   border: 1px solid var(--glass-rim);
   box-shadow: var(--glass-edge), 0 8px 24px rgba(0, 0, 0, 0.14);
-  -webkit-backdrop-filter: blur(16px) saturate(var(--glass-saturate));
-  backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border-radius: var(--r-lg);
 }
 
@@ -327,6 +330,9 @@
 .qb-home-card .hint {
   min-width: 0;
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   white-space: nowrap;
   text-overflow: ellipsis;
   font-size: var(--fs-xs);
@@ -379,9 +385,10 @@
 }
 
 .qb-home-saved .chip .s {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   font-size: var(--fs-sm);
   color: var(--fg-1);
+  line-height: var(--lh-heading);
 }
 
 .qb-home-saved .chip .p {
@@ -448,6 +455,9 @@
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   white-space: nowrap;
   text-overflow: ellipsis;
   color: var(--fg-1);

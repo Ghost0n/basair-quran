@@ -28,10 +28,37 @@ Q-Basair's UI is one material and a few primitives, defined once in `apps/web/ap
 | Command bar | Glass capsule; a gold focus ring in search mode |
 | Reader / board / document / post bars | Glass capsules (radius 22px) |
 | Tab bar (phones) | Floating glass dock (radius 24px) above the safe area |
-| Side panels (search, Studio) | Floating glass panes beside the mushaf (radius 26px) |
-| Sheets, popovers, menus | Strong tint (`--glass-tint-strong`), 28px blur, spring entrance |
+| Side panels (search, Studio, concordance) | Floating glass panes beside the mushaf (radius 26px) |
+| Sheets, popovers, menus | Strong tint (`--glass-tint-strong`), `--glass-blur-strong` (40px), spring entrance |
 | Cards | Glass material with lighter shadow; they lift 2px on hover |
 | List rows inside a glass pane | Tint + sheen only (no nested blur, for performance) |
+
+## Typography
+
+Three faces, each with one job:
+
+| Face | Token | Used for |
+|---|---|---|
+| Amiri Quran | `--font-arabic-display` | Quran text only (mushaf, ayah cards, verse snippets via `.qb-quran-snip`) and the brand wordmark |
+| Amiri | `--font-arabic-heading` | Titles, surah and reciter names, card headings |
+| Cairo | `--font-arabic-ui` | Everything else: body, buttons, inputs, labels, meta |
+
+- Form controls inherit the page font (`button, input, select, textarea { font-family: inherit }`).
+- Title tiers: `--fs-title-page` (clamp 28–38px), `--fs-title-section` (22px),
+  `--fs-title-card` (19px). Titles use `--lh-heading` (1.6) so Arabic marks above and below the
+  line are not cut.
+- A Quran quote shown inside UI text must be wrapped in `.qb-quran-snip`; Cairo has no glyphs for
+  the Uthmani marks and renders boxes.
+- **No cropped titles.** A single-line ellipsis title sets `overflow: hidden; overflow-x: clip;
+  overflow-y: visible;` so only the inline axis is clipped. A line-clamped block adds
+  `padding-block: 0.3em`; a clamped Quran snippet uses line-height 2.
+
+## Glass tokens
+
+`--glass-blur` 30px and `--glass-blur-strong` 40px with `--glass-saturate` 185%. Tints are kept
+low (dark 0.44 / 0.66 / 0.26, light 0.48 / 0.72 / 0.32 for base / strong / soft) so the ambient
+light shows through; `--glass-edge` adds a top highlight, an inner glow and a soft bottom inset.
+The mushaf page and Quran text stay opaque.
 
 ## Primitives
 
@@ -62,5 +89,5 @@ Q-Basair's UI is one material and a few primitives, defined once in `apps/web/ap
 2. Never put a hard-coded gold gradient in a component: use `--gold-gel` or the selected gel.
 3. Keep feature class names prefixed and specific (`qb-<feature>-…`). Every feature stylesheet
    ships on the same route, so generic names collide.
-4. Check both themes and a 390px phone. The glass tokens are theme-aware; nothing should set its
+4. Check both themes and a 390px phone (no horizontal scroll, no cut titles). The glass tokens are theme-aware; nothing should set its
    own `.light` background for a glass surface.

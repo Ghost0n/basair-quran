@@ -28,10 +28,11 @@
 }
 
 .qb-settings-h h2 {
-  font-family: var(--font-arabic-display);
-  font-size: var(--fs-2xl);
+  font-family: var(--font-arabic-heading);
+  font-size: var(--fs-title-page);
   color: var(--fg-1);
   margin: 4px 0;
+  line-height: var(--lh-heading);
 }
 
 .qb-settings-h .sub {
@@ -53,16 +54,17 @@
   background-image: var(--glass-sheen);
   border: 1px solid var(--glass-rim);
   box-shadow: var(--glass-edge), 0 8px 24px rgba(0, 0, 0, 0.14);
-  -webkit-backdrop-filter: blur(16px) saturate(var(--glass-saturate));
-  backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border-radius: var(--r-2xl);
 }
 
 .qb-setting-card h3 {
-  font-family: var(--font-arabic-display);
-  font-size: var(--fs-md);
+  font-family: var(--font-arabic-heading);
+  font-size: var(--fs-title-card);
   color: var(--gold-text);
   margin-bottom: 4px;
+  line-height: var(--lh-heading);
 }
 
 .qb-setting-card .card-sub {

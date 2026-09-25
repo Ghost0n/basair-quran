@@ -42,6 +42,9 @@
   color: var(--fg-3);
   margin-top: 2px;
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

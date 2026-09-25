@@ -45,10 +45,11 @@
 }
 
 .qb-export-head h3 {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   font-size: var(--fs-lg);
   color: var(--fg-1);
   margin: 4px 0 0;
+  line-height: var(--lh-heading);
 }
 
 .qb-export-head .x {

@@ -89,10 +89,11 @@
 }
 
 .qb-travel-counter .k {
-  font-family: var(--font-arabic-kufi);
+  font-family: var(--font-arabic-heading);
   font-size: 11px;
   /* No letter-spacing: Reem Kufi is a joining Arabic face — tracking broke the joins. */
   color: var(--gold-text);
+  line-height: var(--lh-heading);
 }
 
 .qb-travel-counter .n {
@@ -420,13 +421,14 @@
 .qb-surah-banner .name {
   flex: 0 0 auto;
   white-space: nowrap;
-  font-family: var(--font-arabic-kufi);
+  font-family: var(--font-arabic-heading);
   font-size: 20px;
   font-weight: 600;
   color: var(--gold-text);
   padding: 5px 20px;
   border-radius: 999px;
   background: rgba(212, 175, 55, 0.08);
+  line-height: var(--lh-heading);
 }
 
 .light .qb-surah-banner .name {
@@ -717,8 +719,8 @@
      high rounded-zero on ٱدْعُوا۟) can't paint above the card onto the mushaf. */
   padding: 16px 14px 14px;
   box-shadow: var(--glass-edge), var(--glass-shadow-lift);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
   z-index: var(--elev-popover);
   animation: qbPopIn var(--motion-dur-base) var(--spring-soft);
   transform-origin: top;
@@ -958,12 +960,15 @@
 }
 
 .qb-reader-bar .identity .name {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   font-size: 24px;
-  line-height: 1.5;
+  line-height: var(--lh-heading);
   color: var(--gold-text);
   white-space: nowrap;
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   text-overflow: ellipsis;
   max-width: 100%;
 }
@@ -1196,8 +1201,8 @@
   background-color: var(--glass-tint-strong);
   background-image: var(--glass-sheen);
   box-shadow: var(--glass-edge), var(--glass-shadow-lift);
-  -webkit-backdrop-filter: blur(28px) saturate(var(--glass-saturate));
-  backdrop-filter: blur(28px) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
   overflow: hidden;
   animation: qbSheetIn var(--motion-dur-slow) var(--spring-soft) both;
 }
@@ -1404,9 +1409,9 @@
 }
 
 .qb-nav-sheet .surahs .name {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   font-size: 20px;
-  line-height: 1.6;
+  line-height: var(--lh-heading);
 }
 
 .qb-nav-sheet .surahs .meta {

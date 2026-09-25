@@ -62,10 +62,20 @@ body.light-mode::before {
 
 /* ---------- Base typography ---------- */
 
+/* Browsers don't let form controls inherit the page font (they fall back to
+   Arial); every button, field and select speaks the UI face. */
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  letter-spacing: normal;
+}
+
 h1, .h1 {
   font-family: var(--font-arabic-heading);
   font-size: var(--fs-4xl);
-  line-height: var(--lh-tight);
+  line-height: var(--lh-heading);
   color: var(--gold-text);
   margin: 0;
   letter-spacing: var(--tracking-tight);
@@ -74,15 +84,15 @@ h1, .h1 {
 h2, .h2 {
   font-family: var(--font-arabic-heading);
   font-size: var(--fs-2xl);
-  line-height: var(--lh-tight);
+  line-height: var(--lh-heading);
   color: var(--fg-1);
   margin: 0;
 }
 
 h3, .h3 {
-  font-family: var(--font-arabic-kufi);
+  font-family: var(--font-arabic-heading);
   font-size: var(--fs-xl);
-  line-height: var(--lh-snug);
+  line-height: var(--lh-heading);
   color: var(--fg-1);
   font-weight: 600;
   margin: 0;
@@ -225,6 +235,9 @@ code, .mono {
   flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   white-space: nowrap;
   text-overflow: ellipsis;
   max-width: 32%;
@@ -232,6 +245,9 @@ code, .mono {
 
 .qb-crumbs > span {
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   text-overflow: ellipsis;
 }
 
@@ -264,6 +280,9 @@ code, .mono {
 
 .qb-surah-card .h-meta {
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   white-space: nowrap;
   text-overflow: ellipsis;
   max-width: 100%;
@@ -296,6 +315,9 @@ code, .mono {
 
 .qb-verse-row .vmeta .surah {
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;

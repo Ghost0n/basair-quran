@@ -44,12 +44,16 @@
 }
 
 .qb-reciter-row .info .name {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   font-size: 16px;
   color: var(--fg-1);
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   white-space: nowrap;
   text-overflow: ellipsis;
+  line-height: var(--lh-heading);
 }
 
 .qb-reciter-row .info .meta {
@@ -58,6 +62,9 @@
   /* U4: isolate bidi so the Latin name doesn't collide with the Arabic riwayah */
   unicode-bidi: isolate;
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -174,6 +181,9 @@
   font-weight: 600;
   color: var(--fg-1);
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -182,6 +192,9 @@
   font-size: 11px;
   color: var(--fg-3);
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -375,12 +388,16 @@
 }
 
 .qb-reciter-dd-row .info .name {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   font-size: 15px;
   color: var(--fg-1);
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   white-space: nowrap;
   text-overflow: ellipsis;
+  line-height: var(--lh-heading);
 }
 
 .qb-reciter-dd-row .info .meta {
@@ -388,6 +405,9 @@
   color: var(--fg-3);
   unicode-bidi: isolate;
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -425,5 +445,8 @@
   font-family: var(--font-arabic-ui);
   white-space: nowrap;
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   text-overflow: ellipsis;
 }
