@@ -39,3 +39,6 @@ data/translations.db
 data/translations.db-*
 data/translations.db.tmp
 data/translation_cache/
+
+# Offline data packs (scripts/build_offline_packs.py) — generated
+/build/
