@@ -21,11 +21,12 @@
   /* Sheets, popovers, menus: the most frosted layer. */
   --glass-blur-strong: 40px;
   --glass-saturate: 185%;
-  --glass-rim: rgba(255, 244, 214, 0.09);
-  --glass-rim-strong: rgba(212, 175, 55, 0.22);
+  /* The rim barely exists: glass reads by its lit top edge and its shadow. */
+  --glass-rim: rgba(255, 244, 214, 0.02);
+  --glass-rim-strong: rgba(212, 175, 55, 0.12);
   --glass-sheen: linear-gradient(180deg, rgba(255, 250, 235, 0.075) 0%, rgba(255, 250, 235, 0.015) 38%, transparent 70%);
-  --glass-edge: inset 0 1px 0 rgba(255, 248, 225, 0.14), inset 0 -1px 0 rgba(0, 0, 0, 0.18),
-    inset 0 0 0 1px rgba(255, 244, 214, 0.04), inset 0 0 24px rgba(255, 240, 200, 0.03);
+  --glass-edge: inset 0 1px 0 rgba(255, 248, 225, 0.11), inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+    inset 0 0 28px rgba(255, 240, 200, 0.035);
   --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 14px 40px rgba(0, 0, 0, 0.32);
   --glass-shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.26), 0 22px 56px rgba(0, 0, 0, 0.42);
 
@@ -35,7 +36,9 @@
     linear-gradient(135deg, #f0cf5c, #c99a22);
   --gold-gel-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 6px 18px rgba(201, 154, 34, 0.32);
   --seg-on-bg: rgba(212, 175, 55, 0.17);
-  --seg-on-shadow: var(--glass-edge), inset 0 0 0 1px rgba(212, 175, 55, 0.34), 0 3px 12px rgba(0, 0, 0, 0.16);
+  /* A selected segment glows instead of being outlined. */
+  --seg-on-shadow: var(--glass-edge), inset 0 0 0 1px rgba(212, 175, 55, 0.13), 0 0 18px rgba(212, 175, 55, 0.12),
+    0 3px 12px rgba(0, 0, 0, 0.16);
   --seg-copper-bg: rgba(201, 138, 91, 0.2);
 
   /* Motion */
@@ -56,11 +59,13 @@
   --glass-tint: rgba(255, 252, 243, 0.48);
   --glass-tint-strong: rgba(255, 251, 240, 0.72);
   --glass-tint-soft: rgba(255, 252, 243, 0.32);
-  --glass-rim: rgba(255, 255, 255, 0.72);
-  --glass-rim-strong: rgba(164, 129, 41, 0.28);
+  --glass-rim: rgba(255, 255, 255, 0.38);
+  --glass-rim-strong: rgba(164, 129, 41, 0.15);
   --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0.18) 40%, transparent 72%);
-  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(120, 90, 30, 0.08),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 0 0 24px rgba(255, 255, 255, 0.25);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(120, 90, 30, 0.05),
+    inset 0 0 28px rgba(255, 255, 255, 0.25);
+  --seg-on-shadow: var(--glass-edge), inset 0 0 0 1px rgba(164, 129, 41, 0.14), 0 0 18px rgba(212, 175, 55, 0.16),
+    0 3px 10px rgba(120, 90, 30, 0.10);
   --glass-shadow: 0 1px 2px rgba(120, 90, 30, 0.08), 0 14px 40px rgba(120, 90, 30, 0.14);
   --glass-shadow-lift: 0 2px 6px rgba(120, 90, 30, 0.10), 0 24px 56px rgba(120, 90, 30, 0.20);
   --aurora-1: rgba(212, 175, 55, 0.20);
@@ -268,21 +273,30 @@ body::before {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 8px 26px rgba(201, 154, 34, 0.48);
 }
 
+/* Ghost buttons are drawn by a faint fill, not an outline. */
 .qb-btn.ghost {
-  --btn-bg: transparent;
+  --btn-bg: rgba(255, 244, 214, 0.045);
   box-shadow: none;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 
+.light .qb-btn.ghost {
+  --btn-bg: rgba(120, 90, 30, 0.055);
+}
+
+.qb-btn.ghost:hover:not(:disabled) {
+  --btn-bg: rgba(212, 175, 55, 0.09);
+}
+
 .qb-btn.ok {
   --btn-fg: #6fbf80;
-  --btn-rim: rgba(96, 170, 110, 0.45);
+  --btn-rim: rgba(96, 170, 110, 0.22);
 }
 
 .qb-btn.warn {
   --btn-fg: var(--warn-fg);
-  --btn-rim: rgba(216, 180, 106, 0.45);
+  --btn-rim: rgba(216, 180, 106, 0.22);
 }
 
 .qb-btn.danger,
@@ -291,7 +305,7 @@ body::before {
 }
 
 .qb-btn.danger {
-  --btn-rim: rgba(201, 122, 122, 0.45);
+  --btn-rim: rgba(201, 122, 122, 0.22);
 }
 
 .qb-btn.block {
@@ -302,7 +316,7 @@ body::before {
 
 .qb-btn.like.on {
   --btn-fg: #e0768f;
-  --btn-rim: rgba(224, 118, 143, 0.45);
+  --btn-rim: rgba(224, 118, 143, 0.22);
 }
 
 .qb-btn.like.on .qb-icon {

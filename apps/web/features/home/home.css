@@ -197,7 +197,7 @@
 
 /* The promoted card — the last active session, gold-tinted, likeliest click. */
 .qb-home-gridcard.promoted {
-  border-color: var(--gold-a40);
+  border-color: var(--border-accent);
   background: linear-gradient(135deg, var(--gold-a12), var(--gold-a04));
 }
 

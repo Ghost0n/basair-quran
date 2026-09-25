@@ -28,6 +28,7 @@
 .qb-shortcuts-modal .head {
   padding: 16px 20px;
   border-bottom: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -60,6 +61,7 @@
   justify-content: space-between;
   padding: 9px 0;
   border-bottom: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
   font-size: 13px;
   color: var(--fg-1);
 }

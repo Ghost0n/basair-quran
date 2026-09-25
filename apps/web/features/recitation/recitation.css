@@ -18,12 +18,12 @@
 }
 
 .qb-reciter-row:hover {
-  border-color: rgba(212, 175, 55, 0.4);
+  border-color: var(--border-accent);
 }
 
 .qb-reciter-row.active {
   background: rgba(212, 175, 55, 0.10);
-  border-color: rgba(212, 175, 55, 0.5);
+  border-color: var(--border-accent);
 }
 
 .qb-reciter-row .avatar {
@@ -263,7 +263,7 @@
 
 .qb-media-tools .chip.active {
   color: var(--gold-text);
-  border-color: rgba(212, 175, 55, 0.4);
+  border-color: var(--border-accent);
   background: rgba(212, 175, 55, 0.1);
 }
 
@@ -336,7 +336,7 @@
 
 .qb-reciter-dd-search:focus {
   outline: none;
-  border-color: var(--gold-400);
+  border-color: var(--border-focus);
 }
 
 .qb-reciter-dd-list {
@@ -367,7 +367,7 @@
 
 .qb-reciter-dd-row.active {
   background: var(--gold-a12);
-  border-color: var(--gold-a40);
+  border-color: var(--border-accent);
 }
 
 .qb-reciter-dd-row .avatar {

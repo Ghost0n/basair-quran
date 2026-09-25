@@ -34,6 +34,7 @@
   gap: var(--sp-3);
   padding: 14px 16px;
   border-bottom: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
   background: linear-gradient(135deg, var(--gold-a08), transparent);
 }
 
@@ -114,6 +115,7 @@
 
 .qb-account-foot {
   border-top: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
   padding: 6px;
 }
 

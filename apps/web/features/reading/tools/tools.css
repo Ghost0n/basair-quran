@@ -57,7 +57,7 @@
 
 .qb-reader-bar .qb-toolbox-compact .act.on-tool {
   color: var(--gold-text);
-  border-color: var(--gold-a40);
+  border-color: var(--border-accent);
 }
 
 .qb-toolbox-menu {
@@ -234,7 +234,7 @@
 
 .qb-selection-bar .acts button:hover:not(:disabled),
 .qb-selection-bar .acts button.on {
-  border-color: var(--gold-a40);
+  border-color: var(--border-accent);
   background: var(--gold-a12);
   color: var(--gold-text);
 }
@@ -299,6 +299,7 @@
   padding: 6px 8px;
   text-align: center;
   border-bottom: 1px solid var(--divider, var(--border));
+  border-image: var(--divider-fade) 1;
 }
 
 .qb-selection-bar thead th {

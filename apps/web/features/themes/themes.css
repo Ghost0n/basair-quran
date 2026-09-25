@@ -172,7 +172,7 @@
 
 .qb-theme-sheet .new input:focus {
   outline: none;
-  border-color: var(--gold-400);
+  border-color: var(--border-focus);
 }
 
 .qb-theme-sheet .new .add,
@@ -180,7 +180,7 @@
   height: 44px;
   padding: 0 18px;
   border-radius: var(--r-md);
-  border: 1px solid var(--gold-a40);
+  border: 1px solid var(--border-accent);
   background: var(--gold-a12);
   color: var(--gold-text);
   font-family: var(--font-arabic-ui);

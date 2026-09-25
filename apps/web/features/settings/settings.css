@@ -112,7 +112,7 @@
 
 .qb-setting-select:focus {
   outline: none;
-  border-color: var(--gold-400);
+  border-color: var(--border-focus);
 }
 
 .qb-setting-seg {
@@ -279,7 +279,7 @@
   max-width: 100%;
   padding: 2px 4px 2px 10px;
   border-radius: var(--r-pill);
-  border: 1px solid var(--gold-a40);
+  border: 1px solid var(--border-accent);
   background: var(--seg-on-bg);
   color: var(--gold-text);
   font-size: 12px;
@@ -330,7 +330,7 @@
 }
 
 .qb-translations-card .options li.on {
-  border-color: var(--gold-a40);
+  border-color: var(--border-accent);
   background: var(--seg-on-bg);
 }
 

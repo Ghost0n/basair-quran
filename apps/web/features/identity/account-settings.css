@@ -155,7 +155,7 @@
 
 .qb-account-name-edit input:focus {
   outline: none;
-  border-color: var(--gold-400);
+  border-color: var(--border-focus);
 }
 
 .qb-account-name-edit .save {
@@ -228,6 +228,7 @@
   gap: var(--sp-3);
   padding: 10px 0;
   border-bottom: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
 }
 
 .qb-device-row:last-child {

@@ -82,7 +82,7 @@
 }
 
 .qb-doc-bar .acts button:hover {
-  border-color: var(--gold-a40);
+  border-color: var(--border-accent);
   color: var(--gold-text);
 }
 
@@ -151,7 +151,7 @@
 }
 
 .qb-doc-flash {
-  border: 1px solid var(--gold-a40);
+  border: 1px solid var(--border-accent);
   background: var(--gold-a08);
   color: var(--gold-text);
 }
@@ -349,7 +349,7 @@
 }
 
 .qb-doc-section .section-body:focus {
-  border-color: var(--gold-a40);
+  border-color: var(--border-accent);
 }
 
 .qb-doc-section .ayahs {
@@ -463,7 +463,7 @@
 }
 
 .qb-doc-body .add-row button:hover {
-  border-color: var(--gold-a40);
+  border-color: var(--border-accent);
   color: var(--gold-text);
 }
 

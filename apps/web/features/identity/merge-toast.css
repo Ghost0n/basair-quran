@@ -14,7 +14,7 @@
   align-items: center;
   gap: 14px;
   padding: 14px 18px;
-  border: 1px solid var(--gold-a40);
+  border: 1px solid var(--border-accent);
   border-radius: var(--r-lg);
   background: var(--bg-elev-3);
   box-shadow: var(--shadow-3);
