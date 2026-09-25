@@ -60,7 +60,7 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/text-count`
 - `GET /api/notebook` · `POST /api/notebook` · `DELETE /api/notebook/{item_id}` · `PUT /api/notebook/{item_id}/themes`
 - `GET /api/documents` · `POST /api/documents` · `GET /api/documents/{id}` · `PUT /api/documents/{id}` · `GET /api/documents/{id}/audit` · `DELETE /api/documents/{id}`
-- `POST /api/documents/{id}/publish` · `GET /api/community/feed` · `GET /api/community/mine` · `GET|DELETE /api/community/posts/{id}` · `POST|DELETE /api/community/posts/{id}/like` · `GET|POST /api/community/posts/{id}/comments` · `DELETE /api/community/comments/{id}` · `POST /api/community/reports`
+- `POST /api/documents/{id}/publish` · `GET /api/community/feed` · `GET /api/community/tags` · `GET /api/community/mine` · `GET|DELETE /api/community/posts/{id}` · `POST|DELETE /api/community/posts/{id}/like` · `PUT|DELETE /api/community/posts/{id}/save` · `GET|POST /api/community/posts/{id}/comments` · `DELETE /api/community/comments/{id}` · `POST /api/community/reports`
 - `GET /api/moderation/queue` · `POST /api/moderation/posts/{id}/decision` · `POST /api/moderation/comments/{id}/hide` · `POST /api/moderation/reports/{id}/resolve`
 - `GET /api/themes` · `POST /api/themes` · `GET /api/themes/{theme_id}` · `PATCH /api/themes/{theme_id}` · `PUT /api/themes/{theme_id}/board` · `DELETE /api/themes/{theme_id}`
 - `GET /api/sessions` · `GET /api/sessions/{session_id}` · `POST /api/sessions` · `DELETE /api/sessions/{session_id}`
@@ -132,8 +132,23 @@ Publishing and the community (guidelines: `docs/community-guidelines.md`; agent:
 - **Visibility.** `unlisted` posts are reachable by link only. Pending, rejected and
   changes-requested posts are visible only to their author and to moderators; `reviews[]` (AI issues,
   moderator notes) is included for them only.
-- **Feed** `GET /api/community/feed?cursor&limit≤50` returns published public posts, newest first,
-  with keyset pagination (`next_cursor`).
+- **Feed** `GET /api/community/feed?cursor&limit≤50&sort&q&surah&tag&mode&board&author&saved` returns
+  published public posts.
+  - `sort=latest` (default): newest first, keyset pagination (`next_cursor`).
+  - `sort=top` («الأبرز»): the 500 most recent matches ranked by
+    `(likes + 2·comments + 1) / (age_hours + 2)^1.4`, offset pagination (the cursor is opaque either way).
+  - `q` (≤120 chars): every word must appear in the title, summary, tags or section text; matching
+    ignores diacritics and folds أ/إ/آ/ٱ→ا, ى→ي, ة→ه.
+  - `surah` (1–114): posts quoting an ayah of that surah. `tag`: a whole tag (a leading `#` is
+    ignored). `mode=strict|tafssir`. `board=true`: posts that carry a theme board. `author`: a user id
+    (`PostSummary.author_id`).
+  - `saved=true`: the viewer's bookmarks (`401` for a guest when auth is enabled).
+- `PostSummary` also carries `author_id`, `tags[]` (≤8, `#`/`|` stripped), `surah_ids[]`,
+  `reading_minutes` (≈180 words a minute, at least 1) and `saved_by_me`.
+- **Tags** `GET /api/community/tags?limit≤50` returns `[{tag, count}]`, the most used tags across the
+  1,000 most recent public posts.
+- **Saved posts** `PUT|DELETE /api/community/posts/{id}/save` → `{saved}`: a private, idempotent
+  bookmark on a published post (`404` otherwise). There is no public save count.
 - **Comments** are 1–2000 chars with at most 2 links (`422` otherwise). Authors and moderators hide
   them (never hard-deleted). Likes are idempotent per user.
 - **Reports** `{target_type: post|comment, target_id, rule, note?}`. Duplicate open reports from
@@ -143,7 +158,7 @@ Publishing and the community (guidelines: `docs/community-guidelines.md`; agent:
   the document version.
 - **Rate limit.** Publish, comment and report share the `community` bucket
   (`QBASAIR_RATE_LIMIT_COMMUNITY_MAX`, default 30 per window per IP).
-- **Account deletion** removes the user's posts, likes, comments and reports, and refreshes counts.
+- **Account deletion** removes the user's posts, likes, saves, comments and reports, and refreshes counts.
 
 ## Themes (مواضيع) notes
 

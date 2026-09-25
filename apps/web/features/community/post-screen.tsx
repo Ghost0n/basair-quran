@@ -4,7 +4,7 @@ import "./community.css";
 import "@/features/documents/documents.css";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type { CommentItem, GuidelineRule, PostDetail, SurahListItem } from "@q-basair/shared";
@@ -30,6 +30,7 @@ export function PostScreen() {
   const params = useSearchParams();
   const postId = params.get("id") ?? "";
   const { setMode } = useShellMode();
+  const router = useRouter();
   const mushaf = useMushaf();
   const formatNumber = useNumerals();
   const access = useCommunityAccess();
@@ -64,6 +65,16 @@ export function PostScreen() {
       cancelled = true;
     };
   }, [postId]);
+
+  // «التعليقات» from a feed card lands on `#comments` once the post has rendered.
+  useEffect(() => {
+    if (status !== "ready" || window.location.hash !== "#comments") return;
+    const timer = window.setTimeout(
+      () => document.getElementById("comments")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      120,
+    );
+    return () => window.clearTimeout(timer);
+  }, [status]);
 
   function say(message: string) {
     setFlash(message);
@@ -104,6 +115,18 @@ export function PostScreen() {
   async function removeComment(comment: CommentItem) {
     await api.deleteComment(comment.id).catch(() => {});
     setComments((current) => current.filter((entry) => entry.id !== comment.id));
+  }
+
+  async function toggleSave() {
+    if (!post || !requireAccount()) return;
+    const next = !post.saved_by_me;
+    setPost({ ...post, saved_by_me: next });
+    try {
+      await api.setSaved(post.id, next);
+      say(next ? "حُفظ في «المحفوظة»." : "أُزيل من «المحفوظة».");
+    } catch {
+      setPost((current) => (current ? { ...current, saved_by_me: !next } : current));
+    }
   }
 
   async function copyLink() {
@@ -182,6 +205,15 @@ export function PostScreen() {
               <button type="button" className={`qb-btn like${post.liked_by_me ? " on" : ""}`} onClick={() => void toggleLike()} aria-pressed={post.liked_by_me}>
                 <Icon name={post.liked_by_me ? "heartFilled" : "heart"} size={15} /> {formatNumber(post.like_count)}
               </button>
+              <button
+                type="button"
+                className={`qb-btn ghost${post.saved_by_me ? " saved" : ""}`}
+                onClick={() => void toggleSave()}
+                aria-pressed={post.saved_by_me}
+                aria-label={post.saved_by_me ? "إزالة من المحفوظة" : "احفظ"}
+              >
+                <Icon name={post.saved_by_me ? "bookmarkFilled" : "bookmark"} size={15} />
+              </button>
               <button type="button" className="qb-btn ghost" onClick={() => void copyLink()}>
                 <Icon name="link" size={15} /> <span className="lbl">الرابط</span>
               </button>
@@ -229,6 +261,20 @@ export function PostScreen() {
           </div>
           <h1>{post.title}</h1>
           {post.summary ? <p className="summary">{post.summary}</p> : null}
+          {post.tags?.length ? (
+            <div className="tags">
+              {post.tags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  className="tag"
+                  onClick={() => router.push(`/?mode=community&tag=${encodeURIComponent(tag)}`)}
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          ) : null}
         </header>
 
         {post.mode === "tafssir" ? <TafssirDisclaimer /> : null}
@@ -266,7 +312,7 @@ export function PostScreen() {
         ) : null}
 
         {post.status === "published" ? (
-          <section className="qb-comments">
+          <section className="qb-comments" id="comments">
             <h2>
               التعليقات <span className="count">{formatNumber(comments.length)}</span>
             </h2>

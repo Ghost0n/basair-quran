@@ -80,7 +80,7 @@ export function DocumentView({
                 <RichBody body={section.body} />
               </div>
             ) : null}
-            {section.ayahs.map((ref) => (
+            {(section.ayahs ?? []).map((ref) => (
               <blockquote key={`${ref.surah_id}:${ref.ayah}`} className="ayah">
                 <p>{ref.text}</p>
                 <button

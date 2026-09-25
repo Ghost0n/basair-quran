@@ -2,7 +2,10 @@ import type {
   AyahReaderResponse,
   CommentItem,
   FeedPage,
+  FeedQuery,
   LikeResult,
+  SaveResult,
+  TagCount,
   ModerationDecision,
   ModerationQueue,
   PostDetail,
@@ -417,10 +420,26 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
         body: JSON.stringify(body),
       });
     },
-    getFeed(cursor?: string | null, limit = 20): Promise<FeedPage> {
-      const params = new URLSearchParams({ limit: String(limit) });
-      if (cursor) params.set("cursor", cursor);
+    getFeed(query: FeedQuery = {}): Promise<FeedPage> {
+      const params = new URLSearchParams({ limit: String(query.limit ?? 20) });
+      if (query.cursor) params.set("cursor", query.cursor);
+      if (query.sort && query.sort !== "latest") params.set("sort", query.sort);
+      if (query.q?.trim()) params.set("q", query.q.trim());
+      if (query.surah) params.set("surah", String(query.surah));
+      if (query.tag) params.set("tag", query.tag);
+      if (query.mode) params.set("mode", query.mode);
+      if (query.board) params.set("board", "true");
+      if (query.author != null) params.set("author", String(query.author));
+      if (query.saved) params.set("saved", "true");
       return request<FeedPage>(`/community/feed?${params.toString()}`);
+    },
+    getCommunityTags(limit = 20): Promise<TagCount[]> {
+      return request<TagCount[]>(`/community/tags?limit=${limit}`);
+    },
+    setSaved(postId: string, saved: boolean): Promise<SaveResult> {
+      return request<SaveResult>(`/community/posts/${encodeURIComponent(postId)}/save`, {
+        method: saved ? "PUT" : "DELETE",
+      });
     },
     getMyPosts(): Promise<PostSummary[]> {
       return request<PostSummary[]>("/community/mine");

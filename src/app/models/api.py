@@ -740,15 +740,22 @@ class PostSummary(BaseModel):
     title: str
     summary: Optional[str] = None
     author_name: str
+    # Filters the feed to this author's posts (`GET /api/community/feed?author=`).
+    author_id: Optional[int] = None
     visibility: Literal["public", "unlisted"]
     status: PostStatus
     mode: Optional[Literal["strict", "tafssir"]] = None
     created_from: str = "manual"
     has_board: bool = False
     ayah_count: int = 0
+    tags: List[str] = Field(default_factory=list)
+    surah_ids: List[int] = Field(default_factory=list)
+    reading_minutes: int = 1
     like_count: int = 0
     comment_count: int = 0
     liked_by_me: bool = False
+    # A private bookmark: only the viewer sees it; there is no public save count.
+    saved_by_me: bool = False
     is_mine: bool = False
     published_at: Optional[int] = None
     updated_at: int
@@ -792,6 +799,15 @@ class CommentItem(BaseModel):
 class LikeResult(BaseModel):
     liked: bool
     like_count: int
+
+
+class SaveResult(BaseModel):
+    saved: bool
+
+
+class TagCount(BaseModel):
+    tag: str
+    count: int
 
 
 class ReportCreate(BaseModel):
