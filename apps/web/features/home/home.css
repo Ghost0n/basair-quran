@@ -53,6 +53,7 @@
 
 .qb-home-ayah-hero .ayah-text {
   font-family: var(--font-arabic-display);
+  direction: rtl;
   /* The personalized Home carries more furniture (greeting + grid), so the hero
      is one step down from the guest splash — still the centerpiece, fits 1080p. */
   font-size: var(--fs-3xl);

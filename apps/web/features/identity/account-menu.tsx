@@ -12,6 +12,8 @@ import { clearGuestChoice } from "@/features/auth/identity-flow";
 
 import "./account-menu.css";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const MOTIFS = Object.keys(AVATAR_MOTIFS) as AvatarMotif[];
 
@@ -39,9 +41,9 @@ export function AccountMenu({ onOpenSettings }: AccountMenuProps) {
 
   if (!user) {
     return (
-      <a className="qb-rail-btn" href="/login" title="تسجيل الدخول" aria-label="تسجيل الدخول">
+      <a className="qb-rail-btn" href="/login" title={t("تسجيل الدخول")} aria-label={t("تسجيل الدخول")}>
         <Icon name="user" size={19} />
-        <span className="qb-rail-label">دخول</span>
+        <span className="qb-rail-label">{t("دخول")}</span>
       </a>
     );
   }
@@ -86,7 +88,7 @@ export function AccountMenu({ onOpenSettings }: AccountMenuProps) {
         title={user.name || user.email}
       >
         <UserAvatar motif={motif} size={28} />
-        <span className="qb-rail-label">حسابي</span>
+        <span className="qb-rail-label">{t("حسابي")}</span>
       </button>
 
       {open ? (
@@ -100,7 +102,7 @@ export function AccountMenu({ onOpenSettings }: AccountMenuProps) {
             <div className="qb-account-head">
               <UserAvatar motif={motif} size={40} />
               <div className="who">
-                <div className="name">{user.name || "مستخدم"}</div>
+                <div className="name">{user.name || t("مستخدم")}</div>
                 <div className="email">{user.email}</div>
               </div>
             </div>
@@ -114,20 +116,20 @@ export function AccountMenu({ onOpenSettings }: AccountMenuProps) {
                   onOpenSettings();
                 }}
               >
-                الإعدادات والأجهزة
+                {t("الإعدادات والأجهزة")}
                 <span className="chev">›</span>
               </button>
 
               <div className="qb-account-sync">
                 <span className="dot" aria-hidden />
-                محفوظاتك تُزامَن تلقائياً
+                {t("محفوظاتك تُزامَن تلقائياً")}
               </div>
             </div>
 
             <div className="qb-account-foot">
               <button type="button" className="qb-account-signout" onClick={signOut}>
                 <Icon name="logout" size={15} />
-                تسجيل الخروج
+                {t("تسجيل الخروج")}
               </button>
             </div>
           </div>

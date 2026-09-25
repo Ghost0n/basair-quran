@@ -41,6 +41,8 @@ import { SelectionBar } from "./tools/selection-bar";
 import { setReaderTool, useReaderTool } from "./tools/use-reader-tool";
 import { PickedWordsProvider, readSelection, type WordSelection } from "./tools/word-selection";
 
+import { t as tt } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 // Surahs are catalog data — fetch once per riwāyah per session (ayah counts
@@ -488,8 +490,8 @@ export function MushafStage() {
       case "tafssir": {
         const name = surahs.find((item) => item.id === surah)?.name ?? `${surah}`;
         queueStudioAsk(
-          `فسِّر الآية ${formatNumber(ayah)} من سورة ${name} في سياقها: ما قبلها وما بعدها ومقصد السورة.`,
-          { mode: "tafssir", focus: { surah, ayah }, focusLabel: `${name}، الآية ${formatNumber(ayah)}` },
+          tt("فسِّر الآية {0} من سورة {1} في سياقها: ما قبلها وما بعدها ومقصد السورة.", { 0: formatNumber(ayah), 1: name }),
+          { mode: "tafssir", focus: { surah, ayah }, focusLabel: tt("{0}، الآية {1}", { 0: name, 1: formatNumber(ayah) }) },
         );
         setMode("studio");
         return;
@@ -569,7 +571,7 @@ export function MushafStage() {
 
   if (!pageData) {
     return (
-      <div className="qb-mushaf-skeleton" aria-busy="true" aria-label="جارٍ تحميل المصحف">
+      <div className="qb-mushaf-skeleton" aria-busy="true" aria-label={tt("جارٍ تحميل المصحف")}>
         <div className="sk-banner" />
         {[88, 94, 90, 96, 84, 92, 78].map((width, index) => (
           <div key={index} className="sk-line" style={{ width: `${width}%` }} />
@@ -592,7 +594,7 @@ export function MushafStage() {
     >
       {/* Shared SR hint: words reference this via aria-describedby so the analyze
           affordance is described once, instead of turning every word into a button. */}
-      <span id="qb-word-hint" className="qb-sr-only">اضغط Enter لتحليل الكلمة صرفياً</span>
+      <span id="qb-word-hint" className="qb-sr-only">{tt("اضغط Enter لتحليل الكلمة صرفياً")}</span>
       <ReaderBar
         pageData={pageData}
         surahs={surahs}
@@ -689,9 +691,9 @@ export function MushafStage() {
                 setImmersive(false);
               }}
               onClick={() => setImmersive(false)}
-              aria-label="إنهاء وضع التركيز"
+              aria-label={tt("إنهاء وضع التركيز")}
             >
-              <span>صفحة {formatNumber(displayPage)}</span>
+              <span>{tt("صفحة")} {formatNumber(displayPage)}</span>
               <Icon name="shrink" size={14} />
             </button>,
             document.body,

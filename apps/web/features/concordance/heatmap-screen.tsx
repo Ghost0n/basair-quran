@@ -15,6 +15,8 @@ import { useWorkspace } from "@/features/shell/workspace-context";
 
 import "./concordance.css";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 /**
@@ -92,7 +94,7 @@ export function HeatmapScreen() {
   if (!root) {
     return (
       <div className="qb-aux">
-        <div className="qb-aux-state">اختر جذراً من لوحة المطابقة لعرض انتشاره عبر المصحف.</div>
+        <div className="qb-aux-state">{t("اختر جذراً من لوحة المطابقة لعرض انتشاره عبر المصحف.")}</div>
       </div>
     );
   }
@@ -101,14 +103,14 @@ export function HeatmapScreen() {
     <div className="qb-aux">
       <div className="qb-aux-h">
         <div>
-          <div className="kicker">خريطة انتشار الجذر</div>
+          <div className="kicker">{t("خريطة انتشار الجذر")}</div>
           <h2>{distribution?.root ?? root}</h2>
           <div className="sub">
             {loading
-              ? "جارٍ حساب الانتشار…"
+              ? t("جارٍ حساب الانتشار…")
               : distribution?.found
-                ? `${formatNumber(distribution.total)} موضع في ${formatNumber(distribution.surah_count)} سورة`
-                : "لا توجد مواضع لهذا الجذر."}
+                ? t("{0} موضع في {1} سورة", { 0: formatNumber(distribution.total), 1: formatNumber(distribution.surah_count) })
+                : t("لا توجد مواضع لهذا الجذر.")}
           </div>
         </div>
       </div>
@@ -124,7 +126,7 @@ export function HeatmapScreen() {
                   type="button"
                   className="qb-heat-cell"
                   data-level={intensity(count)}
-                  title={`${surah.name} — ${formatNumber(count)} موضع`}
+                  title={t("{0} — {1} موضع", { 0: surah.name, 1: formatNumber(count) })}
                   onClick={() => {
                     void mushaf.loadBySurah(state.selectedMushaf, surah.id);
                     setMode("reading");
@@ -139,15 +141,15 @@ export function HeatmapScreen() {
           {topSurahs.length > 0 ? (
             <>
               <div className="kicker" style={{ margin: "24px 0 10px" }}>
-                السُّوَر الأعلى ذِكراً
+                {t("السُّوَر الأعلى ذِكراً")}
               </div>
               <div className="qb-aux-list">
                 {topSurahs.map((item) => (
                   <div key={item.surah_id} className="qb-aux-row">
                     <span className="icon-tile">{formatNumber(item.surah_id)}</span>
                     <div className="grow">
-                      <div className="title">سورة {item.surah}</div>
-                      <div className="meta">{formatNumber(item.count)} موضع</div>
+                      <div className="title">{t("سورة")} {item.surah}</div>
+                      <div className="meta">{formatNumber(item.count)} {t("موضع")}</div>
                     </div>
                   </div>
                 ))}

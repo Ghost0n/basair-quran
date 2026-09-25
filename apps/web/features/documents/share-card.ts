@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n";
+
 /**
  * Share formats (spec §5): cards and carousel slides rendered on a canvas as
  * PNGs, then shared through the Web Share API or downloaded. Everything is
@@ -51,16 +53,24 @@ export type ShareCardInput =
 export type ShareOptions = { format?: ShareFormat; style?: ShareStyle };
 
 export const SHARE_FORMATS: Record<ShareFormat, { w: number; h: number; label: string }> = {
-  portrait: { w: 1080, h: 1350, label: "منشور ٤:٥" },
-  square: { w: 1080, h: 1080, label: "مربّع" },
-  story: { w: 1080, h: 1920, label: "قصّة ٩:١٦" },
+  portrait: { w: 1080, h: 1350, get label() {
+    return t("منشور ٤:٥");
+  } },
+  square: { w: 1080, h: 1080, get label() {
+    return t("مربّع");
+  } },
+  story: { w: 1080, h: 1920, get label() {
+    return t("قصّة ٩:١٦");
+  } },
 };
 
 type Palette = { bgTop: string; bgBottom: string; frame: string; gold: string; ink: string; muted: string; wash: string };
 
 export const SHARE_STYLES: Record<ShareStyle, Palette & { label: string }> = {
   night: {
-    label: "ليلي",
+    get label() {
+    return t("ليلي");
+  },
     bgTop: "#1d1a12",
     bgBottom: "#0f0d08",
     frame: "rgba(212, 175, 55, 0.55)",
@@ -70,7 +80,9 @@ export const SHARE_STYLES: Record<ShareStyle, Palette & { label: string }> = {
     wash: "rgba(212, 175, 55, 0.10)",
   },
   parchment: {
-    label: "ورقي",
+    get label() {
+    return t("ورقي");
+  },
     bgTop: "#fbf6e9",
     bgBottom: "#efe3c6",
     frame: "rgba(154, 116, 23, 0.55)",
@@ -80,7 +92,9 @@ export const SHARE_STYLES: Record<ShareStyle, Palette & { label: string }> = {
     wash: "rgba(154, 116, 23, 0.10)",
   },
   emerald: {
-    label: "زمرّدي",
+    get label() {
+    return t("زمرّدي");
+  },
     bgTop: "#123029",
     bgBottom: "#07130f",
     frame: "rgba(212, 175, 55, 0.5)",
@@ -175,7 +189,7 @@ function footer(ctx: CanvasRenderingContext2D, palette: Palette, w: number, h: n
   ctx.fillStyle = palette.gold;
   ctx.font = `700 40px ${HEADING}`;
   ctx.textAlign = "center";
-  ctx.fillText("بصائر", w / 2, h - 100);
+  ctx.fillText(t("بصائر"), w / 2, h - 100);
   if (counter) {
     ctx.fillStyle = palette.muted;
     ctx.font = `600 26px ${UI}`;
@@ -255,7 +269,7 @@ function drawResearch(ctx: CanvasRenderingContext2D, p: Palette, w: number, h: n
   ctx.textAlign = "right";
   ctx.fillStyle = p.muted;
   ctx.font = `600 30px ${UI}`;
-  ctx.fillText("بحث", w - PAD, 170);
+  ctx.fillText(t("بحث"), w - PAD, 170);
   if (input.badge) badgePill(ctx, p, input.badge, w - PAD - 90, 170);
   const title = fitText(ctx, input.title, HEADING, scaled([72, 62, 54], h), inner, 3, "700");
   ctx.fillStyle = p.gold;

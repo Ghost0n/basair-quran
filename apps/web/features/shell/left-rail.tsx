@@ -7,6 +7,8 @@ import { AccountMenu } from "@/features/identity/account-menu";
 import { useShellMode, type ShellMode } from "./mode-context";
 import { useWorkspace } from "./workspace-context";
 
+import { t } from "@/lib/i18n";
+
 type RailDestination = {
   mode: ShellMode;
   icon: IconName;
@@ -14,16 +16,26 @@ type RailDestination = {
 };
 
 const WORK_DESTINATIONS: RailDestination[] = [
-  { mode: "reading", icon: "book", label: "القراءة" },
-  { mode: "search", icon: "search", label: "البحث" },
-  { mode: "studio", icon: "feather", label: "الدراسة" },
+  { mode: "reading", icon: "book", get label() {
+    return t("القراءة");
+  } },
+  { mode: "search", icon: "search", get label() {
+    return t("البحث");
+  } },
+  { mode: "studio", icon: "feather", get label() {
+    return t("الدراسة");
+  } },
 ];
 
 const SAVED_DESTINATIONS: RailDestination[] = [
   // الدفتر consolidates the former Notebook / Bookmarks / History / Roots
   // surfaces (all views of the same saved data) into one tabbed library.
-  { mode: "notebook", icon: "notebook", label: "الدفتر" },
-  { mode: "community", icon: "users", label: "المجتمع" },
+  { mode: "notebook", icon: "notebook", get label() {
+    return t("الدفتر");
+  } },
+  { mode: "community", icon: "users", get label() {
+    return t("المجتمع");
+  } },
 ];
 
 export function LeftRail() {
@@ -38,13 +50,13 @@ export function LeftRail() {
   };
 
   return (
-    <aside className="qb-rail" aria-label="القائمة الجانبية">
+    <aside className="qb-rail" aria-label={t("القائمة الجانبية")}>
       <button
         type="button"
         className="qb-rail-brand-btn"
         onClick={handleBrandClick}
-        title="بصائر القرآن — الصفحة الرئيسية"
-        aria-label="بصائر القرآن — الصفحة الرئيسية"
+        title={t("بصائر القرآن — الصفحة الرئيسية")}
+        aria-label={t("بصائر القرآن — الصفحة الرئيسية")}
       >
         <BrandMark size={40} themed />
       </button>
@@ -66,7 +78,7 @@ export function LeftRail() {
       <div className="qb-rail-spacer" />
 
       <RailButton
-        destination={{ mode: "settings", icon: "settings", label: "إعدادات" }}
+        destination={{ mode: "settings", icon: "settings", label: t("إعدادات") }}
         activeMode={mode}
         onSelect={setMode}
       />

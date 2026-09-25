@@ -2,6 +2,8 @@ import type { ReaderLayout } from "@q-basair/shared";
 
 import type { IconName } from "@/components/icon";
 
+import { t } from "@/lib/i18n";
+
 /**
  * The three reading modes the UI offers. The stored `reader_layout` keeps its
  * wider vocabulary for compatibility:
@@ -21,9 +23,21 @@ export const READER_MODES: {
   hint: string;
   icon: IconName;
 }[] = [
-  { mode: "pages", layout: "single", label: "صفحات", hint: "صفحة المصحف كما طُبعت", icon: "book" },
-  { mode: "scroll", layout: "scroll", label: "تمرير", hint: "الصفحات متتابعة", icon: "page" },
-  { mode: "ayah", layout: "ayah", label: "آية آية", hint: "كل آية في سطر", icon: "cards" },
+  { mode: "pages", layout: "single", get label() {
+    return t("صفحات");
+  }, get hint() {
+    return t("صفحة المصحف كما طُبعت");
+  }, icon: "book" },
+  { mode: "scroll", layout: "scroll", get label() {
+    return t("تمرير");
+  }, get hint() {
+    return t("الصفحات متتابعة");
+  }, icon: "page" },
+  { mode: "ayah", layout: "ayah", get label() {
+    return t("آية آية");
+  }, get hint() {
+    return t("كل آية في سطر");
+  }, icon: "cards" },
 ];
 
 /** The mode a stored layout shows on this device (`compact` = phone / short screen). */

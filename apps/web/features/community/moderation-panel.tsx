@@ -12,12 +12,20 @@ import { useNumerals } from "@/lib/preferences-context";
 
 import { RULE_LABEL } from "./labels";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 const DECISIONS: { value: ModerationDecision["decision"]; label: string; tone: string }[] = [
-  { value: "publish", label: "نشر", tone: "ok" },
-  { value: "request_changes", label: "طلب تعديل", tone: "warn" },
-  { value: "reject", label: "رفض", tone: "danger" },
+  { value: "publish", get label() {
+    return t("نشر");
+  }, tone: "ok" },
+  { value: "request_changes", get label() {
+    return t("طلب تعديل");
+  }, tone: "warn" },
+  { value: "reject", get label() {
+    return t("رفض");
+  }, tone: "danger" },
 ];
 
 /**
@@ -61,15 +69,15 @@ export function ModerationPanel({ surahName, onOpen }: { surahName: (surahId: nu
     setQueue((current) => (current ? { ...current, reports: current.reports.filter((entry) => entry.id !== reportId) } : current));
   }
 
-  if (error) return <div className="qb-empty">تعذّر تحميل قائمة الإشراف.</div>;
+  if (error) return <div className="qb-empty">{t("تعذّر تحميل قائمة الإشراف.")}</div>;
   if (!queue) return <div className="qb-skeleton-list" aria-hidden><span /><span /></div>;
 
   return (
     <div className="qb-moderation">
       <h2>
-        بانتظار المراجعة <span className="count">{queue.posts.length}</span>
+        {t("بانتظار المراجعة")} <span className="count">{queue.posts.length}</span>
       </h2>
-      {queue.posts.length === 0 ? <div className="qb-empty">لا منشورات بانتظار المراجعة.</div> : null}
+      {queue.posts.length === 0 ? <div className="qb-empty">{t("لا منشورات بانتظار المراجعة.")}</div> : null}
       {queue.posts.map((post) => {
         const ai = post.reviews.find((review) => review.stage === "ai");
         const issues = (ai?.issues ?? []) as { rule?: string; severity?: string; quote?: string; explanation_ar?: string; suggestion_ar?: string }[];
@@ -80,7 +88,9 @@ export function ModerationPanel({ surahName, onOpen }: { surahName: (surahId: nu
                 {post.title}
               </button>
               <span className="meta">
-                {post.author_name}، {relativeAge(post.updated_at)}
+                {post.author_name}
+                {t("، ")}
+                {relativeAge(post.updated_at)}
               </span>
             </header>
             {post.excerpt ? (
@@ -92,8 +102,8 @@ export function ModerationPanel({ surahName, onOpen }: { surahName: (surahId: nu
             <div className="ai">
               <Icon name="shieldCheck" size={14} />
               <span>
-                الوكيل الآلي: <b>{ai?.verdict === "reject" ? "يوصي بالرفض" : "يحتاج نظراً بشرياً"}</b>
-                {ai?.note === "provider_unavailable" ? " (لم يكن الوكيل متاحاً)" : ai?.note === "invalid_output" ? " (مخرجات غير صالحة)" : ""}
+                {t("الوكيل الآلي:")} <b>{ai?.verdict === "reject" ? t("يوصي بالرفض") : t("يحتاج نظراً بشرياً")}</b>
+                {ai?.note === "provider_unavailable" ? t(" (لم يكن الوكيل متاحاً)") : ai?.note === "invalid_output" ? t(" (مخرجات غير صالحة)") : ""}
               </span>
             </div>
             {issues.length ? (
@@ -103,7 +113,7 @@ export function ModerationPanel({ surahName, onOpen }: { surahName: (surahId: nu
                     <b>{RULE_LABEL[(issue.rule ?? "other") as keyof typeof RULE_LABEL] ?? issue.rule}</b>
                     {issue.quote ? <q>{issue.quote}</q> : null}
                     <span>{issue.explanation_ar}</span>
-                    {issue.suggestion_ar ? <span className="suggest">اقتراح: {issue.suggestion_ar}</span> : null}
+                    {issue.suggestion_ar ? <span className="suggest">{t("اقتراح:")} {issue.suggestion_ar}</span> : null}
                   </li>
                 ))}
               </ul>
@@ -111,8 +121,8 @@ export function ModerationPanel({ surahName, onOpen }: { surahName: (surahId: nu
             <textarea
               value={notes[post.id] ?? ""}
               onChange={(event) => setNotes((current) => ({ ...current, [post.id]: event.target.value }))}
-              placeholder="ملاحظة للكاتب (اختيارية)…"
-              aria-label="ملاحظة للكاتب"
+              placeholder={t("ملاحظة للكاتب (اختيارية)…")}
+              aria-label={t("ملاحظة للكاتب")}
               rows={2}
             />
             <div className="decide">
@@ -133,13 +143,13 @@ export function ModerationPanel({ surahName, onOpen }: { surahName: (surahId: nu
       })}
 
       <h2>
-        البلاغات <span className="count">{queue.reports.length}</span>
+        {t("البلاغات")} <span className="count">{queue.reports.length}</span>
       </h2>
-      {queue.reports.length === 0 ? <div className="qb-empty">لا بلاغات مفتوحة.</div> : null}
+      {queue.reports.length === 0 ? <div className="qb-empty">{t("لا بلاغات مفتوحة.")}</div> : null}
       {queue.reports.map((report) => (
         <article key={report.id} className="qb-mod-card qb-glass compact">
           <header>
-            <span className="title">{report.target_type === "post" ? "منشور" : "تعليق"}: {RULE_LABEL[report.rule as keyof typeof RULE_LABEL] ?? report.rule}</span>
+            <span className="title">{report.target_type === "post" ? t("منشور") : t("تعليق")}: {RULE_LABEL[report.rule as keyof typeof RULE_LABEL] ?? report.rule}</span>
             <span className="meta">{relativeAge(report.created_at)}</span>
           </header>
           {report.target_preview ? <p className="excerpt">«{report.target_preview}»</p> : null}
@@ -147,15 +157,15 @@ export function ModerationPanel({ surahName, onOpen }: { surahName: (surahId: nu
           <div className="decide">
             {report.target_type === "post" ? (
               <button type="button" className="qb-btn ghost" onClick={() => onOpen(report.target_id)}>
-                افتح المنشور
+                {t("افتح المنشور")}
               </button>
             ) : (
               <button type="button" className="qb-btn danger" onClick={() => void resolveReport(report.id, Number(report.target_id))}>
-                إخفاء التعليق
+                {t("إخفاء التعليق")}
               </button>
             )}
             <button type="button" className="qb-btn ghost" onClick={() => void resolveReport(report.id)}>
-              لا مخالفة
+              {t("لا مخالفة")}
             </button>
           </div>
         </article>

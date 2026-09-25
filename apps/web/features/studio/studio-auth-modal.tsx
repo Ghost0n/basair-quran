@@ -5,6 +5,8 @@ import { useDialog } from "@/lib/use-dialog";
 
 import "./studio-auth-modal.css";
 
+import { t } from "@/lib/i18n";
+
 /**
  * StudioAuthModal — shown when a guest tries to use the (auth-gated) Studio.
  * Offers sign-up / sign-in (with a next= back to Studio) or dismiss. The user's
@@ -18,25 +20,24 @@ export function StudioAuthModal({ onClose }: { onClose: () => void }) {
   const dialogRef = useDialog<HTMLDivElement>(onClose);
 
   return (
-    <div className="qb-studio-auth" role="dialog" aria-modal="true" aria-label="الدراسة تتطلّب حساباً">
+    <div className="qb-studio-auth" role="dialog" aria-modal="true" aria-label={t("الدراسة تتطلّب حساباً")}>
       <div className="backdrop" onClick={onClose} aria-hidden />
       <div className="dialog" ref={dialogRef} tabIndex={-1}>
         <BrandMark size={52} />
-        <h4>الدراسة تتطلّب حساباً</h4>
+        <h4>{t("الدراسة تتطلّب حساباً")}</h4>
         <p>
-          القراءة والبحث متاحان للضيف؛ أمّا الدراسة الموجَّهة — الجواب المستند على القرآن مع شواهده —
-          فتحتاج حساباً لحفظ جلساتك ومزامنتها.
+          {t("القراءة والبحث متاحان للضيف؛ أمّا الدراسة الموجَّهة — الجواب المستند على القرآن مع شواهده — فتحتاج حساباً لحفظ جلساتك ومزامنتها.")}
         </p>
         <div className="actions">
           <a className="primary" href={`/login?tab=signup&next=${enc}`}>
-            أنشئ حساباً
+            {t("أنشئ حساباً")}
           </a>
           <a className="secondary" href={`/login?next=${enc}`}>
-            تسجيل الدخول
+            {t("تسجيل الدخول")}
           </a>
         </div>
         <button type="button" className="dismiss" onClick={onClose}>
-          لاحقاً
+          {t("لاحقاً")}
         </button>
       </div>
     </div>

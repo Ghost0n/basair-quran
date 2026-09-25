@@ -9,6 +9,8 @@ import { queueStudioAsk } from "@/lib/studio-prefill";
 
 import { useMorphology } from "../use-morphology";
 
+import { t } from "@/lib/i18n";
+
 // Consonant-skeleton fold so the clicked word matches the morphology entry even
 // when marks/spelling differ (riwāyāt) — a fallback when position drifts.
 function skeleton(text: string): string {
@@ -103,7 +105,7 @@ export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
-      aria-label={`تحليل الكلمة: ${word?.text ?? target.word}`}
+      aria-label={t("تحليل الكلمة: {0}", { 0: word?.text ?? target.word })}
       tabIndex={-1}
       onKeyDown={trapTab}
       style={{ top: target.top, insetInlineStart: target.left }}
@@ -111,33 +113,33 @@ export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose
       {/* U11: flex header keeps word and close button in a clean row */}
       <div className="pop-head">
         <div className="word">{word?.text ?? target.word}</div>
-        <button type="button" className="close" onClick={onClose} aria-label="إغلاق">
+        <button type="button" className="close" onClick={onClose} aria-label={t("إغلاق")}>
           <Icon name="close" size={14} />
         </button>
       </div>
       <div className="gloss">
-        {loading ? "جارٍ تحميل التحليل الصرفي…" : word ? word.pos_label : "لا يتوفّر تحليل صرفي لهذه الكلمة."}
+        {loading ? t("جارٍ تحميل التحليل الصرفي…") : word ? word.pos_label : t("لا يتوفّر تحليل صرفي لهذه الكلمة.")}
       </div>
       <div className="grid">
         <div className="cell">
-          <div className="l">الجذر</div>
+          <div className="l">{t("الجذر")}</div>
           <div className="v">{word?.root ?? "—"}</div>
         </div>
         <div className="cell">
-          <div className="l">الأصل</div>
+          <div className="l">{t("الأصل")}</div>
           <div className="v">{word?.lemma ?? "—"}</div>
         </div>
         <div className="cell">
-          <div className="l">القسم</div>
+          <div className="l">{t("القسم")}</div>
           <div className="v">{word?.pos_label ?? "—"}</div>
         </div>
         <div className="cell">
-          <div className="l">الإعراب</div>
+          <div className="l">{t("الإعراب")}</div>
           <div className="v">{word?.case_label ?? "—"}</div>
         </div>
       </div>
       {word && word.features.length > 0 ? (
-        <div className="note">السمات: {word.features.join(" · ")}</div>
+        <div className="note">{t("السمات:")} {word.features.join(" · ")}</div>
       ) : null}
 
       <div
@@ -175,7 +177,7 @@ export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose
             }}
           >
             <Icon name="search" size={13} />
-            مواضع الجذر «{word.root}»
+            {t("مواضع الجذر «{0}»", { 0: word.root })}
             <span style={{ marginInlineStart: "auto" }}>←</span>
           </button>
         ) : null}
@@ -183,7 +185,7 @@ export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose
           type="button"
           onClick={() => {
             onClose();
-            queueStudioAsk(`ما معنى «${word?.text ?? target.word}» في القرآن؟`);
+            queueStudioAsk(t("ما معنى «{0}» في القرآن؟", { 0: word?.text ?? target.word }));
             setMode("studio");
           }}
           style={{
@@ -204,7 +206,7 @@ export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose
           }}
         >
           <Icon name="sparkles" size={13} />
-          ابدأ جلسة
+          {t("ابدأ جلسة")}
         </button>
       </div>
     </div>

@@ -6,7 +6,6 @@
   flex: 1;
   min-height: 0;
   display: flex;
-  direction: rtl;
 }
 
 /* ---------- U5: Companion split layout ---------- */
@@ -308,6 +307,7 @@
 
 .qb-verse-row .vtext {
   font-family: var(--font-arabic-display);
+  direction: rtl;
   /* Denser than the reader: results are scanned, then opened in the mushaf. */
   font-size: 20px;
   line-height: 1.85;
@@ -412,6 +412,7 @@
   border: 1px solid rgba(212, 175, 55, 0.25);
   color: var(--gold-text-bright);
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 15px;
   cursor: pointer;
   transition: background 160ms var(--ease-out);
@@ -424,6 +425,7 @@
 .qb-conc-watermark {
   margin-top: 8px;
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 26px;
   color: rgba(212, 175, 55, 0.22);
   letter-spacing: 0; /* Arabic: tracking breaks the joins */
@@ -454,6 +456,7 @@
   border: 1px solid var(--tafssir-border);
   color: var(--tafssir-fg);
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 16px;
   padding: 2px 10px;
   border-radius: 8px;

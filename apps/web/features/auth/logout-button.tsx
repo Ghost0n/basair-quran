@@ -6,6 +6,8 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 export function LogoutButton() {
@@ -26,7 +28,7 @@ export function LogoutButton() {
 
   return (
     <button type="button" className="auth-logout-button" onClick={handleLogout} disabled={submitting}>
-      {submitting ? "جارٍ الخروج..." : "تسجيل الخروج"}
+      {submitting ? t("جارٍ الخروج...") : t("تسجيل الخروج")}
     </button>
   );
 }

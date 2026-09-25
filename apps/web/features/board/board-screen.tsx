@@ -48,6 +48,8 @@ import { AyahNode, HeadingNode, NoteNode } from "./board-nodes";
 import { documentFromBoard } from "@/features/documents/convert";
 import { createDocumentUrl } from "@/features/documents/open-document";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 const NODE_TYPES = { ayah: AyahNode, note: NoteNode, heading: HeadingNode };
@@ -307,50 +309,50 @@ function Board() {
   if (status === "missing") {
     return (
       <div className="qb-board-state">
-        <p>لم يُعثر على هذا الموضوع.</p>
-        <button type="button" onClick={() => setMode("notebook")}>العودة إلى الدفتر</button>
+        <p>{t("لم يُعثر على هذا الموضوع.")}</p>
+        <button type="button" onClick={() => setMode("notebook")}>{t("العودة إلى الدفتر")}</button>
       </div>
     );
   }
   if (status === "error") {
     return (
       <div className="qb-board-state">
-        <p>تعذّر تحميل اللوحة.</p>
-        <button type="button" onClick={() => window.location.reload()}>إعادة المحاولة</button>
+        <p>{t("تعذّر تحميل اللوحة.")}</p>
+        <button type="button" onClick={() => window.location.reload()}>{t("إعادة المحاولة")}</button>
       </div>
     );
   }
 
   const ayahCount = items.length;
   const saveLabel =
-    saveState === "saving" ? "جارٍ الحفظ…" : saveState === "error" ? "تعذّر الحفظ" : saveState === "saved" ? "محفوظ" : "";
+    saveState === "saving" ? t("جارٍ الحفظ…") : saveState === "error" ? t("تعذّر الحفظ") : saveState === "saved" ? t("محفوظ") : "";
 
   return (
     <BoardContext.Provider value={context}>
       <div className="qb-board" data-hl={theme?.color ?? undefined}>
-        <div className="qb-board-bar" dir="rtl">
-          <button type="button" className="back" onClick={() => setMode("notebook")} aria-label="العودة إلى الدفتر">
+        <div className="qb-board-bar">
+          <button type="button" className="back" onClick={() => setMode("notebook")} aria-label={t("العودة إلى الدفتر")}>
             <Icon name="chevRight" size={18} />
           </button>
           <div className="title">
             <span className="dot" aria-hidden />
             <h1>{theme?.name ?? "…"}</h1>
             <span className="meta">
-              لوحة الموضوع، {formatNumber(ayahCount)} {ayahCount === 1 ? "آية" : "آيات"}
+              {t("لوحة الموضوع،")} {formatNumber(ayahCount)} {ayahCount === 1 ? t("آية") : t("آيات")}
             </span>
           </div>
           <div className="tools">
             <button type="button" onClick={() => addNode("note")}>
-              <Icon name="edit" size={15} /> <span className="lbl">ملاحظة</span>
+              <Icon name="edit" size={15} /> <span className="lbl">{t("ملاحظة")}</span>
             </button>
             <button type="button" onClick={() => addNode("heading")}>
-              <Icon name="flag" size={15} /> <span className="lbl">عنوان</span>
+              <Icon name="flag" size={15} /> <span className="lbl">{t("عنوان")}</span>
             </button>
-            <button type="button" onClick={arrange} title="ترتيب الآيات حسب ترتيب المصحف">
-              <Icon name="layers" size={15} /> <span className="lbl">ترتيب</span>
+            <button type="button" onClick={arrange} title={t("ترتيب الآيات حسب ترتيب المصحف")}>
+              <Icon name="layers" size={15} /> <span className="lbl">{t("ترتيب")}</span>
             </button>
             <button type="button" onClick={() => void exportAsDocument()} disabled={exporting || items.length === 0}>
-              <Icon name="page" size={15} /> <span className="lbl">صدّر كبحث</span>
+              <Icon name="page" size={15} /> <span className="lbl">{t("صدّر كبحث")}</span>
             </button>
             <span className={`save ${saveState}`} role="status" aria-live="polite">
               {saveLabel}
@@ -386,29 +388,29 @@ function Board() {
 
             {status === "loading" ? (
               <Panel position="top-center">
-                <div className="qb-board-hint">جارٍ تحميل اللوحة…</div>
+                <div className="qb-board-hint">{t("جارٍ تحميل اللوحة…")}</div>
               </Panel>
             ) : ayahCount === 0 ? (
               <Panel position="top-center">
-                <div className="qb-board-hint" dir="rtl">
-                  لا آيات في هذا الموضوع بعد. ظلِّل آيات بهذا الموضوع من القراءة (أداة «تظليل») لتظهر هنا.
+                <div className="qb-board-hint">
+                  {t("لا آيات في هذا الموضوع بعد. ظلِّل آيات بهذا الموضوع من القراءة (أداة «تظليل») لتظهر هنا.")}
                 </div>
               </Panel>
             ) : null}
 
             {editingEdge ? (
               <Panel position="top-center">
-                <div className="qb-edge-editor" dir="rtl" role="dialog" aria-label="نوع العلاقة">
+                <div className="qb-edge-editor" role="dialog" aria-label={t("نوع العلاقة")}>
                   <div className="head">
-                    <span>نوع العلاقة</span>
-                    <button type="button" onClick={() => setEditingEdge(null)} aria-label="إغلاق">
+                    <span>{t("نوع العلاقة")}</span>
+                    <button type="button" onClick={() => setEditingEdge(null)} aria-label={t("إغلاق")}>
                       <Icon name="close" size={14} />
                     </button>
                   </div>
                   <div className="chips">
                     {RELATION_LABELS.map((label) => (
-                      <button key={label} type="button" onClick={() => setEdgeLabel(editingEdge, label)}>
-                        {label}
+                      <button key={label} type="button" onClick={() => setEdgeLabel(editingEdge, t(label))}>
+                        {t(label)}
                       </button>
                     ))}
                   </div>
@@ -421,14 +423,14 @@ function Board() {
                     <input
                       value={edgeText}
                       onChange={(event) => setEdgeText(event.target.value)}
-                      placeholder="وصف آخر…"
+                      placeholder={t("وصف آخر…")}
                       maxLength={40}
-                      aria-label="وصف العلاقة"
+                      aria-label={t("وصف العلاقة")}
                     />
-                    <button type="submit">تمّ</button>
+                    <button type="submit">{t("تمّ")}</button>
                   </form>
                   <button type="button" className="remove" onClick={() => removeEdge(editingEdge)}>
-                    <Icon name="trash" size={13} /> حذف العلاقة
+                    <Icon name="trash" size={13} /> {t("حذف العلاقة")}
                   </button>
                 </div>
               </Panel>

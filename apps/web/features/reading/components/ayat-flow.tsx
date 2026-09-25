@@ -10,6 +10,8 @@ import { usePickedWords, wordKey } from "@/features/reading/tools/word-selection
 import { flyToNotebook } from "@/lib/fly-to-notebook";
 import { useNumerals } from "@/lib/preferences-context";
 
+import { t } from "@/lib/i18n";
+
 const BASMALA = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
 const AT_TAWBAH_ID = 9; // the only surah with no basmala at all.
 
@@ -95,7 +97,7 @@ export function AyahTokens({
       // The ayah is a readable unit: a screen reader announces "آية" and then
       // reads the verse as prose (the words below are plain text, not buttons).
       role="group"
-      aria-roledescription="آية"
+      aria-roledescription={t("آية")}
     >
       {ayah.text
         .trim()
@@ -137,9 +139,9 @@ export function AyahTokens({
         type="button"
         className={`qb-save-ayah${isSaved(ayah.ayah_id) ? " on" : ""}${mark && mark.themes > 1 ? " multi" : ""}`}
         data-hl={mark?.color ?? undefined}
-        aria-label={isSaved(ayah.ayah_id) ? "المواضيع والحفظ" : "حفظ في الدفتر"}
+        aria-label={isSaved(ayah.ayah_id) ? t("المواضيع والحفظ") : t("حفظ في الدفتر")}
         aria-haspopup="dialog"
-        title={isSaved(ayah.ayah_id) ? "محفوظة — المواضيع" : "حفظ الآية وتظليلها"}
+        title={isSaved(ayah.ayah_id) ? t("محفوظة — المواضيع") : t("حفظ الآية وتظليلها")}
         onClick={(event) => {
           event.stopPropagation();
           // Ghost flight to the notebook only on SAVE (not un-save).
@@ -227,7 +229,7 @@ export function SurahBanner({ surahName }: { surahName: string }) {
   return (
     <div className="qb-surah-banner">
       <span className="rule" aria-hidden />
-      <span className="name">سورة {surahName}</span>
+      <span className="name">{t("سورة")} {surahName}</span>
       <span className="rule" aria-hidden />
     </div>
   );

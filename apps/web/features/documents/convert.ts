@@ -8,6 +8,8 @@ import type {
   ThemeSummary,
 } from "@q-basair/shared";
 
+import { t } from "@/lib/i18n";
+
 /**
  * Conversions into the research document format (spec §5): a Studio session
  * or a theme board becomes an editable, shareable document. Pure functions —
@@ -38,10 +40,10 @@ function answerBody(message: SessionLike["messages"][number]): string {
   const tafssir = message.response?.tafssir;
   if (tafssir) {
     const parts: [string, string | null | undefined][] = [
-      ["الخلاصة", tafssir.summary],
-      ["التحليل اللغوي", tafssir.linguistic_analysis],
-      ["صلات الآيات", tafssir.ayah_connections],
-      ["حدود وتنبيهات", tafssir.limits_and_cautions],
+      [t("الخلاصة"), tafssir.summary],
+      [t("التحليل اللغوي"), tafssir.linguistic_analysis],
+      [t("صلات الآيات"), tafssir.ayah_connections],
+      [t("حدود وتنبيهات"), tafssir.limits_and_cautions],
     ];
     const text = parts
       .filter(([, value]) => value && value.trim())
@@ -56,7 +58,7 @@ export function documentFromSession(session: SessionLike): ResearchDocumentSave 
   const sections: ResearchSection[] = [];
   const aiSections: string[] = [];
   if (session.mode === "tafssir") {
-    sections.push({ id: "disclaimer", kind: "note", title: "تنبيه", body: TAFSSIR_DOCUMENT_NOTE, ayahs: [] });
+    sections.push({ id: "disclaimer", kind: "note", title: t("تنبيه"), body: TAFSSIR_DOCUMENT_NOTE, ayahs: [] });
   }
   session.messages.forEach((message, index) => {
     if (message.role === "user") {
@@ -67,11 +69,11 @@ export function documentFromSession(session: SessionLike): ResearchDocumentSave 
     aiSections.push(id);
     sections.push({ id, kind: "ai_answer", title: null, body: answerBody(message), ayahs: [] });
     const refs = ayahRefsFrom(message.response);
-    if (refs.length) sections.push({ id: `e${index}`, kind: "ayahs", title: "الآيات", body: "", ayahs: refs });
+    if (refs.length) sections.push({ id: `e${index}`, kind: "ayahs", title: t("الآيات"), body: "", ayahs: refs });
   });
   const firstQuestion = session.messages.find((message) => message.role === "user")?.content.trim() ?? "";
   return {
-    title: (session.title || firstQuestion || "بحث").slice(0, 200),
+    title: (session.title || firstQuestion || t("بحث")).slice(0, 200),
     summary: firstQuestion ? firstQuestion.slice(0, 600) : null,
     language: "ar",
     tags: [],
@@ -99,9 +101,9 @@ export function documentFromBoard(
     if (!node) return "";
     if (node.type === "ayah") {
       const item = itemByNode.get(nodeId);
-      return item ? `${item.surah ?? ""} ${item.ayah ?? ""}`.trim() : "آية";
+      return item ? `${item.surah ?? ""} ${item.ayah ?? ""}`.trim() : t("آية");
     }
-    return String(node.data.text ?? "").trim() || (node.type === "note" ? "ملاحظة" : "عنوان");
+    return String(node.data.text ?? "").trim() || (node.type === "note" ? t("ملاحظة") : t("عنوان"));
   };
 
   const ordered = [...board.nodes].sort((a, b) => (Math.abs(a.y - b.y) > 40 ? a.y - b.y : b.x - a.x));
@@ -118,7 +120,7 @@ export function documentFromBoard(
       const item = itemByNode.get(node.id);
       if (!item || item.surah_id == null || item.ayah == null) continue;
       if (!current) {
-        current = { id: "ayahs", kind: "ayahs", title: "الآيات", body: "", ayahs: [] };
+        current = { id: "ayahs", kind: "ayahs", title: t("الآيات"), body: "", ayahs: [] };
         sections.push(current);
       }
       current.ayahs.push({
@@ -131,10 +133,10 @@ export function documentFromBoard(
     }
   }
   const relations = board.edges
-    .map((edge) => `- ${label(edge.source)} ← ${edge.label || "مرتبطة بـ"} → ${label(edge.target)}`)
+    .map((edge) => `- ${label(edge.source)} ← ${edge.label || t("مرتبطة بـ")} → ${label(edge.target)}`)
     .filter((line) => line.length > 8);
   if (relations.length) {
-    sections.push({ id: "relations", kind: "text", title: "العلاقات", body: relations.join("\n"), ayahs: [] });
+    sections.push({ id: "relations", kind: "text", title: t("العلاقات"), body: relations.join("\n"), ayahs: [] });
   }
   return {
     title: theme.name,
@@ -150,10 +152,18 @@ export function documentFromBoard(
 
 const KIND_LABEL: Record<ResearchSection["kind"], string> = {
   text: "",
-  ayahs: "الآيات",
-  note: "ملاحظة",
-  question: "السؤال",
-  ai_answer: "جواب الباحث الآلي",
+  get ayahs() {
+    return t("الآيات");
+  },
+  get note() {
+    return t("ملاحظة");
+  },
+  get question() {
+    return t("السؤال");
+  },
+  get ai_answer() {
+    return t("جواب الباحث الآلي");
+  },
 };
 
 /** Plain Markdown export (the document stays readable anywhere). */
@@ -165,19 +175,19 @@ export function documentToMarkdown(
   if (document.summary) lines.push(`> ${document.summary}`, "");
   for (const section of document.sections) {
     const heading = section.title || KIND_LABEL[section.kind];
-    if (heading) lines.push(`## ${heading}${section.kind === "ai_answer" ? " (مولَّد آلياً)" : ""}`, "");
+    if (heading) lines.push(`## ${heading}${section.kind === "ai_answer" ? t(" (مولَّد آلياً)") : ""}`, "");
     if (section.body) lines.push(section.body, "");
     for (const ref of section.ayahs) {
       lines.push(`> ${ref.text} ﴿${surahName(ref.surah_id)}: ${ref.ayah}﴾`, "");
     }
   }
   if (document.references.length) {
-    lines.push("## المراجع", "");
+    lines.push(t("## المراجع"), "");
     for (const reference of document.references) {
       lines.push(`- ${reference.label}${reference.locator ? ` — ${reference.locator}` : ""}`);
     }
     lines.push("");
   }
-  lines.push("---", "أُعدّ في «بصائر».");
+  lines.push("---", t("أُعدّ في «بصائر»."));
   return lines.join("\n");
 }

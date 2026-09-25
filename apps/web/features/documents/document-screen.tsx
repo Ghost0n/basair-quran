@@ -30,23 +30,45 @@ import { PublishSheet } from "./publish-sheet";
 import { downloadBlob } from "./share-card";
 import { ShareStudio, type ShareArtifact } from "./share-studio";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const SAVE_DELAY_MS = 1200;
 
 const KIND_LABEL: Record<ResearchSectionKind, string> = {
-  text: "نص",
-  ayahs: "آيات",
-  note: "ملاحظة",
-  question: "سؤال",
-  ai_answer: "جواب آلي",
+  get text() {
+    return t("نص");
+  },
+  get ayahs() {
+    return t("آيات");
+  },
+  get note() {
+    return t("ملاحظة");
+  },
+  get question() {
+    return t("سؤال");
+  },
+  get ai_answer() {
+    return t("جواب آلي");
+  },
 };
 
 const AUDIT_LABEL: Record<string, string> = {
-  quotes_verified: "نصوص الآيات مطابقة للمصحف",
-  has_content: "للبحث عنوان ومحتوى",
-  ai_sections_labelled: "الأقسام المولَّدة آلياً موسومة",
-  tafssir_disclaimer: "القراءة التفسيرية تحمل التنبيه",
-  ayah_references_resolve: "مراجع الآيات صحيحة",
+  get quotes_verified() {
+    return t("نصوص الآيات مطابقة للمصحف");
+  },
+  get has_content() {
+    return t("للبحث عنوان ومحتوى");
+  },
+  get ai_sections_labelled() {
+    return t("الأقسام المولَّدة آلياً موسومة");
+  },
+  get tafssir_disclaimer() {
+    return t("القراءة التفسيرية تحمل التنبيه");
+  },
+  get ayah_references_resolve() {
+    return t("مراجع الآيات صحيحة");
+  },
 };
 
 function editable(document: ResearchDocument): ResearchDocumentSave {
@@ -235,19 +257,19 @@ export function DocumentScreen() {
       dirtyRef.current = false;
       setMode("notebook");
     } catch {
-      setShareNote("تعذّر حذف البحث.");
+      setShareNote(t("تعذّر حذف البحث."));
     }
   }
 
   if (status === "missing" || status === "error") {
     return (
       <div className="qb-doc-state">
-        <p>{status === "missing" ? "لم يُعثر على هذا البحث." : "تعذّر تحميل البحث."}</p>
-        <button type="button" onClick={() => setMode("notebook")}>العودة إلى الدفتر</button>
+        <p>{status === "missing" ? t("لم يُعثر على هذا البحث.") : t("تعذّر تحميل البحث.")}</p>
+        <button type="button" onClick={() => setMode("notebook")}>{t("العودة إلى الدفتر")}</button>
       </div>
     );
   }
-  if (!doc) return <div className="qb-doc-state">جارٍ التحميل…</div>;
+  if (!doc) return <div className="qb-doc-state">{t("جارٍ التحميل…")}</div>;
 
   const issuesBySection = new Map<string, QuoteVerification["issues"]>();
   for (const issue of verification?.issues ?? []) {
@@ -255,30 +277,30 @@ export function DocumentScreen() {
   }
   const saveLabel =
     saveState === "saving"
-      ? "جارٍ الحفظ…"
+      ? t("جارٍ الحفظ…")
       : saveState === "error"
-        ? "تعذّر الحفظ"
+        ? t("تعذّر الحفظ")
         : saveState === "untitled"
-          ? "العنوان مطلوب للحفظ"
+          ? t("العنوان مطلوب للحفظ")
           : saveState === "saved"
-            ? "محفوظ"
+            ? t("محفوظ")
             : "";
 
   return (
-    <div className="qb-doc" dir="rtl">
+    <div className="qb-doc">
       <div className="qb-doc-bar">
-        <button type="button" className="back" onClick={() => setMode("notebook")} aria-label="العودة إلى الدفتر">
+        <button type="button" className="back" onClick={() => setMode("notebook")} aria-label={t("العودة إلى الدفتر")}>
           <Icon name="chevRight" size={18} />
         </button>
         <span className="kicker">
-          بحث{doc.provenance.created_from === "studio" ? "، من الدراسة" : doc.provenance.created_from === "board" ? "، من لوحة موضوع" : ""}
+          {t("بحث")}{doc.provenance.created_from === "studio" ? t("، من الدراسة") : doc.provenance.created_from === "board" ? t("، من لوحة موضوع") : ""}
         </span>
         <span className={`save ${saveState}`} role="status" aria-live="polite">
           {saveLabel}
         </span>
         <div className="acts">
           <button type="button" onClick={() => setSharing({ artifact: "research" })}>
-            <Icon name="share" size={15} /> <span className="lbl">مشاركة</span>
+            <Icon name="share" size={15} /> <span className="lbl">{t("مشاركة")}</span>
           </button>
           <button type="button" onClick={exportMarkdown}>
             <Icon name="download" size={15} /> <span className="lbl">Markdown</span>
@@ -287,10 +309,10 @@ export function DocumentScreen() {
             <Icon name="download" size={15} /> <span className="lbl">JSON</span>
           </button>
           <button type="button" onClick={() => void runAudit()}>
-            <Icon name="shieldCheck" size={15} /> <span className="lbl">جاهزية النشر</span>
+            <Icon name="shieldCheck" size={15} /> <span className="lbl">{t("جاهزية النشر")}</span>
           </button>
           <button type="button" className="publish" onClick={() => setPublishing(true)}>
-            <Icon name="users" size={15} /> <span className="lbl">نشر</span>
+            <Icon name="users" size={15} /> <span className="lbl">{t("نشر")}</span>
           </button>
         </div>
       </div>
@@ -302,35 +324,35 @@ export function DocumentScreen() {
           className="title"
           value={doc.title}
           onChange={(event) => update({ title: event.target.value.slice(0, 200) })}
-          placeholder="عنوان البحث"
-          aria-label="عنوان البحث"
+          placeholder={t("عنوان البحث")}
+          aria-label={t("عنوان البحث")}
         />
         <textarea
           className="summary"
           value={doc.summary ?? ""}
           onChange={(event) => update({ summary: event.target.value.slice(0, 1200) })}
-          placeholder="ملخّص قصير للبحث…"
-          aria-label="ملخّص البحث"
+          placeholder={t("ملخّص قصير للبحث…")}
+          aria-label={t("ملخّص البحث")}
           rows={2}
         />
         <div className="stats">
-          {formatNumber(doc.sections.length)} أقسام، {formatNumber(ayahTotal)} آية
-          {meta ? `، الإصدار ${formatNumber(meta.version)}` : ""}
+          {formatNumber(doc.sections.length)} {t("أقسام،")} {formatNumber(ayahTotal)} {t("آية")}
+          {meta ? t("، الإصدار {0}", { 0: formatNumber(meta.version) }) : ""}
         </div>
 
         {doc.provenance.mode === "tafssir" ? <TafssirDisclaimer /> : null}
 
         {verification && !verification.ok ? (
           <div className="qb-doc-warn" role="alert">
-            <Icon name="alert" size={15} /> بعض النصوص المقتبسة لا تطابق نص المصحف — راجِعها في الأقسام المعلَّمة.
+            <Icon name="alert" size={15} /> {t("بعض النصوص المقتبسة لا تطابق نص المصحف — راجِعها في الأقسام المعلَّمة.")}
           </div>
         ) : null}
 
         {audit ? (
           <div className={`qb-doc-audit${audit.publishable ? " ok" : ""}`}>
             <div className="head">
-              <strong>{audit.publishable ? "البحث جاهز للنشر" : "قبل النشر:"}</strong>
-              <button type="button" onClick={() => setAudit(null)} aria-label="إغلاق">
+              <strong>{audit.publishable ? t("البحث جاهز للنشر") : t("قبل النشر:")}</strong>
+              <button type="button" onClick={() => setAudit(null)} aria-label={t("إغلاق")}>
                 <Icon name="close" size={14} />
               </button>
             </div>
@@ -343,7 +365,7 @@ export function DocumentScreen() {
               ))}
             </ul>
             <p className="fine">
-              عند النشر تمرّ هذه الفحوص، ثم مراجعة آلية وبشرية عند الحاجة وفق إرشادات المجتمع.
+              {t("عند النشر تمرّ هذه الفحوص، ثم مراجعة آلية وبشرية عند الحاجة وفق إرشادات المجتمع.")}
             </p>
           </div>
         ) : null}
@@ -361,23 +383,23 @@ export function DocumentScreen() {
                   <input
                     className="section-title"
                     value={section.title ?? ""}
-                    placeholder={section.kind === "ayahs" ? "عنوان الآيات (اختياري)" : "عنوان القسم (اختياري)"}
+                    placeholder={section.kind === "ayahs" ? t("عنوان الآيات (اختياري)") : t("عنوان القسم (اختياري)")}
                     onChange={(event) => updateSection(section.id, { title: event.target.value.slice(0, 200) || null })}
-                    aria-label="عنوان القسم"
+                    aria-label={t("عنوان القسم")}
                   />
                   <div className="section-acts">
-                    <button type="button" onClick={() => moveSection(section.id, -1)} disabled={index === 0} aria-label="إلى الأعلى">
+                    <button type="button" onClick={() => moveSection(section.id, -1)} disabled={index === 0} aria-label={t("إلى الأعلى")}>
                       <Icon name="chevUp" size={14} />
                     </button>
                     <button
                       type="button"
                       onClick={() => moveSection(section.id, 1)}
                       disabled={index === doc.sections.length - 1}
-                      aria-label="إلى الأسفل"
+                      aria-label={t("إلى الأسفل")}
                     >
                       <Icon name="chevDown" size={14} />
                     </button>
-                    <button type="button" onClick={() => removeSection(section.id)} aria-label="حذف القسم">
+                    <button type="button" onClick={() => removeSection(section.id)} aria-label={t("حذف القسم")}>
                       <Icon name="trash" size={14} />
                     </button>
                   </div>
@@ -387,8 +409,8 @@ export function DocumentScreen() {
                     className="section-body"
                     value={section.body}
                     onChange={(event) => updateSection(section.id, { body: event.target.value.slice(0, 8000) })}
-                    placeholder={section.kind === "note" ? "ملاحظتك…" : section.kind === "question" ? "السؤال…" : "النص…"}
-                    aria-label={`نص القسم: ${KIND_LABEL[section.kind]}`}
+                    placeholder={section.kind === "note" ? t("ملاحظتك…") : section.kind === "question" ? t("السؤال…") : t("النص…")}
+                    aria-label={t("نص القسم: {0}", { 0: KIND_LABEL[section.kind] })}
                     rows={Math.min(14, Math.max(3, Math.ceil(section.body.length / 70)))}
                   />
                 ) : null}
@@ -415,7 +437,7 @@ export function DocumentScreen() {
                               className="mini"
                               onClick={() => setSharing({ artifact: "verse", ayahKey: `${section.id}:${ref.surah_id}:${ref.ayah}` })}
                             >
-                              <Icon name="share" size={12} /> بطاقة
+                              <Icon name="share" size={12} /> {t("بطاقة")}
                             </button>
                             <button
                               type="button"
@@ -425,17 +447,17 @@ export function DocumentScreen() {
                                   ayahs: section.ayahs.filter((entry) => entry !== ref),
                                 })
                               }
-                              aria-label="إزالة الآية من القسم"
+                              aria-label={t("إزالة الآية من القسم")}
                             >
                               <Icon name="close" size={12} />
                             </button>
                           </div>
                           {issue ? (
                             <div className="issue">
-                              {issue.problem === "not_found" ? "هذه الآية غير موجودة في المصحف." : "النص المقتبس لا يطابق المصحف."}
+                              {issue.problem === "not_found" ? t("هذه الآية غير موجودة في المصحف.") : t("النص المقتبس لا يطابق المصحف.")}
                               {issue.expected ? (
                                 <button type="button" onClick={() => fixQuote(section.id, ref, issue.expected!)}>
-                                  استبدل بنص المصحف
+                                  {t("استبدل بنص المصحف")}
                                 </button>
                               ) : null}
                             </div>
@@ -451,10 +473,10 @@ export function DocumentScreen() {
         </ol>
 
         <div className="add-row">
-          <span>أضف:</span>
-          <button type="button" onClick={() => addSection("text")}>نص</button>
-          <button type="button" onClick={() => addSection("note")}>ملاحظة</button>
-          <button type="button" onClick={() => addSection("question")}>سؤال</button>
+          <span>{t("أضف:")}</span>
+          <button type="button" onClick={() => addSection("text")}>{t("نص")}</button>
+          <button type="button" onClick={() => addSection("note")}>{t("ملاحظة")}</button>
+          <button type="button" onClick={() => addSection("question")}>{t("سؤال")}</button>
         </div>
 
         <References
@@ -493,13 +515,13 @@ export function DocumentScreen() {
         <div className="danger-zone">
           {confirmDelete ? (
             <>
-              <span>حذف البحث نهائياً؟</span>
-              <button type="button" className="danger" onClick={() => void removeDocument()}>حذف</button>
-              <button type="button" onClick={() => setConfirmDelete(false)}>إلغاء</button>
+              <span>{t("حذف البحث نهائياً؟")}</span>
+              <button type="button" className="danger" onClick={() => void removeDocument()}>{t("حذف")}</button>
+              <button type="button" onClick={() => setConfirmDelete(false)}>{t("إلغاء")}</button>
             </>
           ) : (
             <button type="button" className="danger-link" onClick={() => setConfirmDelete(true)}>
-              <Icon name="trash" size={13} /> حذف البحث
+              <Icon name="trash" size={13} /> {t("حذف البحث")}
             </button>
           )}
         </div>
@@ -509,10 +531,18 @@ export function DocumentScreen() {
 }
 
 const REFERENCE_KINDS: { value: ResearchReference["kind"]; label: string }[] = [
-  { value: "book", label: "كتاب" },
-  { value: "tafsir", label: "تفسير" },
-  { value: "ayah", label: "آية" },
-  { value: "url", label: "رابط" },
+  { value: "book", get label() {
+    return t("كتاب");
+  } },
+  { value: "tafsir", get label() {
+    return t("تفسير");
+  } },
+  { value: "ayah", get label() {
+    return t("آية");
+  } },
+  { value: "url", get label() {
+    return t("رابط");
+  } },
 ];
 
 function References({
@@ -528,7 +558,7 @@ function References({
 
   return (
     <section className="qb-doc-refs">
-      <h2>المراجع</h2>
+      <h2>{t("المراجع")}</h2>
       {references.length ? (
         <ul>
           {references.map((reference, index) => (
@@ -539,7 +569,7 @@ function References({
               <button
                 type="button"
                 onClick={() => onChange(references.filter((_, position) => position !== index))}
-                aria-label="حذف المرجع"
+                aria-label={t("حذف المرجع")}
               >
                 <Icon name="close" size={12} />
               </button>
@@ -547,7 +577,7 @@ function References({
           ))}
         </ul>
       ) : (
-        <p className="empty">لا مراجع بعد.</p>
+        <p className="empty">{t("لا مراجع بعد.")}</p>
       )}
       <form
         onSubmit={(event) => {
@@ -558,22 +588,22 @@ function References({
           setLocator("");
         }}
       >
-        <select value={kind} onChange={(event) => setKind(event.target.value as ResearchReference["kind"])} aria-label="نوع المرجع">
+        <select value={kind} onChange={(event) => setKind(event.target.value as ResearchReference["kind"])} aria-label={t("نوع المرجع")}>
           {REFERENCE_KINDS.map((entry) => (
             <option key={entry.value} value={entry.value}>
               {entry.label}
             </option>
           ))}
         </select>
-        <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder="اسم المرجع" aria-label="اسم المرجع" />
+        <input value={label} onChange={(event) => setLabel(event.target.value)} placeholder={t("اسم المرجع")} aria-label={t("اسم المرجع")} />
         <input
           value={locator}
           onChange={(event) => setLocator(event.target.value)}
-          placeholder={kind === "ayah" ? "السورة:الآية (مثلاً 2:255)" : "الموضع (جزء/صفحة/رابط)"}
-          aria-label="موضع المرجع"
+          placeholder={kind === "ayah" ? t("السورة:الآية (مثلاً 2:255)") : t("الموضع (جزء/صفحة/رابط)")}
+          aria-label={t("موضع المرجع")}
           dir={kind === "url" ? "ltr" : "rtl"}
         />
-        <button type="submit" disabled={!label.trim()}>إضافة</button>
+        <button type="submit" disabled={!label.trim()}>{t("إضافة")}</button>
       </form>
     </section>
   );

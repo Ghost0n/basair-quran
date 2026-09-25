@@ -165,6 +165,7 @@
 
 .qb-selection-bar .picked .text {
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 18px;
   line-height: 1.7;
   color: var(--fg-1);
@@ -322,6 +323,7 @@
 
 .qb-selection-bar .letter b {
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 18px;
   color: var(--fg-1);
 }

@@ -125,6 +125,7 @@
   border-radius: var(--r-md);
   background: var(--gold-a08);
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 18px;
   line-height: 1.9;
   color: var(--fg-1);

@@ -58,3 +58,9 @@ export function fontStackFor(lang: string): string {
   if (!script) return "var(--font-arabic-ui)";
   return `'${NOTO[script].family}', var(--font-arabic-ui), system-ui, sans-serif`;
 }
+
+/** The Noto family for `lang`'s script, or null when Cairo/Amiri already cover it (Arabic, Latin). */
+export function scriptFamily(lang: string): string | null {
+  const script = SCRIPT_OF[lang];
+  return script ? NOTO[script].family : null;
+}

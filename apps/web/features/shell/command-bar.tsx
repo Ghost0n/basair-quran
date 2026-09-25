@@ -14,6 +14,8 @@ import { useCommandShortcut } from "./use-command-shortcut";
 import { useWorkspace } from "./workspace-context";
 import { parseNavCommand } from "@/lib/quran-nav";
 
+import { t } from "@/lib/i18n";
+
 // Live intent parsing for the command-bar chip (design spec). Ask stays aligned
 // with the Enter-routing (`looksLikeQuestion`) so the chip never contradicts what
 // pressing Enter actually does; go/search are a display distinction.
@@ -21,16 +23,28 @@ type CommandIntent = "ask" | "go" | "search";
 const INTERROGATIVE = /^(ما|من|لماذا|كيف|هل|أين|متى)\s/;
 
 const INTENT_LABEL: Record<CommandIntent, string> = {
-  ask: "اسأل ✦",
-  go: "انتقال",
-  search: "جذر · ابحث",
+  get ask() {
+    return t("اسأل ✦");
+  },
+  get go() {
+    return t("انتقال");
+  },
+  get search() {
+    return t("جذر · ابحث");
+  },
 };
 // Screen-reader announcement of how Enter will act (the visual chip is
 // decorative/aria-hidden; this live region gives SR users the same cue).
 const INTENT_SR_LABEL: Record<CommandIntent, string> = {
-  ask: "سيُفتح الإدخال كسؤال في الدراسة عند الضغط على Enter.",
-  go: "سيُنفَّذ الإدخال كانتقال عند الضغط على Enter.",
-  search: "سيُنفَّذ الإدخال كبحث عند الضغط على Enter.",
+  get ask() {
+    return t("سيُفتح الإدخال كسؤال في الدراسة عند الضغط على Enter.");
+  },
+  get go() {
+    return t("سيُنفَّذ الإدخال كانتقال عند الضغط على Enter.");
+  },
+  get search() {
+    return t("سيُنفَّذ الإدخال كبحث عند الضغط على Enter.");
+  },
 };
 
 function detectIntent(raw: string): CommandIntent | null {
@@ -109,7 +123,7 @@ export function CommandBar() {
     actions.handleInputKeyDown(event);
   }
 
-  const placeholder = "ابحث · انتقل · اسأل  —  /";
+  const placeholder = t("ابحث · انتقل · اسأل  —  /");
   const listboxOpen = state.suggestionsOpen && state.suggestions.length > 0;
   const activeOptionId =
     listboxOpen && state.activeSuggestionIndex >= 0
@@ -118,11 +132,11 @@ export function CommandBar() {
 
   // Announced politely to assistive tech as search state changes.
   const liveMessage = state.isSearching
-    ? "جارٍ البحث…"
+    ? t("جارٍ البحث…")
     : state.errorMessage
       ? state.errorMessage
       : state.resultsSummary
-        ? `${state.resultsSummary.totalVerses} آية في ${state.resultsSummary.cards} مجموعة`
+        ? t("{0} آية في {1} مجموعة", { 0: state.resultsSummary.totalVerses, 1: state.resultsSummary.cards })
         : "";
 
   // In Search mode with nothing typed yet, the command bar is the focal point:
@@ -188,7 +202,7 @@ export function CommandBar() {
         id="searchInput"
         ref={refs.inputRef}
         data-qb-command-input
-        dir="rtl"
+        dir="auto"
         type="text"
         defaultValue={state.inputValue}
         placeholder={placeholder}
@@ -198,7 +212,7 @@ export function CommandBar() {
         onFocus={actions.openSuggestions}
         onBlur={actions.closeSuggestions}
         onKeyDown={onInputKeyDown}
-        aria-label="مساحة الأمر — بحث وتصفّح"
+        aria-label={t("مساحة الأمر — بحث وتصفّح")}
         role="combobox"
         aria-expanded={listboxOpen}
         aria-controls="qb-cmd-listbox"
@@ -242,9 +256,9 @@ export function CommandBar() {
 
       {showSearchHint ? (
         <div className="qb-cmd-hint" role="note">
-          <span className="lead">ابدأ بكتابة جذر أو كلمة قرآنية للبحث</span>
+          <span className="lead">{t("ابدأ بكتابة جذر أو كلمة قرآنية للبحث")}</span>
           <div className="ex">
-            <span className="lbl">جرّب</span>
+            <span className="lbl">{t("جرّب")}</span>
             {state.quickExamples.map((example) => (
               <button
                 key={example.label}

@@ -1,5 +1,6 @@
 "use client";
 
+import { LocaleAccountSync } from "./locale-account-sync";
 import { useEffect, type ReactNode } from "react";
 
 import "./shell.css";
@@ -50,6 +51,7 @@ export function Shell({ children }: { children: ReactNode }) {
               <MobileTabBar />
             </div>
             <ShortcutsModal />
+            <LocaleAccountSync />
             <MergeToast />
             <ThemeSweep />
           </WorkspaceProvider>

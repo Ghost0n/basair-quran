@@ -17,6 +17,7 @@ import type { QuranPageResponse } from "@q-basair/shared";
 import { API_BASE_URL } from "@/lib/config";
 import { reportError } from "@/lib/error-report";
 
+import { t } from "@/lib/i18n";
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const LAST_PAGE_KEY = "qbasair.mushaf.lastPage";
 // The surah at the top of the last-read page — display sugar for the Home
@@ -195,11 +196,11 @@ function useMushafController(): MushafController {
           options.selectedAyahId == null
             ? await fetchPage(mushafId, page)
             : await api.getQuranPage(mushafId, page, options.selectedAyahId);
-        if (!data.found) throw new Error(NOT_FOUND);
+        if (!data.found) throw new Error(t(NOT_FOUND));
         applyResult(data, options.persist ?? false);
       } catch (err) {
         reportError("reader", err);
-        setError(err instanceof Error ? err.message : READER_ERROR);
+        setError(err instanceof Error ? err.message : t(READER_ERROR));
       } finally {
         setIsLoading(false);
       }
@@ -226,12 +227,12 @@ function useMushafController(): MushafController {
       setSelectedHighlights(highlights);
       try {
         const data = await api.getQuranPageForAyah(mushafId, ayahId);
-        if (!data.found) throw new Error(NOT_FOUND);
+        if (!data.found) throw new Error(t(NOT_FOUND));
         applyResult(data, false);
         if (options.transient) markTransient(ayahId);
       } catch (err) {
         reportError("reader", err);
-        setError(err instanceof Error ? err.message : READER_ERROR);
+        setError(err instanceof Error ? err.message : t(READER_ERROR));
       } finally {
         setIsLoading(false);
       }
@@ -246,13 +247,13 @@ function useMushafController(): MushafController {
       setSelectedHighlights([]);
       try {
         const data = await api.getQuranPageForSurah(mushafId, surah, ayah);
-        if (!data.found) throw new Error(NOT_FOUND);
+        if (!data.found) throw new Error(t(NOT_FOUND));
         // Only a targeted verse is selected; a plain surah jump selects nothing.
         setSelectedAyahId(ayah ? data.selected_ayah_id ?? null : null);
         applyResult(data, true);
       } catch (err) {
         reportError("reader", err);
-        setError(err instanceof Error ? err.message : READER_ERROR);
+        setError(err instanceof Error ? err.message : t(READER_ERROR));
       } finally {
         setIsLoading(false);
       }
@@ -267,12 +268,12 @@ function useMushafController(): MushafController {
       setSelectedHighlights([]);
       try {
         const data = await api.getQuranPageForJuz(mushafId, juz);
-        if (!data.found) throw new Error(NOT_FOUND);
+        if (!data.found) throw new Error(t(NOT_FOUND));
         setSelectedAyahId(null);
         applyResult(data, true);
       } catch (err) {
         reportError("reader", err);
-        setError(err instanceof Error ? err.message : READER_ERROR);
+        setError(err instanceof Error ? err.message : t(READER_ERROR));
       } finally {
         setIsLoading(false);
       }

@@ -8,6 +8,7 @@ import type { NumeralScript } from "@q-basair/shared";
 
 import { SelectMenu } from "@/components/select-menu";
 import { AccountSettings } from "@/features/identity/account-settings";
+import { LanguageSelect } from "./language-select";
 import { TranslationsSettings } from "./translations-settings";
 import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
 import { READER_MODES, resolveReaderMode } from "@/features/reading/reader-modes";
@@ -16,16 +17,30 @@ import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { setTransparency, useTransparency } from "@/lib/transparency";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
+import { t } from "@/lib/i18n";
+
 const NUMERAL_OPTIONS: { value: NumeralScript; label: string }[] = [
-  { value: "arabic-indic", label: "هنديّة ٠١٢" },
-  { value: "latin", label: "لاتينية 012" },
-  { value: "persian", label: "فارسيّة ۰۱۲" },
+  { value: "arabic-indic", get label() {
+    return t("هنديّة ٠١٢");
+  } },
+  { value: "latin", get label() {
+    return t("لاتينية 012");
+  } },
+  { value: "persian", get label() {
+    return t("فارسيّة ۰۱۲");
+  } },
 ];
 
 const DEPTH_OPTIONS: { value: "fast" | "balanced" | "deep"; label: string }[] = [
-  { value: "fast", label: "سريع" },
-  { value: "balanced", label: "متوازن" },
-  { value: "deep", label: "عميق" },
+  { value: "fast", get label() {
+    return t("سريع");
+  } },
+  { value: "balanced", get label() {
+    return t("متوازن");
+  } },
+  { value: "deep", get label() {
+    return t("عميق");
+  } },
 ];
 
 /**
@@ -52,24 +67,23 @@ export function SettingsScreen() {
   return (
     <div className="qb-settings">
       <div className="qb-settings-h">
-        <div className="kicker">الإعدادات</div>
-        <h2>التفضيلات</h2>
+        <div className="kicker">{t("الإعدادات")}</div>
+        <h2>{t("التفضيلات")}</h2>
         <div className="sub">
-          كلّ الإعدادات هنا. زرّ «العرض» في شريط القراءة اختصارٌ لطريقة القراءة وحجم الخطّ أثناء
-          القراءة، ويحفظ في المكان نفسه.
+          {t("كلّ الإعدادات هنا. زرّ «العرض» في شريط القراءة اختصارٌ لطريقة القراءة وحجم الخطّ أثناء القراءة، ويحفظ في المكان نفسه.")}
         </div>
       </div>
 
       <div className="qb-settings-grid">
 
         <section className="qb-setting-card">
-          <h3>القراءة والمصحف</h3>
-          <p className="card-sub">المصحف، تخطيط الصفحة، وحجم الخطّ.</p>
+          <h3>{t("القراءة والمصحف")}</h3>
+          <p className="card-sub">{t("المصحف، تخطيط الصفحة، وحجم الخطّ.")}</p>
           <div className="qb-setting-row">
-            <label>المصحف</label>
+            <label>{t("المصحف")}</label>
             <SelectMenu
               className="qb-setting-menu"
-              ariaLabel="المصحف"
+              ariaLabel={t("المصحف")}
               value={edition.id}
               options={MUSHAF_EDITIONS.map((item) => ({ value: item.id, label: item.name }))}
               onChange={(next) => void updateAccount({ mushaf_edition: resolveEdition(next).id })}
@@ -77,8 +91,8 @@ export function SettingsScreen() {
           </div>
           <p className="card-sub">{edition.description}</p>
           <div className="qb-setting-row">
-            <label>طريقة القراءة</label>
-            <div className="qb-setting-seg" role="group" aria-label="طريقة القراءة">
+            <label>{t("طريقة القراءة")}</label>
+            <div className="qb-setting-seg" role="group" aria-label={t("طريقة القراءة")}>
               {READER_MODES.map((item) => (
                 <button
                   key={item.mode}
@@ -95,7 +109,7 @@ export function SettingsScreen() {
           </div>
           <div className="qb-setting-row">
             <label>
-              حجم خطّ الآية <span className="qb-setting-value">{formatNumber(preferences.font_size)}</span>
+              {t("حجم خطّ الآية")} <span className="qb-setting-value">{formatNumber(preferences.font_size)}</span>
             </label>
             <input
               type="range"
@@ -113,10 +127,16 @@ export function SettingsScreen() {
         <AccountSettings />
 
         <section className="qb-setting-card">
-          <h3>العرض</h3>
-          <p className="card-sub">السمة والشفافية وطريقة عرض الأرقام في الواجهة.</p>
+          <h3>{t("العرض")}</h3>
+          <p className="card-sub">{t("اللغة والسمة والشفافية وطريقة عرض الأرقام في الواجهة.")}</p>
           <div className="qb-setting-row">
-            <label>السمة</label>
+            <label>
+              {t("لغة الواجهة")} <span className="en-hint">· Language</span>
+            </label>
+            <LanguageSelect />
+          </div>
+          <div className="qb-setting-row">
+            <label>{t("السمة")}</label>
             <div className="qb-setting-seg">
               <button
                 type="button"
@@ -124,7 +144,7 @@ export function SettingsScreen() {
                 aria-pressed={state.theme === "dark"}
                 onClick={() => state.theme !== "dark" && actions.toggleTheme()}
               >
-                داكنة
+                {t("داكنة")}
               </button>
               <button
                 type="button"
@@ -132,12 +152,12 @@ export function SettingsScreen() {
                 aria-pressed={state.theme === "light"}
                 onClick={() => state.theme !== "light" && actions.toggleTheme()}
               >
-                فاتحة
+                {t("فاتحة")}
               </button>
             </div>
           </div>
           <div className="qb-setting-row">
-            <label>الشفافية</label>
+            <label>{t("الشفافية")}</label>
             <div className="qb-setting-seg">
               <button
                 type="button"
@@ -145,7 +165,7 @@ export function SettingsScreen() {
                 aria-pressed={transparency === "auto"}
                 onClick={() => setTransparency("auto")}
               >
-                زجاجية
+                {t("زجاجية")}
               </button>
               <button
                 type="button"
@@ -153,13 +173,13 @@ export function SettingsScreen() {
                 aria-pressed={transparency === "reduced"}
                 onClick={() => setTransparency("reduced")}
               >
-                مُعتِمة
+                {t("مُعتِمة")}
               </button>
             </div>
           </div>
-          <p className="card-sub fine">«مُعتِمة» تُلغي التمويه خلف الأشرطة واللوحات: أوضح للقراءة وأخفّ على الأجهزة المتواضعة. تُحفظ لهذا الجهاز.</p>
+          <p className="card-sub fine">{t("«مُعتِمة» تُلغي التمويه خلف الأشرطة واللوحات: أوضح للقراءة وأخفّ على الأجهزة المتواضعة. تُحفظ لهذا الجهاز.")}</p>
           <div className="qb-setting-row">
-            <label>الأرقام</label>
+            <label>{t("الأرقام")}</label>
             <div className="qb-setting-seg">
               {NUMERAL_OPTIONS.map((option) => (
                 <button
@@ -177,10 +197,10 @@ export function SettingsScreen() {
         </section>
 
         <section className="qb-setting-card">
-          <h3>البحث الموجَّه</h3>
-          <p className="card-sub">الوضع الافتراضي وعُمق القراءة في الدراسة.</p>
+          <h3>{t("البحث الموجَّه")}</h3>
+          <p className="card-sub">{t("الوضع الافتراضي وعُمق القراءة في الدراسة.")}</p>
           <div className="qb-setting-row">
-            <label>الوضع الافتراضي</label>
+            <label>{t("الوضع الافتراضي")}</label>
             <div className="qb-setting-seg">
               <button
                 type="button"
@@ -188,7 +208,7 @@ export function SettingsScreen() {
                 aria-pressed={account.research.default_mode === "strict"}
                 onClick={() => void updateAccount({ research: { default_mode: "strict" } })}
               >
-                القرآن وحدَه
+                {t("القرآن وحدَه")}
               </button>
               <button
                 type="button"
@@ -199,15 +219,14 @@ export function SettingsScreen() {
                   setConfirmTafssirDefault(true);
                 }}
               >
-                تفسيرية
+                {t("تفسيرية")}
               </button>
             </div>
           </div>
           {confirmTafssirDefault ? (
-            <div className="qb-setting-confirm" role="alertdialog" aria-label="تأكيد الوضع الافتراضي">
+            <div className="qb-setting-confirm" role="alertdialog" aria-label={t("تأكيد الوضع الافتراضي")}>
               <p>
-                الوضع التفسيري <strong>تجريبي</strong>: قراءة بشرية مُولَّدة من نموذج لغوي، ليست حُجَّة
-                شرعية. هل تجعله الوضع الافتراضي؟
+                {t("الوضع التفسيري")} <strong>{t("تجريبي")}</strong>{t(": قراءة بشرية مُولَّدة من نموذج لغوي، ليست حُجَّة شرعية. هل تجعله الوضع الافتراضي؟")}
               </p>
               <div className="qb-setting-confirm-actions">
                 <button
@@ -218,16 +237,16 @@ export function SettingsScreen() {
                     setConfirmTafssirDefault(false);
                   }}
                 >
-                  تأكيد
+                  {t("تأكيد")}
                 </button>
                 <button type="button" onClick={() => setConfirmTafssirDefault(false)}>
-                  إلغاء
+                  {t("إلغاء")}
                 </button>
               </div>
             </div>
           ) : null}
           <div className="qb-setting-row">
-            <label>عُمق القراءة التفسيرية</label>
+            <label>{t("عُمق القراءة التفسيرية")}</label>
             <div className="qb-setting-seg">
               {DEPTH_OPTIONS.map((option) => (
                 <button

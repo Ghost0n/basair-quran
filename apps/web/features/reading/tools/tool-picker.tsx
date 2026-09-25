@@ -10,6 +10,8 @@ import "./tools.css";
 import { READER_TOOLS, readerTool } from "./registry";
 import { setReaderTool, useReaderTool } from "./use-reader-tool";
 
+import { t } from "@/lib/i18n";
+
 /**
  * The toolbox chooser in the reader bar. Wide screens: a segmented row of tool
  * icons (1–4). Compact: one button showing the active tool that opens a small
@@ -67,7 +69,7 @@ export function ToolPicker({ compact }: { compact: boolean }) {
 
   if (!compact) {
     return (
-      <div className="qb-toolbox" role="radiogroup" aria-label="أداة القراءة">
+      <div className="qb-toolbox" role="radiogroup" aria-label={t("أداة القراءة")}>
         {READER_TOOLS.map((tool) => (
           <button
             key={tool.id}
@@ -97,7 +99,7 @@ export function ToolPicker({ compact }: { compact: boolean }) {
         className="act labelled on-tool"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`الأداة: ${current.label}`}
+        aria-label={t("الأداة: {0}", { 0: current.label })}
         onClick={toggleMenu}
       >
         <Icon name={current.icon} size={18} />
@@ -108,7 +110,7 @@ export function ToolPicker({ compact }: { compact: boolean }) {
             <div
               className="qb-toolbox-menu"
               role="menu"
-              aria-label="أداة القراءة"
+              aria-label={t("أداة القراءة")}
               ref={menuRef}
               style={menuStyle}
             >

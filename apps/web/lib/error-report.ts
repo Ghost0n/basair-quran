@@ -1,5 +1,7 @@
 "use client";
 
+import { t } from "@/lib/i18n";
+
 /**
  * Client error reporting — two jobs:
  *
@@ -39,8 +41,8 @@ const GENERIC_USER_MESSAGE = "تعذّر إتمام الطلب الآن. تحق�
  */
 export function sanitizeErrorMessage(raw?: string | null): string {
   const value = (raw ?? "").trim();
-  if (!value) return GENERIC_USER_MESSAGE;
-  if (TECHNICAL_PATTERNS.some((pattern) => pattern.test(value))) return GENERIC_USER_MESSAGE;
+  if (!value) return t(GENERIC_USER_MESSAGE);
+  if (TECHNICAL_PATTERNS.some((pattern) => pattern.test(value))) return t(GENERIC_USER_MESSAGE);
   return value;
 }
 

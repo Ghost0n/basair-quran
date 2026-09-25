@@ -2,6 +2,8 @@ import { AUTH_ENABLED } from "@/lib/config";
 
 import { LogoutButton } from "./logout-button";
 
+import { t } from "@/lib/i18n";
+
 export function AuthTopbar() {
   if (!AUTH_ENABLED) {
     return null;
@@ -10,7 +12,7 @@ export function AuthTopbar() {
   return (
     <div className="auth-topbar">
       <div className="auth-topbar-inner">
-        <span className="auth-topbar-label">وضع الوصول الخاص</span>
+        <span className="auth-topbar-label">{t("وضع الوصول الخاص")}</span>
         <LogoutButton />
       </div>
     </div>

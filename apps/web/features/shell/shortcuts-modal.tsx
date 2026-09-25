@@ -7,13 +7,15 @@ import { useEffect, useState } from "react";
 import { Icon } from "@/components/icon";
 import { modKey } from "@/lib/platform";
 
+import { t } from "@/lib/i18n";
+
 // U2: platform-aware shortcuts — computed at call time (client-only, "use client").
 function getShortcuts(): { keys: string[]; label: string }[] {
   return [
-    { keys: [modKey(), "K"], label: "فتح شريط الأوامر" },
-    { keys: ["/"], label: "فتح شريط الأوامر" },
-    { keys: ["?"], label: "عرض اختصارات لوحة المفاتيح" },
-    { keys: ["Esc"], label: "إغلاق النوافذ المنبثقة" },
+    { keys: [modKey(), "K"], label: t("فتح شريط الأوامر") },
+    { keys: ["/"], label: t("فتح شريط الأوامر") },
+    { keys: ["?"], label: t("عرض اختصارات لوحة المفاتيح") },
+    { keys: ["Esc"], label: t("إغلاق النوافذ المنبثقة") },
   ];
 }
 
@@ -48,10 +50,10 @@ export function ShortcutsModal() {
 
   return (
     <div className="qb-shortcuts-backdrop" onClick={() => setOpen(false)}>
-      <div className="qb-shortcuts-modal" role="dialog" aria-label="اختصارات لوحة المفاتيح" onClick={(e) => e.stopPropagation()}>
+      <div className="qb-shortcuts-modal" role="dialog" aria-label={t("اختصارات لوحة المفاتيح")} onClick={(e) => e.stopPropagation()}>
         <div className="head">
-          <h3>اختصارات لوحة المفاتيح</h3>
-          <button type="button" className="x" onClick={() => setOpen(false)} aria-label="إغلاق">
+          <h3>{t("اختصارات لوحة المفاتيح")}</h3>
+          <button type="button" className="x" onClick={() => setOpen(false)} aria-label={t("إغلاق")}>
             <Icon name="close" size={14} />
           </button>
         </div>

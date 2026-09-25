@@ -369,3 +369,8 @@
 .qb-translations-card .fine a {
   color: var(--gold-text);
 }
+
+.qb-setting-row .en-hint {
+  font-weight: 500;
+  color: var(--fg-3);
+}

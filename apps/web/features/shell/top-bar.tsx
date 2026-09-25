@@ -6,6 +6,8 @@ import { CommandBar } from "./command-bar";
 import { useShellMode } from "./mode-context";
 import { useWorkspace } from "./workspace-context";
 
+import { t } from "@/lib/i18n";
+
 /** Dedicated theme toggle — its own top-bar button now, no longer buried in the
  *  account menu. Shows the theme you'd switch TO. (Reading display options live
  *  in the reader's «العرض» sheet and in Settings.) */
@@ -17,8 +19,8 @@ function ThemeButton() {
       type="button"
       className="qb-icon-btn"
       onClick={actions.toggleTheme}
-      title={dark ? "السِّمة الفاتحة" : "السِّمة الداكنة"}
-      aria-label={dark ? "التبديل إلى السِّمة الفاتحة" : "التبديل إلى السِّمة الداكنة"}
+      title={dark ? t("السِّمة الفاتحة") : t("السِّمة الداكنة")}
+      aria-label={dark ? t("التبديل إلى السِّمة الفاتحة") : t("التبديل إلى السِّمة الداكنة")}
     >
       <Icon name={dark ? "sun" : "moon"} size={18} />
     </button>

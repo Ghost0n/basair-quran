@@ -13,6 +13,8 @@ import { useNumerals } from "@/lib/preferences-context";
 import { NODE_W } from "./board-model";
 import { useBoard } from "./board-context";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 /** Handles on all four sides; the board connects in loose mode (any ↔ any). */
@@ -45,19 +47,19 @@ export function AyahNode({ id, data, selected }: NodeProps) {
       <Handles />
       <header>
         <span className="ref">
-          {item?.surah ?? "آية"} {item?.ayah != null ? formatNumber(item.ayah) : ""}
+          {item?.surah ?? t("آية")} {item?.ayah != null ? formatNumber(item.ayah) : ""}
         </span>
         <span className="acts nodrag">
           <button
             type="button"
             onClick={() => board.updateData(id, { expanded: !expanded })}
-            aria-label={expanded ? "طيّ السياق" : "عرض السياق"}
-            title={expanded ? "طيّ السياق" : "اقرأ الآية في سياقها"}
+            aria-label={expanded ? t("طيّ السياق") : t("عرض السياق")}
+            title={expanded ? t("طيّ السياق") : t("اقرأ الآية في سياقها")}
           >
             <Icon name={expanded ? "shrink" : "expand"} size={13} />
           </button>
           {item ? (
-            <button type="button" onClick={() => board.openInReader(item)} aria-label="افتح في المصحف" title="افتح في المصحف">
+            <button type="button" onClick={() => board.openInReader(item)} aria-label={t("افتح في المصحف")} title={t("افتح في المصحف")}>
               <Icon name="book" size={13} />
             </button>
           ) : null}
@@ -98,8 +100,8 @@ function MiniReader({ ayahId, mushafId }: { ayahId: number; mushafId: number }) 
 
   return (
     <div className="mini nowheel nodrag" ref={scrollRef}>
-      {failed ? <p className="state">تعذّر تحميل السياق.</p> : null}
-      {!data && !failed ? <p className="state">جارٍ التحميل…</p> : null}
+      {failed ? <p className="state">{t("تعذّر تحميل السياق.")}</p> : null}
+      {!data && !failed ? <p className="state">{t("جارٍ التحميل…")}</p> : null}
       {data?.ayahs.map((ayah) => (
         <p key={ayah.ayah_id} className={ayah.is_center ? "center" : ""}>
           {ayah.text} <span className="n">﴿{formatNumber(ayah.ayah)}﴾</span>
@@ -129,7 +131,7 @@ export function NoteNode({ id, data, selected }: NodeProps) {
   const board = useBoard();
   const ref = useAutoFocus(data, id);
   return (
-    <div className={`qb-bnode note${selected ? " sel" : ""}`} dir="rtl">
+    <div className={`qb-bnode note${selected ? " sel" : ""}`} dir="auto">
       <NodeResizer isVisible={selected && !board.readOnly} minWidth={180} minHeight={80} lineClassName="qb-resize-line" handleClassName="qb-resize-handle" />
       <Handles />
       {board.readOnly ? (
@@ -139,9 +141,9 @@ export function NoteNode({ id, data, selected }: NodeProps) {
         ref={ref}
         className="nodrag nowheel"
         value={String(data.text ?? "")}
-        placeholder="ملاحظة…"
+        placeholder={t("ملاحظة…")}
         maxLength={2000}
-        aria-label="ملاحظة"
+        aria-label={t("ملاحظة")}
         onChange={(event) => board.updateData(id, { text: event.target.value })}
       />
       )}
@@ -154,7 +156,7 @@ export function HeadingNode({ id, data, selected }: NodeProps) {
   const board = useBoard();
   const ref = useAutoFocus(data, id);
   return (
-    <div className={`qb-bnode heading${selected ? " sel" : ""}`} dir="rtl">
+    <div className={`qb-bnode heading${selected ? " sel" : ""}`} dir="auto">
       <Handles />
       {board.readOnly ? (
         <h4 className="heading-text">{String(data.text ?? "")}</h4>
@@ -163,9 +165,9 @@ export function HeadingNode({ id, data, selected }: NodeProps) {
         ref={ref}
         className="nodrag"
         value={String(data.text ?? "")}
-        placeholder="عنوان…"
+        placeholder={t("عنوان…")}
         maxLength={80}
-        aria-label="عنوان"
+        aria-label={t("عنوان")}
         onChange={(event) => board.updateData(id, { text: event.target.value })}
       />
       )}

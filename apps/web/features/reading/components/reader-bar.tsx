@@ -10,6 +10,8 @@ import { TOTAL_PAGES } from "@/lib/quran-nav";
 import { ToolPicker } from "../tools/tool-picker";
 import { useCompactReader } from "../use-wide-screen";
 
+import { t } from "@/lib/i18n";
+
 /**
  * ReaderBar — the reader's single, compact control row (replaces the old header
  * with its pills/selects/layout switch AND the two-row footer).
@@ -54,7 +56,7 @@ export function ReaderBar({
 
   const firstAyah = pageData.ayahs[0];
   const surah = surahs.find((item) => item.id === (displaySurahId ?? firstAyah?.surah_id));
-  const surahName = surah?.name ?? firstAyah?.surah ?? "المصحف";
+  const surahName = surah?.name ?? firstAyah?.surah ?? t("المصحف");
   const totalPages = pageData.total_pages ?? pageData.max_page ?? TOTAL_PAGES;
   const juzLabel =
     pageData.juz != null
@@ -98,32 +100,32 @@ export function ReaderBar({
 
   return (
     <div className="qb-reader-bar">
-      <button type="button" className="identity" onClick={onOpenNavigate} aria-label={`${surahName} — انتقل`}>
+      <button type="button" className="identity" onClick={onOpenNavigate} aria-label={t("{0} — انتقل", { 0: surahName })}>
         <span className="name">{surahName}</span>
         <span className="meta">
-          {juzLabel ? <>الجزء {juzLabel}، </> : null}
-          صفحة {formatNumber(displayPage)}
-          <span className="of"> من {formatNumber(totalPages)}</span>
+          {juzLabel ? <>{t("الجزء {0}", { 0: juzLabel })}{t("، ")}</> : null}
+          {t("صفحة {0}", { 0: formatNumber(displayPage) })}
+          <span className="of">{t(" من {0}", { 0: formatNumber(totalPages) })}</span>
         </span>
       </button>
 
       <div className="actions">
         <ToolPicker compact={compact} />
-        <button type="button" className="act labelled" onClick={onOpenNavigate} aria-label="انتقل" title="انتقل (سورة · آية · جزء · صفحة)">
+        <button type="button" className="act labelled" onClick={onOpenNavigate} aria-label={t("انتقل")} title={t("انتقل (سورة · آية · جزء · صفحة)")}>
           <Icon name="compass" size={18} />
-          <span className="lbl">انتقل</span>
+          <span className="lbl">{t("انتقل")}</span>
         </button>
-        <button type="button" className="act labelled" onClick={onOpenDisplay} aria-label="العرض" title="العرض (طريقة القراءة · حجم الخطّ)">
+        <button type="button" className="act labelled" onClick={onOpenDisplay} aria-label={t("العرض")} title={t("العرض (طريقة القراءة · حجم الخطّ)")}>
           <Icon name="textSize" size={18} />
-          <span className="lbl">العرض</span>
+          <span className="lbl">{t("العرض")}</span>
         </button>
         <button
           type="button"
           className={`act${playingHere ? " on" : ""}`}
           onClick={togglePlay}
           disabled={!playable}
-          aria-label={playingHere ? "إيقاف التلاوة" : "تلاوة الصفحة"}
-          title={playingHere ? "إيقاف التلاوة" : "تلاوة الصفحة"}
+          aria-label={playingHere ? t("إيقاف التلاوة") : t("تلاوة الصفحة")}
+          title={playingHere ? t("إيقاف التلاوة") : t("تلاوة الصفحة")}
         >
           <Icon name={playingHere ? "pause" : "play"} size={17} />
         </button>
@@ -132,8 +134,8 @@ export function ReaderBar({
           className={`act${pageSaved ? " on" : ""}`}
           onClick={toggleSavePage}
           aria-pressed={pageSaved}
-          aria-label={pageSaved ? "إزالة الصفحة من المحفوظات" : "احفظ هذه الصفحة"}
-          title={pageSaved ? "إزالة الصفحة من المحفوظات" : "احفظ هذه الصفحة"}
+          aria-label={pageSaved ? t("إزالة الصفحة من المحفوظات") : t("احفظ هذه الصفحة")}
+          title={pageSaved ? t("إزالة الصفحة من المحفوظات") : t("احفظ هذه الصفحة")}
         >
           <Icon name={pageSaved ? "bookmarkFilled" : "bookmark"} size={17} />
         </button>
@@ -142,8 +144,8 @@ export function ReaderBar({
           className="act focus-toggle"
           onClick={onToggleImmersive}
           aria-pressed={immersive}
-          aria-label={immersive ? "إنهاء وضع التركيز" : "وضع التركيز (F)"}
-          title={immersive ? "إنهاء وضع التركيز" : "وضع التركيز — F"}
+          aria-label={immersive ? t("إنهاء وضع التركيز") : t("وضع التركيز (F)")}
+          title={immersive ? t("إنهاء وضع التركيز") : t("وضع التركيز — F")}
         >
           <Icon name={immersive ? "shrink" : "expand"} size={17} />
         </button>
@@ -153,8 +155,8 @@ export function ReaderBar({
             className="act"
             onClick={onPrev}
             disabled={isLoading || !pageData.has_previous}
-            aria-label="الصفحة السابقة"
-            title="الصفحة السابقة — PageUp"
+            aria-label={t("الصفحة السابقة")}
+            title={t("الصفحة السابقة — PageUp")}
           >
             <Icon name="chevRight" size={18} />
           </button>
@@ -163,8 +165,8 @@ export function ReaderBar({
             className="act"
             onClick={onNext}
             disabled={isLoading || !pageData.has_next}
-            aria-label="الصفحة التالية"
-            title="الصفحة التالية — PageDown"
+            aria-label={t("الصفحة التالية")}
+            title={t("الصفحة التالية — PageDown")}
           >
             <Icon name="chevLeft" size={18} />
           </button>

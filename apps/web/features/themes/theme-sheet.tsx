@@ -13,6 +13,8 @@ import { cleanAyahText, type SavableAyah, type SavedAyat } from "@/features/read
 import { THEME_PALETTE, nextThemeColor } from "./palette";
 import { createTheme, useThemes } from "./themes-store";
 
+import { t } from "@/lib/i18n";
+
 /**
  * «حفظ وتظليل» — the reader's save action. Opening it saves the ayah (so one tap
  * still means "saved"); the researcher then highlights it with one or more
@@ -70,7 +72,7 @@ export function ThemeSheet({
       setColor(null);
       await applyThemes([...saved.themeIdsOf(ayah.ayah_id), created.id]);
     } catch {
-      setError("تعذّر إنشاء الموضوع. حاول مرة أخرى.");
+      setError(t("تعذّر إنشاء الموضوع. حاول مرة أخرى."));
     } finally {
       setBusy(false);
     }
@@ -85,19 +87,19 @@ export function ThemeSheet({
   // Portaled to <body>: inside the reading stage the sheet would share its
   // stacking context and sit under the mobile tab bar.
   return createPortal(
-    <div className="qb-rsheet qb-theme-sheet" role="dialog" aria-modal="true" aria-label="حفظ وتظليل">
+    <div className="qb-rsheet qb-theme-sheet" role="dialog" aria-modal="true" aria-label={t("حفظ وتظليل")}>
       <div className="backdrop" onClick={onClose} aria-hidden />
       <div className="panel" ref={panelRef} tabIndex={-1}>
         <div className="grip" aria-hidden />
         <div className="head">
           <div>
-            <h2>حفظ وتظليل</h2>
+            <h2>{t("حفظ وتظليل")}</h2>
             <div className="ref">
-              {isSaved ? <Icon name="bookmarkFilled" size={12} /> : null} سورة {ayah.surah}، الآية{" "}
+              {isSaved ? <Icon name="bookmarkFilled" size={12} /> : null} {t("سورة")} {ayah.surah}{t("، الآية")}{" "}
               {formatNumber(ayah.ayah)}
             </div>
           </div>
-          <button type="button" className="close" onClick={onClose} aria-label="إغلاق">
+          <button type="button" className="close" onClick={onClose} aria-label={t("إغلاق")}>
             <Icon name="close" size={18} />
           </button>
         </div>
@@ -111,13 +113,13 @@ export function ThemeSheet({
           </p>
 
           <section>
-            <div className="label">المواضيع</div>
+            <div className="label">{t("المواضيع")}</div>
             {loaded && themes.length === 0 ? (
               <p className="hint">
-                ظلِّل الآية بموضوع لتجتمع الآيات المتقاربة معاً في الدفتر، ثم افتح لوحة الموضوع لربطها.
+                {t("ظلِّل الآية بموضوع لتجتمع الآيات المتقاربة معاً في الدفتر، ثم افتح لوحة الموضوع لربطها.")}
               </p>
             ) : null}
-            <div className="themes" role="group" aria-label="المواضيع">
+            <div className="themes" role="group" aria-label={t("المواضيع")}>
               {themes.map((theme) => {
                 const on = selected.includes(theme.id);
                 return (
@@ -139,7 +141,7 @@ export function ThemeSheet({
           </section>
 
           <section>
-            <div className="label">موضوع جديد</div>
+            <div className="label">{t("موضوع جديد")}</div>
             <form
               className="new"
               onSubmit={(event) => {
@@ -150,15 +152,15 @@ export function ThemeSheet({
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
-                placeholder="مثلاً: الصبر، آيات الخلق…"
+                placeholder={t("مثلاً: الصبر، آيات الخلق…")}
                 maxLength={60}
-                aria-label="اسم الموضوع"
+                aria-label={t("اسم الموضوع")}
               />
               <button type="submit" className="add" disabled={!name.trim() || busy}>
-                إضافة
+                {t("إضافة")}
               </button>
             </form>
-            <div className="swatches" role="radiogroup" aria-label="لون الموضوع">
+            <div className="swatches" role="radiogroup" aria-label={t("لون الموضوع")}>
               {THEME_PALETTE.map((entry) => (
                 <button
                   key={entry.key}
@@ -180,13 +182,13 @@ export function ThemeSheet({
         <div className="foot">
           {isSaved ? (
             <button type="button" className="remove" onClick={() => void removeFromLibrary()}>
-              <Icon name="trash" size={14} /> إزالة من الدفتر
+              <Icon name="trash" size={14} /> {t("إزالة من الدفتر")}
             </button>
           ) : (
             <span />
           )}
           <button type="button" className="done" onClick={onClose}>
-            تمّ
+            {t("تمّ")}
           </button>
         </div>
       </div>

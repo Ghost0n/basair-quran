@@ -10,6 +10,8 @@ import { AyatFlow, type WordClickHandler, type WordKeyHandler } from "./ayat-flo
 import { useMushaf } from "../mushaf-context";
 import { useWordNav } from "../use-word-nav";
 
+import { t } from "@/lib/i18n";
+
 type PagedReaderProps = {
   pageData: { ayahs: QuranPageAyah[] };
   /** Current page number — keys the Unicode reader so a page change animates. */
@@ -73,7 +75,7 @@ export function PagedReader({
       ref={mushaf.bodyRef}
       onClick={onClearMorph}
       role="region"
-      aria-label={showSpread ? "المصحف — صفحتان" : "المصحف — صفحة"}
+      aria-label={showSpread ? t("المصحف — صفحتان") : t("المصحف — صفحة")}
       tabIndex={0}
     >
       {authentic && layout?.lines ? (

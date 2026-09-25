@@ -9,18 +9,22 @@ import { API_BASE_URL } from "@/lib/config";
 import { toArabicDigits } from "@/lib/numerals";
 import { emitNotebookChange, useNotebookSync } from "@/lib/notebook-sync";
 
+import { activeLocale, t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 /** Relative age in Arabic from a unix-seconds timestamp (Arabic-Indic digits by default). */
-export function relativeAge(unixSeconds: number, format: (n: number) => string = toArabicDigits): string {
+export function relativeAge(unixSeconds: number, format: (n: number | string) => string = toArabicDigits): string {
   const deltaSeconds = Math.max(0, Math.floor(Date.now() / 1000) - unixSeconds);
-  if (deltaSeconds < 60) return "الآن";
+  if (deltaSeconds < 60) return t("الآن");
+  // Intl gets the grammar right in every interface language (plurals, word order);
+  // `format` then applies the reader's chosen digit script.
+  const rtf = new Intl.RelativeTimeFormat(activeLocale(), { numeric: "auto" });
   const minutes = Math.floor(deltaSeconds / 60);
-  if (minutes < 60) return `منذ ${format(minutes)} دقيقة`;
+  if (minutes < 60) return format(rtf.format(-minutes, "minute"));
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `منذ ${format(hours)} ساعة`;
-  const days = Math.floor(hours / 24);
-  return days === 1 ? "أمس" : `منذ ${format(days)} يوماً`;
+  if (hours < 24) return format(rtf.format(-hours, "hour"));
+  return format(rtf.format(-Math.floor(hours / 24), "day"));
 }
 
 /**
@@ -55,7 +59,7 @@ export function useCompanions() {
       setRoots(rootList);
       setDocuments(documentList);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "تعذّر تحميل بيانات الدفتر.");
+      setError(err instanceof Error ? err.message : t("تعذّر تحميل بيانات الدفتر."));
     } finally {
       setLoading(false);
     }

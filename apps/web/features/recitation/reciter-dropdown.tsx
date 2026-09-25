@@ -6,6 +6,8 @@ import { Icon } from "@/components/icon";
 
 import { useRecitation } from "./recitation-context";
 
+import { t } from "@/lib/i18n";
+
 /**
  * ReciterDropdown — the reciter picker, now an upward-opening dropdown attached
  * to the play bar (replacing the old bottom sheet). The trigger is the bar's
@@ -49,27 +51,27 @@ export function ReciterDropdown({ subtitle }: { subtitle?: ReactNode }) {
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        aria-label="اختيار القارئ"
+        aria-label={t("اختيار القارئ")}
       >
         <span className="avatar">
           <Icon name={recitation.isPlaying ? "volume" : "user"} size={14} />
         </span>
         <span className="txt">
-          <span className="name">{recitation.reciter?.name ?? "اختر قارئاً"}</span>
+          <span className="name">{recitation.reciter?.name ?? t("اختر قارئاً")}</span>
           {subtitle ? <span className="ref">{subtitle}</span> : null}
         </span>
         <Icon name="chevUp" size={14} />
       </button>
 
       {open ? (
-        <div className="qb-reciter-dd-panel" role="listbox" aria-label="القرّاء">
+        <div className="qb-reciter-dd-panel" role="listbox" aria-label={t("القرّاء")}>
           <input
             type="text"
             className="qb-reciter-dd-search"
-            placeholder="ابحث عن قارئ…"
+            placeholder={t("ابحث عن قارئ…")}
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            aria-label="ابحث عن قارئ"
+            aria-label={t("ابحث عن قارئ")}
             autoFocus
           />
           <div className="qb-reciter-dd-list">
@@ -94,12 +96,12 @@ export function ReciterDropdown({ subtitle }: { subtitle?: ReactNode }) {
                 <span className="info">
                   <span className="name">{item.name}</span>
                   <span className="meta">
-                    {item.name_english} · رواية {item.riwayah === "hafs" ? "حفص" : item.riwayah}
+                    {item.name_english} {t("· رواية")} {item.riwayah === "hafs" ? t("حفص") : item.riwayah}
                   </span>
                 </span>
               </button>
             ))}
-            {filtered.length === 0 ? <div className="qb-reciter-dd-empty">لا نتائج مطابقة.</div> : null}
+            {filtered.length === 0 ? <div className="qb-reciter-dd-empty">{t("لا نتائج مطابقة.")}</div> : null}
           </div>
         </div>
       ) : null}

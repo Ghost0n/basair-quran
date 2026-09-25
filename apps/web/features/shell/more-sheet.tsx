@@ -9,6 +9,8 @@ import { clearGuestChoice, identityApi } from "@/features/auth/identity-flow";
 
 import "./more-sheet.css";
 
+import { t } from "@/lib/i18n";
+
 const MOTIFS = Object.keys(AVATAR_MOTIFS) as AvatarMotif[];
 
 function toMotif(value?: string | null): AvatarMotif {
@@ -41,7 +43,7 @@ export function MoreSheet({ onClose, onOpenSettings, theme, onToggleTheme }: Mor
   }
 
   return (
-    <div className="qb-more" role="dialog" aria-modal="true" aria-label="المزيد">
+    <div className="qb-more" role="dialog" aria-modal="true" aria-label={t("المزيد")}>
       <div className="backdrop" onClick={onClose} aria-hidden />
       <div className="sheet" ref={sheetRef} tabIndex={-1}>
         <div className="grip" aria-hidden />
@@ -50,19 +52,19 @@ export function MoreSheet({ onClose, onOpenSettings, theme, onToggleTheme }: Mor
           <div className="who">
             <UserAvatar motif={toMotif(user.avatar)} size={40} />
             <div className="meta">
-              <div className="name">{user.name || "مستخدم"}</div>
+              <div className="name">{user.name || t("مستخدم")}</div>
               <div className="email">{user.email}</div>
             </div>
           </div>
         ) : AUTH_ENABLED ? (
           <a className="row" href="/login" onClick={onClose}>
             <Icon name="user" size={18} />
-            تسجيل الدخول أو إنشاء حساب
+            {t("تسجيل الدخول أو إنشاء حساب")}
           </a>
         ) : null}
 
         <div className="row theme">
-          السِّمة
+          {t("السِّمة")}
           <span
             className="seg"
             onClick={onToggleTheme}
@@ -75,10 +77,10 @@ export function MoreSheet({ onClose, onOpenSettings, theme, onToggleTheme }: Mor
             role="button"
             tabIndex={0}
             aria-pressed={theme === "light"}
-            aria-label="تبديل السِّمة"
+            aria-label={t("تبديل السِّمة")}
           >
-            <span className={theme === "dark" ? "on" : ""}>داكنة</span>
-            <span className={theme === "light" ? "on" : ""}>فاتحة</span>
+            <span className={theme === "dark" ? "on" : ""}>{t("داكنة")}</span>
+            <span className={theme === "light" ? "on" : ""}>{t("فاتحة")}</span>
           </span>
         </div>
 
@@ -91,14 +93,14 @@ export function MoreSheet({ onClose, onOpenSettings, theme, onToggleTheme }: Mor
           }}
         >
           <Icon name="settings" size={18} />
-          الإعدادات
+          {t("الإعدادات")}
           <span className="chev">›</span>
         </button>
 
         {AUTH_ENABLED && user ? (
           <button type="button" className="row danger" onClick={signOut}>
             <Icon name="logout" size={18} />
-            تسجيل الخروج
+            {t("تسجيل الخروج")}
           </button>
         ) : null}
       </div>

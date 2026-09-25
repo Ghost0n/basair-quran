@@ -13,6 +13,8 @@ import type { ResearchSection } from "@q-basair/shared";
 import { parseBlocks } from "./markdown-lite";
 import type { ShareCardInput } from "./share-card";
 
+import { t } from "@/lib/i18n";
+
 export const MAX_CAROUSEL_SLIDES = 10;
 const NOTE_CHARS = 240;
 
@@ -53,10 +55,10 @@ export function clip(text: string, max: number): string {
 export function researchMeta(research: ShareableResearch, { formatNumber }: Helpers): string {
   const ayahs = research.sections.reduce((sum, section) => sum + section.ayahs.length, 0);
   const surahs = new Set(research.sections.flatMap((section) => section.ayahs.map((ref) => ref.surah_id))).size;
-  const parts = [`${formatNumber(ayahs)} آية`];
-  if (surahs > 1) parts.push(`${formatNumber(surahs)} سور`);
+  const parts = [t("{0} آية", { 0: formatNumber(ayahs) })];
+  if (surahs > 1) parts.push(t("{0} سور", { 0: formatNumber(surahs) }));
   if (research.author) parts.push(research.author);
-  return parts.join("، ");
+  return parts.join(t("، "));
 }
 
 export function buildCarousel(research: ShareableResearch, helpers: Helpers): ShareCardInput[] {
@@ -72,10 +74,10 @@ export function buildCarousel(research: ShareableResearch, helpers: Helpers): Sh
       verses.push({
         kind: "verse",
         text: ref.text,
-        reference: `سورة ${surahName(ref.surah_id)}، الآية ${formatNumber(ref.ayah)}`,
+        reference: t("سورة {0}، الآية {1}", { 0: surahName(ref.surah_id), 1: formatNumber(ref.ayah) }),
         heading: research.title,
         note: withNote ? note : null,
-        noteLabel: withNote && (ai.has(section.id) || section.kind === "ai_answer") ? AI_NOTE_LABEL : null,
+        noteLabel: withNote && (ai.has(section.id) || section.kind === "ai_answer") ? t(AI_NOTE_LABEL) : null,
       });
     });
   }
@@ -89,22 +91,22 @@ export function buildCarousel(research: ShareableResearch, helpers: Helpers): Sh
       meta: researchMeta(research, helpers),
       // With ayah slides to follow, the cover stays light; alone, it quotes the first ayah.
       excerpt: kept.length ? null : firstAyah,
-      badge: tafssir ? TAFSSIR_BADGE : null,
+      badge: tafssir ? t(TAFSSIR_BADGE) : null,
     },
     ...kept,
     {
       kind: "closing",
-      title: research.url ? "اقرأ البحث كاملاً" : research.title,
+      title: research.url ? t("اقرأ البحث كاملاً") : research.title,
       lines: [
         verses.length > kept.length
-          ? `في البحث ${formatNumber(verses.length)} آية، هذه ${formatNumber(kept.length)} منها.`
+          ? t("في البحث {0} آية، هذه {1} منها.", { 0: formatNumber(verses.length), 1: formatNumber(kept.length) })
           : "",
         tafssir
-          ? "القراءة التفسيرية تجريبية: فهمٌ بشري يُناقَش، وليست حُجّة."
-          : "القرآن هو الدليل، وما سواه فهمٌ يُناقَش.",
+          ? t("القراءة التفسيرية تجريبية: فهمٌ بشري يُناقَش، وليست حُجّة.")
+          : t("القرآن هو الدليل، وما سواه فهمٌ يُناقَش."),
       ].filter(Boolean),
       url: research.url ?? null,
-      badge: tafssir ? TAFSSIR_BADGE : null,
+      badge: tafssir ? t(TAFSSIR_BADGE) : null,
     },
   ];
   const total = slides.length;

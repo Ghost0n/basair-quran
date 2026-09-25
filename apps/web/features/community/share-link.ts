@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n";
+
 /** The canonical link to a post (reachable by guests; unlisted posts too). */
 export function postUrl(postId: string): string {
   return `${window.location.origin}/?mode=post&id=${encodeURIComponent(postId)}`;
@@ -8,7 +10,7 @@ export async function sharePostLink(post: { id: string; title: string }): Promis
   const url = postUrl(post.id);
   if (typeof navigator.share === "function") {
     try {
-      await navigator.share({ title: post.title, text: `${post.title} — بصائر`, url });
+      await navigator.share({ title: post.title, text: t("{0} — بصائر", { 0: post.title }), url });
       return "shared";
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") return "cancelled";

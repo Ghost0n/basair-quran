@@ -11,14 +11,26 @@ import { API_BASE_URL } from "@/lib/config";
 import { useDialog } from "@/lib/use-dialog";
 import { RULE_LABEL } from "@/features/community/labels";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 const AUDIT_LABEL: Record<string, string> = {
-  quotes_verified: "نصوص الآيات مطابقة للمصحف",
-  has_content: "للبحث عنوان ومحتوى",
-  ai_sections_labelled: "الأقسام المولَّدة آلياً موسومة",
-  tafssir_disclaimer: "القراءة التفسيرية تحمل التنبيه",
-  ayah_references_resolve: "مراجع الآيات صحيحة",
+  get quotes_verified() {
+    return t("نصوص الآيات مطابقة للمصحف");
+  },
+  get has_content() {
+    return t("للبحث عنوان ومحتوى");
+  },
+  get ai_sections_labelled() {
+    return t("الأقسام المولَّدة آلياً موسومة");
+  },
+  get tafssir_disclaimer() {
+    return t("القراءة التفسيرية تحمل التنبيه");
+  },
+  get ayah_references_resolve() {
+    return t("مراجع الآيات صحيحة");
+  },
 };
 
 /**
@@ -51,52 +63,52 @@ export function PublishSheet({
       await beforePublish();
       setResult(await api.publishDocument(documentId, { visibility, accept_guidelines: accepted }));
     } catch (err) {
-      setError(err instanceof Error && /401|auth/i.test(err.message) ? "سجّل الدخول لتنشر في المجتمع." : "تعذّر النشر الآن.");
+      setError(err instanceof Error && /401|auth/i.test(err.message) ? t("سجّل الدخول لتنشر في المجتمع.") : t("تعذّر النشر الآن."));
     } finally {
       setBusy(false);
     }
   }
 
   return createPortal(
-    <div className="qb-rsheet qb-publish-sheet" role="dialog" aria-modal="true" aria-label="نشر في المجتمع">
+    <div className="qb-rsheet qb-publish-sheet" role="dialog" aria-modal="true" aria-label={t("نشر في المجتمع")}>
       <div className="backdrop" onClick={onClose} aria-hidden />
       <div className="panel" ref={panelRef} tabIndex={-1}>
         <div className="grip" aria-hidden />
         <div className="head">
-          <h2>نشر في المجتمع</h2>
-          <button type="button" className="close" onClick={onClose} aria-label="إغلاق">
+          <h2>{t("نشر في المجتمع")}</h2>
+          <button type="button" className="close" onClick={onClose} aria-label={t("إغلاق")}>
             <Icon name="close" size={18} />
           </button>
         </div>
         <div className="body">
           {!result ? (
             <>
-              <div className="choices" role="radiogroup" aria-label="من يرى البحث">
+              <div className="choices" role="radiogroup" aria-label={t("من يرى البحث")}>
                 <button type="button" role="radio" aria-checked={visibility === "public"} className={visibility === "public" ? "on" : ""} onClick={() => setVisibility("public")}>
                   <Icon name="users" size={18} />
-                  <b>عامّ</b>
-                  <span>يظهر في المجتمع للجميع</span>
+                  <b>{t("عامّ")}</b>
+                  <span>{t("يظهر في المجتمع للجميع")}</span>
                 </button>
                 <button type="button" role="radio" aria-checked={visibility === "unlisted"} className={visibility === "unlisted" ? "on" : ""} onClick={() => setVisibility("unlisted")}>
                   <Icon name="link" size={18} />
-                  <b>برابط فقط</b>
-                  <span>لمن تشاركه الرابط</span>
+                  <b>{t("برابط فقط")}</b>
+                  <span>{t("لمن تشاركه الرابط")}</span>
                 </button>
               </div>
               <ol className="steps">
-                <li>فحص نصوص الآيات والمراجع ووسم المحتوى الآلي.</li>
-                <li>مراجعة وكيل آلي وفق إرشادات المجتمع.</li>
-                <li>إن احتاج البحث نظراً، يراجعه مشرف قبل ظهوره.</li>
+                <li>{t("فحص نصوص الآيات والمراجع ووسم المحتوى الآلي.")}</li>
+                <li>{t("مراجعة وكيل آلي وفق إرشادات المجتمع.")}</li>
+                <li>{t("إن احتاج البحث نظراً، يراجعه مشرف قبل ظهوره.")}</li>
               </ol>
               <label className="accept">
                 <input type="checkbox" checked={accepted} onChange={(event) => setAccepted(event.target.checked)} />
                 <span>
-                  قرأتُ <a href="/?mode=community#guidelines" target="_blank" rel="noreferrer">إرشادات المجتمع</a> وألتزم بها، وأتحمّل مسؤولية ما أنشر.
+                  {t("قرأتُ")} <a href="/?mode=community#guidelines" target="_blank" rel="noreferrer">{t("إرشادات المجتمع")}</a> {t("وألتزم بها، وأتحمّل مسؤولية ما أنشر.")}
                 </span>
               </label>
               {error ? <p className="error" role="alert">{error}</p> : null}
               <button type="button" className="qb-btn primary block" disabled={!accepted || busy} onClick={() => void publish()}>
-                {busy ? "جارٍ الفحص…" : "انشر البحث"}
+                {busy ? t("جارٍ الفحص…") : t("انشر البحث")}
               </button>
             </>
           ) : (
@@ -114,7 +126,7 @@ function Outcome({ result, onOpenPost, onClose }: { result: PublishResult; onOpe
     return (
       <div className="outcome blocked">
         <Icon name="alert" size={26} />
-        <h3>يحتاج البحث إلى تعديل قبل النشر</h3>
+        <h3>{t("يحتاج البحث إلى تعديل قبل النشر")}</h3>
         <ul>
           {result.audit.checks.filter((check) => !check.passed).map((check) => (
             <li key={check.rule}>
@@ -123,7 +135,7 @@ function Outcome({ result, onOpenPost, onClose }: { result: PublishResult; onOpe
             </li>
           ))}
         </ul>
-        <button type="button" className="qb-btn ghost block" onClick={onClose}>عودة إلى البحث</button>
+        <button type="button" className="qb-btn ghost block" onClick={onClose}>{t("عودة إلى البحث")}</button>
       </div>
     );
   }
@@ -131,11 +143,11 @@ function Outcome({ result, onOpenPost, onClose }: { result: PublishResult; onOpe
   return (
     <div className={`outcome ${result.status}`}>
       <Icon name={result.status === "published" ? "check" : "shieldCheck"} size={26} />
-      <h3>{result.status === "published" ? "نُشر البحث" : "أُرسل البحث للمراجعة"}</h3>
+      <h3>{result.status === "published" ? t("نُشر البحث") : t("أُرسل البحث للمراجعة")}</h3>
       <p>
         {result.status === "published"
-          ? "اجتاز الفحوص والمراجعة الآلية، وهو الآن ظاهر في المجتمع."
-          : "سيراجعه مشرف قبل ظهوره، وتصلك ملاحظته في «منشوراتي»."}
+          ? t("اجتاز الفحوص والمراجعة الآلية، وهو الآن ظاهر في المجتمع.")
+          : t("سيراجعه مشرف قبل ظهوره، وتصلك ملاحظته في «منشوراتي».")}
       </p>
       {issues.length ? (
         <ul>
@@ -148,7 +160,7 @@ function Outcome({ result, onOpenPost, onClose }: { result: PublishResult; onOpe
       ) : null}
       {result.post_id ? (
         <button type="button" className="qb-btn primary block" onClick={() => onOpenPost(result.post_id!)}>
-          افتح المنشور
+          {t("افتح المنشور")}
         </button>
       ) : null}
     </div>

@@ -9,6 +9,8 @@ import { useAyahMarks, highlightProps, type AyahMark } from "@/features/themes/a
 import { usePickedWords, wordKey } from "@/features/reading/tools/word-selection";
 import { flyToNotebook } from "@/lib/fly-to-notebook";
 
+import { t } from "@/lib/i18n";
+
 // The basmala is rendered as compact, unambiguous Unicode text (in the display
 // font) rather than the QCF "line-filling" ligature, which spreads its segments
 // across the whole line and reads as disconnected.
@@ -160,9 +162,9 @@ export function GlyphPage({
           type="button"
           className={`qb-glyph-save${saved ? " on" : ""}${mark && mark.themes > 1 ? " multi" : ""}`}
           data-hl={mark?.color ?? undefined}
-          aria-label={saved ? "المواضيع والحفظ" : "حفظ في الدفتر"}
+          aria-label={saved ? t("المواضيع والحفظ") : t("حفظ في الدفتر")}
           aria-haspopup="dialog"
-          title={saved ? "محفوظة — المواضيع" : "حفظ الآية وتظليلها"}
+          title={saved ? t("محفوظة — المواضيع") : t("حفظ الآية وتظليلها")}
           onClick={(event) => {
             event.stopPropagation();
             if (!saved) flyToNotebook(event.currentTarget, ayahTextById.get(word.ayah_id) ?? word.text ?? "");
@@ -187,7 +189,7 @@ export function GlyphPage({
           return (
             <div key={line.line_number} className="qb-surah-banner qb-glyph-banner">
               <span className="rule" aria-hidden />
-              <span className="name">سورة {line.surah_name}</span>
+              <span className="name">{t("سورة")} {line.surah_name}</span>
               <span className="rule" aria-hidden />
             </div>
           );
@@ -336,9 +338,9 @@ export function GlyphAyah({
         type="button"
         className={`qb-save-ayah${saved ? " on" : ""}${mark && mark.themes > 1 ? " multi" : ""}`}
         data-hl={mark?.color ?? undefined}
-        aria-label={saved ? "المواضيع والحفظ" : "حفظ في الدفتر"}
+        aria-label={saved ? t("المواضيع والحفظ") : t("حفظ في الدفتر")}
         aria-haspopup="dialog"
-        title={saved ? "محفوظة — المواضيع" : "حفظ الآية وتظليلها"}
+        title={saved ? t("محفوظة — المواضيع") : t("حفظ الآية وتظليلها")}
         onClick={(event) => {
           event.stopPropagation();
           if (!saved) flyToNotebook(event.currentTarget, save.text);
