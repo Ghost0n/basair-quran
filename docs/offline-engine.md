@@ -80,7 +80,7 @@ narrations: `--db data/quran.db --mushaf 1` (add `morphology_segments` for the
 morphology cases), `--seed`, `--sample`.
 
 CI (`Offline engine (server parity)`) runs the same suite on the small pytest
-fixture (`--fixture`). Locally, on the real data: 4,060 requests for Ḥafṣ on
+fixture (`--fixture`). Locally, on the real data: 4,025 requests (default seed) for Ḥafṣ on
 `core.db` and 5,028 for Qālūn on the full database, all identical. The first
 real-data run also found a server bug the port avoided: `/api/text-count`
 answered 500 for narrations whose ayahs straddle two pages (`"85-86"`); the
