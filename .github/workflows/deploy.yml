@@ -84,6 +84,19 @@ jobs:
             echo "No rebuild-index tag — skipping research index rebuild."
           fi
 
+      - name: Build Quran translations if requested (or missing)
+        run: |
+          cd /srv/q-basair
+          if git log -1 --pretty=%B | grep -q '\[rebuild-translations\]' || [ ! -f data/translations.db ]; then
+            echo "building data/translations.db from QuranEnc / Tanzil in the background..."
+            # ~60 languages x 114 surah requests: longer than a deploy should wait.
+            # Detached; downloads are cached in data/translation_cache/ (resumable),
+            # and the api picks the new file up by itself once it is swapped in.
+            docker compose --env-file .env.production run -d --rm api python scripts/build_translations.py
+          else
+            echo "No rebuild-translations tag — keeping data/translations.db."
+          fi
+
       # DB-aware readiness gate with a retry loop (the API may be mid-rebuild or
       # still opening the DB right after a restart). /api/ready runs SELECT 1.
       - name: Verify readiness

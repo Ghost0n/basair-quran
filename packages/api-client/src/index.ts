@@ -6,6 +6,8 @@ import type {
   LikeResult,
   SaveResult,
   TagCount,
+  TranslationAyahsResponse,
+  TranslationInfo,
   ModerationDecision,
   ModerationQueue,
   PostDetail,
@@ -432,6 +434,14 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
       if (query.author != null) params.set("author", String(query.author));
       if (query.saved) params.set("saved", "true");
       return request<FeedPage>(`/community/feed?${params.toString()}`);
+    },
+    getTranslations(): Promise<TranslationInfo[]> {
+      return request<TranslationInfo[]>("/translations");
+    },
+    /** `refs`: "surah:ayah" or "surah:start-end" items (≤400 ayahs); `keys`: ≤3 translation keys. */
+    getTranslationAyahs(keys: string[], refs: string[]): Promise<TranslationAyahsResponse> {
+      const params = new URLSearchParams({ keys: keys.join(","), refs: refs.join(",") });
+      return request<TranslationAyahsResponse>(`/translations/ayahs?${params.toString()}`);
     },
     getCommunityTags(limit = 20): Promise<TagCount[]> {
       return request<TagCount[]>(`/community/tags?limit=${limit}`);

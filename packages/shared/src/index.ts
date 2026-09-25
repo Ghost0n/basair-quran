@@ -766,6 +766,8 @@ export interface UserPreferences {
   research: ResearchDefaults;
   last_position?: ReadingPosition | null;
   saved_pages?: SavedPageEntry[] | null;
+  /** Translations of meanings shown under each ayah (keys from `GET /api/translations`, ≤3). */
+  translations?: string[];
 }
 
 export interface RootDistributionSurah {
@@ -805,6 +807,47 @@ export interface UserPreferencesUpdate {
   research?: Partial<ResearchDefaults>;
   last_position?: ReadingPosition | null;
   saved_pages?: SavedPageEntry[] | null;
+  translations?: string[];
+}
+
+/** An installed translation of the Quran's meanings, with its provenance. */
+export interface TranslationInfo {
+  /** `quranenc:<key>` or `tanzil:<id>`. */
+  key: string;
+  /** ISO 639-1 code (`ber` for Tamazight). */
+  language: string;
+  kind: "translation" | "transliteration";
+  name: string;
+  translator: string;
+  description?: string;
+  source: "quranenc" | "tanzil";
+  source_url: string;
+  terms: string;
+  version?: string;
+  direction: "ltr" | "rtl";
+  ayah_count: number;
+}
+
+export interface TranslationMeta {
+  key: string;
+  language: string;
+  kind: string;
+  name: string;
+  translator: string;
+  source: string;
+  source_url: string;
+  direction: string;
+}
+
+export interface TranslatedAyah {
+  surah: number;
+  ayah: number;
+  texts: { key: string; text: string; footnotes?: string | null }[];
+}
+
+export interface TranslationAyahsResponse {
+  translations: TranslationMeta[];
+  ayahs: TranslatedAyah[];
 }
 
 export interface QuranPageAyah {
