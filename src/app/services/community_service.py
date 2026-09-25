@@ -346,6 +346,7 @@ def publish_document(
             note=ai_audit.get("fallback_reason"),
         )
         connection.commit()
+        invalidate_trending()
     return {"status": status, "post_id": post_id, "audit": audit, "ai_audit": ai_audit}
 
 
@@ -453,6 +454,46 @@ def trending_score(like_count: int, comment_count: int, age_seconds: float) -> f
     return (like_count + 2 * comment_count + 1) / ((hours + 2) ** TRENDING_GRAVITY)
 
 
+# «الأبرز» ranking cache: the ranked ids per filter set, kept for
+# TRENDING_CACHE_SECONDS and dropped on any community write. Paging through
+# one cached ranking also keeps offsets stable while reactions come in.
+TRENDING_CACHE_SECONDS = 60
+TRENDING_CACHE_MAX = 256
+_trending_cache: dict[tuple, tuple[float, list[str]]] = {}
+
+
+def invalidate_trending() -> None:
+    _trending_cache.clear()
+
+
+def _trending_ids(connection, where_sql: str, params: tuple) -> list[str]:
+    key = (where_sql, params)
+    now = time.time()
+    cached = _trending_cache.get(key)
+    if cached and now - cached[0] < TRENDING_CACHE_SECONDS:
+        return cached[1]
+    rows = connection.execute(
+        f"SELECT id, like_count, comment_count, published_at FROM posts WHERE {where_sql} "
+        "ORDER BY published_at DESC LIMIT ?",
+        (*params, TRENDING_WINDOW),
+    ).fetchall()
+    ranked = [
+        row["id"]
+        for row in sorted(
+            rows,
+            key=lambda row: (
+                -trending_score(int(row["like_count"]), int(row["comment_count"]), now - (row["published_at"] or now)),
+                -(row["published_at"] or 0),
+                row["id"],
+            ),
+        )
+    ]
+    if len(_trending_cache) >= TRENDING_CACHE_MAX:
+        _trending_cache.pop(next(iter(_trending_cache)))
+    _trending_cache[key] = (now, ranked)
+    return ranked
+
+
 def feed(
     viewer_id: int | None,
     cursor: str | None = None,
@@ -499,22 +540,19 @@ def feed(
 
     with app_data_service.connect() as connection:
         if sort == "top":
-            rows = connection.execute(
-                f"SELECT * FROM posts WHERE {' AND '.join(where)} ORDER BY published_at DESC LIMIT ?",
-                (*params, TRENDING_WINDOW),
-            ).fetchall()
-            now = time.time()
-            ranked = sorted(
-                rows,
-                key=lambda row: (
-                    -trending_score(int(row["like_count"]), int(row["comment_count"]), now - (row["published_at"] or now)),
-                    -(row["published_at"] or 0),
-                    row["id"],
-                ),
-            )
+            ranked_ids = _trending_ids(connection, " AND ".join(where), tuple(params))
             offset = _decode_offset(cursor)
-            page = ranked[offset : offset + limit]
-            next_cursor = _encode_offset(offset + limit) if offset + limit < len(ranked) else None
+            page_ids = ranked_ids[offset : offset + limit]
+            by_id = {}
+            if page_ids:
+                placeholders = ", ".join("?" for _ in page_ids)
+                by_id = {
+                    row["id"]: row
+                    for row in connection.execute(f"SELECT * FROM posts WHERE id IN ({placeholders})", page_ids)
+                }
+            # A post withdrawn or removed since the ranking was cached simply drops out.
+            page = [by_id[post_id] for post_id in page_ids if post_id in by_id and by_id[post_id]["status"] == "published"]
+            next_cursor = _encode_offset(offset + limit) if offset + limit < len(ranked_ids) else None
         else:
             position = _decode_cursor(cursor) if cursor else None
             if position:
@@ -612,6 +650,7 @@ def withdraw_post(post_id: str, user_id: int) -> bool:
             (int(time.time()), post_id, user_id),
         )
         connection.commit()
+        invalidate_trending()
         return cursor.rowcount > 0
 
 
@@ -640,6 +679,7 @@ def set_like(post_id: str, user_id: int, liked: bool) -> dict:
         (count,) = connection.execute("SELECT COUNT(*) FROM post_likes WHERE post_id = ?", (post_id,)).fetchone()
         connection.execute("UPDATE posts SET like_count = ? WHERE id = ?", (count, post_id))
         connection.commit()
+        invalidate_trending()
     return {"liked": liked, "like_count": int(count)}
 
 
@@ -699,6 +739,7 @@ def add_comment(post_id: str, user_id: int, author_name: str, body: str) -> dict
         )
         _refresh_comment_count(connection, post_id)
         connection.commit()
+        invalidate_trending()
         row = connection.execute("SELECT * FROM post_comments WHERE id = ?", (cursor.lastrowid,)).fetchone()
     return _comment_row(row, user_id)
 
@@ -718,6 +759,7 @@ def delete_comment(comment_id: int, user_id: int, is_moderator: bool = False) ->
         connection.execute("UPDATE post_comments SET status = 'hidden' WHERE id = ?", (comment_id,))
         _refresh_comment_count(connection, row["post_id"])
         connection.commit()
+        invalidate_trending()
     return True
 
 
@@ -814,6 +856,7 @@ def decide(post_id: str, decision: str, moderator_id: int, note: str | None) -> 
                 "UPDATE reports SET status = 'resolved' WHERE target_type = 'post' AND target_id = ?", (post_id,)
             )
         connection.commit()
+        invalidate_trending()
     return get_post(post_id, None, is_moderator=True)
 
 
@@ -828,6 +871,7 @@ def hide_comment(comment_id: int) -> bool:
         )
         _refresh_comment_count(connection, row["post_id"])
         connection.commit()
+        invalidate_trending()
     return True
 
 
@@ -859,3 +903,4 @@ def delete_user_content(user_id: int) -> None:
             connection.execute("UPDATE posts SET like_count = ? WHERE id = ?", (likes, post_id))
             _refresh_comment_count(connection, post_id)
         connection.commit()
+        invalidate_trending()

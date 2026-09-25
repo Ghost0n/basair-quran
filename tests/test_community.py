@@ -26,6 +26,8 @@ class AuditProvider(research_agent_service.ResearchLlmProvider):
 @pytest.fixture(autouse=True)
 def reset_provider():
     research_agent_service.set_llm_provider_for_tests(None)
+    # The trending cache is process-wide; each test has its own database.
+    community_service.invalidate_trending()
     yield
     research_agent_service.set_llm_provider_for_tests(None)
 
@@ -329,3 +331,44 @@ def test_existing_posts_are_backfilled_with_filter_columns(api_client):
         connection.commit()
     community_service.ensure_tables()
     assert [post["id"] for post in api_client.get("/api/community/feed", params={"tag": "الصبر", "surah": 1}).json()["posts"]] == [post_id]
+
+
+def test_trending_ranking_is_cached_and_invalidated_by_writes(api_client, monkeypatch):
+    research_agent_service.set_llm_provider_for_tests(AuditProvider({"verdict": "pass", "issues": []}))
+    community_service.invalidate_trending()
+    older = _publish_note(api_client, "قديم")
+    newer = _publish_note(api_client, "جديد")
+    with community_service.app_data_service.connect() as connection:
+        connection.execute("UPDATE posts SET published_at = published_at - 3600 WHERE id = ?", (older,))
+        connection.commit()
+    community_service.invalidate_trending()
+
+    def top():
+        return [post["id"] for post in api_client.get("/api/community/feed", params={"sort": "top"}).json()["posts"]]
+
+    assert top() == [newer, older]
+    # A direct DB change is not seen while the ranking is cached...
+    with community_service.app_data_service.connect() as connection:
+        connection.execute("UPDATE posts SET like_count = 50 WHERE id = ?", (older,))
+        connection.commit()
+    assert top() == [newer, older]
+    # ...but a community write drops the cache.
+    community_service.set_like(older, 99, True)
+    with community_service.app_data_service.connect() as connection:
+        connection.execute("UPDATE posts SET like_count = 50 WHERE id = ?", (older,))
+        connection.commit()
+    community_service.invalidate_trending()
+    assert top() == [older, newer]
+    # Expired entries are recomputed.
+    monkeypatch.setattr(community_service, "TRENDING_CACHE_SECONDS", 0)
+    with community_service.app_data_service.connect() as connection:
+        connection.execute("UPDATE posts SET like_count = 0 WHERE id = ?", (older,))
+        connection.commit()
+    assert top() == [newer, older]
+    # A post withdrawn after ranking drops out of the cached page.
+    monkeypatch.setattr(community_service, "TRENDING_CACHE_SECONDS", 60)
+    top()
+    with community_service.app_data_service.connect() as connection:
+        connection.execute("UPDATE posts SET status = 'withdrawn' WHERE id = ?", (newer,))
+        connection.commit()
+    assert top() == [older]
