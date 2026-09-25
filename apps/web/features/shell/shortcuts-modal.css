@@ -34,9 +34,10 @@
 }
 
 .qb-shortcuts-modal .head h3 {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   font-size: var(--fs-lg);
   color: var(--gold-text);
+  line-height: var(--lh-heading);
 }
 
 .qb-shortcuts-modal .head .x {

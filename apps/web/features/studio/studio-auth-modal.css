@@ -33,10 +33,11 @@
 }
 
 .qb-studio-auth h4 {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   font-size: var(--fs-lg);
   color: var(--gold-text);
   margin: 0;
+  line-height: var(--lh-heading);
 }
 
 .qb-studio-auth p {

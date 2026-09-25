@@ -109,9 +109,9 @@
   border: 0;
   border-bottom: 1px solid transparent;
   background: none;
-  font-family: var(--font-arabic-heading, var(--font-arabic-display));
-  font-size: 32px;
-  line-height: var(--lh-tight, 1.4);
+  font-family: var(--font-arabic-heading);
+  font-size: var(--fs-title-page);
+  line-height: var(--lh-heading);
   color: var(--gold-text);
   outline: none;
 }
@@ -169,8 +169,8 @@
   background-image: var(--glass-sheen);
   border: 1px solid var(--glass-rim);
   box-shadow: var(--glass-edge), 0 8px 24px rgba(0, 0, 0, 0.14);
-  -webkit-backdrop-filter: blur(16px) saturate(var(--glass-saturate));
-  backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border-radius: var(--r-xl);
 }
 
@@ -246,8 +246,8 @@
   background-image: var(--glass-sheen);
   border: 1px solid var(--glass-rim);
   box-shadow: var(--glass-edge), 0 8px 24px rgba(0, 0, 0, 0.14);
-  -webkit-backdrop-filter: blur(16px) saturate(var(--glass-saturate));
-  backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border-radius: var(--r-xl);
 }
 
@@ -468,9 +468,9 @@
 
 .qb-doc-refs h2 {
   margin: 0 0 10px;
-  font-family: var(--font-arabic-heading, var(--font-arabic-display));
-  font-size: 20px;
-  line-height: 1.6;
+  font-family: var(--font-arabic-heading);
+  font-size: var(--fs-title-section);
+  line-height: var(--lh-heading);
   color: var(--gold-text);
 }
 

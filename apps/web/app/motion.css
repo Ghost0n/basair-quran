@@ -153,6 +153,9 @@ button:not(:disabled):active {
   color: var(--fg-1);
   white-space: nowrap;
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   text-overflow: ellipsis;
   transform-origin: top center;
   animation: qbFly var(--motion-dur-travel) var(--motion-ease-travel) forwards;

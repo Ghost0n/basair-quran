@@ -14,15 +14,18 @@
 
 :root {
   /* Material */
-  --glass-tint: rgba(28, 25, 18, 0.56);
-  --glass-tint-strong: rgba(26, 23, 16, 0.78);
-  --glass-tint-soft: rgba(40, 36, 26, 0.34);
-  --glass-blur: 22px;
-  --glass-saturate: 165%;
+  --glass-tint: rgba(28, 25, 18, 0.44);
+  --glass-tint-strong: rgba(26, 23, 16, 0.66);
+  --glass-tint-soft: rgba(40, 36, 26, 0.26);
+  --glass-blur: 30px;
+  /* Sheets, popovers, menus: the most frosted layer. */
+  --glass-blur-strong: 40px;
+  --glass-saturate: 185%;
   --glass-rim: rgba(255, 244, 214, 0.09);
   --glass-rim-strong: rgba(212, 175, 55, 0.22);
   --glass-sheen: linear-gradient(180deg, rgba(255, 250, 235, 0.075) 0%, rgba(255, 250, 235, 0.015) 38%, transparent 70%);
-  --glass-edge: inset 0 1px 0 rgba(255, 248, 225, 0.10), inset 0 0 0 1px rgba(255, 244, 214, 0.03);
+  --glass-edge: inset 0 1px 0 rgba(255, 248, 225, 0.14), inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    inset 0 0 0 1px rgba(255, 244, 214, 0.04), inset 0 0 24px rgba(255, 240, 200, 0.03);
   --glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 14px 40px rgba(0, 0, 0, 0.32);
   --glass-shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.26), 0 22px 56px rgba(0, 0, 0, 0.42);
 
@@ -50,13 +53,14 @@
 .light,
 .light-mode,
 [data-theme="light"] {
-  --glass-tint: rgba(255, 252, 243, 0.58);
-  --glass-tint-strong: rgba(255, 251, 240, 0.84);
-  --glass-tint-soft: rgba(255, 252, 243, 0.40);
+  --glass-tint: rgba(255, 252, 243, 0.48);
+  --glass-tint-strong: rgba(255, 251, 240, 0.72);
+  --glass-tint-soft: rgba(255, 252, 243, 0.32);
   --glass-rim: rgba(255, 255, 255, 0.72);
   --glass-rim-strong: rgba(164, 129, 41, 0.28);
   --glass-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0.18) 40%, transparent 72%);
-  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.9), inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+  --glass-edge: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(120, 90, 30, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.4), inset 0 0 24px rgba(255, 255, 255, 0.25);
   --glass-shadow: 0 1px 2px rgba(120, 90, 30, 0.08), 0 14px 40px rgba(120, 90, 30, 0.14);
   --glass-shadow-lift: 0 2px 6px rgba(120, 90, 30, 0.10), 0 24px 56px rgba(120, 90, 30, 0.20);
   --aurora-1: rgba(212, 175, 55, 0.20);
@@ -107,6 +111,8 @@ body::before {
 
 .qb-glass-strong {
   background-color: var(--glass-tint-strong);
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
 }
 
 /* Bars: edge-to-edge chrome, only a bottom hairline. Denser tint: content
@@ -557,4 +563,12 @@ body::before {
   .qb-collection-card:hover {
     transform: none;
   }
+}
+
+/* Quran text quoted inside UI copy (library rows, previews): always the
+   Quran face — the UI face has no Uthmani marks and would draw empty boxes. */
+.qb-quran-snip {
+  font-family: var(--font-arabic-display);
+  font-size: 1.12em;
+  line-height: inherit;
 }

@@ -6,20 +6,21 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type { FollowedRoot, NotebookItem, ResearchDocumentSummary, ResearchSessionSummary } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
+import { toArabicDigits } from "@/lib/numerals";
 import { emitNotebookChange, useNotebookSync } from "@/lib/notebook-sync";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
-/** Relative age in Arabic from a unix-seconds timestamp. */
-export function relativeAge(unixSeconds: number): string {
+/** Relative age in Arabic from a unix-seconds timestamp (Arabic-Indic digits by default). */
+export function relativeAge(unixSeconds: number, format: (n: number) => string = toArabicDigits): string {
   const deltaSeconds = Math.max(0, Math.floor(Date.now() / 1000) - unixSeconds);
   if (deltaSeconds < 60) return "الآن";
   const minutes = Math.floor(deltaSeconds / 60);
-  if (minutes < 60) return `منذ ${minutes} دقيقة`;
+  if (minutes < 60) return `منذ ${format(minutes)} دقيقة`;
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `منذ ${hours} ساعة`;
+  if (hours < 24) return `منذ ${format(hours)} ساعة`;
   const days = Math.floor(hours / 24);
-  return days === 1 ? "أمس" : `منذ ${days} يوماً`;
+  return days === 1 ? "أمس" : `منذ ${format(days)} يوماً`;
 }
 
 /**

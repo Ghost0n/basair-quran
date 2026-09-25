@@ -413,11 +413,12 @@
 
 /* Onboarding — three cards, gold-before-copper, staggered 450/650/1150ms */
 .qb-onboard-title {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   font-size: 26px;
   color: var(--gold-text);
   text-align: center;
   animation: qbRise var(--motion-dur-slow) var(--motion-ease-settle) both;
+  line-height: var(--lh-heading);
 }
 
 .qb-onboard-grid {
@@ -434,9 +435,10 @@
 }
 
 .qb-onboard-card .num {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   font-size: 22px;
   color: var(--gold-text);
+  line-height: var(--lh-heading);
 }
 
 .qb-onboard-card .card-title {

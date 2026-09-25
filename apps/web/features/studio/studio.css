@@ -38,6 +38,9 @@
 
 .qb-studio-tab .label {
   overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -396,7 +399,7 @@
   width: 100%;
   min-height: 36px;
   max-height: 120px;
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-ui);
   font-size: 16px;
   color: var(--fg-1);
 }

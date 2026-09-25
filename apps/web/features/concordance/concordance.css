@@ -17,9 +17,18 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  border-inline-end: 1px solid var(--divider);
   display: flex;
   flex-direction: column;
+  /* The same floating glass pane as the search / Studio panels. */
+  margin-block: 4px 10px;
+  margin-inline-start: 10px;
+  border-radius: 26px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   animation: qbPanelIn var(--dur) var(--ease-out);
 }
 
@@ -41,7 +50,7 @@
 }
 
 .qb-companion-panel .qb-aux-h h2 {
-  font-size: var(--fs-xl);
+  font-size: var(--fs-title-page);
 }
 
 /* Settings inside the companion panel */
@@ -90,11 +99,12 @@
 }
 
 .qb-side-head h3 {
-  font-family: var(--font-arabic-display);
-  font-size: 22px;
+  font-family: var(--font-arabic-heading);
+  font-size: var(--fs-title-section);
   color: var(--fg-1);
   margin: 4px 0 6px;
   overflow-wrap: anywhere;
+  line-height: var(--lh-heading);
 }
 
 .qb-side-head .meta {
@@ -147,10 +157,10 @@
 }
 
 .qb-root-summary .root-disp {
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
   color: var(--gold-text);
   font-size: 30px;
-  line-height: 1;
+  line-height: var(--lh-heading);
   letter-spacing: 0; /* Arabic: tracking breaks the joins */
 }
 
@@ -179,7 +189,8 @@
   color: var(--gold-text-bright);
   font-size: 18px;
   font-weight: 700;
-  font-family: var(--font-arabic-display);
+  font-family: var(--font-arabic-heading);
+  line-height: var(--lh-heading);
 }
 
 .qb-root-summary .root-stats .s .l {

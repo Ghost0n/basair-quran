@@ -58,9 +58,9 @@
 
 .qb-board-bar h1 {
   margin: 0;
-  font-family: var(--font-arabic-heading, var(--font-arabic-display));
-  font-size: 22px;
-  line-height: var(--lh-tight, 1.4);
+  font-family: var(--font-arabic-heading);
+  font-size: var(--fs-title-section);
+  line-height: var(--lh-heading);
   color: var(--gold-text);
 }
 
@@ -245,8 +245,8 @@
   background-image: var(--glass-sheen);
   border: 1px solid var(--glass-rim);
   box-shadow: var(--glass-edge), 0 8px 24px rgba(0, 0, 0, 0.14);
-  -webkit-backdrop-filter: blur(16px) saturate(var(--glass-saturate));
-  backdrop-filter: blur(16px) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   border-radius: var(--r-xl);
 }
 
@@ -301,11 +301,13 @@
   padding: 6px 14px 14px;
   font-family: var(--font-arabic-display);
   font-size: 17px;
-  line-height: 1.9;
+  line-height: 2;
   display: -webkit-box;
   -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* Room for Uthmani marks inside the clamp. */
+  padding-block: 0.3em;
 }
 
 .qb-bnode.ayah .mini {
@@ -492,4 +494,16 @@
   margin-top: 8px;
   border: 0;
   color: var(--danger-fg);
+}
+
+/* Phones: the tool row wraps instead of pushing past the screen edge. */
+@media (max-width: 640px) {
+  .qb-board-bar .tools {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .qb-board-bar .save {
+    min-width: 0;
+  }
 }

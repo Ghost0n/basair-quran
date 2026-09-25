@@ -18,9 +18,9 @@
   font-display: swap;
 }
 
-/* Cairo (UI), Amiri (italic/bold fallback), Reem Kufi (titles) from Google Fonts.
+/* Cairo (UI) and Amiri (titles, names) from Google Fonts.
    Amiri Quran is the primary Quran face; the others fill gaps it doesn't cover. */
-@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Cairo:wght@300;400;500;600;700;800&family=Reem+Kufi:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Cairo:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   /* ---------- Brand / accent ---------- */
@@ -148,11 +148,13 @@
   --dur-slow: 380ms;
 
   /* ---------- Typography — families ---------- */
-  --font-arabic-display: 'Amiri Quran', 'Amiri', 'Reem Kufi', serif;  /* mushaf, ayahs, headings */
+  --font-arabic-display: 'Amiri Quran', 'Amiri', serif;  /* Quran text only (mushaf, ayahs, quoted verses) */
   --font-arabic-heading: 'Amiri', 'Amiri Quran', serif;  /* UI headings: Amiri's metrics fit a line box (Amiri Quran's tall marks overflow it) */
   --font-arabic-mushaf:  'Amiri Quran', 'Amiri', serif;              /* alias — mushaf-only contexts */
   --font-arabic-ui:      'Cairo', 'Inter', system-ui, sans-serif;    /* UI chrome, body */
-  --font-arabic-kufi:    'Reem Kufi', 'Cairo', sans-serif;           /* surah titles, deck */
+  /* Legacy alias: titles now use the heading face (three families in the UI:
+     Amiri Quran for Quran text, Amiri for titles/names, Cairo for everything else). */
+  --font-arabic-kufi:    var(--font-arabic-heading);
   --font-mono:           'Cairo', ui-monospace, monospace;
 
   /* ---------- Type scale (Arabic runs ~1.05x larger; values calibrated) ---------- */
@@ -174,7 +176,12 @@
      line and the glyph-page basmala so they no longer drift (0.72 vs 0.92). */
   --basmala-scale:  0.8;
 
-  --lh-tight: 1.4;      /* Arabic display faces carry tashkeel above/below — 1.2 clipped/overlapped */
+  --lh-tight: 1.4;
+  --lh-heading: 1.6;
+  /* Title tiers (Amiri): one size per role across every screen. */
+  --fs-title-page: clamp(28px, 2.4vw + 14px, 38px);
+  --fs-title-section: 22px;
+  --fs-title-card: 19px;    /* UI titles in Amiri: room for stacked marks above and below */      /* Arabic display faces carry tashkeel above/below — 1.2 clipped/overlapped */
   --lh-snug: 1.45;
   --lh-body: 1.7;
   --lh-mushaf: 2.25;     /* mushaf reading */
