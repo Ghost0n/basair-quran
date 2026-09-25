@@ -639,9 +639,11 @@ body::before {
 
 /* Option groups (segmented choices): options take the room their label needs;
    level 1 tightens and drops icons; level 2 lets labels wrap onto two lines. */
+/* min-width stays auto: an option never gets narrower than its longest word,
+   so wrapping (level 2) happens between words, not inside them. */
 .qb-fit-choice.qb-fit-choice.qb-fit-choice > * {
   flex: 1 1 auto;
-  min-width: 0;
+  min-width: auto;
 }
 
 .qb-fit-choice.qb-fit-choice[data-fit="1"] > *,
@@ -664,7 +666,7 @@ body::before {
   text-align: center;
   text-wrap: balance;
   hyphens: auto;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 /* Tab tracks: tabs never shrink below their label; level 1 tightens; if the
@@ -734,4 +736,9 @@ body::before {
     --qb-fade-start: 28px;
     --qb-fade-end: 0px;
   }
+}
+
+/* An equal-column grid can't follow its labels; fitted groups size like the rest. */
+.qb-fit-choice.qb-fit-choice.is-grid {
+  display: flex;
 }

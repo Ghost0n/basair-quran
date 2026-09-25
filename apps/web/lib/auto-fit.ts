@@ -11,7 +11,8 @@
  * resizes, its text changes, or web fonts finish loading, so switching the
  * interface language re-fits everything.
  *
- * "Overflowing" means: the element's content is wider than its box, or any
+ * "Overflowing" means: the element's content is wider than its box, one of
+ * its direct children's content is wider than that child, or any
  * descendant marked `data-fit-watch` is (e.g. a surah name that would get an
  * ellipsis). Such descendants must clip (`overflow: hidden` / `clip`) so their
  * scroll width can be measured.
@@ -21,6 +22,11 @@ const SELECTOR = "[data-autofit]";
 
 export function isOverflowing(element: HTMLElement): boolean {
   if (element.scrollWidth > element.clientWidth + 1) return true;
+  // A squeezed item (flex-shrink, min-width: 0) can spill into its neighbour
+  // without widening the container, so each direct child is checked too.
+  for (const child of Array.from(element.children) as HTMLElement[]) {
+    if (child.clientWidth > 0 && child.scrollWidth > child.clientWidth + 1) return true;
+  }
   for (const watched of element.querySelectorAll<HTMLElement>("[data-fit-watch]")) {
     if (watched.getClientRects().length && watched.scrollWidth > watched.clientWidth + 1) return true;
   }

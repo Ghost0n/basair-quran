@@ -3,7 +3,13 @@ import { describe, expect, it } from "vitest";
 import { fitElement, isOverflowing } from "./auto-fit";
 
 /** A stand-in element whose content width depends on its current fit level. */
-function fakeElement(max: number, contentWidthAtLevel: number[], box = 300, watched: { scrollWidth: number; clientWidth: number }[] = []) {
+function fakeElement(
+  max: number,
+  contentWidthAtLevel: number[],
+  box = 300,
+  watched: { scrollWidth: number; clientWidth: number }[] = [],
+  children: { scrollWidth: number; clientWidth: number }[] = [],
+) {
   const dataset: Record<string, string> = { autofit: String(max) };
   return {
     dataset,
@@ -12,6 +18,7 @@ function fakeElement(max: number, contentWidthAtLevel: number[], box = 300, watc
       return contentWidthAtLevel[Number(dataset.fit ?? 0)] ?? contentWidthAtLevel.at(-1)!;
     },
     getBoundingClientRect: () => ({ left: 0, right: box }),
+    children,
     querySelector: () => null,
     querySelectorAll: () => watched.map((item) => ({ ...item, getClientRects: () => [1] })),
   } as unknown as HTMLElement;
@@ -41,6 +48,11 @@ describe("auto-fit", () => {
     expect(fitElement(element)).toBe(2);
     widths[0] = 280; // e.g. the language changed to a shorter one
     expect(fitElement(element)).toBe(0);
+  });
+
+  it("treats a squeezed child whose text spills as overflow", () => {
+    expect(isOverflowing(fakeElement(1, [200], 300, [], [{ scrollWidth: 140, clientWidth: 120 }]))).toBe(true);
+    expect(isOverflowing(fakeElement(1, [200], 300, [], [{ scrollWidth: 120, clientWidth: 120 }]))).toBe(false);
   });
 
   it("treats a clipped watched descendant as overflow", () => {

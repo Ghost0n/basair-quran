@@ -99,11 +99,11 @@ export function ReaderBar({
   const progress = Math.min(100, Math.max(0, (displayPage / totalPages) * 100));
 
   return (
-    <div className="qb-reader-bar" data-autofit="4">
+    <div className="qb-reader-bar" data-autofit="5">
       <button type="button" className="identity" onClick={onOpenNavigate} aria-label={t("{0} — انتقل", { 0: surahName })}>
         <span className="name" data-fit-watch>{surahName}</span>
         <span className="meta" data-fit-watch>
-          {juzLabel ? <>{t("الجزء {0}", { 0: juzLabel })}{t("، ")}</> : null}
+          {juzLabel ? <span className="juz">{t("الجزء {0}", { 0: juzLabel })}{t("، ")}</span> : null}
           {t("صفحة {0}", { 0: formatNumber(displayPage) })}
           <span className="of">{t(" من {0}", { 0: formatNumber(totalPages) })}</span>
         </span>

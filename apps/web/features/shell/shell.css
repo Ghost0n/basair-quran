@@ -201,7 +201,7 @@
   line-height: 1.1;
   text-wrap: balance;
   hyphens: auto;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .qb-rail[data-fit="2"] .qb-rail-label {
@@ -695,7 +695,7 @@
   text-align: center;
   text-wrap: balance;
   hyphens: auto;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .qb-tabbar-btn.active {
