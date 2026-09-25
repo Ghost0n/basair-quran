@@ -45,8 +45,9 @@ export class MemoryStorage implements StateStorage {
 }
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
-export type Tombstone = { kind: CollectionName; id: number | string; deleted_at: number };
-type CollectionName = "notebook" | "themes" | "sessions" | "roots" | "documents";
+/** A deleted row; `remote_id` when the account has it too (sync deletes it there). */
+export type Tombstone = { kind: CollectionName; id: number | string; deleted_at: number; remote_id?: number | string };
+export type CollectionName = "notebook" | "themes" | "sessions" | "roots" | "documents";
 
 export type LocalState = {
   format: 1;
@@ -56,8 +57,11 @@ export type LocalState = {
   sessions: Json[];
   roots: Json[];
   documents: Json[];
-  preferences: { data: Json; updated_at: number } | null;
+  preferences: { data: Json; updated_at: number; dirty?: boolean } | null;
   tombstones: Tombstone[];
+  /** The account this device last synced with (null: never signed in). */
+  account?: number | null;
+  last_sync?: number | null;
 };
 
 export const emptyState = (): LocalState => ({
@@ -154,8 +158,26 @@ export class LocalStore {
     }, true);
   }
 
-  private bury(state: LocalState, kind: CollectionName, id: number | string) {
-    state.tombstones.push({ kind, id, deleted_at: this.clock() });
+  private bury(state: LocalState, kind: CollectionName, id: number | string, remoteId?: number | string) {
+    state.tombstones.push({ kind, id, deleted_at: this.clock(), ...(remoteId !== undefined ? { remote_id: remoteId } : {}) });
+  }
+
+  /**
+   * Run `operation` alone (no other read or write in between) and persist the
+   * state afterwards even if it fails half-way (account sync: the ids it
+   * already obtained must not be lost).
+   */
+  exclusive<T>(operation: (state: LocalState) => Promise<T>): Promise<T> {
+    const next = this.queue.then(async () => {
+      const state = await this.load();
+      try {
+        return await operation(state);
+      } finally {
+        await this.options.storage.write(JSON.stringify(state));
+      }
+    });
+    this.queue = next.catch(() => undefined);
+    return next;
   }
 
   // --- preferences ----------------------------------------------------------
@@ -183,7 +205,7 @@ export class LocalStore {
       delete patch.research;
       for (const [key, value] of Object.entries(patch)) if (value !== null && value !== undefined) current[key] = value;
       if (research && Object.keys(research).length) current.research = { ...current.research, ...research };
-      state.preferences = { data: current, updated_at: this.clock() };
+      state.preferences = { data: current, updated_at: this.clock(), dirty: true };
       return shapeModel("UserPreferences", current);
     }, true);
   }
@@ -216,6 +238,7 @@ export class LocalStore {
         collection: payload.collection ?? null,
         theme_ids: this.ownedThemeIds(state, payload.theme_ids ?? []),
         created_at: this.clock(),
+        dirty: true,
       };
       state.notebook.push(item);
       return shapeModel("NotebookItem", item);
@@ -229,16 +252,17 @@ export class LocalStore {
       if (!item) throw new HttpError(404, "Notebook item not found.");
       item.theme_ids = this.ownedThemeIds(state, payload.theme_ids);
       item.updated_at = this.clock();
+      item.dirty = true;
       return shapeModel("NotebookItem", item);
     }, true);
   }
 
   deleteNotebookItem(itemId: number): Promise<Json> {
     return this.run((state) => {
-      const before = state.notebook.length;
-      state.notebook = state.notebook.filter((row) => row.id !== itemId);
-      const deleted = state.notebook.length < before;
-      if (deleted) this.bury(state, "notebook", itemId);
+      const row = state.notebook.find((item) => item.id === itemId);
+      state.notebook = state.notebook.filter((item) => item.id !== itemId);
+      const deleted = Boolean(row);
+      if (row) this.bury(state, "notebook", itemId, row.remote_id);
       return { deleted };
     }, true);
   }
@@ -299,6 +323,7 @@ export class LocalStore {
         board: null,
         created_at: now,
         updated_at: now,
+        dirty: true,
       };
       state.themes.push(theme);
       return shapeModel("ThemeSummary", this.themeRow(theme, 0));
@@ -313,7 +338,7 @@ export class LocalStore {
       for (const key of ["name", "color", "description"]) if (patch[key] !== null && patch[key] !== undefined) fields[key] = patch[key];
       if ("name" in fields) fields.name = strip(fields.name);
       if ("description" in fields) fields.description = strip(fields.description) || null;
-      if (theme && Object.keys(fields).length) Object.assign(theme, fields, { updated_at: this.clock() });
+      if (theme && Object.keys(fields).length) Object.assign(theme, fields, { updated_at: this.clock(), dirty: true });
       return this.themeDetail(state, themeId);
     }, true);
   }
@@ -327,22 +352,24 @@ export class LocalStore {
       if (!theme) throw new HttpError(404, "Theme not found.");
       theme.board = encoded;
       theme.updated_at = this.clock();
+      theme.dirty = true;
       return this.themeDetail(state, themeId);
     }, true);
   }
 
   deleteTheme(themeId: number): Promise<Json> {
     return this.run((state) => {
-      const before = state.themes.length;
+      const theme = state.themes.find((row) => row.id === themeId);
+      if (!theme) return { deleted: false };
       state.themes = state.themes.filter((row) => row.id !== themeId);
-      if (state.themes.length === before) return { deleted: false };
       for (const item of state.notebook) {
         if ((item.theme_ids ?? []).includes(themeId)) {
           item.theme_ids = item.theme_ids.filter((id: number) => id !== themeId);
           item.updated_at = this.clock();
+          item.dirty = true;
         }
       }
-      this.bury(state, "themes", themeId);
+      this.bury(state, "themes", themeId, theme.remote_id);
       return { deleted: true };
     }, true);
   }
@@ -378,6 +405,8 @@ export class LocalStore {
         messages,
         created_at: existing ? existing.created_at : now,
         updated_at: now,
+        dirty: true,
+        ...(existing?.remote_id !== undefined ? { remote_id: existing.remote_id } : {}),
       };
       // INSERT OR REPLACE: the saved session becomes the newest row.
       state.sessions = state.sessions.filter((row) => row.id !== payload.id);
@@ -388,10 +417,10 @@ export class LocalStore {
 
   deleteSession(sessionId: string): Promise<Json> {
     return this.run((state) => {
-      const before = state.sessions.length;
-      state.sessions = state.sessions.filter((row) => row.id !== sessionId);
-      const deleted = state.sessions.length < before;
-      if (deleted) this.bury(state, "sessions", sessionId);
+      const row = state.sessions.find((item) => item.id === sessionId);
+      state.sessions = state.sessions.filter((item) => item.id !== sessionId);
+      const deleted = Boolean(row);
+      if (row) this.bury(state, "sessions", sessionId, row.remote_id);
       return { deleted };
     }, true);
   }
@@ -409,7 +438,7 @@ export class LocalStore {
       const existing = state.roots.find((row) => row.root_text === rootText);
       if (existing) return shapeModel("FollowedRoot", existing);
       state.seq.roots += 1;
-      const root = { id: state.seq.roots, root_text: rootText, root_id: payload.root_id ?? null, occurrences: payload.occurrences ?? null, created_at: this.clock() };
+      const root = { id: state.seq.roots, root_text: rootText, root_id: payload.root_id ?? null, occurrences: payload.occurrences ?? null, created_at: this.clock(), dirty: true };
       state.roots.push(root);
       return shapeModel("FollowedRoot", root);
     }, true);
@@ -417,10 +446,10 @@ export class LocalStore {
 
   unfollowRoot(rootId: number): Promise<Json> {
     return this.run((state) => {
-      const before = state.roots.length;
-      state.roots = state.roots.filter((row) => row.id !== rootId);
-      const deleted = state.roots.length < before;
-      if (deleted) this.bury(state, "roots", rootId);
+      const row = state.roots.find((item) => item.id === rootId);
+      state.roots = state.roots.filter((item) => item.id !== rootId);
+      const deleted = Boolean(row);
+      if (row) this.bury(state, "roots", rootId, row.remote_id);
       return { deleted };
     }, true);
   }
@@ -508,7 +537,7 @@ export class LocalStore {
     return this.run((state) => {
       if (state.documents.length >= MAX_DOCUMENTS_PER_USER) throw new HttpError(413, `A user can keep at most ${MAX_DOCUMENTS_PER_USER} research documents.`);
       const now = this.clock();
-      const row = { id: `doc-${tokenUrlsafe(10)}`, title: payload.title, body: encoded, version: 1, created_at: now, updated_at: now };
+      const row = { id: `doc-${tokenUrlsafe(10)}`, title: payload.title, body: encoded, version: 1, created_at: now, updated_at: now, dirty: true };
       state.documents.push(row);
       return shapeModel("ResearchDocument", { ...LocalStore.document(row), verification }, true);
     }, true);
@@ -521,17 +550,17 @@ export class LocalStore {
     return this.run((state) => {
       const row = state.documents.find((item) => item.id === documentId);
       if (!row) throw new HttpError(404, "Research document not found.");
-      Object.assign(row, { title: payload.title, body: encoded, version: row.version + 1, updated_at: this.clock() });
+      Object.assign(row, { title: payload.title, body: encoded, version: row.version + 1, updated_at: this.clock(), dirty: true });
       return shapeModel("ResearchDocument", { ...LocalStore.document(row), verification }, true);
     }, true);
   }
 
   deleteDocument(documentId: string): Promise<Json> {
     return this.run((state) => {
-      const before = state.documents.length;
-      state.documents = state.documents.filter((row) => row.id !== documentId);
-      const deleted = state.documents.length < before;
-      if (deleted) this.bury(state, "documents", documentId);
+      const row = state.documents.find((item) => item.id === documentId);
+      state.documents = state.documents.filter((item) => item.id !== documentId);
+      const deleted = Boolean(row);
+      if (row) this.bury(state, "documents", documentId, row.remote_id);
       return { deleted };
     }, true);
   }
