@@ -134,6 +134,10 @@ def ensure_app_db() -> None:
             connection.execute("ALTER TABLE notebook_items ADD COLUMN theme_ids TEXT NOT NULL DEFAULT '[]'")
             _migrate_collections_to_themes(connection)
         connection.commit()
+    # Community tables live in the same store (lazy import: community_service imports this module).
+    from src.app.services import community_service
+
+    community_service.ensure_tables()
 
 
 def _migrate_collections_to_themes(connection: sqlite3.Connection) -> None:
@@ -847,6 +851,9 @@ def delete_user_data(user_id: int) -> int:
     """
     if user_id == DEFAULT_USER_ID:
         raise ValueError("Refusing to delete guest data via account deletion.")
+    from src.app.services import community_service
+
+    community_service.delete_user_content(user_id)
     total = 0
     with _connect() as connection:
         for table in (

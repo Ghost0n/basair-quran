@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { useShellMode } from "@/features/shell/mode-context";
 import { WorkspaceCanvas, CompanionCanvas } from "@/features/shell/workspace-canvas";
@@ -10,9 +11,12 @@ import { HeatmapScreen } from "@/features/concordance/heatmap-screen";
 import { SettingsScreen } from "@/features/settings/settings-screen";
 import { BoardScreen } from "@/features/board/board-screen";
 import { DocumentScreen } from "@/features/documents/document-screen";
+import { CommunityScreen } from "@/features/community/community-screen";
+import { PostScreen } from "@/features/community/post-screen";
 
 function WorkspacePage() {
   const { mode } = useShellMode();
+  const params = useSearchParams();
 
   switch (mode) {
     case "home":
@@ -28,7 +32,11 @@ function WorkspacePage() {
     // screen on the matching tab so old links keep working.
     case "notebook":
     case "bookmarks":
-      return <CompanionCanvas><LibraryScreen initialTab="verses" /></CompanionCanvas>;
+      return (
+        <CompanionCanvas>
+          <LibraryScreen initialTab={params.get("tab") === "documents" ? "documents" : "verses"} />
+        </CompanionCanvas>
+      );
     case "history":
       return <CompanionCanvas><LibraryScreen initialTab="sessions" /></CompanionCanvas>;
     case "roots":
@@ -45,6 +53,10 @@ function WorkspacePage() {
       return <BoardScreen />;
     case "document":
       return <DocumentScreen />;
+    case "community":
+      return <CommunityScreen />;
+    case "post":
+      return <PostScreen />;
     default:
       return <WorkspaceCanvas mode="reading" />;
   }

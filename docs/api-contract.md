@@ -60,6 +60,8 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/text-count`
 - `GET /api/notebook` · `POST /api/notebook` · `DELETE /api/notebook/{item_id}` · `PUT /api/notebook/{item_id}/themes`
 - `GET /api/documents` · `POST /api/documents` · `GET /api/documents/{id}` · `PUT /api/documents/{id}` · `GET /api/documents/{id}/audit` · `DELETE /api/documents/{id}`
+- `POST /api/documents/{id}/publish` · `GET /api/community/feed` · `GET /api/community/mine` · `GET|DELETE /api/community/posts/{id}` · `POST|DELETE /api/community/posts/{id}/like` · `GET|POST /api/community/posts/{id}/comments` · `DELETE /api/community/comments/{id}` · `POST /api/community/reports`
+- `GET /api/moderation/queue` · `POST /api/moderation/posts/{id}/decision` · `POST /api/moderation/comments/{id}/hide` · `POST /api/moderation/reports/{id}/resolve`
 - `GET /api/themes` · `POST /api/themes` · `GET /api/themes/{theme_id}` · `PATCH /api/themes/{theme_id}` · `PUT /api/themes/{theme_id}/board` · `DELETE /api/themes/{theme_id}`
 - `GET /api/sessions` · `GET /api/sessions/{session_id}` · `POST /api/sessions` · `DELETE /api/sessions/{session_id}`
 - `GET /api/roots` · `POST /api/roots` · `DELETE /api/roots/{root_id}`
@@ -80,7 +82,7 @@ This document freezes the backend contract that the future frontend migration wi
 ## Research documents notes
 
 The shareable research format (design: `docs/research-workspace-spec.md` §5–6). Documents are
-private; the format is fixed now so community publishing can ship without migration.
+private to their author; sharing happens by publishing a snapshot to the community (see Community notes).
 
 - `ResearchDocumentSave {title (1–200), summary?, language, tags[≤12], theme_ids[], sections[≤60],
   references[≤80], provenance, visibility: "private"}`; the whole document is ≤ 512 KB (`413`), and a
@@ -106,6 +108,42 @@ private; the format is fixed now so community publishing can ship without migrat
 
   The advisory AI audit is designed in `docs/ai-audit-agent.md`.
 - Guest→account merge moves the device's documents; account deletion erases them.
+
+## Community notes
+
+Publishing and the community (guidelines: `docs/community-guidelines.md`; agent:
+`docs/ai-audit-agent.md`).
+
+- **Access.** Reading the feed and published posts is open to guests. Publish, like, comment and
+  report need an account when auth is enabled (`401 {code: "auth_required", gate: "community"}`);
+  `/api/moderation/*` needs an admin (`403`). With auth disabled, the local user may do both.
+- **Publish** `POST /api/documents/{id}/publish {visibility: public|unlisted, accept_guidelines}`.
+  - `accept_guidelines: false` returns `422`.
+  - The server runs the deterministic audit. If it fails, the response is
+    `{status: "blocked", audit}` and no post is created.
+  - Otherwise it runs the AI audit agent on a snapshot and returns
+    `PublishResult {status: published|pending_review, post_id, audit, ai_audit {verdict, issues[],
+    model?, fallback_reason?}}`.
+  - The agent **fails closed**: an unavailable provider or invalid output gives `review` → moderator.
+  - Republishing the same document updates the same post with a new snapshot and re-enters the
+    pipeline.
+- **Posts are snapshots** of a document version. A document exported from a theme board also
+  carries a read-only board copy with the ayahs' mushaf text (`PostDetail.board`).
+- **Visibility.** `unlisted` posts are reachable by link only. Pending, rejected and
+  changes-requested posts are visible only to their author and to moderators; `reviews[]` (AI issues,
+  moderator notes) is included for them only.
+- **Feed** `GET /api/community/feed?cursor&limit≤50` returns published public posts, newest first,
+  with keyset pagination (`next_cursor`).
+- **Comments** are 1–2000 chars with at most 2 links (`422` otherwise). Authors and moderators hide
+  them (never hard-deleted). Likes are idempotent per user.
+- **Reports** `{target_type: post|comment, target_id, rule, note?}`. Duplicate open reports from
+  the same user collapse into one.
+- **Moderation.** The decision is `publish | request_changes | reject | remove`, with an optional note
+  shown to the author. Every stage (deterministic, ai, human) is journalled in `post_reviews` with
+  the document version.
+- **Rate limit.** Publish, comment and report share the `community` bucket
+  (`QBASAIR_RATE_LIMIT_COMMUNITY_MAX`, default 30 per window per IP).
+- **Account deletion** removes the user's posts, likes, comments and reports, and refreshes counts.
 
 ## Themes (مواضيع) notes
 

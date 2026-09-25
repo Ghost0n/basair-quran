@@ -1,8 +1,8 @@
 # AI audit agent — design (for community publishing)
 
-**Status:** designed, not wired. Research documents are private today; this agent runs only once
-community publishing ships (spec §6). The deterministic step already exists as
-`GET /api/documents/{id}/audit`.
+**Status:** implemented (Q-Basair-19) — `src/app/services/audit_agent_service.py`, called by
+`community_service.publish_document`. The deterministic step is `GET /api/documents/{id}/audit`.
+Not yet built: the labelled evaluation set (§7).
 
 ## 1. Where it sits
 
@@ -88,11 +88,11 @@ Temperature is 0 and the output is capped at 1,500 tokens.
 
 ## 6. Storage and audit trail
 
-The future `document_reviews` table holds:
+The `post_reviews` table holds:
 
 ```text
-(id, document_id, document_version, stage[deterministic|ai|human], verdict, issues_json, model,
- guidelines_version, reviewer_id, created_at)
+(id, post_id, document_version, stage[deterministic|ai|human], verdict, issues_json, model,
+ guidelines_version, reviewer_id, note, created_at)
 ```
 
 - Every publication is bound to a `document_version`. An edit after publication re-enters the

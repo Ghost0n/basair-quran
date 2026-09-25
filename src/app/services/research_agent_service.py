@@ -211,6 +211,10 @@ class ResearchLlmProvider:
     def embed_text(self, text: str) -> list[float]:
         raise ResearchProviderUnavailable("The configured provider does not support embeddings.")
 
+    def complete_json(self, system: str, user: str, *, stage: str) -> str:
+        """One deterministic JSON completion (used by the community audit agent)."""
+        raise ResearchProviderUnavailable("The configured provider does not support JSON completions.")
+
     def provider_info(self) -> ResearchProviderInfo:
         return ResearchProviderInfo(
             provider="ollama",
@@ -297,6 +301,13 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
             ) from exc
         except json.JSONDecodeError as exc:
             raise ResearchProviderResponseError("Ollama returned invalid JSON.") from exc
+
+    def complete_json(self, system: str, user: str, *, stage: str) -> str:
+        return self._chat(
+            [{"role": "system", "content": system}, {"role": "user", "content": user}],
+            temperature=0.0,
+            stage=stage,
+        )
 
     def _chat(self, messages: list[dict[str, str]], *, temperature: float = 0.1, stage: str = "chat") -> str:
         payload = {

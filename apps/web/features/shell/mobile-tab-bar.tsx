@@ -15,6 +15,7 @@ const TABS: Tab[] = [
   { mode: "search", icon: "search", label: "البحث" },
   { mode: "studio", icon: "sparkles", label: "الدراسة" },
   { mode: "notebook", icon: "notebook", label: "الدفتر" },
+  { mode: "community", icon: "users", label: "المجتمع" },
 ];
 
 /**
@@ -32,7 +33,10 @@ export function MobileTabBar() {
     <>
       <nav className="qb-tabbar" aria-label="التنقل">
         {TABS.map((tab) => {
-          const active = tab.mode === mode || (tab.mode === "notebook" && (mode === "board" || mode === "document"));
+          const active =
+            tab.mode === mode ||
+            (tab.mode === "notebook" && (mode === "board" || mode === "document")) ||
+            (tab.mode === "community" && mode === "post");
           return (
             <button
               key={tab.mode}

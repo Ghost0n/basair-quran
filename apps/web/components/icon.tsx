@@ -9,6 +9,11 @@ export const ICON_PATHS = {
   book: "M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2V5zM18 3v16M6 19h12",
   sparkles: "M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M5.6 18.4l2.8-2.8M15.6 8.4l2.8-2.8",
   bookmark: "M6 3h12v18l-6-4-6 4V3z",
+  heart: "M12 20s-7-4.35-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 10c0 5.65-7 10-7 10z",
+  heartFilled: "M12 20s-7-4.35-7-10a4 4 0 0 1 7-2.65A4 4 0 0 1 19 10c0 5.65-7 10-7 10z",
+  comment: "M4 5h16v11H9l-5 4V5z",
+  users: "M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20a6.5 6.5 0 0 1 13 0M16 4.3a3.5 3.5 0 0 1 0 6.4M18.5 20a6.5 6.5 0 0 0-3-5.5",
+  gavel: "M14 4l6 6M11 7l6 6M12.5 5.5l-6 6M9 16l-5 5M3 21h8",
   select: "M9 5h6M9 19h6M12 5v14M4 8V6a2 2 0 0 1 2-2M20 8V6a2 2 0 0 0-2-2M4 16v2a2 2 0 0 0 2 2M20 16v2a2 2 0 0 1-2 2",
   bookmarkFilled: "M6 3h12v18l-6-4-6 4V3z",
   notebook: "M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2V4zm0 0v14M9 8h6M9 12h6M9 16h4",
@@ -91,7 +96,8 @@ export function Icon({ name, size = 18, stroke = 1.75, className = "", title }: 
     <span className={`qb-icon ${className}`.trim()} style={{ width: size, height: size, display: "inline-flex" }}>
       <svg
         viewBox="0 0 24 24"
-        fill="none"
+        // "…Filled" variants share their outline's path and fill it (saved / liked states).
+        fill={name.endsWith("Filled") ? "currentColor" : "none"}
         stroke="currentColor"
         strokeWidth={stroke}
         strokeLinecap="round"

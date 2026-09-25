@@ -679,6 +679,149 @@ class DocumentAudit(BaseModel):
     checks: List[AuditCheck]
 
 
+# ---------------------------------------------------------------------------
+# Community — publishing, feed, likes, comments, reports, moderation
+# (docs/community-guidelines.md, docs/ai-audit-agent.md)
+# ---------------------------------------------------------------------------
+
+PostStatus = Literal["pending_review", "published", "changes_requested", "rejected", "withdrawn", "removed"]
+GuidelineRule = Literal[
+    "misattribution",
+    "ruling_as_fact",
+    "unlabelled_ai",
+    "disrespect",
+    "sectarian_attack",
+    "integrity",
+    "spam_promo",
+    "personal_data",
+    "other",
+]
+MAX_COMMENT_CHARS = 2000
+
+
+class PublishRequest(BaseModel):
+    visibility: Literal["public", "unlisted"] = "public"
+    # The author confirms they read the community guidelines.
+    accept_guidelines: bool = False
+
+
+class AuditIssue(BaseModel):
+    section_id: str
+    rule: GuidelineRule
+    severity: Literal["low", "medium", "high"]
+    quote: Optional[str] = None
+    explanation_ar: str
+    suggestion_ar: Optional[str] = None
+
+
+class AiAudit(BaseModel):
+    verdict: Literal["pass", "review", "reject"]
+    issues: List[AuditIssue] = Field(default_factory=list)
+    model: Optional[str] = None
+    # Why the agent could not decide (provider unavailable, invalid output) — fail closed.
+    fallback_reason: Optional[str] = None
+
+
+class PublishResult(BaseModel):
+    status: Literal["blocked", "pending_review", "published"]
+    post_id: Optional[str] = None
+    audit: DocumentAudit
+    ai_audit: Optional[AiAudit] = None
+
+
+class PostExcerpt(BaseModel):
+    surah_id: int
+    ayah: int
+    text: str
+
+
+class PostSummary(BaseModel):
+    id: str
+    title: str
+    summary: Optional[str] = None
+    author_name: str
+    visibility: Literal["public", "unlisted"]
+    status: PostStatus
+    mode: Optional[Literal["strict", "tafssir"]] = None
+    created_from: str = "manual"
+    has_board: bool = False
+    ayah_count: int = 0
+    like_count: int = 0
+    comment_count: int = 0
+    liked_by_me: bool = False
+    is_mine: bool = False
+    published_at: Optional[int] = None
+    updated_at: int
+    excerpt: Optional[PostExcerpt] = None
+
+
+class PostReview(BaseModel):
+    stage: Literal["deterministic", "ai", "human"]
+    verdict: str
+    issues: List[Dict[str, Any]] = Field(default_factory=list)
+    note: Optional[str] = None
+    created_at: int
+
+
+class PostDetail(PostSummary):
+    document: Dict[str, Any]
+    board: Optional[Dict[str, Any]] = None
+    # Reviews are shown to the author and moderators only.
+    reviews: List[PostReview] = Field(default_factory=list)
+
+
+class FeedPage(BaseModel):
+    posts: List[PostSummary]
+    next_cursor: Optional[str] = None
+
+
+class CommentCreate(BaseModel):
+    body: str = Field(..., min_length=1, max_length=MAX_COMMENT_CHARS)
+
+
+class CommentItem(BaseModel):
+    id: int
+    post_id: str
+    author_name: str
+    body: str
+    is_mine: bool = False
+    status: Literal["visible", "hidden"] = "visible"
+    created_at: int
+
+
+class LikeResult(BaseModel):
+    liked: bool
+    like_count: int
+
+
+class ReportCreate(BaseModel):
+    target_type: Literal["post", "comment"]
+    target_id: str = Field(..., min_length=1, max_length=64)
+    rule: GuidelineRule = "other"
+    note: Optional[str] = Field(None, max_length=500)
+
+
+class ReportItem(BaseModel):
+    id: int
+    target_type: Literal["post", "comment"]
+    target_id: str
+    rule: str
+    note: Optional[str] = None
+    status: Literal["open", "resolved"]
+    created_at: int
+    target_preview: Optional[str] = None
+
+
+class ModerationDecision(BaseModel):
+    decision: Literal["publish", "reject", "request_changes", "remove"]
+    note: Optional[str] = Field(None, max_length=1000)
+
+
+class ModerationQueue(BaseModel):
+    posts: List[PostDetail]
+    reports: List[ReportItem]
+
+
 class FollowedRoot(BaseModel):
     id: int
     root_text: str
