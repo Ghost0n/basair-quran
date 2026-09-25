@@ -177,7 +177,7 @@ export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose
             }}
           >
             <Icon name="search" size={13} />
-            {t("مواضع الجذر «")}{word.root}»
+            {t("مواضع الجذر «{0}»", { 0: word.root })}
             <span style={{ marginInlineStart: "auto" }}>←</span>
           </button>
         ) : null}
