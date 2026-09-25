@@ -288,6 +288,14 @@ function check() {
     console.error("catalog.json is out of date — run: node scripts/i18n.mjs catalog");
     ok = false;
   }
+  // New interface text must go through t(): an unwrapped Arabic literal inside a component fails.
+  for (const file of listFiles()) {
+    const { sf, found } = scan(file);
+    for (const item of found.filter((entry) => entry.reason === null || entry.reason === "getter")) {
+      console.error(`${path.relative(ROOT, file)}:${lineOf(sf, item.node)} untranslated: ${item.text.trim().slice(0, 60)} — run: node scripts/i18n.mjs wrap ${path.relative(ROOT, file)}`);
+      ok = false;
+    }
+  }
   const ids = new Set(catalog);
   for (const file of fs.readdirSync(LOCALES_DIR).filter((name) => name.endsWith(".json")).sort()) {
     const messages = JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, file), "utf8"));

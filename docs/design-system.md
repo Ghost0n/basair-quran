@@ -100,3 +100,7 @@ The mushaf page and Quran text stay opaque.
    ships on the same route, so generic names collide.
 4. Check both themes and a 390px phone (no horizontal scroll, no cut titles). The glass tokens are theme-aware; nothing should set its
    own `.light` background for a glass surface.
+5. Write visible text in Arabic wrapped in `t()` (see `docs/i18n.md`). Use logical CSS
+   (`inset-inline`, `margin-inline-start`, `text-align: start`) — never hard-code `direction: rtl`
+   on a page container; only Quran-font text and the mushaf force RTL. Give directional icons
+   the `dir-flip` class via `Icon` so they mirror in LTR locales.

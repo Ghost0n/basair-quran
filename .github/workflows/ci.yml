@@ -47,5 +47,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Unit tests (Vitest)
         run: pnpm --filter @q-basair/web test
+      - name: Check interface translations catalog
+        run: pnpm --filter @q-basair/web i18n:check
       - name: Build web
         run: pnpm --filter @q-basair/web build

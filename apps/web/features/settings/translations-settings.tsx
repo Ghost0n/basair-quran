@@ -11,7 +11,7 @@ import { API_BASE_URL } from "@/lib/config";
 import { usePreferences } from "@/lib/preferences-context";
 import { ensureScriptFont, fontStackFor } from "@/lib/script-fonts";
 
-import { t } from "@/lib/i18n";
+import { activeLocale, t } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -54,8 +54,8 @@ export function TranslationsSettings() {
   const languages = useMemo(() => {
     const codes = [...new Set((catalogue ?? []).map((item) => item.language))];
     return codes
-      .map((code) => ({ value: code, label: languageLabel(code) }))
-      .sort((a, b) => a.label.localeCompare(b.label, "ar"));
+      .map((code) => ({ value: code, label: languageLabel(code, activeLocale()) }))
+      .sort((a, b) => a.label.localeCompare(b.label, activeLocale()));
   }, [catalogue]);
   const shownLanguage = language || languages[0]?.value || "";
   const options = (catalogue ?? []).filter((item) => item.language === shownLanguage);
@@ -92,7 +92,7 @@ export function TranslationsSettings() {
               return (
                 <span key={key} className="pill" lang={item?.language} title={item?.translator}>
                   <span className="lbl">
-                    {item ? `${languageLabel(item.language).split(" — ")[0]} · ${item.name}` : key}
+                    {item ? `${languageLabel(item.language, activeLocale()).split(" — ")[0]} · ${item.name}` : key}
                   </span>
                   <button type="button" aria-label={t("إزالة الترجمة")} onClick={() => save(chosen.filter((entry) => entry !== key))}>
                     <Icon name="close" size={11} />

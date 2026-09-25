@@ -18,7 +18,7 @@ export function LanguageSelect({ className = "" }: { className?: string }) {
       className={className}
       ariaLabel={t("لغة الواجهة")}
       value={locale}
-      options={LOCALES.map((item) => ({ value: item.code, label: item.native }))}
+      options={LOCALES.map((item) => ({ value: item.code, label: item.reviewed ? item.native : `${item.native} · β` }))}
       onChange={(code) => {
         void updateAccount({ ui_language: code, numerals: localeInfo(code).numerals }).catch(() => {});
         void setLocale(code);

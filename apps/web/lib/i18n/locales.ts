@@ -5,6 +5,8 @@
  * script a locale defaults to when it is chosen.
  */
 export type LocaleInfo = {
+  /** false while the dictionary is a machine-drafted first pass awaiting native review. */
+  reviewed?: boolean;
   code: string;
   /** The language's own name. */
   native: string;
@@ -15,36 +17,22 @@ export type LocaleInfo = {
 export const SOURCE_LOCALE = "ar";
 
 export const LOCALES: LocaleInfo[] = [
-  { code: "ar", native: "العربية", dir: "rtl", numerals: "arabic-indic" },
+  { code: "ar", native: "العربية", dir: "rtl", numerals: "arabic-indic", reviewed: true },
   { code: "en", native: "English", dir: "ltr", numerals: "latin" },
   { code: "fr", native: "Français", dir: "ltr", numerals: "latin" },
   { code: "es", native: "Español", dir: "ltr", numerals: "latin" },
   { code: "de", native: "Deutsch", dir: "ltr", numerals: "latin" },
   { code: "pt", native: "Português", dir: "ltr", numerals: "latin" },
-  { code: "it", native: "Italiano", dir: "ltr", numerals: "latin" },
-  { code: "nl", native: "Nederlands", dir: "ltr", numerals: "latin" },
   { code: "ru", native: "Русский", dir: "ltr", numerals: "latin" },
   { code: "tr", native: "Türkçe", dir: "ltr", numerals: "latin" },
-  { code: "az", native: "Azərbaycanca", dir: "ltr", numerals: "latin" },
-  { code: "uz", native: "Oʻzbekcha", dir: "ltr", numerals: "latin" },
-  { code: "kk", native: "Қазақша", dir: "ltr", numerals: "latin" },
   { code: "fa", native: "فارسی", dir: "rtl", numerals: "persian" },
   { code: "ur", native: "اردو", dir: "rtl", numerals: "persian" },
-  { code: "ps", native: "پښتو", dir: "rtl", numerals: "persian" },
-  { code: "ku", native: "کوردی", dir: "rtl", numerals: "arabic-indic" },
   { code: "id", native: "Bahasa Indonesia", dir: "ltr", numerals: "latin" },
   { code: "ms", native: "Bahasa Melayu", dir: "ltr", numerals: "latin" },
   { code: "bn", native: "বাংলা", dir: "ltr", numerals: "latin" },
   { code: "hi", native: "हिन्दी", dir: "ltr", numerals: "latin" },
-  { code: "ta", native: "தமிழ்", dir: "ltr", numerals: "latin" },
   { code: "zh", native: "中文", dir: "ltr", numerals: "latin" },
-  { code: "ja", native: "日本語", dir: "ltr", numerals: "latin" },
-  { code: "ko", native: "한국어", dir: "ltr", numerals: "latin" },
   { code: "sw", native: "Kiswahili", dir: "ltr", numerals: "latin" },
-  { code: "ha", native: "Hausa", dir: "ltr", numerals: "latin" },
-  { code: "so", native: "Soomaali", dir: "ltr", numerals: "latin" },
-  { code: "bs", native: "Bosanski", dir: "ltr", numerals: "latin" },
-  { code: "sq", native: "Shqip", dir: "ltr", numerals: "latin" },
 ];
 
 export const LOCALE_CODES = LOCALES.map((locale) => locale.code);
