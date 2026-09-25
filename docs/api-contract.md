@@ -109,6 +109,21 @@ private to their author; sharing happens by publishing a snapshot to the communi
   The advisory AI audit is designed in `docs/ai-audit-agent.md`.
 - Guest→account merge moves the device's documents; account deletion erases them.
 
+## Translations of meanings
+
+Details in `docs/quran-translations.md`.
+
+- `GET /api/translations` returns `TranslationInfo[]`:
+  `{key, language, kind: translation|transliteration, name, translator, description, source:
+  quranenc|tanzil, source_url, terms, version, direction: ltr|rtl, ayah_count}`. It is `[]` when
+  `data/translations.db` has not been built.
+- `GET /api/translations/ayahs?keys&refs` returns `{translations: TranslationMeta[], ayahs:
+  [{surah, ayah, texts: [{key, text, footnotes?}]}]}`.
+  - At most 3 keys, and unknown keys are dropped. Refs look like `2:255` or `2:1-7`,
+    comma-separated, with at most 400 ayahs; otherwise `422`.
+  - Texts are verbatim and use Ḥafṣ numbering.
+- `UserPreferences.translations: string[]` holds up to 3 keys, in display order (`422` for more).
+
 ## Community notes
 
 Publishing and the community (guidelines: `docs/community-guidelines.md`; agent:

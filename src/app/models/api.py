@@ -1,7 +1,7 @@
 import json
-from typing import Any, Dict, List, Literal, Optional
+from typing import Annotated, Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, StringConstraints, field_validator
 
 # Storage caps for persisted research sessions — guests reach this endpoint, so
 # an unbounded messages payload would let anyone bloat the shared app_data.db.
@@ -939,6 +939,8 @@ class UserPreferences(BaseModel):
     last_position: Optional[ReadingPosition] = None
     # Bookmarked muṣḥaf pages, listed on Home to reopen the reader there.
     saved_pages: List[SavedPageEntry] = Field(default_factory=list)
+    # Translations of meanings shown under each ayah (keys from GET /api/translations, ≤3).
+    translations: List[str] = Field(default_factory=list, max_length=3)
 
 
 class ResearchDefaultsUpdate(BaseModel):
@@ -960,6 +962,55 @@ class UserPreferencesUpdate(BaseModel):
     research: Optional[ResearchDefaultsUpdate] = None
     last_position: Optional[ReadingPosition] = None
     saved_pages: Optional[List[SavedPageEntry]] = None
+    translations: Optional[List[Annotated[str, StringConstraints(max_length=80)]]] = Field(None, max_length=3)
+
+
+# ---------------------------------------------------------------------------
+# Quran translations of meanings
+# ---------------------------------------------------------------------------
+
+
+class TranslationInfo(BaseModel):
+    key: str
+    language: str
+    kind: Literal["translation", "transliteration"] = "translation"
+    name: str
+    translator: str
+    description: str = ""
+    source: Literal["quranenc", "tanzil"]
+    source_url: str
+    terms: str
+    version: str = ""
+    direction: Literal["ltr", "rtl"] = "ltr"
+    ayah_count: int
+
+
+class TranslationMeta(BaseModel):
+    key: str
+    language: str
+    kind: str
+    name: str
+    translator: str
+    source: str
+    source_url: str
+    direction: str
+
+
+class TranslatedText(BaseModel):
+    key: str
+    text: str
+    footnotes: Optional[str] = None
+
+
+class TranslatedAyah(BaseModel):
+    surah: int
+    ayah: int
+    texts: List[TranslatedText]
+
+
+class TranslationAyahsResponse(BaseModel):
+    translations: List[TranslationMeta]
+    ayahs: List[TranslatedAyah]
 
 
 # ---------------------------------------------------------------------------

@@ -9,6 +9,7 @@ services:
       QBASAIR_AUTH_DB_PATH: /app/data/auth.db
       QBASAIR_RESEARCH_INDEX_PATH: /app/data/research_agent.db
       QBASAIR_RESEARCH_SOURCES_PATH: /app/data/research_sources
+      QBASAIR_TRANSLATIONS_DB_PATH: /app/data/translations.db
       QBASAIR_AUTH_ENABLED: ${QBASAIR_AUTH_ENABLED:-0}
       QBASAIR_BUILD_DB_ON_START: ${QBASAIR_BUILD_DB_ON_START:-auto}
       QBASAIR_CORS_ORIGINS: ${QBASAIR_CORS_ORIGINS:-http://localhost}

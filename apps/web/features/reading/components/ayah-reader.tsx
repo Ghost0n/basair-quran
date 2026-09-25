@@ -4,7 +4,8 @@ import { Fragment, useMemo } from "react";
 
 import type { MushafLayoutGlyph, QuranPageAyah, QuranPageResponse } from "@q-basair/shared";
 
-import { useNumerals } from "@/lib/preferences-context";
+import { useNumerals, usePreferences } from "@/lib/preferences-context";
+import { fontStackFor } from "@/lib/script-fonts";
 
 import {
   AyahTokens,
@@ -20,6 +21,7 @@ import { useMushaf } from "../mushaf-context";
 import { useMushafLayout } from "../use-mushaf-layout";
 import { useReaderWindow, type ScrollControls } from "../use-reader-window";
 import { useWordNav } from "../use-word-nav";
+import { useAyahTranslations, type AyahTranslation } from "../use-ayah-translations";
 
 type AyahReaderProps = {
   mushafId: number;
@@ -71,6 +73,9 @@ function AyahPage({
   formatNumber,
 }: AyahPageProps) {
   const { layout } = useMushafLayout({ enabled: authentic, mushafId, page: data.page });
+  const { preferences } = usePreferences();
+  const translationRefs = useMemo(() => data.ayahs.map((ayah) => ({ surah: ayah.surah_id, ayah: ayah.ayah })), [data.ayahs]);
+  const translations = useAyahTranslations(preferences.translations ?? [], translationRefs);
 
   // Group the page's glyph words by ayah so each verse can render as its own
   // authentic line (the layout is per printed line; a verse spans several).
@@ -135,6 +140,7 @@ function AyahPage({
                     showNumber={false}
                   />
                 )}
+                <AyahTranslations items={translations.get(`${ayah.surah_id}:${ayah.ayah}`)} />
               </div>
             </div>
           </Fragment>
@@ -143,6 +149,41 @@ function AyahPage({
       <div className="qb-scroll-page-mark" aria-hidden>
         صفحة {formatNumber(data.page ?? 0)}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The chosen translations of meanings under a verse — each in its own
+ * language, direction and script font, attributed to its translator and
+ * source. Clearly separate from the Quran text: it is a rendering of the
+ * meanings, not the Quran.
+ */
+function AyahTranslations({ items }: { items: AyahTranslation[] | undefined }) {
+  if (!items?.length) return null;
+  return (
+    <div className="qb-ayah-translations">
+      {items.map((item) => (
+        <div
+          key={item.meta.key}
+          className={`tr${item.meta.kind === "transliteration" ? " translit" : ""}`}
+          lang={item.meta.language}
+          dir={item.meta.direction === "rtl" ? "rtl" : "ltr"}
+        >
+          <p style={{ fontFamily: fontStackFor(item.meta.language) }}>{item.text}</p>
+          <div className="src" dir="auto">
+            <a href={item.meta.source_url} target="_blank" rel="noopener noreferrer">
+              {item.meta.name}
+            </a>
+            {item.footnotes ? (
+              <details>
+                <summary>حواشٍ</summary>
+                <p style={{ fontFamily: fontStackFor(item.meta.language) }}>{item.footnotes}</p>
+              </details>
+            ) : null}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

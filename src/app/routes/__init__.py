@@ -6,6 +6,7 @@ from src.app.routes.mushafs import router as mushafs_router
 from src.app.routes.reader import router as reader_router
 from src.app.routes.research import router as research_router
 from src.app.routes.search import router as search_router
+from src.app.routes.translations import router as translations_router
 
 __all__ = [
     "auth_router",
@@ -16,4 +17,5 @@ __all__ = [
     "reader_router",
     "research_router",
     "search_router",
+    "translations_router",
 ]

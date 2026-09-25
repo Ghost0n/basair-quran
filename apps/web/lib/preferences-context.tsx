@@ -35,6 +35,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   reader_layout: "auto",
   research: { default_mode: "strict", depth: "balanced" },
   saved_pages: [],
+  translations: [],
 };
 
 type TweaksPatch = Partial<Omit<UserPreferences, "research">>;

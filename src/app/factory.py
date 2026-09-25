@@ -10,6 +10,7 @@ from src.app.core import config, http_cache, rate_limit
 from src.app.routes import (
     auth_router,
     community_router,
+    translations_router,
     companions_router,
     health_router,
     mushafs_router,
@@ -155,6 +156,7 @@ def create_app() -> FastAPI:
     app.include_router(companions_router, dependencies=open_dependencies)
     # Community: reading is open; writes check the resolved user in the route.
     app.include_router(community_router, dependencies=open_dependencies)
+    app.include_router(translations_router, dependencies=open_dependencies)
     app.include_router(research_router, dependencies=gated_dependencies)
     return app
 

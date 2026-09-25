@@ -43,6 +43,11 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   or through the «مشاركة» studio as a research or verse card, a numbered carousel (ZIP or
   multi-image share) or a print / PDF page — in 4:5, square or story size and three styles. Publishing to the community runs a blocking audit, then
   an AI audit agent that fails closed to human moderation.
+- Translations of the Quran's meanings («ترجمة المعاني»): up to three per reader, shown under each
+  ayah in the «آية آية» mode, from trusted sources (QuranEnc — the Noble Quran Encyclopedia —
+  first, Tanzil for the gaps; about 60 languages by default, every QuranEnc language with `--all`),
+  stored verbatim with translator, source and version. Built by `python scripts/build_translations.py`
+  into `data/translations.db` (see `docs/quran-translations.md`).
 - Community («المجتمع»): a feed of published researches (public or link-only) — latest or trending
   («الأبرز»), searchable, filterable by surah, tag, research mode, board or author, with infinite
   scroll — post pages with the document and its read-only board, likes, private bookmarks

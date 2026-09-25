@@ -209,6 +209,8 @@ DEFAULT_PREFERENCES: dict = {
     # Bookmarked muṣḥaf pages (page + mushaf + surah label), listed on Home.
     # Replaced wholesale on update (client sends the full array).
     "saved_pages": [],
+    # Translations of meanings shown under each ayah (translation keys, ≤3).
+    "translations": [],
 }
 
 
