@@ -14,11 +14,9 @@
 
 :root {
   /* Material */
-  /* Denser tints + heavy blur: glass stays glass, but what's behind never
-     competes with what's on it. */
-  --glass-tint: rgba(28, 25, 18, 0.58);
-  --glass-tint-strong: rgba(26, 23, 16, 0.78);
-  --glass-tint-soft: rgba(40, 36, 26, 0.34);
+  --glass-tint: rgba(28, 25, 18, 0.44);
+  --glass-tint-strong: rgba(26, 23, 16, 0.66);
+  --glass-tint-soft: rgba(40, 36, 26, 0.26);
   /* Overlays (suggestions, menus, sheets, popovers) sit over text: dense
      enough that nothing behind them can be read even where the engine skips
      the blur (Chromium doesn't always blur content that has its own
@@ -64,9 +62,9 @@
 .light,
 .light-mode,
 [data-theme="light"] {
-  --glass-tint: rgba(255, 252, 243, 0.62);
-  --glass-tint-strong: rgba(255, 251, 240, 0.82);
-  --glass-tint-soft: rgba(255, 252, 243, 0.42);
+  --glass-tint: rgba(255, 252, 243, 0.48);
+  --glass-tint-strong: rgba(255, 251, 240, 0.72);
+  --glass-tint-soft: rgba(255, 252, 243, 0.32);
   --glass-tint-overlay: rgba(255, 251, 241, 0.95);
   --glass-rim: rgba(255, 255, 255, 0.38);
   --glass-rim-strong: rgba(164, 129, 41, 0.15);
