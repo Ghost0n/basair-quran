@@ -12,7 +12,7 @@ import { useNumerals } from "@/lib/preferences-context";
 
 import "./merge-toast.css";
 
-import { t } from "@/lib/i18n";
+import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const MOTIFS = Object.keys(AVATAR_MOTIFS) as AvatarMotif[];
@@ -79,9 +79,9 @@ export function MergeToast() {
   }
 
   const summary = [
-    result.notebook_moved ? t("{0} آية مُثبَّتة", { 0: formatNumber(result.notebook_moved) }) : null,
-    result.sessions_moved ? t("{0} جلسة بحث", { 0: formatNumber(result.sessions_moved) }) : null,
-    result.roots_moved ? t("{0} جذر مُتابَع", { 0: formatNumber(result.roots_moved) }) : null,
+    result.notebook_moved ? tn("{0} آية مُثبَّتة", result.notebook_moved, { 0: formatNumber(result.notebook_moved) }) : null,
+    result.sessions_moved ? tn("{0} جلسة بحث", result.sessions_moved, { 0: formatNumber(result.sessions_moved) }) : null,
+    result.roots_moved ? tn("{0} جذر مُتابَع", result.roots_moved, { 0: formatNumber(result.roots_moved) }) : null,
   ]
     .filter(Boolean)
     .join(" · ");

@@ -14,6 +14,7 @@ import { useNumerals } from "@/lib/preferences-context";
 
 import "./account-settings.css";
 
+import { relativeAge } from "@/features/companions/use-companions";
 import { t } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
@@ -27,12 +28,10 @@ function deviceIcon(platform?: string | null) {
   return platform === "ios" || platform === "android" ? "smartphone" : "monitor";
 }
 
-function relativeTime(epochSeconds: number, formatNumber: (n: number) => string): string {
+function relativeTime(epochSeconds: number, formatNumber: (n: number | string) => string): string {
   const diff = Math.max(0, Math.floor(Date.now() / 1000) - epochSeconds);
   if (diff < 90) return t("نشط الآن");
-  if (diff < 3600) return t("قبل {0} دقيقة", { 0: formatNumber(Math.floor(diff / 60)) });
-  if (diff < 86400) return t("قبل {0} ساعة", { 0: formatNumber(Math.floor(diff / 3600)) });
-  return t("قبل {0} يوم", { 0: formatNumber(Math.floor(diff / 86400)) });
+  return relativeAge(epochSeconds, formatNumber);
 }
 
 // Other devices shown before «عرض الكل».

@@ -17,7 +17,7 @@ import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 
-import { t } from "@/lib/i18n";
+import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -208,7 +208,7 @@ export function HomeScreen() {
               <span className="lead">{recentSessions[0].title}</span>
               <span className="meta">
                 {recentSessions[0].mode === "tafssir" ? t("قراءة تفسيرية") : t("القرآن وحدَه")} ·{" "}
-                {formatNumber(recentSessions[0].message_count)} {t("رسالة")}
+                {tn("{0} رسالة", recentSessions[0].message_count, { 0: formatNumber(recentSessions[0].message_count) })}
               </span>
               <span className="cta">{t("تابِع الجلسة ←")}</span>
             </button>
@@ -253,7 +253,7 @@ export function HomeScreen() {
               {t("مثبَّتات حديثة")}{savedCount ? <> ({formatNumber(savedCount)})</> : null}
             </span>
             <span className="lead sm">
-              {savedCount ? t("{0} آية مُثبَّتة في الدفتر", { 0: formatNumber(savedCount) }) : t("لا مثبَّتات بعد")}
+              {savedCount ? tn("{0} آية مُثبَّتة في الدفتر", savedCount, { 0: formatNumber(savedCount) }) : t("لا مثبَّتات بعد")}
             </span>
             <span className="cta">{t("افتح الدفتر ←")}</span>
           </button>

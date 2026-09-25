@@ -14,7 +14,7 @@ import { useCommandShortcut } from "./use-command-shortcut";
 import { useWorkspace } from "./workspace-context";
 import { parseNavCommand } from "@/lib/quran-nav";
 
-import { t } from "@/lib/i18n";
+import { t, tn } from "@/lib/i18n";
 
 // Live intent parsing for the command-bar chip (design spec). Ask stays aligned
 // with the Enter-routing (`looksLikeQuestion`) so the chip never contradicts what
@@ -136,7 +136,7 @@ export function CommandBar() {
     : state.errorMessage
       ? state.errorMessage
       : state.resultsSummary
-        ? t("{0} آية في {1} مجموعة", { 0: state.resultsSummary.totalVerses, 1: state.resultsSummary.cards })
+        ? `${tn("{0} آية", state.resultsSummary.totalVerses, { 0: state.resultsSummary.totalVerses })} · ${tn("{0} مجموعة", state.resultsSummary.cards, { 0: state.resultsSummary.cards })}`
         : "";
 
   // In Search mode with nothing typed yet, the command bar is the focal point:

@@ -15,7 +15,7 @@ import { useWorkspace } from "@/features/shell/workspace-context";
 
 import type { WordSelection } from "./word-selection";
 
-import { t } from "@/lib/i18n";
+import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -107,7 +107,7 @@ export function SelectionBar({
         <div className="picked">
           <span className="text" dir="rtl">«{selection.text}»</span>
           <span className="meta">
-            {single ? t("كلمة") : t("{0} كلمات", { 0: formatNumber(words) })}
+            {single ? t("كلمة") : tn("{0} كلمة", words, { 0: formatNumber(words) })}
             {t("، ")}
             {ayahRef}
           </span>

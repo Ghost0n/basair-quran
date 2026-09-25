@@ -20,7 +20,7 @@ import { createDocumentUrl } from "@/features/documents/open-document";
 
 import { relativeAge, useCompanions } from "./use-companions";
 
-import { t as tt } from "@/lib/i18n";
+import { t as tt, tn } from "@/lib/i18n";
 
 type LibraryTab = "verses" | "documents" | "sessions" | "roots";
 type VerseView = "recent" | "themes";
@@ -97,9 +97,12 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
           <div className="kicker">{tt("الدفتر")}</div>
           <h2>{tt("الدفتر")}</h2>
           <div className="sub">
-            {formatNumber(companions.notebook.length)} {tt("آية،")} {formatNumber(companions.documents.length)} {tt("بحث،")}{" "}
-            {formatNumber(companions.sessions.length)} {tt("جلسة،")}{" "}
-            {formatNumber(companions.roots.length)} {tt("جذر")}
+            {[
+              tn("{0} آية", companions.notebook.length, { 0: formatNumber(companions.notebook.length) }),
+              tn("{0} بحث", companions.documents.length, { 0: formatNumber(companions.documents.length) }),
+              tn("{0} جلسة", companions.sessions.length, { 0: formatNumber(companions.sessions.length) }),
+              tn("{0} جذر", companions.roots.length, { 0: formatNumber(companions.roots.length) }),
+            ].join(tt("، "))}
           </div>
         </div>
       </div>
@@ -170,7 +173,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                   <div className="qb-collection-card">
                     <div className="head">
                       <span className="name">{tt(UNTAGGED)}</span>
-                      <span className="count">{formatNumber(untagged.length)} {tt("آية")}</span>
+                      <span className="count">{tn("{0} آية", untagged.length, { 0: formatNumber(untagged.length) })}</span>
                     </div>
                     <div className="body">
                       {untagged.map((item) => (
@@ -231,7 +234,10 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                   >
                     <div className="title">{document.title}</div>
                     <div className="meta">
-                      {formatNumber(document.section_count)} {tt("أقسام،")} {formatNumber(document.ayah_count)} {tt("آية،")}{" "}
+                      {tn("{0} قسم", document.section_count, { 0: formatNumber(document.section_count) })}
+                      {tt("، ")}
+                      {tn("{0} آية", document.ayah_count, { 0: formatNumber(document.ayah_count) })}
+                      {tt("، ")}
                       {relativeAge(document.updated_at)}
                       {document.created_from === "studio" ? tt("، من الدراسة") : document.created_from === "board" ? tt("، من لوحة") : ""}
                     </div>
@@ -273,7 +279,9 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                   <div className="grow">
                     <div className="title">{session.title}</div>
                     <div className="meta">
-                      {formatNumber(session.message_count)} {tt("رسالة،")} {relativeAge(session.updated_at)} ·{" "}
+                      {tn("{0} رسالة", session.message_count, { 0: formatNumber(session.message_count) })}
+                      {tt("، ")}
+                      {relativeAge(session.updated_at)} ·{" "}
                       {session.mode === "tafssir" ? tt("قراءة تفسيرية") : tt("القرآن وحدَه")}
                     </div>
                   </div>
@@ -299,7 +307,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                 <div className="grow">
                   <div className="root-disp">{root.root_text}</div>
                   <div className="meta">
-                    {root.occurrences != null ? tt("{0} موضع، ", { 0: formatNumber(root.occurrences) }) : ""}
+                    {root.occurrences != null ? tn("{0} موضع", root.occurrences, { 0: formatNumber(root.occurrences) }) + tt("، ") : ""}
                     {relativeAge(root.created_at)}
                   </div>
                 </div>
@@ -400,7 +408,7 @@ function ThemeCard({ theme, count, children }: { theme: ThemeSummary; count: num
             {theme.name}
           </span>
         )}
-        <span className="count">{formatNumber(count)} {tt("آية")}</span>
+        <span className="count">{tn("{0} آية", count, { 0: formatNumber(count) })}</span>
         {!editing ? (
           <button
             type="button"

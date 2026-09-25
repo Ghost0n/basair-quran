@@ -25,7 +25,7 @@ import { StudioAuthModal } from "./studio-auth-modal";
 import { TafssirDisclaimer } from "./tafssir-disclaimer";
 import { useStudioSessions, type StudioMode } from "./use-studio-sessions";
 
-import { t } from "@/lib/i18n";
+import { t, tn } from "@/lib/i18n";
 
 const DEPTH_OPTIONS: { value: TafssirDepth; label: string }[] = [
   { value: "fast", get label() {
@@ -191,7 +191,7 @@ export function StudioPanel() {
             <div className="kicker">{t("جلسة الدراسة")}</div>
             <h3 style={{ fontSize: 20 }}>{active?.title ?? t("جلسة جديدة")}</h3>
             <div className="meta">
-              {formatNumber(active?.messages.length ?? 0)} {t("رسالة ·")}{" "}
+              {tn("{0} رسالة", active?.messages.length ?? 0, { 0: formatNumber(active?.messages.length ?? 0) })} ·{" "}
               {isTafssir ? t("قراءة تفسيرية") : t("القرآن وحدَه")}
             </div>
           </div>
@@ -417,7 +417,7 @@ function BotMessage({
 
       {ayahs.length > 0 ? (
         <div className="evidence">
-          <div className="evidence-label">{t("الدليل القرآني (")}{formatNumber(ayahs.length)} {t("آية)")}</div>
+          <div className="evidence-label">{t("الدليل القرآني ({0})", { 0: tn("{0} آية", ayahs.length, { 0: formatNumber(ayahs.length) }) })}</div>
           {ayahs.map((ayah, index) => (
             <button
               key={ayah.ayah_id}

@@ -13,7 +13,7 @@ import type { ResearchSection } from "@q-basair/shared";
 import { parseBlocks } from "./markdown-lite";
 import type { ShareCardInput } from "./share-card";
 
-import { t } from "@/lib/i18n";
+import { t, tn } from "@/lib/i18n";
 
 export const MAX_CAROUSEL_SLIDES = 10;
 const NOTE_CHARS = 240;
@@ -55,8 +55,8 @@ export function clip(text: string, max: number): string {
 export function researchMeta(research: ShareableResearch, { formatNumber }: Helpers): string {
   const ayahs = research.sections.reduce((sum, section) => sum + section.ayahs.length, 0);
   const surahs = new Set(research.sections.flatMap((section) => section.ayahs.map((ref) => ref.surah_id))).size;
-  const parts = [t("{0} آية", { 0: formatNumber(ayahs) })];
-  if (surahs > 1) parts.push(t("{0} سور", { 0: formatNumber(surahs) }));
+  const parts = [tn("{0} آية", ayahs, { 0: formatNumber(ayahs) })];
+  if (surahs > 1) parts.push(tn("{0} سورة", surahs, { 0: formatNumber(surahs) }));
   if (research.author) parts.push(research.author);
   return parts.join(t("، "));
 }
