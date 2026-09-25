@@ -12,6 +12,7 @@ import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
 import { READER_MODES, resolveReaderMode } from "@/features/reading/reader-modes";
 import { useCompactReader } from "@/features/reading/use-wide-screen";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
+import { setTransparency, useTransparency } from "@/lib/transparency";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
 const NUMERAL_OPTIONS: { value: NumeralScript; label: string }[] = [
@@ -41,6 +42,7 @@ export function SettingsScreen() {
   // Confirm before making the experimental tafssir mode the account default.
   const [confirmTafssirDefault, setConfirmTafssirDefault] = useState(false);
   const { state, actions } = useWorkspace();
+  const transparency = useTransparency();
 
   const edition = state.edition;
   const compactReader = useCompactReader();
@@ -109,7 +111,7 @@ export function SettingsScreen() {
 
         <section className="qb-setting-card">
           <h3>العرض</h3>
-          <p className="card-sub">السمة وطريقة عرض الأرقام في الواجهة.</p>
+          <p className="card-sub">السمة والشفافية وطريقة عرض الأرقام في الواجهة.</p>
           <div className="qb-setting-row">
             <label>السمة</label>
             <div className="qb-setting-seg">
@@ -131,6 +133,28 @@ export function SettingsScreen() {
               </button>
             </div>
           </div>
+          <div className="qb-setting-row">
+            <label>الشفافية</label>
+            <div className="qb-setting-seg">
+              <button
+                type="button"
+                className={transparency === "auto" ? "active" : ""}
+                aria-pressed={transparency === "auto"}
+                onClick={() => setTransparency("auto")}
+              >
+                زجاجية
+              </button>
+              <button
+                type="button"
+                className={transparency === "reduced" ? "active" : ""}
+                aria-pressed={transparency === "reduced"}
+                onClick={() => setTransparency("reduced")}
+              >
+                مُعتِمة
+              </button>
+            </div>
+          </div>
+          <p className="card-sub fine">«مُعتِمة» تُلغي التمويه خلف الأشرطة واللوحات: أوضح للقراءة وأخفّ على الأجهزة المتواضعة. تُحفظ لهذا الجهاز.</p>
           <div className="qb-setting-row">
             <label>الأرقام</label>
             <div className="qb-setting-seg">

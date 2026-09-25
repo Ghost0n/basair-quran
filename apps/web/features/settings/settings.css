@@ -73,6 +73,11 @@
   margin-bottom: 14px;
 }
 
+.qb-setting-card .card-sub.fine {
+  margin-top: -6px;
+  line-height: 1.7;
+}
+
 .qb-setting-row {
   display: flex;
   flex-direction: column;

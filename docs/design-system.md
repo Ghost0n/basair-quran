@@ -50,7 +50,9 @@ Three faces, each with one job:
 - A Quran quote shown inside UI text must be wrapped in `.qb-quran-snip`; Cairo has no glyphs for
   the Uthmani marks and renders boxes.
 - **No cropped titles.** A single-line ellipsis title sets `overflow: hidden; overflow-x: clip;
-  overflow-y: visible;` so only the inline axis is clipped. A line-clamped block adds
+  overflow-y: visible;` so only the inline axis is clipped.
+- Clamped Quran text that a reader may need whole offers a toggle (the theme mini-verses' «الآية
+  كاملة»); a clamped excerpt that opens its full page (a feed card) needs none. A line-clamped block adds
   `padding-block: 0.3em`; a clamped Quran snippet uses line-height 2.
 
 ## Glass tokens
@@ -59,6 +61,13 @@ Three faces, each with one job:
 low (dark 0.44 / 0.66 / 0.26, light 0.48 / 0.72 / 0.32 for base / strong / soft) so the ambient
 light shows through; `--glass-edge` adds a top highlight, an inner glow and a soft bottom inset.
 The mushaf page and Quran text stay opaque.
+
+- **Phones and touch screens** (`max-width: 640px` or `pointer: coarse`) use a lighter radius
+  (20px / 26px, saturation 165%) so scrolling stays smooth on modest GPUs.
+- **Reduced transparency:** the system's `prefers-reduced-transparency: reduce`, or the per-device
+  choice «الشفافية ← مُعتِمة» in Settings (`<html data-transparency="reduced">`, stored in
+  `localStorage` as `qb.transparency` and applied before first paint), makes every tint opaque and
+  removes all backdrop filters.
 
 ## Primitives
 
