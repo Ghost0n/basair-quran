@@ -4,12 +4,13 @@
  * bundled core database is fetched from the export; installed packs are kept
  * as downloaded and re-applied on start, so the preview behaves like the phone.
  */
-import initSqlJs, { type Database, type SqlJsStatic } from "sql.js";
+import type { Database } from "sql.js";
 
 import type { Row, SqlValue } from "@q-basair/offline-engine";
 
 import { CORE_DB_ASSET } from "./config";
-import { type DeviceDatabase, type DevicePlatform, type FileStore, type KeyValue, PACK_META_TABLES, TRANSLATIONS_SCHEMA, insertStatements } from "./platform";
+import { loadSqlJs, packStatements, sqlRows as rows } from "./pack-reader";
+import { type DeviceDatabase, type DevicePlatform, type FileStore, type KeyValue, TRANSLATIONS_SCHEMA } from "./platform";
 
 const DB_NAME = "qbasair-app";
 const STORES = ["kv", "packs", "files"] as const;
@@ -72,28 +73,6 @@ const files: FileStore = {
   },
 };
 
-let sqlJs: Promise<SqlJsStatic> | null = null;
-
-function loadSqlJs(): Promise<SqlJsStatic> {
-  if (!sqlJs) {
-    const wasm = new URL("sql.js/dist/sql-wasm.wasm", import.meta.url).href;
-    sqlJs = initSqlJs({ locateFile: () => wasm });
-  }
-  return sqlJs;
-}
-
-function rows(db: Database, sql: string, params: SqlValue[] = []): Row[] {
-  const statement = db.prepare(sql);
-  try {
-    statement.bind(params);
-    const out: Row[] = [];
-    while (statement.step()) out.push(statement.getAsObject() as Row);
-    return out;
-  } finally {
-    statement.free();
-  }
-}
-
 class WebDatabase implements DeviceDatabase {
   constructor(private readonly db: Database, private readonly scope: string) {}
 
@@ -129,23 +108,9 @@ class WebDatabase implements DeviceDatabase {
   }
 
   async copyFrom(bytes: Uint8Array): Promise<Record<string, number>> {
-    const SQL = await loadSqlJs();
-    const pack = new SQL.Database(bytes);
-    try {
-      const counts: Record<string, number> = {};
-      const statements: { sql: string; params?: SqlValue[] }[] = [];
-      for (const { name } of rows(pack, "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")) {
-        if (PACK_META_TABLES.has(name)) continue;
-        const columns = rows(pack, `PRAGMA table_info("${name}")`).map((column) => String(column.name));
-        const data = pack.exec(`SELECT ${columns.map((column) => `"${column}"`).join(", ")} FROM "${name}"`)[0]?.values ?? [];
-        counts[name] = data.length;
-        statements.push(...insertStatements(name, columns, data as SqlValue[][]));
-      }
-      await this.transaction(statements);
-      return counts;
-    } finally {
-      pack.close();
-    }
+    const { statements, counts } = await packStatements(bytes);
+    await this.transaction(statements);
+    return counts;
   }
 
   /** Re-apply the packs installed in earlier sessions. */

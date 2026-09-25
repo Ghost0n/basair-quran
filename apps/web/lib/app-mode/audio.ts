@@ -35,11 +35,17 @@ export async function downloadSurahAudio(
   const { platform } = await appRuntime();
   let bytes = 0;
   for (let ayah = 1; ayah <= ayahCount; ayah += 1) {
-    const response = await fetch(`${reciter.audio_base}/${pad3(surah)}${pad3(ayah)}.mp3`);
-    if (!response.ok) throw new Error(`audio ${surah}:${ayah} (${response.status})`);
-    const data = new Uint8Array(await response.arrayBuffer());
-    await platform.files.write(audioPath(reciter.id, surah, ayah), data);
-    bytes += data.length;
+    const url = `${reciter.audio_base}/${pad3(surah)}${pad3(ayah)}.mp3`;
+    const path = audioPath(reciter.id, surah, ayah);
+    if (platform.files.download) {
+      bytes += await platform.files.download(url, path);
+    } else {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`audio ${surah}:${ayah} (${response.status})`);
+      const data = new Uint8Array(await response.arrayBuffer());
+      await platform.files.write(path, data);
+      bytes += data.length;
+    }
     onProgress?.(ayah, ayahCount);
   }
   const registry = await downloadedAudio();
