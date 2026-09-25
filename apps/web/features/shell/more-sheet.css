@@ -27,7 +27,7 @@
   border-top-right-radius: var(--r-xl);
   border-bottom: none;
   animation: qbRise var(--motion-dur-slow) var(--motion-ease-settle) both;
-  background: var(--glass-tint-strong);
+  background: var(--glass-tint-overlay);
   background-image: var(--glass-sheen);
   border: 1px solid var(--glass-rim);
   box-shadow: var(--glass-edge), var(--glass-shadow);

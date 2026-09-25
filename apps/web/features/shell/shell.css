@@ -288,19 +288,33 @@
   height: 46px;
   border-radius: var(--r-pill);
   border: 1px solid var(--glass-rim);
-  background-color: var(--glass-tint);
-  background-image: var(--glass-sheen);
   box-shadow: var(--glass-edge), var(--glass-shadow);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 0 16px;
   position: relative;
+  isolation: isolate;
   transition: border-color var(--motion-dur-base) var(--motion-ease-settle),
     box-shadow var(--motion-dur-base) var(--motion-ease-settle),
     transform var(--motion-dur-base) var(--spring-soft);
+}
+
+/* The bar's glass lives on a layer behind its content, not on the bar itself:
+   an element with a backdrop-filter becomes the "backdrop root" of everything
+   inside it, so the suggestions and hint that hang below the bar could only
+   blur the bar — the page behind them would show through sharp. */
+.qb-cmd::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  pointer-events: none;
 }
 
 .qb-cmd:hover,
@@ -311,7 +325,7 @@
 
 /* In Search mode the command bar is the focal point — a persistent gold ring. */
 .qb-cmd.is-search-active {
-  border-color: var(--gold-a55);
+  border-color: var(--border-focus);
   box-shadow: var(--glass-edge), var(--glass-shadow), 0 0 0 4px var(--gold-a12);
 }
 
@@ -323,7 +337,7 @@
   top: calc(100% + 8px);
   border-radius: var(--r-xl);
   border: 1px solid var(--glass-rim);
-  background-color: var(--glass-tint-strong);
+  background-color: var(--glass-tint-overlay);
   background-image: var(--glass-sheen);
   box-shadow: var(--glass-edge), var(--glass-shadow-lift);
   -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
@@ -443,7 +457,7 @@
   top: calc(100% + 8px);
   border-radius: var(--r-xl);
   border: 1px solid var(--glass-rim);
-  background-color: var(--glass-tint-strong);
+  background-color: var(--glass-tint-overlay);
   background-image: var(--glass-sheen);
   box-shadow: var(--glass-edge), var(--glass-shadow-lift);
   -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));

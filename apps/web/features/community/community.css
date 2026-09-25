@@ -531,7 +531,7 @@
   width: fit-content;
   max-width: calc(100vw - 32px);
   margin: 0 auto;
-  background-color: var(--glass-tint-strong);
+  background-color: var(--glass-tint-overlay);
   box-shadow: var(--glass-edge), var(--glass-shadow-lift);
   -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
   backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
