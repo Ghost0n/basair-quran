@@ -96,6 +96,6 @@ describe("t()", () => {
   it("matches browser languages to supported locales", () => {
     expect(matchLocale(["fr-CA"])).toBe("fr");
     expect(matchLocale(["xx", "ur-PK"])).toBe("ur");
-    expect(matchLocale(["ja"])).toBe("ar");
+    expect(matchLocale(["kk"])).toBe("ar");
   });
 });
