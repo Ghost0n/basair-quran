@@ -43,7 +43,7 @@ export function MobileTabBar() {
 
   return (
     <>
-      <nav className="qb-tabbar" aria-label={t("التنقل")}>
+      <nav className="qb-tabbar" data-autofit="2" aria-label={t("التنقل")}>
         {TABS.map((tab) => {
           const active =
             tab.mode === mode ||
@@ -60,7 +60,7 @@ export function MobileTabBar() {
               <span className="tile">
                 <Icon name={tab.icon} size={20} />
               </span>
-              <span className="label">{tab.label}</span>
+              <span className="label" data-fit-watch>{tab.label}</span>
             </button>
           );
         })}
@@ -73,7 +73,7 @@ export function MobileTabBar() {
           <span className="tile">
             <Icon name="more" size={20} />
           </span>
-          <span className="label">{t("المزيد")}</span>
+          <span className="label" data-fit-watch>{t("المزيد")}</span>
         </button>
       </nav>
 

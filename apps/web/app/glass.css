@@ -630,3 +630,115 @@ body::before {
   font-size: 1.12em;
   line-height: inherit;
 }
+
+/* ---------- Auto-fit (see lib/auto-fit.ts) ----------
+   Translated labels vary in length, so controls size to their text and adapt
+   by measurement, not breakpoints: `data-autofit="N"` elements get
+   `data-fit="0…N"`, the lowest level at which nothing overflows. The class is
+   repeated to outrank the feature stylesheets' own `.x button` rules. */
+
+/* Option groups (segmented choices): options take the room their label needs;
+   level 1 tightens and drops icons; level 2 lets labels wrap onto two lines. */
+/* min-width stays auto: an option never gets narrower than its longest word,
+   so wrapping (level 2) happens between words, not inside them. */
+.qb-fit-choice.qb-fit-choice.qb-fit-choice > * {
+  flex: 1 1 auto;
+  min-width: auto;
+}
+
+.qb-fit-choice.qb-fit-choice[data-fit="1"] > *,
+.qb-fit-choice.qb-fit-choice[data-fit="2"] > * {
+  padding-inline: 8px;
+  gap: 4px;
+}
+
+.qb-fit-choice.qb-fit-choice[data-fit="1"] > * > svg,
+.qb-fit-choice.qb-fit-choice[data-fit="2"] > * > svg {
+  display: none;
+}
+
+.qb-fit-choice.qb-fit-choice[data-fit="2"] > * {
+  height: auto;
+  min-height: 38px;
+  padding-block: 5px;
+  white-space: normal;
+  line-height: 1.15;
+  text-align: center;
+  text-wrap: balance;
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+/* Tab tracks: tabs never shrink below their label; level 1 tightens; if the
+   labels still don't fit, the track scrolls, its edges fade where more tabs
+   hide, and the active tab is kept in view. */
+.qb-fit-track.qb-fit-track {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.qb-fit-track::-webkit-scrollbar {
+  display: none;
+}
+
+.qb-fit-track.qb-fit-track.qb-fit-track > * {
+  flex: 1 0 auto;
+  white-space: nowrap;
+}
+
+.qb-fit-track.qb-fit-track[data-fit="1"] > * {
+  padding-inline: 10px;
+  gap: 4px;
+}
+
+@property --qb-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --qb-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* Scroll-driven edge fades: the timeline is inactive (so no fade) while the
+   track isn't scrollable. Browsers without scroll timelines just scroll. */
+@supports (animation-timeline: scroll()) {
+  .qb-fit-track.qb-fit-track {
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--qb-fade-start), #000 calc(100% - var(--qb-fade-end)), transparent);
+    mask-image: linear-gradient(to right, transparent, #000 var(--qb-fade-start), #000 calc(100% - var(--qb-fade-end)), transparent);
+    animation: qb-track-fade linear both;
+    animation-timeline: scroll(self inline);
+  }
+
+  .qb-fit-track.qb-fit-track:dir(rtl) {
+    -webkit-mask-image: linear-gradient(to left, transparent, #000 var(--qb-fade-start), #000 calc(100% - var(--qb-fade-end)), transparent);
+    mask-image: linear-gradient(to left, transparent, #000 var(--qb-fade-start), #000 calc(100% - var(--qb-fade-end)), transparent);
+  }
+}
+
+@keyframes qb-track-fade {
+  0% {
+    --qb-fade-start: 0px;
+    --qb-fade-end: 28px;
+  }
+  12% {
+    --qb-fade-start: 28px;
+  }
+  88% {
+    --qb-fade-end: 28px;
+  }
+  100% {
+    --qb-fade-start: 28px;
+    --qb-fade-end: 0px;
+  }
+}
+
+/* An equal-column grid can't follow its labels; fitted groups size like the rest. */
+.qb-fit-choice.qb-fit-choice.is-grid {
+  display: flex;
+}

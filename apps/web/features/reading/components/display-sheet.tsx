@@ -112,7 +112,7 @@ export function DisplaySheet({ onClose }: { onClose: () => void }) {
           <section className="split">
             <div>
               <div className="label">{t("السِّمة")}</div>
-              <div className="seg" role="group" aria-label={t("السِّمة")}>
+              <div className="seg qb-fit-choice" data-autofit="2" role="group" aria-label={t("السِّمة")}>
                 <button type="button" className={dark ? "active" : ""} aria-pressed={dark} onClick={() => !dark && actions.toggleTheme()}>
                   <Icon name="moon" size={15} /> {t("داكنة")}
                 </button>
@@ -123,7 +123,7 @@ export function DisplaySheet({ onClose }: { onClose: () => void }) {
             </div>
             <div>
               <div className="label">{t("الأرقام")}</div>
-              <div className="seg" role="group" aria-label={t("الأرقام")}>
+              <div className="seg qb-fit-choice" data-autofit="2" role="group" aria-label={t("الأرقام")}>
                 {NUMERAL_OPTIONS.map((option) => (
                   <button
                     key={option.value}
@@ -141,7 +141,7 @@ export function DisplaySheet({ onClose }: { onClose: () => void }) {
 
           <section>
             <div className="label">{t("تظليل المواضيع")}</div>
-            <div className="seg" role="group" aria-label={t("تظليل المواضيع")}>
+            <div className="seg qb-fit-choice" data-autofit="2" role="group" aria-label={t("تظليل المواضيع")}>
               <button type="button" className={showHighlights ? "active" : ""} aria-pressed={showHighlights} onClick={() => setShowHighlights(true)}>
                 <Icon name="highlight" size={15} /> {t("ظاهر")}
               </button>

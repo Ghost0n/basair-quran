@@ -169,12 +169,48 @@
 /* Always-visible rail labels (replaces the old hover tooltip) so the
    icon-only chrome is discoverable without hover — matches the mobile tab bar. */
 .qb-rail-label {
+  max-width: 100%;
+  overflow: hidden;
   font-size: 9px;
   font-weight: 600;
   line-height: 1;
   text-align: center;
   white-space: nowrap;
   color: inherit;
+}
+
+/* Auto-fit (lib/auto-fit.ts): a destination name too long for the rail tile
+   gets a tighter face, then may use the rail's full width (not just the
+   tile's), and only then wraps — hyphenated where the browser can, broken
+   inside the word as a last resort. Never an ellipsis. */
+.qb-rail:is([data-fit="1"], [data-fit="2"], [data-fit="3"]) .qb-rail-label {
+  font-size: 8.5px;
+  letter-spacing: -0.02em;
+}
+
+.qb-rail:is([data-fit="2"], [data-fit="3"]) .qb-rail-label {
+  max-width: calc(100% + 14px);
+  margin-inline: -7px;
+}
+
+.qb-rail[data-fit="3"] .qb-rail-label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  line-height: 1.1;
+  text-wrap: balance;
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+.qb-rail[data-fit="2"] .qb-rail-label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  line-height: 1.1;
+  text-wrap: balance;
 }
 
 .qb-rail-badge {
@@ -625,8 +661,41 @@
 }
 
 .qb-tabbar-btn .label {
+  max-width: 100%;
+  padding-inline: 2px;
+  overflow: hidden;
   font-size: 10px;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Auto-fit (lib/auto-fit.ts): a label too long for its slot first gets a
+   slightly smaller, tighter face, then may wrap onto two balanced lines. The
+   icons stay on one row because every button starts at the top. */
+.qb-tabbar[data-fit="1"] .qb-tabbar-btn .label,
+.qb-tabbar[data-fit="2"] .qb-tabbar-btn .label {
+  font-size: 9px;
+  letter-spacing: -0.01em;
+}
+
+.qb-tabbar[data-fit="2"] {
+  align-items: stretch;
+}
+
+.qb-tabbar[data-fit="2"] .qb-tabbar-btn {
+  justify-content: flex-start;
+}
+
+.qb-tabbar[data-fit="2"] .qb-tabbar-btn .label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  line-height: 1.05;
+  text-align: center;
+  text-wrap: balance;
+  hyphens: auto;
+  overflow-wrap: break-word;
 }
 
 .qb-tabbar-btn.active {

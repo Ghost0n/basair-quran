@@ -1065,6 +1065,29 @@
   transition: inline-size var(--motion-dur-base) var(--motion-ease-settle);
 }
 
+/* Auto-fit (lib/auto-fit.ts): when the translated labels leave the surah name
+   or the page line no room, the bar sheds text one step at a time — the active
+   tool's label, then «العرض», then «انتقل» (icons keep their aria-labels and
+   titles), then "of 604", then the juz (the page number stays). The meta line never pushes under the actions. */
+.qb-reader-bar .identity .meta {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qb-reader-bar:is([data-fit="1"], [data-fit="2"], [data-fit="3"], [data-fit="4"], [data-fit="5"]) :is(.qb-toolbox .tool, .on-tool) .lbl,
+.qb-reader-bar:is([data-fit="2"], [data-fit="3"], [data-fit="4"], [data-fit="5"]) .display-btn .lbl,
+.qb-reader-bar:is([data-fit="3"], [data-fit="4"], [data-fit="5"]) .go-btn .lbl,
+.qb-reader-bar:is([data-fit="4"], [data-fit="5"]) .identity .meta .of,
+.qb-reader-bar[data-fit="5"] .identity .meta .juz {
+  display: none;
+}
+
+.qb-reader-bar:is([data-fit="2"], [data-fit="3"], [data-fit="4"], [data-fit="5"]) .display-btn,
+.qb-reader-bar:is([data-fit="3"], [data-fit="4"], [data-fit="5"]) .go-btn {
+  padding: 0;
+}
+
 /* The reading surface fills what the bar leaves; readers inside keep their own
    flex:1 behaviour. touch-action lets the browser keep vertical scrolling while
    our gesture hook reads horizontal swipes. */

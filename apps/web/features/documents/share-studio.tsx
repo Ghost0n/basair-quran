@@ -363,7 +363,7 @@ export function ShareStudio({
 
                 <div className="group">
                   <div className="label">{t("المقاس")}</div>
-                  <div className="qb-segmented" role="radiogroup" aria-label={t("المقاس")}>
+                  <div className="qb-segmented qb-fit-track" data-autofit="1" role="radiogroup" aria-label={t("المقاس")}>
                     {(Object.keys(SHARE_FORMATS) as ShareFormat[]).map((value) => (
                       <button
                         key={value}

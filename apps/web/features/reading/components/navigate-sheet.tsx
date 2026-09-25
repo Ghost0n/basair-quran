@@ -142,7 +142,7 @@ export function NavigateSheet({
           </button>
         ) : null}
 
-        <div className="tabs" role="tablist" aria-label={t("طريقة التنقل")}>
+        <div className="tabs qb-fit-choice" data-autofit="2" role="tablist" aria-label={t("طريقة التنقل")}>
           {TABS.map((item) => (
             <button
               key={item.value}

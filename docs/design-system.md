@@ -104,3 +104,9 @@ The mushaf page and Quran text stay opaque.
    (`inset-inline`, `margin-inline-start`, `text-align: start`) — never hard-code `direction: rtl`
    on a page container; only Quran-font text and the mushaf force RTL. Give directional icons
    the `dir-flip` class via `Icon` so they mirror in LTR locales.
+6. Size controls to their text, never to a fixed width: labels change length with the interface
+   language. Give option groups `qb-fit-choice` and tab strips `qb-fit-track` with
+   `data-autofit="2"` / `"1"`. For a bar that must shed text, mark it `data-autofit="N"`, mark the
+   text that must not be cut (e.g. a title) with `data-fit-watch`, and write one CSS rule per
+   `[data-fit="k"]` level saying what goes first. `lib/auto-fit.ts` measures and picks the lowest
+   level that fits, and re-measures on resize, text change, font load and language change.
