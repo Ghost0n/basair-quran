@@ -16,7 +16,6 @@
 .qb-frame {
   position: relative;
   display: flex;
-  direction: rtl;
   flex: 1 1 auto;
   min-height: 0;
   width: 100%;
@@ -322,6 +321,7 @@
 
 .qb-cmd-hint .ex button {
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 15px;
   color: var(--gold-text-bright);
   background: rgba(212, 175, 55, 0.08);
@@ -361,6 +361,7 @@
   border: none;
   outline: none;
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 18px;
   color: var(--fg-1);
   min-width: 0;
@@ -429,9 +430,10 @@
   background: transparent;
   border: none;
   color: var(--fg-1);
-  text-align: right;
+  text-align: start;
   cursor: pointer;
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 15px;
 }
 

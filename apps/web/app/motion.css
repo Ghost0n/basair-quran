@@ -149,6 +149,7 @@ button:not(:disabled):active {
   background: var(--bg-elev-3);
   box-shadow: var(--shadow-3);
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 12.5px;
   color: var(--fg-1);
   white-space: nowrap;

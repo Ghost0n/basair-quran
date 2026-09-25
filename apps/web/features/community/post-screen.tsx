@@ -24,6 +24,8 @@ import { TafssirDisclaimer } from "@/features/studio/tafssir-disclaimer";
 import { REPORT_RULES, RULE_LABEL, STATUS_LABEL } from "./labels";
 import { useCommunityAccess } from "./use-community-access";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 /** One shared research: the document (and its board), likes, sharing, comments. */
@@ -85,7 +87,7 @@ export function PostScreen() {
 
   function requireAccount(): boolean {
     if (access.canWrite) return true;
-    say("سجّل الدخول لتتفاعل مع المجتمع.");
+    say(t("سجّل الدخول لتتفاعل مع المجتمع."));
     return false;
   }
 
@@ -110,7 +112,7 @@ export function PostScreen() {
       setPost((current) => (current ? { ...current, comment_count: current.comment_count + 1 } : current));
       setDraft("");
     } catch (err) {
-      say(err instanceof Error && /روابط/.test(err.message) ? "التعليق يحوي روابط كثيرة." : "تعذّر إرسال التعليق.");
+      say(err instanceof Error && /روابط/.test(err.message) ? t("التعليق يحوي روابط كثيرة.") : t("تعذّر إرسال التعليق."));
     }
   }
 
@@ -125,7 +127,7 @@ export function PostScreen() {
     setPost({ ...post, saved_by_me: next });
     try {
       await api.setSaved(post.id, next);
-      say(next ? "حُفظ في «المحفوظة»." : "أُزيل من «المحفوظة».");
+      say(next ? t("حُفظ في «المحفوظة».") : t("أُزيل من «المحفوظة»."));
     } catch {
       setPost((current) => (current ? { ...current, saved_by_me: !next } : current));
     }
@@ -134,9 +136,9 @@ export function PostScreen() {
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(postUrl(postId));
-      say("نُسخ الرابط.");
+      say(t("نُسخ الرابط."));
     } catch {
-      say("تعذّر النسخ.");
+      say(t("تعذّر النسخ."));
     }
   }
 
@@ -144,9 +146,9 @@ export function PostScreen() {
     if (!reporting || !requireAccount()) return;
     try {
       await api.report({ target_type: reporting.type, target_id: reporting.id, rule, note: note || null });
-      say("وصل البلاغ إلى المشرفين. شكراً لك.");
+      say(t("وصل البلاغ إلى المشرفين. شكراً لك."));
     } catch {
-      say("تعذّر إرسال البلاغ.");
+      say(t("تعذّر إرسال البلاغ."));
     }
     setReporting(null);
   }
@@ -166,8 +168,8 @@ export function PostScreen() {
   if (status === "missing") {
     return (
       <div className="qb-doc-state">
-        <p>هذا المنشور غير متاح.</p>
-        <button type="button" onClick={() => setMode("community")}>إلى المجتمع</button>
+        <p>{t("هذا المنشور غير متاح.")}</p>
+        <button type="button" onClick={() => setMode("community")}>{t("إلى المجتمع")}</button>
       </div>
     );
   }
@@ -178,12 +180,12 @@ export function PostScreen() {
   const aiIssues = (latestAi?.issues ?? []) as { rule?: string; explanation_ar?: string; suggestion_ar?: string; quote?: string }[];
 
   return (
-    <div className="qb-post qb-page-enter" dir="rtl">
+    <div className="qb-post qb-page-enter">
       <div className="qb-post-bar qb-glass-strong">
-        <button type="button" className="qb-icon-round" onClick={() => setMode("community")} aria-label="إلى المجتمع">
+        <button type="button" className="qb-icon-round" onClick={() => setMode("community")} aria-label={t("إلى المجتمع")}>
           <Icon name="chevRight" size={18} />
         </button>
-        <span className="crumb">المجتمع</span>
+        <span className="crumb">{t("المجتمع")}</span>
         <div className="acts">
           {post.status === "published" ? (
             <>
@@ -195,18 +197,18 @@ export function PostScreen() {
                 className={`qb-btn ghost${post.saved_by_me ? " saved" : ""}`}
                 onClick={() => void toggleSave()}
                 aria-pressed={post.saved_by_me}
-                aria-label={post.saved_by_me ? "إزالة من المحفوظة" : "احفظ"}
+                aria-label={post.saved_by_me ? t("إزالة من المحفوظة") : t("احفظ")}
               >
                 <Icon name={post.saved_by_me ? "bookmarkFilled" : "bookmark"} size={15} />
               </button>
               <button type="button" className="qb-btn ghost" onClick={() => void copyLink()}>
-                <Icon name="link" size={15} /> <span className="lbl">الرابط</span>
+                <Icon name="link" size={15} /> <span className="lbl">{t("الرابط")}</span>
               </button>
               <button type="button" className="qb-btn ghost" onClick={() => setSharing(true)}>
-                <Icon name="share" size={15} /> <span className="lbl">مشاركة</span>
+                <Icon name="share" size={15} /> <span className="lbl">{t("مشاركة")}</span>
               </button>
               {!post.is_mine ? (
-                <button type="button" className="qb-btn ghost" onClick={() => setReporting({ type: "post", id: post.id })} aria-label="إبلاغ">
+                <button type="button" className="qb-btn ghost" onClick={() => setReporting({ type: "post", id: post.id })} aria-label={t("إبلاغ")}>
                   <Icon name="flag" size={15} />
                 </button>
               ) : null}
@@ -221,8 +223,8 @@ export function PostScreen() {
         {post.is_mine && post.status !== "published" ? (
           <div className={`qb-review-banner s-${post.status} qb-glass`}>
             <strong>{STATUS_LABEL[post.status]}</strong>
-            {post.status === "pending_review" ? <p>يراجع المشرفون بحثك قبل ظهوره في المجتمع.</p> : null}
-            {latestHuman?.note ? <p>ملاحظة المشرف: {latestHuman.note}</p> : null}
+            {post.status === "pending_review" ? <p>{t("يراجع المشرفون بحثك قبل ظهوره في المجتمع.")}</p> : null}
+            {latestHuman?.note ? <p>{t("ملاحظة المشرف:")} {latestHuman.note}</p> : null}
             {aiIssues.length ? (
               <ul>
                 {aiIssues.map((issue, index) => (
@@ -241,7 +243,7 @@ export function PostScreen() {
             <span className="avatar" aria-hidden>{post.author_name.trim().charAt(0) || "ب"}</span>
             <span>
               <b>{post.author_name}</b>
-              <small>{relativeAge(post.published_at ?? post.updated_at)}{post.visibility === "unlisted" ? "، برابط فقط" : ""}</small>
+              <small>{relativeAge(post.published_at ?? post.updated_at)}{post.visibility === "unlisted" ? t("، برابط فقط") : ""}</small>
             </span>
           </div>
           <h1>{post.title}</h1>
@@ -265,12 +267,12 @@ export function PostScreen() {
         {post.mode === "tafssir" ? <TafssirDisclaimer /> : null}
 
         {post.board ? (
-          <div className="qb-segmented" role="tablist" aria-label="عرض المنشور">
+          <div className="qb-segmented" role="tablist" aria-label={t("عرض المنشور")}>
             <button type="button" role="tab" aria-selected={view === "document"} className={view === "document" ? "on" : ""} onClick={() => setView("document")}>
-              <Icon name="page" size={14} /> البحث
+              <Icon name="page" size={14} /> {t("البحث")}
             </button>
             <button type="button" role="tab" aria-selected={view === "board"} className={view === "board" ? "on" : ""} onClick={() => setView("board")}>
-              <Icon name="graph" size={14} /> اللوحة
+              <Icon name="graph" size={14} /> {t("اللوحة")}
             </button>
           </div>
         ) : null}
@@ -291,7 +293,7 @@ export function PostScreen() {
         {post.is_mine ? (
           <div className="qb-post-owner">
             <button type="button" className="qb-btn ghost danger-text" onClick={() => void withdraw()}>
-              <Icon name="trash" size={14} /> سحب المنشور
+              <Icon name="trash" size={14} /> {t("سحب المنشور")}
             </button>
           </div>
         ) : null}
@@ -299,7 +301,7 @@ export function PostScreen() {
         {post.status === "published" ? (
           <section className="qb-comments" id="comments">
             <h2>
-              التعليقات <span className="count">{formatNumber(comments.length)}</span>
+              {t("التعليقات")} <span className="count">{formatNumber(comments.length)}</span>
             </h2>
             {comments.map((comment, index) => (
               <div key={comment.id} className="qb-comment qb-rise" style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}>
@@ -311,11 +313,11 @@ export function PostScreen() {
                   <p>{comment.body}</p>
                 </div>
                 {comment.is_mine || access.isModerator ? (
-                  <button type="button" className="qb-icon-round small" onClick={() => void removeComment(comment)} aria-label="حذف التعليق">
+                  <button type="button" className="qb-icon-round small" onClick={() => void removeComment(comment)} aria-label={t("حذف التعليق")}>
                     <Icon name="trash" size={13} />
                   </button>
                 ) : (
-                  <button type="button" className="qb-icon-round small" onClick={() => setReporting({ type: "comment", id: String(comment.id) })} aria-label="إبلاغ عن التعليق">
+                  <button type="button" className="qb-icon-round small" onClick={() => setReporting({ type: "comment", id: String(comment.id) })} aria-label={t("إبلاغ عن التعليق")}>
                     <Icon name="flag" size={13} />
                   </button>
                 )}
@@ -332,16 +334,16 @@ export function PostScreen() {
                 <textarea
                   value={draft}
                   onChange={(event) => setDraft(event.target.value.slice(0, 2000))}
-                  placeholder="أضف تعليقاً يثري البحث… (ناقش الفكرة لا الشخص)"
-                  aria-label="تعليق"
+                  placeholder={t("أضف تعليقاً يثري البحث… (ناقش الفكرة لا الشخص)")}
+                  aria-label={t("تعليق")}
                   rows={2}
                 />
                 <button type="submit" className="qb-btn primary" disabled={!draft.trim()}>
-                  <Icon name="send" size={14} /> تعليق
+                  <Icon name="send" size={14} /> {t("تعليق")}
                 </button>
               </form>
             ) : (
-              <a className="qb-btn ghost" href="/login">سجّل الدخول لتعلّق</a>
+              <a className="qb-btn ghost" href="/login">{t("سجّل الدخول لتعلّق")}</a>
             )}
           </section>
         ) : null}
@@ -372,18 +374,18 @@ function ReportSheet({ onClose, onSend }: { onClose: () => void; onSend: (rule: 
   const [rule, setRule] = useState<GuidelineRule>("other");
   const [note, setNote] = useState("");
   return (
-    <div className="qb-rsheet" role="dialog" aria-modal="true" aria-label="إبلاغ">
+    <div className="qb-rsheet" role="dialog" aria-modal="true" aria-label={t("إبلاغ")}>
       <div className="backdrop" onClick={onClose} aria-hidden />
       <div className="panel" tabIndex={-1}>
         <div className="grip" aria-hidden />
         <div className="head">
-          <h2>إبلاغ المشرفين</h2>
-          <button type="button" className="close" onClick={onClose} aria-label="إغلاق">
+          <h2>{t("إبلاغ المشرفين")}</h2>
+          <button type="button" className="close" onClick={onClose} aria-label={t("إغلاق")}>
             <Icon name="close" size={18} />
           </button>
         </div>
         <div className="body qb-report">
-          <div className="label">ما البند المخالَف؟</div>
+          <div className="label">{t("ما البند المخالَف؟")}</div>
           <div className="rules" role="radiogroup">
             {REPORT_RULES.map((entry) => (
               <button key={entry} type="button" role="radio" aria-checked={rule === entry} className={rule === entry ? "on" : ""} onClick={() => setRule(entry)}>
@@ -391,9 +393,9 @@ function ReportSheet({ onClose, onSend }: { onClose: () => void; onSend: (rule: 
               </button>
             ))}
           </div>
-          <textarea value={note} onChange={(event) => setNote(event.target.value.slice(0, 500))} placeholder="تفصيل اختياري…" rows={3} aria-label="تفصيل البلاغ" />
+          <textarea value={note} onChange={(event) => setNote(event.target.value.slice(0, 500))} placeholder={t("تفصيل اختياري…")} rows={3} aria-label={t("تفصيل البلاغ")} />
           <button type="button" className="qb-btn primary block" onClick={() => onSend(rule, note.trim())}>
-            إرسال البلاغ
+            {t("إرسال البلاغ")}
           </button>
         </div>
       </div>

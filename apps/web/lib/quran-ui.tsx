@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 
 import type { PaginatedSearchResult, SearchVerse, SuggestionItem } from "@q-basair/shared";
 
+import { t } from "@/lib/i18n";
+
 export const ITEMS_PER_PAGE = 10;
 
 const DIACRITICS_EXCEPT_SHADDA = /[\u064B-\u0650\u0652\u0670]/;
@@ -21,19 +23,19 @@ export function isPhraseInputValue(value: string) {
 
 export function getResultLabelText(result: PaginatedSearchResult) {
   if (result.search_type === "exact") {
-    return result.match_type === "phrase" ? "العبارة" : "الكلمة";
+    return result.match_type === "phrase" ? t("العبارة") : t("الكلمة");
   }
-  return "الجذر";
+  return t("الجذر");
 }
 
 export function getSuggestionTypeLabel(mode: "root" | "exact", item: SuggestionItem) {
   if (item.type === "root") {
-    return "جذر";
+    return t("جذر");
   }
   if (item.type === "phrase" || (mode === "exact" && item.text.trim().includes(" "))) {
-    return "عبارة";
+    return t("عبارة");
   }
-  return "كلمة";
+  return t("كلمة");
 }
 
 export function getVerseSelectionKey(resultKey: string, verse: SearchVerse) {

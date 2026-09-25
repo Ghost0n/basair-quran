@@ -9,6 +9,8 @@ import { useDialog } from "@/lib/use-dialog";
 import { TAFSSIR_DISCLAIMER_TEXT } from "@/features/studio/tafssir-disclaimer";
 import type { StudioSession } from "@/features/studio/use-studio-sessions";
 
+import { t } from "@/lib/i18n";
+
 type ExportFormat = "md" | "json";
 
 /**
@@ -56,23 +58,23 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
         className="qb-export-modal"
         role="dialog"
         aria-modal="true"
-        aria-label="تصدير الجلسة"
+        aria-label={t("تصدير الجلسة")}
         ref={dialogRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="qb-export-head">
           <div>
-            <div className="kicker">التصدير</div>
+            <div className="kicker">{t("التصدير")}</div>
             <h3>{session.title}</h3>
           </div>
-          <button type="button" className="x" onClick={onClose} aria-label="إغلاق">
+          <button type="button" className="x" onClick={onClose} aria-label={t("إغلاق")}>
             <Icon name="close" size={16} />
           </button>
         </div>
 
         <div className="qb-export-body">
-          <div className="qb-export-section-label">الصيغة</div>
+          <div className="qb-export-section-label">{t("الصيغة")}</div>
           <div className="qb-export-formats">
             <button
               type="button"
@@ -89,14 +91,14 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
               <Icon name="layers" size={14} /> JSON
             </button>
             <button type="button" className="qb-export-format" disabled>
-              <Icon name="page" size={14} /> PDF <span className="soon">قريباً</span>
+              <Icon name="page" size={14} /> PDF <span className="soon">{t("قريباً")}</span>
             </button>
             <button type="button" className="qb-export-format" disabled>
-              <Icon name="book" size={14} /> DOCX <span className="soon">قريباً</span>
+              <Icon name="book" size={14} /> DOCX <span className="soon">{t("قريباً")}</span>
             </button>
           </div>
 
-          <div className="qb-export-section-label">المحتوى</div>
+          <div className="qb-export-section-label">{t("المحتوى")}</div>
           <div className="qb-export-toggles">
             <label className="qb-export-toggle">
               <input
@@ -104,12 +106,12 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
                 checked={includeEvidence}
                 onChange={(e) => setIncludeEvidence(e.target.checked)}
               />
-              تضمين الآيات المُستدَل بها
+              {t("تضمين الآيات المُستدَل بها")}
             </label>
             {isTafssir ? (
-              <label className="qb-export-toggle" title="إلزامي في الوضع التفسيري">
+              <label className="qb-export-toggle" title={t("إلزامي في الوضع التفسيري")}>
                 <input type="checkbox" checked disabled />
-                تنبيه الوضع التفسيري (إلزامي)
+                {t("تنبيه الوضع التفسيري (إلزامي)")}
               </label>
             ) : (
               <label className="qb-export-toggle">
@@ -118,21 +120,21 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
                   checked={includeDisclaimer}
                   onChange={(e) => setIncludeDisclaimer(e.target.checked)}
                 />
-                تضمين تنبيه الوضع التفسيري
+                {t("تضمين تنبيه الوضع التفسيري")}
               </label>
             )}
           </div>
 
-          <div className="qb-export-section-label">معاينة</div>
+          <div className="qb-export-section-label">{t("معاينة")}</div>
           <div className="qb-export-preview">{content.slice(0, 1200)}</div>
         </div>
 
         <div className="qb-export-foot">
           <button type="button" onClick={onClose}>
-            إلغاء
+            {t("إلغاء")}
           </button>
           <button type="button" className="primary" onClick={download}>
-            تصدير
+            {t("تصدير")}
           </button>
         </div>
       </div>
@@ -168,25 +170,25 @@ function buildExport(session: StudioSession, format: ExportFormat, options: Expo
   }
 
   const lines: string[] = [`# ${session.title}`, ""];
-  lines.push(`> الوضع: ${session.mode === "tafssir" ? "قراءة تفسيرية" : "القرآن وحدَه"}`, "");
+  lines.push(t("> الوضع: {0}", { 0: session.mode === "tafssir" ? t("قراءة تفسيرية") : t("القرآن وحدَه") }), "");
   if (options.includeDisclaimer && session.mode === "tafssir") {
-    lines.push(`> ${TAFSSIR_DISCLAIMER_TEXT}`, "");
+    lines.push(`> ${t(TAFSSIR_DISCLAIMER_TEXT)}`, "");
   }
 
   for (const message of session.messages) {
     if (message.role === "user") {
-      lines.push(`## السؤال`, "", message.content, "");
+      lines.push(t("## السؤال"), "", message.content, "");
     } else {
-      lines.push(`## الجواب`, "", message.content, "");
+      lines.push(t("## الجواب"), "", message.content, "");
       if (options.includeEvidence && message.response && message.response.ayahs.length > 0) {
-        lines.push(`### الدليل القرآني`, "");
+        lines.push(t("### الدليل القرآني"), "");
         message.response.ayahs.forEach((ayah, index) => {
-          lines.push(`[${index + 1}] سورة ${ayah.surah} · ${ayah.ayah}`, `> ${ayah.text.trim()}`, "");
+          lines.push(t("[{0}] سورة {1} · {2}", { 0: index + 1, 1: ayah.surah, 2: ayah.ayah }), `> ${ayah.text.trim()}`, "");
         });
       }
     }
   }
 
-  lines.push("---", "بصائر القرآن · Baṣāʾir");
+  lines.push("---", t("بصائر القرآن · Baṣāʾir"));
   return lines.join("\n");
 }

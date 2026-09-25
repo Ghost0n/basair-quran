@@ -17,9 +17,7 @@
   box-sizing: border-box;
 }
 
-html {
-  direction: rtl;
-}
+/* Direction comes from <html dir>, set per interface language. */
 
 html,
 body {
@@ -138,6 +136,7 @@ code, .mono {
 /* The ayah — the most important text */
 .ayah {
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: var(--fs-ayah);
   line-height: var(--lh-mushaf);
   color: var(--verse-fg);
@@ -148,6 +147,7 @@ code, .mono {
 
 .ayah-num {
   font-family: var(--font-arabic-display);
+  direction: rtl;
   color: var(--gold-text);
   font-size: 0.86em;
   margin-inline: 0.18rem;
@@ -519,4 +519,19 @@ code, .mono {
     min-height: 40px;
     padding-inline: 8px;
   }
+}
+
+/* Interface language loading (a non-Arabic choice): hide until the dictionary is in. */
+html[data-i18n-pending] body {
+  visibility: hidden;
+}
+
+/* Directional icons follow the reading direction; the reader keeps the
+   mushaf's own (right-to-left) page order, so its controls don't flip. */
+html[dir="ltr"] .qb-icon.dir-flip svg {
+  transform: scaleX(-1);
+}
+
+html[dir="ltr"] :is(.qb-reader-bar, .qb-mushaf-stage, .qb-nav-sheet) .qb-icon.dir-flip svg {
+  transform: none;
 }

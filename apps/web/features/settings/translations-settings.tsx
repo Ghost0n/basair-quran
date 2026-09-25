@@ -11,6 +11,8 @@ import { API_BASE_URL } from "@/lib/config";
 import { usePreferences } from "@/lib/preferences-context";
 import { ensureScriptFont, fontStackFor } from "@/lib/script-fonts";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 export const MAX_TRANSLATIONS = 3;
@@ -70,10 +72,9 @@ export function TranslationsSettings() {
 
   return (
     <section className="qb-setting-card qb-translations-card">
-      <h3>ترجمة المعاني</h3>
+      <h3>{t("ترجمة المعاني")}</h3>
       <p className="card-sub">
-        تظهر تحت كل آية في طريقة القراءة «آية آية». الترجمة فهمُ مترجمٍ لمعاني الآيات، وليست قرآناً؛ والنصّ العربي هو
-        الأصل.
+        {t("تظهر تحت كل آية في طريقة القراءة «آية آية». الترجمة فهمُ مترجمٍ لمعاني الآيات، وليست قرآناً؛ والنصّ العربي هو الأصل.")}
       </p>
 
       {catalogue === null ? (
@@ -81,11 +82,11 @@ export function TranslationsSettings() {
           <span />
         </div>
       ) : catalogue.length === 0 ? (
-        <p className="empty">لا ترجمات مثبّتة على هذا الخادم بعد.</p>
+        <p className="empty">{t("لا ترجمات مثبّتة على هذا الخادم بعد.")}</p>
       ) : (
         <>
-          <div className="chosen" aria-label="الترجمات المختارة">
-            {chosen.length === 0 ? <span className="none">لم تختر ترجمة بعد.</span> : null}
+          <div className="chosen" aria-label={t("الترجمات المختارة")}>
+            {chosen.length === 0 ? <span className="none">{t("لم تختر ترجمة بعد.")}</span> : null}
             {chosen.map((key) => {
               const item = byKey.get(key);
               return (
@@ -93,7 +94,7 @@ export function TranslationsSettings() {
                   <span className="lbl">
                     {item ? `${languageLabel(item.language).split(" — ")[0]} · ${item.name}` : key}
                   </span>
-                  <button type="button" aria-label="إزالة الترجمة" onClick={() => save(chosen.filter((entry) => entry !== key))}>
+                  <button type="button" aria-label={t("إزالة الترجمة")} onClick={() => save(chosen.filter((entry) => entry !== key))}>
                     <Icon name="close" size={11} />
                   </button>
                 </span>
@@ -102,8 +103,8 @@ export function TranslationsSettings() {
           </div>
 
           <div className="qb-setting-row">
-            <label>اللغة</label>
-            <SelectMenu ariaLabel="لغة الترجمة" value={shownLanguage} options={languages} onChange={setLanguage} />
+            <label>{t("اللغة")}</label>
+            <SelectMenu ariaLabel={t("لغة الترجمة")} value={shownLanguage} options={languages} onChange={setLanguage} />
           </div>
 
           <ul className="options">
@@ -122,7 +123,7 @@ export function TranslationsSettings() {
                         {SOURCE_LABEL[item.source]}
                       </a>
                       {item.version ? ` · ${item.version}` : ""}
-                      {item.kind === "transliteration" ? " · حروف لاتينية" : ""}
+                      {item.kind === "transliteration" ? t(" · حروف لاتينية") : ""}
                     </span>
                   </div>
                   <button
@@ -130,10 +131,10 @@ export function TranslationsSettings() {
                     className={`qb-btn ${on ? "ghost" : "primary"}`}
                     aria-pressed={on}
                     disabled={full}
-                    title={full ? `ثلاث ترجمات على الأكثر` : undefined}
+                    title={full ? t("ثلاث ترجمات على الأكثر") : undefined}
                     onClick={() => save(on ? chosen.filter((key) => key !== item.key) : [...chosen, item.key])}
                   >
-                    {on ? "إزالة" : "أضِف"}
+                    {on ? t("إزالة") : t("أضِف")}
                   </button>
                 </li>
               );
@@ -142,14 +143,13 @@ export function TranslationsSettings() {
 
           {chosen.length && !readerIsAyah ? (
             <button type="button" className="qb-btn ghost block" onClick={() => void updateAccount({ reader_layout: "ayah" })}>
-              <Icon name="cards" size={15} /> اقرأ «آية آية» لترى الترجمة
+              <Icon name="cards" size={15} /> {t("اقرأ «آية آية» لترى الترجمة")}
             </button>
           ) : null}
 
           <p className="fine">
-            المصادر: <a href="https://quranenc.com" target="_blank" rel="noopener noreferrer">موسوعة القرآن الكريم (QuranEnc)</a>{" "}
-            أولاً، ثم <a href="https://tanzil.net/trans/" target="_blank" rel="noopener noreferrer">Tanzil</a> للغات التي لا تغطّيها.
-            تُعرض النصوص كما نشرها أصحابها دون تعديل، مع اسم المترجم والمصدر.
+            {t("المصادر:")} <a href="https://quranenc.com" target="_blank" rel="noopener noreferrer">{t("موسوعة القرآن الكريم (QuranEnc)")}</a>{" "}
+            {t("أولاً، ثم")} <a href="https://tanzil.net/trans/" target="_blank" rel="noopener noreferrer">Tanzil</a> {t("للغات التي لا تغطّيها. تُعرض النصوص كما نشرها أصحابها دون تعديل، مع اسم المترجم والمصدر.")}
           </p>
         </>
       )}

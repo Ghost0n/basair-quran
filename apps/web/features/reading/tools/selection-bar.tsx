@@ -15,6 +15,8 @@ import { useWorkspace } from "@/features/shell/workspace-context";
 
 import type { WordSelection } from "./word-selection";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 /**
@@ -69,20 +71,20 @@ export function SelectionBar({
       const morphology = await api.getMorphology(selection.start.surah, selection.start.ayah, mushafId);
       const root = morphology.words.find((word) => word.position === selection.start.position)?.root;
       if (!root) {
-        setNote("لا جذر لهذه الكلمة.");
+        setNote(t("لا جذر لهذه الكلمة."));
         return;
       }
       actions.runQuickExample({ query: root, mode: "root" });
       setMode("search");
     } catch {
-      setNote("تعذّر جلب الجذر.");
+      setNote(t("تعذّر جلب الجذر."));
     } finally {
       setRootBusy(false);
     }
   }
 
   function ask() {
-    queueStudioAsk(`ما دلالة «${selection.text}» في سورة ${surahName} (الآية ${selection.start.ayah})؟`);
+    queueStudioAsk(t("ما دلالة «{0}» في سورة {1} (الآية {2})؟", { 0: selection.text, 1: surahName, 2: selection.start.ayah }));
     setMode("studio");
   }
 
@@ -91,13 +93,13 @@ export function SelectionBar({
       await navigator.clipboard.writeText(`«${selection.text}» [${ayahRef}]`);
       setCopied(true);
     } catch {
-      setNote("تعذّر النسخ.");
+      setNote(t("تعذّر النسخ."));
     }
   }
 
   // Portaled to <body> so it layers above the mobile tab bar and media bar.
   return createPortal(
-    <div className="qb-selection-bar" role="region" aria-label="الكلمات المحدّدة">
+    <div className="qb-selection-bar" role="region" aria-label={t("الكلمات المحدّدة")}>
       {counting ? (
         <CountPanel selection={selection} mushafId={mushafId} onClose={() => setCounting(false)} />
       ) : null}
@@ -105,30 +107,32 @@ export function SelectionBar({
         <div className="picked">
           <span className="text" dir="rtl">«{selection.text}»</span>
           <span className="meta">
-            {single ? "كلمة" : `${formatNumber(words)} كلمات`}، {ayahRef}
+            {single ? t("كلمة") : t("{0} كلمات", { 0: formatNumber(words) })}
+            {t("، ")}
+            {ayahRef}
           </span>
         </div>
-        <button type="button" className="clear" onClick={onClear} aria-label="إلغاء التحديد" title="إلغاء التحديد (Esc)">
+        <button type="button" className="clear" onClick={onClear} aria-label={t("إلغاء التحديد")} title={t("إلغاء التحديد (Esc)")}>
           <Icon name="close" size={16} />
         </button>
       </div>
       <div className="acts">
         <button type="button" onClick={search}>
-          <Icon name="search" size={15} /> بحث بالعبارة
+          <Icon name="search" size={15} /> {t("بحث بالعبارة")}
         </button>
         {single ? (
           <button type="button" onClick={() => void searchRoot()} disabled={rootBusy}>
-            <Icon name="tree" size={15} /> مواضع الجذر
+            <Icon name="tree" size={15} /> {t("مواضع الجذر")}
           </button>
         ) : null}
         <button type="button" onClick={ask}>
-          <Icon name="sparkles" size={15} /> اسأل الدراسة
+          <Icon name="sparkles" size={15} /> {t("اسأل الدراسة")}
         </button>
         <button type="button" className={counting ? "on" : ""} aria-pressed={counting} onClick={() => setCounting((v) => !v)}>
-          <Icon name="graph" size={15} /> إحصاء
+          <Icon name="graph" size={15} /> {t("إحصاء")}
         </button>
         <button type="button" onClick={() => void copy()}>
-          <Icon name={copied ? "check" : "copy"} size={15} /> {copied ? "نُسخ" : "نسخ مع المرجع"}
+          <Icon name={copied ? "check" : "copy"} size={15} /> {copied ? t("نُسخ") : t("نسخ مع المرجع")}
         </button>
       </div>
       {note ? <div className="note" role="status">{note}</div> : null}
@@ -176,13 +180,13 @@ function CountPanel({
   return (
     <div className="count">
       <div className="count-head">
-        <span>إحصاء</span>
-        <button type="button" onClick={onClose} aria-label="إغلاق الإحصاء">
+        <span>{t("إحصاء")}</span>
+        <button type="button" onClick={onClose} aria-label={t("إغلاق الإحصاء")}>
           <Icon name="close" size={14} />
         </button>
       </div>
-      {error ? <div className="state">تعذّر الإحصاء.</div> : null}
-      {!data && !error ? <div className="state">جارٍ الإحصاء…</div> : null}
+      {error ? <div className="state">{t("تعذّر الإحصاء.")}</div> : null}
+      {!data && !error ? <div className="state">{t("جارٍ الإحصاء…")}</div> : null}
       {data ? (
         <>
           <div className="table-wrap">
@@ -190,13 +194,13 @@ function CountPanel({
               <thead>
                 <tr>
                   <th />
-                  <th scope="col">الصفحة</th>
-                  <th scope="col">السورة</th>
-                  <th scope="col">القرآن</th>
+                  <th scope="col">{t("الصفحة")}</th>
+                  <th scope="col">{t("السورة")}</th>
+                  <th scope="col">{t("القرآن")}</th>
                 </tr>
               </thead>
               <tbody>
-                {row(<span className="phrase">{data.word_count > 1 ? "العبارة" : "الكلمة"}</span>, data.phrase, "phrase")}
+                {row(<span className="phrase">{data.word_count > 1 ? t("العبارة") : t("الكلمة")}</span>, data.phrase, "phrase")}
                 {data.letters.map((letter) =>
                   row(
                     <span className="letter">
@@ -211,8 +215,7 @@ function CountPanel({
             </table>
           </div>
           <p className="fine">
-            على رسم المصحف دون تشكيل (صور الألف موحَّدة، والهمزة المفردة غير محتسبة). العبارة تُحصى كلماتٍ
-            كاملة متتالية داخل الآية.
+            {t("على رسم المصحف دون تشكيل (صور الألف موحَّدة، والهمزة المفردة غير محتسبة). العبارة تُحصى كلماتٍ كاملة متتالية داخل الآية.")}
           </p>
         </>
       ) : null}

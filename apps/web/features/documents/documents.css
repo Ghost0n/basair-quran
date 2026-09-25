@@ -376,6 +376,7 @@
 .qb-doc-section .ayahs .text {
   margin: 0;
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 19px;
   line-height: 2;
 }

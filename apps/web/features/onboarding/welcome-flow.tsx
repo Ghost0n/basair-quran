@@ -9,6 +9,8 @@ import { AUTH_ENABLED } from "@/lib/config";
 import "@/features/auth/auth.css";
 import { identityApi, maybeMergeGuestData, sanitizeNextPath } from "@/features/auth/identity-flow";
 
+import { t } from "@/lib/i18n";
+
 type Step = "avatar" | "onboard";
 
 const MOTIFS = Object.keys(AVATAR_MOTIFS) as AvatarMotif[];
@@ -24,7 +26,7 @@ export function WelcomeFlow() {
   const [ready, setReady] = useState(false);
   const [step, setStep] = useState<Step>("avatar");
   const [motif, setMotif] = useState<AvatarMotif>("ba");
-  const [displayName, setDisplayName] = useState("أبو محمد");
+  const [displayName, setDisplayName] = useState(t("أبو محمد"));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export function WelcomeFlow() {
     return (
       <div className="qb-welcome">
         <div className="qb-welcome-step">
-          الخطوة <strong>٢</strong> من ٣ — اختر مداليتك
+          {t("الخطوة")} <strong>٢</strong> {t("من ٣ — اختر مداليتك")}
         </div>
 
         <div className="qb-avatar-preview">
@@ -93,7 +95,7 @@ export function WelcomeFlow() {
           <div className="qb-avatar-preview-copy">
             <div className="name">{displayName}</div>
             <div className="hint">
-              مداليتك في الشريط والقوائم وبطاقات الجلسات — حرفٌ من اسمك أو زخرفة.
+              {t("مداليتك في الشريط والقوائم وبطاقات الجلسات — حرفٌ من اسمك أو زخرفة.")}
             </div>
           </div>
         </div>
@@ -119,7 +121,7 @@ export function WelcomeFlow() {
         </div>
 
         <button type="button" className="qb-welcome-cta step-avatar" onClick={() => setStep("onboard")}>
-          متابعة ←
+          {t("متابعة ←")}
         </button>
         <button
           type="button"
@@ -127,7 +129,7 @@ export function WelcomeFlow() {
           onClick={finish}
           disabled={saving}
         >
-          تخطّي والبدء مباشرةً
+          {t("تخطّي والبدء مباشرةً")}
         </button>
       </div>
     );
@@ -135,7 +137,7 @@ export function WelcomeFlow() {
 
   return (
     <div className="qb-welcome">
-      <div className="qb-onboard-title">ثلاثةُ أشياء فقط، ثم الغرفة لك</div>
+      <div className="qb-onboard-title">{t("ثلاثةُ أشياء فقط، ثم الغرفة لك")}</div>
 
       <div className="qb-onboard-grid">
         <div
@@ -143,9 +145,9 @@ export function WelcomeFlow() {
           style={{ animation: "qbRise var(--motion-dur-slow) var(--motion-ease-settle) 450ms both" }}
         >
           <div className="num">١</div>
-          <div className="card-title">شريطٌ واحد لكل شيء</div>
+          <div className="card-title">{t("شريطٌ واحد لكل شيء")}</div>
           <div className="card-body">
-            جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة.
+            {t("جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة.")}
           </div>
         </div>
 
@@ -154,9 +156,9 @@ export function WelcomeFlow() {
           style={{ animation: "qbRise var(--motion-dur-slow) var(--motion-ease-settle) 650ms both" }}
         >
           <div className="num">٢</div>
-          <div className="card-title">المصحف هو الغرفة</div>
+          <div className="card-title">{t("المصحف هو الغرفة")}</div>
           <div className="card-body">
-            اللوحات تُستدعى جانباً ولا تغطّي النصّ أبداً؛ الصفحة تستقرّ للخلف وتبقى.
+            {t("اللوحات تُستدعى جانباً ولا تغطّي النصّ أبداً؛ الصفحة تستقرّ للخلف وتبقى.")}
           </div>
         </div>
 
@@ -165,11 +167,11 @@ export function WelcomeFlow() {
           style={{ animation: "qbRise var(--motion-dur-slow) var(--motion-ease-settle) 1150ms both" }}
         >
           <div className="num">٣</div>
-          <div className="card-title">ذهبٌ ونحاس</div>
+          <div className="card-title">{t("ذهبٌ ونحاس")}</div>
           <div className="card-body">
-            الذهبي دليلٌ من القرآن وحده؛ النحاسي قراءةٌ تفسيرية تجريبية.
+            {t("الذهبي دليلٌ من القرآن وحده؛ النحاسي قراءةٌ تفسيرية تجريبية.")}
           </div>
-          <div className="qb-onboard-disclaimer">تنبيه — ليست حُجَّة شرعية</div>
+          <div className="qb-onboard-disclaimer">{t("تنبيه — ليست حُجَّة شرعية")}</div>
         </div>
       </div>
 
@@ -179,7 +181,7 @@ export function WelcomeFlow() {
         onClick={finish}
         disabled={saving}
       >
-        ابدأ القراءة ←
+        {t("ابدأ القراءة ←")}
       </button>
     </div>
   );

@@ -10,6 +10,8 @@ import { useNumerals } from "@/lib/preferences-context";
 import { researchMeta, type ShareableResearch } from "./carousel";
 import { DocumentView } from "./document-view";
 
+import { activeLocale, localeInfo, t } from "@/lib/i18n";
+
 /**
  * «طباعة / PDF» — a print-only rendition of a research: a light page with the
  * title, summary, the read-only document (ayahs in the Quran face, notes,
@@ -46,24 +48,24 @@ export function PrintSheet({
     };
   }, []);
 
-  const date = new Intl.DateTimeFormat("ar", { dateStyle: "long" }).format(new Date());
+  const date = new Intl.DateTimeFormat(activeLocale(), { dateStyle: "long" }).format(new Date());
 
   return createPortal(
-    <article className="qb-print-sheet light" dir="rtl" aria-hidden>
+    <article className="qb-print-sheet light" dir={localeInfo(activeLocale()).dir} lang={activeLocale()} aria-hidden>
       <header>
-        <div className="brand">بصائر</div>
+        <div className="brand">{t("بصائر")}</div>
         <h1>{research.title}</h1>
         <div className="meta">{researchMeta(research, { surahName, formatNumber })}</div>
         {research.summary ? <p className="summary">{research.summary}</p> : null}
         {research.mode === "tafssir" ? (
           <p className="disclaimer">
-            قراءة تفسيرية <b>تجريبية</b>: فهمٌ بشري مُولَّد بمساعدة نموذج لغوي، يُناقَش ولا يُحتجّ به. الآيات هي الدليل.
+            {t("قراءة تفسيرية")} <b>{t("تجريبية")}</b>{t(": فهمٌ بشري مُولَّد بمساعدة نموذج لغوي، يُناقَش ولا يُحتجّ به. الآيات هي الدليل.")}
           </p>
         ) : null}
       </header>
       <DocumentView sections={research.sections} references={references} surahName={surahName} />
       <footer>
-        <span>بصائر — مساحة بحث قرآنية</span>
+        <span>{t("بصائر — مساحة بحث قرآنية")}</span>
         <span>{research.url ?? date}</span>
       </footer>
     </article>,

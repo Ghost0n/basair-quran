@@ -626,6 +626,7 @@ body::before {
    Quran face — the UI face has no Uthmani marks and would draw empty boxes. */
 .qb-quran-snip {
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 1.12em;
   line-height: inherit;
 }

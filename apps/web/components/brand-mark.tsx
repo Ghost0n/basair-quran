@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { t } from "@/lib/i18n";
+
 type ThemeOpt = { light?: boolean };
 
 type BrandMarkProps = ThemeOpt & {
@@ -187,7 +189,7 @@ export function Wordmark({ size = 24, light = false, extended = false }: Wordmar
           whiteSpace: "nowrap",
         }}
       >
-        بصائر <span style={{ color: light ? "#a6810c" : "#e9cf73" }}>القرآن</span>
+        {t("بصائر")} <span style={{ color: light ? "#a6810c" : "#e9cf73" }}>{t("القرآن")}</span>
       </span>
       {extended ? (
         <>
@@ -201,7 +203,7 @@ export function Wordmark({ size = 24, light = false, extended = false }: Wordmar
               maxWidth: 320,
             }}
           >
-            مساحة عمل للبحث القرآني العميق
+            {t("مساحة عمل للبحث القرآني العميق")}
           </span>
           <span
             style={{
@@ -242,14 +244,30 @@ type AvatarSpec =
   | { kind: "rosette"; label: string };
 
 export const AVATAR_MOTIFS: Record<AvatarMotif, AvatarSpec> = {
-  ba: { kind: "letter", glyph: "ب", label: "باء" },
-  noon: { kind: "letter", glyph: "ن", label: "نون" },
-  meem: { kind: "letter", glyph: "م", label: "ميم" },
-  hamza: { kind: "letter", glyph: "ء", label: "همزة" },
-  alif: { kind: "letter", glyph: "ا", label: "ألف" },
-  ya: { kind: "letter", glyph: "ي", label: "ياء" },
-  star8: { kind: "star8", label: "نجمة ثُمانيّة" },
-  rosette: { kind: "rosette", label: "وردة" },
+  ba: { kind: "letter", glyph: "ب", get label() {
+    return t("باء");
+  } },
+  noon: { kind: "letter", glyph: "ن", get label() {
+    return t("نون");
+  } },
+  meem: { kind: "letter", glyph: "م", get label() {
+    return t("ميم");
+  } },
+  hamza: { kind: "letter", glyph: "ء", get label() {
+    return t("همزة");
+  } },
+  alif: { kind: "letter", glyph: "ا", get label() {
+    return t("ألف");
+  } },
+  ya: { kind: "letter", glyph: "ي", get label() {
+    return t("ياء");
+  } },
+  star8: { kind: "star8", get label() {
+    return t("نجمة ثُمانيّة");
+  } },
+  rosette: { kind: "rosette", get label() {
+    return t("وردة");
+  } },
 };
 
 type UserAvatarProps = ThemeOpt & {

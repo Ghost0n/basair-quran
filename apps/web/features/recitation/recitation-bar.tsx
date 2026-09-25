@@ -11,6 +11,8 @@ import { useMushaf } from "@/features/reading/mushaf-context";
 import { ReciterDropdown } from "./reciter-dropdown";
 import { RECITATION_SPEEDS, useRecitation } from "./recitation-context";
 
+import { t } from "@/lib/i18n";
+
 /**
  * RecitationBar — the persistent bottom media bar, global across every screen.
  * Shows the reciter (an upward dropdown to switch) + the current ayah, transport
@@ -69,14 +71,14 @@ export function RecitationBar() {
   const canPlay = Boolean(current) || Boolean(recitation.pendingStart);
 
   return (
-    <div className="qb-media-bar" role="region" aria-label="شريط التلاوة">
+    <div className="qb-media-bar" role="region" aria-label={t("شريط التلاوة")}>
       <div className="qb-media-transport">
         <button
           type="button"
           className="nav"
           onClick={recitation.prev}
           disabled={!current}
-          aria-label="الآية السابقة"
+          aria-label={t("الآية السابقة")}
         >
           <Icon name="chevRight" size={18} />
         </button>
@@ -85,7 +87,7 @@ export function RecitationBar() {
           className="play"
           onClick={current ? recitation.toggle : recitation.startPending}
           disabled={!canPlay}
-          aria-label={recitation.isPlaying ? "إيقاف" : "تشغيل"}
+          aria-label={recitation.isPlaying ? t("إيقاف") : t("تشغيل")}
         >
           <Icon name={recitation.isPlaying ? "pause" : "play"} size={20} />
         </button>
@@ -94,7 +96,7 @@ export function RecitationBar() {
           className="nav"
           onClick={recitation.next}
           disabled={!current}
-          aria-label="الآية التالية"
+          aria-label={t("الآية التالية")}
         >
           <Icon name="chevLeft" size={18} />
         </button>
@@ -105,10 +107,10 @@ export function RecitationBar() {
           subtitle={
             current ? (
               <>
-                سورة {formatNumber(current.surah)}، آية {formatNumber(current.ayah)}
+                {t("سورة")} {formatNumber(current.surah)}{t("، آية")} {formatNumber(current.ayah)}
               </>
             ) : (
-              "جاهز — اختر قارئاً ثم شغّل"
+              t("جاهز — اختر قارئاً ثم شغّل")
             )
           }
         />
@@ -116,7 +118,7 @@ export function RecitationBar() {
         {riwayahMismatch ? (
           <div className="qb-media-riwayah-warn" role="note">
             <Icon name="alert" size={12} />
-            رواية القارئ تختلف عن رواية المصحف المعروض
+            {t("رواية القارئ تختلف عن رواية المصحف المعروض")}
           </div>
         ) : null}
 
@@ -124,7 +126,7 @@ export function RecitationBar() {
           className={`qb-media-seek${current ? "" : " is-idle"}`}
           role="slider"
           tabIndex={current ? 0 : -1}
-          aria-label="موضع التلاوة"
+          aria-label={t("موضع التلاوة")}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={progressPct}
@@ -142,19 +144,19 @@ export function RecitationBar() {
           className={`chip${recitation.repeatAyah ? " active" : ""}`}
           onClick={recitation.toggleRepeat}
           aria-pressed={recitation.repeatAyah}
-          title="تكرار الآية"
+          title={t("تكرار الآية")}
         >
-          تكرار
+          {t("تكرار")}
         </button>
-        <button type="button" className="chip" onClick={cycleSpeed} title="سرعة التلاوة">
+        <button type="button" className="chip" onClick={cycleSpeed} title={t("سرعة التلاوة")}>
           {recitation.speed}×
         </button>
         <button
           type="button"
           className="chip icon"
           onClick={recitation.stop}
-          aria-label="إغلاق شريط التلاوة"
-          title="إغلاق"
+          aria-label={t("إغلاق شريط التلاوة")}
+          title={t("إغلاق")}
         >
           <Icon name="close" size={15} />
         </button>

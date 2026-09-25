@@ -40,6 +40,8 @@ import {
   toUserError,
 } from "@/features/workspace/lib/search-helpers";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 export function useSearchWorkspace() {
@@ -113,7 +115,7 @@ export function useSearchWorkspace() {
   const workspaceVisible = results.length > 0;
   const workspaceActive = workspaceVisible;
   const isExactPhrase = searchMode === "exact" && isPhraseInputValue(inputValue);
-  const searchPrefix = inputValue.trim() && searchModeInitialized ? (searchMode === "root" ? "جذر" : isExactPhrase ? "عبارة" : "كلمة") : "";
+  const searchPrefix = inputValue.trim() && searchModeInitialized ? (searchMode === "root" ? t("جذر") : isExactPhrase ? t("عبارة") : t("كلمة")) : "";
 
   const resultsSummary = useMemo(() => {
     if (results.length === 0) {
@@ -609,7 +611,7 @@ export function useSearchWorkspace() {
           clearWorkspaceState();
           // A normal outcome, not an error: always our Arabic copy (the API's
           // `message` is an English developer string).
-          setErrorMessage("لا توجد نتائج لهذا البحث.");
+          setErrorMessage(t("لا توجد نتائج لهذا البحث."));
           setDidYouMean(response.did_you_mean ?? null);
         });
         return;
@@ -629,7 +631,7 @@ export function useSearchWorkspace() {
     } catch (error) {
       if (requestId !== runSearchIdRef.current) return;
       clearWorkspaceState();
-      setErrorMessage(toUserError("search:run", error, "حدث خطأ في الاتصال بالخادم."));
+      setErrorMessage(toUserError("search:run", error, t("حدث خطأ في الاتصال بالخادم.")));
     } finally {
       // Only the latest search controls the spinner; a stale one finishing must
       // not clear it while a newer search is still in flight.
@@ -669,7 +671,7 @@ export function useSearchWorkspace() {
         setResults((current) => current.map((result) => (result.result_key === resultKey ? pageData.result : result)));
       });
     } catch (error) {
-      setErrorMessage(toUserError("search:page", error, "حدث خطأ في جلب الصفحة المطلوبة."));
+      setErrorMessage(toUserError("search:page", error, t("حدث خطأ في جلب الصفحة المطلوبة.")));
     }
   }
 

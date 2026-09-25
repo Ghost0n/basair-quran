@@ -8,14 +8,26 @@ import { useShellMode, type ShellMode } from "./mode-context";
 import { useWorkspace } from "./workspace-context";
 import { MoreSheet } from "./more-sheet";
 
+import { t } from "@/lib/i18n";
+
 type Tab = { mode: ShellMode; icon: IconName; label: string };
 
 const TABS: Tab[] = [
-  { mode: "reading", icon: "book", label: "القراءة" },
-  { mode: "search", icon: "search", label: "البحث" },
-  { mode: "studio", icon: "sparkles", label: "الدراسة" },
-  { mode: "notebook", icon: "notebook", label: "الدفتر" },
-  { mode: "community", icon: "users", label: "المجتمع" },
+  { mode: "reading", icon: "book", get label() {
+    return t("القراءة");
+  } },
+  { mode: "search", icon: "search", get label() {
+    return t("البحث");
+  } },
+  { mode: "studio", icon: "sparkles", get label() {
+    return t("الدراسة");
+  } },
+  { mode: "notebook", icon: "notebook", get label() {
+    return t("الدفتر");
+  } },
+  { mode: "community", icon: "users", get label() {
+    return t("المجتمع");
+  } },
 ];
 
 /**
@@ -31,7 +43,7 @@ export function MobileTabBar() {
 
   return (
     <>
-      <nav className="qb-tabbar" aria-label="التنقل">
+      <nav className="qb-tabbar" aria-label={t("التنقل")}>
         {TABS.map((tab) => {
           const active =
             tab.mode === mode ||
@@ -61,7 +73,7 @@ export function MobileTabBar() {
           <span className="tile">
             <Icon name="more" size={20} />
           </span>
-          <span className="label">المزيد</span>
+          <span className="label">{t("المزيد")}</span>
         </button>
       </nav>
 

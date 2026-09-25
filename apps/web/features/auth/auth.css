@@ -24,6 +24,7 @@
 
 .qb-auth-wordmark {
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 36px;
   line-height: 1.3;
   color: var(--gold-text);

@@ -11,6 +11,8 @@ import { useDialog } from "@/lib/use-dialog";
 import { READER_MODES, resolveReaderMode } from "../reader-modes";
 import { useCompactReader } from "../use-wide-screen";
 
+import { t } from "@/lib/i18n";
+
 const NUMERAL_OPTIONS: { value: NumeralScript; label: string }[] = [
   { value: "arabic-indic", label: "٠١٢" },
   { value: "latin", label: "012" },
@@ -41,21 +43,21 @@ export function DisplaySheet({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="qb-rsheet qb-display-sheet" role="dialog" aria-modal="true" aria-label="العرض">
+    <div className="qb-rsheet qb-display-sheet" role="dialog" aria-modal="true" aria-label={t("العرض")}>
       <div className="backdrop" onClick={onClose} aria-hidden />
       <div className="panel" ref={panelRef} tabIndex={-1}>
         <div className="grip" aria-hidden />
         <div className="head">
-          <h2>العرض</h2>
-          <button type="button" className="close" onClick={onClose} aria-label="إغلاق">
+          <h2>{t("العرض")}</h2>
+          <button type="button" className="close" onClick={onClose} aria-label={t("إغلاق")}>
             <Icon name="close" size={18} />
           </button>
         </div>
 
         <div className="body">
           <section>
-            <div className="label">طريقة القراءة</div>
-            <div className="modes" role="group" aria-label="طريقة القراءة (Shift+M)">
+            <div className="label">{t("طريقة القراءة")}</div>
+            <div className="modes" role="group" aria-label={t("طريقة القراءة (Shift+M)")}>
               {READER_MODES.map((item) => (
                 <button
                   key={item.mode}
@@ -74,13 +76,13 @@ export function DisplaySheet({ onClose }: { onClose: () => void }) {
 
           <section>
             <div className="label">
-              حجم الخطّ <span className="value">{formatNumber(preferences.font_size)}</span>
+              {t("حجم الخطّ")} <span className="value">{formatNumber(preferences.font_size)}</span>
             </div>
             <div className="size-row">
               <button
                 type="button"
                 className="step"
-                aria-label="تصغير الخطّ"
+                aria-label={t("تصغير الخطّ")}
                 disabled={preferences.font_size <= FONT_MIN}
                 onClick={() => updateAccountDebounced({ font_size: Math.max(FONT_MIN, preferences.font_size - 2) })}
               >
@@ -92,13 +94,13 @@ export function DisplaySheet({ onClose }: { onClose: () => void }) {
                 max={FONT_MAX}
                 step={1}
                 value={preferences.font_size}
-                aria-label="حجم خطّ الآيات"
+                aria-label={t("حجم خطّ الآيات")}
                 onChange={(event) => updateAccountDebounced({ font_size: Number(event.target.value) })}
               />
               <button
                 type="button"
                 className="step big"
-                aria-label="تكبير الخطّ"
+                aria-label={t("تكبير الخطّ")}
                 disabled={preferences.font_size >= FONT_MAX}
                 onClick={() => updateAccountDebounced({ font_size: Math.min(FONT_MAX, preferences.font_size + 2) })}
               >
@@ -109,19 +111,19 @@ export function DisplaySheet({ onClose }: { onClose: () => void }) {
 
           <section className="split">
             <div>
-              <div className="label">السِّمة</div>
-              <div className="seg" role="group" aria-label="السِّمة">
+              <div className="label">{t("السِّمة")}</div>
+              <div className="seg" role="group" aria-label={t("السِّمة")}>
                 <button type="button" className={dark ? "active" : ""} aria-pressed={dark} onClick={() => !dark && actions.toggleTheme()}>
-                  <Icon name="moon" size={15} /> داكنة
+                  <Icon name="moon" size={15} /> {t("داكنة")}
                 </button>
                 <button type="button" className={!dark ? "active" : ""} aria-pressed={!dark} onClick={() => dark && actions.toggleTheme()}>
-                  <Icon name="sun" size={15} /> فاتحة
+                  <Icon name="sun" size={15} /> {t("فاتحة")}
                 </button>
               </div>
             </div>
             <div>
-              <div className="label">الأرقام</div>
-              <div className="seg" role="group" aria-label="الأرقام">
+              <div className="label">{t("الأرقام")}</div>
+              <div className="seg" role="group" aria-label={t("الأرقام")}>
                 {NUMERAL_OPTIONS.map((option) => (
                   <button
                     key={option.value}
@@ -138,13 +140,13 @@ export function DisplaySheet({ onClose }: { onClose: () => void }) {
           </section>
 
           <section>
-            <div className="label">تظليل المواضيع</div>
-            <div className="seg" role="group" aria-label="تظليل المواضيع">
+            <div className="label">{t("تظليل المواضيع")}</div>
+            <div className="seg" role="group" aria-label={t("تظليل المواضيع")}>
               <button type="button" className={showHighlights ? "active" : ""} aria-pressed={showHighlights} onClick={() => setShowHighlights(true)}>
-                <Icon name="highlight" size={15} /> ظاهر
+                <Icon name="highlight" size={15} /> {t("ظاهر")}
               </button>
               <button type="button" className={!showHighlights ? "active" : ""} aria-pressed={!showHighlights} onClick={() => setShowHighlights(false)}>
-                مخفيّ
+                {t("مخفيّ")}
               </button>
             </div>
           </section>

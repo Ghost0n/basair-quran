@@ -14,6 +14,8 @@ import { useNumerals } from "@/lib/preferences-context";
 
 import "./account-settings.css";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const MOTIFS = Object.keys(AVATAR_MOTIFS) as AvatarMotif[];
 
@@ -27,10 +29,10 @@ function deviceIcon(platform?: string | null) {
 
 function relativeTime(epochSeconds: number, formatNumber: (n: number) => string): string {
   const diff = Math.max(0, Math.floor(Date.now() / 1000) - epochSeconds);
-  if (diff < 90) return "نشط الآن";
-  if (diff < 3600) return `قبل ${formatNumber(Math.floor(diff / 60))} دقيقة`;
-  if (diff < 86400) return `قبل ${formatNumber(Math.floor(diff / 3600))} ساعة`;
-  return `قبل ${formatNumber(Math.floor(diff / 86400))} يوم`;
+  if (diff < 90) return t("نشط الآن");
+  if (diff < 3600) return t("قبل {0} دقيقة", { 0: formatNumber(Math.floor(diff / 60)) });
+  if (diff < 86400) return t("قبل {0} ساعة", { 0: formatNumber(Math.floor(diff / 3600)) });
+  return t("قبل {0} يوم", { 0: formatNumber(Math.floor(diff / 86400)) });
 }
 
 // Other devices shown before «عرض الكل».
@@ -85,8 +87,8 @@ export function AccountSettings() {
   if (!ready) {
     return (
       <section className="qb-setting-card" aria-busy="true">
-        <h3>الحساب</h3>
-        <p className="card-sub">جارٍ التحقّق من الجلسة…</p>
+        <h3>{t("الحساب")}</h3>
+        <p className="card-sub">{t("جارٍ التحقّق من الجلسة…")}</p>
       </section>
     );
   }
@@ -98,19 +100,19 @@ export function AccountSettings() {
         : "";
     return (
       <section className="qb-setting-card">
-        <h3>الحساب</h3>
-        <p className="card-sub">أنت الآن في وضع الضيف. سجّل الدخول لحفظ محفوظاتك ومزامنتها عبر أجهزتك.</p>
+        <h3>{t("الحساب")}</h3>
+        <p className="card-sub">{t("أنت الآن في وضع الضيف. سجّل الدخول لحفظ محفوظاتك ومزامنتها عبر أجهزتك.")}</p>
         <div className="qb-account-guest">
           <a className="qb-account-cta primary" href={`/login?next=${next}`}>
             <Icon name="user" size={15} />
-            تسجيل الدخول
+            {t("تسجيل الدخول")}
           </a>
           <a className="qb-account-cta" href={`/login?tab=signup&next=${next}`}>
-            أنشئ حساباً
+            {t("أنشئ حساباً")}
           </a>
         </div>
         <p className="card-sub">
-          محفوظات الضيف (المثبَّتات والجلسات وموضع القراءة) تُدمَج في حسابك تلقائياً عند التسجيل.
+          {t("محفوظات الضيف (المثبَّتات والجلسات وموضع القراءة) تُدمَج في حسابك تلقائياً عند التسجيل.")}
         </p>
       </section>
     );
@@ -149,11 +151,11 @@ export function AccountSettings() {
       const result = await api.ejectDevice(sessionId, { suppressAuthRedirect: true });
       if (!result.deleted) {
         setDevices(previous);
-        setDeviceError("تعذّر إخراج الجهاز. حاول مرة أخرى.");
+        setDeviceError(t("تعذّر إخراج الجهاز. حاول مرة أخرى."));
       }
     } catch {
       setDevices(previous);
-      setDeviceError("تعذّر إخراج الجهاز. تحقّق من اتصالك وأعد المحاولة.");
+      setDeviceError(t("تعذّر إخراج الجهاز. تحقّق من اتصالك وأعد المحاولة."));
     }
   }
 
@@ -181,7 +183,7 @@ export function AccountSettings() {
     }
     setDevices([...currentDevice, ...failed]);
     setEjectingOthers(false);
-    if (failed.length) setDeviceError("تعذّر إخراج بعض الأجهزة. حاول مرة أخرى.");
+    if (failed.length) setDeviceError(t("تعذّر إخراج بعض الأجهزة. حاول مرة أخرى."));
   }
 
   async function signOut() {
@@ -202,7 +204,7 @@ export function AccountSettings() {
       window.location.assign("/");
     } catch {
       setDeleting(false);
-      setDeviceError("تعذّر حذف الحساب. حاول مرة أخرى.");
+      setDeviceError(t("تعذّر حذف الحساب. حاول مرة أخرى."));
       setConfirmDelete(false);
     }
   }
@@ -210,16 +212,16 @@ export function AccountSettings() {
   return (
     <>
       <section className="qb-setting-card">
-        <h3>الحساب</h3>
-        <p className="card-sub">مداليتك واسمك المعروض.</p>
+        <h3>{t("الحساب")}</h3>
+        <p className="card-sub">{t("مداليتك واسمك المعروض.")}</p>
         <div className="qb-account-card">
           <UserAvatar motif={motif} size={56} />
           <div className="who">
-            <div className="name">{user.name || "مستخدم"}</div>
+            <div className="name">{user.name || t("مستخدم")}</div>
             <div className="email">{user.email}</div>
           </div>
           <button type="button" className="qb-account-change" onClick={() => setPicking((v) => !v)}>
-            غيّر المدالية
+            {t("غيّر المدالية")}
           </button>
         </div>
         {picking ? (
@@ -240,7 +242,7 @@ export function AccountSettings() {
         ) : null}
 
         <div className="qb-account-field">
-          <label htmlFor="qb-account-name">الاسم المعروض</label>
+          <label htmlFor="qb-account-name">{t("الاسم المعروض")}</label>
           <div className="qb-account-name-edit">
             <input
               id="qb-account-name"
@@ -250,7 +252,7 @@ export function AccountSettings() {
               onKeyDown={(event) => {
                 if (event.key === "Enter") void saveName();
               }}
-              placeholder="اسمك المعروض"
+              placeholder={t("اسمك المعروض")}
               maxLength={40}
             />
             <button
@@ -259,14 +261,14 @@ export function AccountSettings() {
               onClick={() => void saveName()}
               disabled={!nameDraft.trim() || nameDraft.trim() === (user.name || "")}
             >
-              حفظ
+              {t("حفظ")}
             </button>
           </div>
         </div>
 
         <button type="button" className="qb-account-signout-row" onClick={signOut}>
           <Icon name="logout" size={15} />
-          تسجيل الخروج
+          {t("تسجيل الخروج")}
         </button>
 
         {!confirmDelete ? (
@@ -278,20 +280,19 @@ export function AccountSettings() {
               setConfirmDelete(true);
             }}
           >
-            حذف الحساب نهائياً
+            {t("حذف الحساب نهائياً")}
           </button>
         ) : (
-          <div className="qb-account-delete-confirm" role="alertdialog" aria-label="تأكيد حذف الحساب">
+          <div className="qb-account-delete-confirm" role="alertdialog" aria-label={t("تأكيد حذف الحساب")}>
             <p>
-              سيُحذف حسابك وكل محفوظاتك (المثبَّتات والجلسات والجذور والإعدادات) نهائياً على كل الأجهزة.
-              لا يمكن التراجع.
+              {t("سيُحذف حسابك وكل محفوظاتك (المثبَّتات والجلسات والجذور والإعدادات) نهائياً على كل الأجهزة. لا يمكن التراجع.")}
             </p>
             <div className="qb-account-delete-actions">
               <button type="button" className="danger" onClick={deleteAccount} disabled={deleting}>
-                {deleting ? "جارٍ الحذف…" : "احذف نهائياً"}
+                {deleting ? t("جارٍ الحذف…") : t("احذف نهائياً")}
               </button>
               <button type="button" onClick={() => setConfirmDelete(false)} disabled={deleting}>
-                إلغاء
+                {t("إلغاء")}
               </button>
             </div>
           </div>
@@ -299,8 +300,8 @@ export function AccountSettings() {
       </section>
 
       <section className="qb-setting-card">
-        <h3>الأجهزة النشطة{devices.length ? ` (${formatNumber(devices.length)})` : ""}</h3>
-        <p className="card-sub">الجلسات المتصلة بحسابك — يمكنك إخراج أيّ جهاز.</p>
+        <h3>{t("الأجهزة النشطة")}{devices.length ? ` (${formatNumber(devices.length)})` : ""}</h3>
+        <p className="card-sub">{t("الجلسات المتصلة بحسابك — يمكنك إخراج أيّ جهاز.")}</p>
         {deviceError ? (
           <div className="qb-devices-error" role="alert">
             {deviceError}
@@ -312,30 +313,30 @@ export function AccountSettings() {
               <Icon name={deviceIcon(device.platform)} size={16} />
               <div className="info">
                 <div className="label">
-                  {device.device_label || "جهاز"}
-                  {device.is_current ? <span className="this">هذا الجهاز</span> : null}
+                  {device.device_label || t("جهاز")}
+                  {device.is_current ? <span className="this">{t("هذا الجهاز")}</span> : null}
                 </div>
                 <div className="meta">{relativeTime(device.last_seen_at, formatNumber)}</div>
               </div>
               {!device.is_current ? (
                 <button type="button" className="qb-device-eject" onClick={() => eject(device.id)}>
-                  أخرِج
+                  {t("أخرِج")}
                 </button>
               ) : null}
             </div>
           ))}
-          {devices.length === 0 ? <div className="qb-devices-empty">لا أجهزة أخرى.</div> : null}
+          {devices.length === 0 ? <div className="qb-devices-empty">{t("لا أجهزة أخرى.")}</div> : null}
         </div>
         {hiddenCount > 0 || otherDevices.length > 0 ? (
           <div className="qb-devices-actions">
             {hiddenCount > 0 ? (
               <button type="button" className="qb-devices-more" onClick={() => setShowAllDevices(true)}>
-                عرض الكل ({formatNumber(hiddenCount)} أخرى)
+                {t("عرض الكل (")}{formatNumber(hiddenCount)} {t("أخرى)")}
               </button>
             ) : null}
             {otherDevices.length > 0 ? (
               <button type="button" className="qb-device-eject all" onClick={ejectOthers} disabled={ejectingOthers}>
-                {ejectingOthers ? "جارٍ الإخراج…" : "أخرِج كل الأجهزة الأخرى"}
+                {ejectingOthers ? t("جارٍ الإخراج…") : t("أخرِج كل الأجهزة الأخرى")}
               </button>
             ) : null}
           </div>

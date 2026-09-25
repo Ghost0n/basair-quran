@@ -25,18 +25,36 @@ import { StudioAuthModal } from "./studio-auth-modal";
 import { TafssirDisclaimer } from "./tafssir-disclaimer";
 import { useStudioSessions, type StudioMode } from "./use-studio-sessions";
 
+import { t } from "@/lib/i18n";
+
 const DEPTH_OPTIONS: { value: TafssirDepth; label: string }[] = [
-  { value: "fast", label: "سريع" },
-  { value: "balanced", label: "متوازن" },
-  { value: "deep", label: "عميق" },
+  { value: "fast", get label() {
+    return t("سريع");
+  } },
+  { value: "balanced", get label() {
+    return t("متوازن");
+  } },
+  { value: "deep", get label() {
+    return t("عميق");
+  } },
 ];
 
 const TAFSSIR_SECTIONS: { key: keyof NonNullable<ResearchAgentResponse["tafssir"]>; label: string }[] = [
-  { key: "summary", label: "الخلاصة" },
-  { key: "linguistic_analysis", label: "التحليل اللغوي" },
-  { key: "ayah_connections", label: "ربط الآيات" },
-  { key: "corpus_insight", label: "الرؤية المستفادة" },
-  { key: "limits_and_cautions", label: "حدود القراءة" },
+  { key: "summary", get label() {
+    return t("الخلاصة");
+  } },
+  { key: "linguistic_analysis", get label() {
+    return t("التحليل اللغوي");
+  } },
+  { key: "ayah_connections", get label() {
+    return t("ربط الآيات");
+  } },
+  { key: "corpus_insight", get label() {
+    return t("الرؤية المستفادة");
+  } },
+  { key: "limits_and_cautions", get label() {
+    return t("حدود القراءة");
+  } },
 ];
 
 /**
@@ -136,7 +154,7 @@ export function StudioPanel() {
   }
 
   return (
-    <aside className="qb-side-panel qb-side-panel-wide" aria-label="لوحة الدراسة">
+    <aside className="qb-side-panel qb-side-panel-wide" aria-label={t("لوحة الدراسة")}>
       <div className="qb-studio">
         <div className="qb-studio-tabs">
           {studio.sessions.map((session) => (
@@ -156,32 +174,32 @@ export function StudioPanel() {
               <button
                 type="button"
                 className="x"
-                aria-label="إغلاق الجلسة"
+                aria-label={t("إغلاق الجلسة")}
                 onClick={() => studio.closeSession(session.id)}
               >
                 ×
               </button>
             </div>
           ))}
-          <button type="button" className="qb-studio-tab add" onClick={studio.newSession} aria-label="جلسة جديدة">
+          <button type="button" className="qb-studio-tab add" onClick={studio.newSession} aria-label={t("جلسة جديدة")}>
             <Icon name="plus" size={12} />
           </button>
         </div>
 
         <div className="qb-side-head" style={{ borderBottom: "none", padding: "14px 20px 4px" }}>
           <div>
-            <div className="kicker">جلسة الدراسة</div>
-            <h3 style={{ fontSize: 20 }}>{active?.title ?? "جلسة جديدة"}</h3>
+            <div className="kicker">{t("جلسة الدراسة")}</div>
+            <h3 style={{ fontSize: 20 }}>{active?.title ?? t("جلسة جديدة")}</h3>
             <div className="meta">
-              {formatNumber(active?.messages.length ?? 0)} رسالة ·{" "}
-              {isTafssir ? "قراءة تفسيرية" : "القرآن وحدَه"}
+              {formatNumber(active?.messages.length ?? 0)} {t("رسالة ·")}{" "}
+              {isTafssir ? t("قراءة تفسيرية") : t("القرآن وحدَه")}
             </div>
           </div>
           <button
             type="button"
             className="close"
-            title="حوّل إلى بحث قابل للتحرير والمشاركة"
-            aria-label="حوّل إلى بحث"
+            title={t("حوّل إلى بحث قابل للتحرير والمشاركة")}
+            aria-label={t("حوّل إلى بحث")}
             disabled={!active || active.messages.length === 0 || converting}
             onClick={() => void convertToDocument()}
           >
@@ -190,8 +208,8 @@ export function StudioPanel() {
           <button
             type="button"
             className="close"
-            title="تصدير الجلسة"
-            aria-label="تصدير الجلسة"
+            title={t("تصدير الجلسة")}
+            aria-label={t("تصدير الجلسة")}
             disabled={!active || active.messages.length === 0}
             onClick={() => setExportOpen(true)}
           >
@@ -200,8 +218,8 @@ export function StudioPanel() {
           <button
             type="button"
             className="close"
-            title="الإعدادات"
-            aria-label="إعدادات النموذج"
+            title={t("الإعدادات")}
+            aria-label={t("إعدادات النموذج")}
             onClick={() => setSettingsOpen((open) => !open)}
           >
             <Icon name="settings" size={16} />
@@ -209,22 +227,22 @@ export function StudioPanel() {
           <button
             type="button"
             className="close"
-            title="إغلاق"
-            aria-label="إغلاق لوحة الدراسة"
+            title={t("إغلاق")}
+            aria-label={t("إغلاق لوحة الدراسة")}
             onClick={() => setShellMode("reading")}
           >
             <Icon name="close" size={16} />
           </button>
         </div>
 
-        <div className="qb-mode-tabs" role="group" aria-label="وضع البحث">
+        <div className="qb-mode-tabs" role="group" aria-label={t("وضع البحث")}>
           <button
             type="button"
             className={`qb-mode-tab strict${active?.mode === "strict" ? " active" : ""}`}
             aria-pressed={active?.mode === "strict"}
             onClick={() => studio.setMode("strict" as StudioMode)}
           >
-            <Icon name="scale" size={12} /> القرآن وحدَه
+            <Icon name="scale" size={12} /> {t("القرآن وحدَه")}
           </button>
           <button
             type="button"
@@ -232,7 +250,7 @@ export function StudioPanel() {
             aria-pressed={active?.mode === "tafssir"}
             onClick={() => studio.setMode("tafssir" as StudioMode)}
           >
-            <Icon name="feather" size={12} /> قراءة تفسيرية
+            <Icon name="feather" size={12} /> {t("قراءة تفسيرية")}
           </button>
         </div>
 
@@ -241,16 +259,16 @@ export function StudioPanel() {
         {settingsOpen ? (
           <div className="qb-studio-settings">
             <label>
-              مفتاح الوصول (Ollama / السحابة)
+              {t("مفتاح الوصول (Ollama / السحابة)")}
               <input
                 type="password"
                 value={studio.clientSettings.apiKey}
                 onChange={(event) => updateSetting({ apiKey: event.target.value })}
-                placeholder="اتركه فارغاً إذا كان الخادم مُهيّأً"
+                placeholder={t("اتركه فارغاً إذا كان الخادم مُهيّأً")}
               />
             </label>
             <label>
-              عنوان الخدمة
+              {t("عنوان الخدمة")}
               <input
                 type="text"
                 value={studio.clientSettings.baseUrl}
@@ -259,12 +277,12 @@ export function StudioPanel() {
               />
             </label>
             <label>
-              نموذج المحادثة
+              {t("نموذج المحادثة")}
               <input
                 type="text"
                 value={studio.clientSettings.chatModel}
                 onChange={(event) => updateSetting({ chatModel: event.target.value })}
-                placeholder="مثال: qwen2.5"
+                placeholder={t("مثال: qwen2.5")}
               />
             </label>
           </div>
@@ -276,8 +294,7 @@ export function StudioPanel() {
           <div className="qb-studio-focus" role="note">
             <Icon name="feather" size={13} />
             <span>
-              الآية المقصودة: {active.focusLabel ?? `${active.focus.surah}:${active.focus.ayah}`}، تُقرأ مع ما قبلها
-              وما بعدها وسياق السورة.
+              {t("الآية المقصودة:")} {active.focusLabel ?? `${active.focus.surah}:${active.focus.ayah}`}{t("، تُقرأ مع ما قبلها وما بعدها وسياق السورة.")}
             </span>
           </div>
         ) : null}
@@ -287,7 +304,7 @@ export function StudioPanel() {
             {active.messages.map((message, index) =>
               message.role === "user" ? (
                 <div key={`${active.id}-${index}`} className="qb-msg user">
-                  <div className="lbl">السؤال</div>
+                  <div className="lbl">{t("السؤال")}</div>
                   <p>{message.content}</p>
                 </div>
               ) : (
@@ -303,7 +320,7 @@ export function StudioPanel() {
             )}
             {studio.isResearching ? (
               <div className="qb-studio-pending">
-                <Icon name="sparkles" size={14} /> يجري تحليل الآيات…
+                <Icon name="sparkles" size={14} /> {t("يجري تحليل الآيات…")}
               </div>
             ) : null}
           </div>
@@ -311,7 +328,7 @@ export function StudioPanel() {
           <div className="qb-studio-state">
             <Icon name="sparkles" size={22} />
             <span>
-              اطرح سؤالاً حرّاً — يُحوّله الباحث إلى ألفاظ قرآنية، يعرض الآيات الأقرب، ثم يصوغ الجواب منها.
+              {t("اطرح سؤالاً حرّاً — يُحوّله الباحث إلى ألفاظ قرآنية، يعرض الآيات الأقرب، ثم يصوغ الجواب منها.")}
             </span>
           </div>
         )}
@@ -322,7 +339,7 @@ export function StudioPanel() {
               ref={textareaRef}
               rows={2}
               value={draft}
-              placeholder="تابع البحث، أو اطرح سؤالاً جديداً…"
+              placeholder={t("تابع البحث، أو اطرح سؤالاً جديداً…")}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={handleKeyDown}
             />
@@ -332,7 +349,7 @@ export function StudioPanel() {
                 className={`tool-chip${active?.mode === "strict" ? " active" : ""}`}
                 onClick={() => studio.setMode("strict")}
               >
-                <Icon name="scale" size={10} /> القرآن وحدَه
+                <Icon name="scale" size={10} /> {t("القرآن وحدَه")}
               </button>
               {isTafssir
                 ? DEPTH_OPTIONS.map((option) => (
@@ -348,7 +365,7 @@ export function StudioPanel() {
                 : null}
               <div className="grow" />
               <button type="button" className="send" onClick={submit} disabled={studio.isResearching || !draft.trim()}>
-                <Icon name="send" size={11} /> اسأل
+                <Icon name="send" size={11} /> {t("اسأل")}
               </button>
             </div>
           </div>
@@ -384,7 +401,7 @@ function BotMessage({
     <div className={`qb-msg bot${isTafssir ? " tafssir" : ""}`}>
       <div className="lbl">
         <Icon name={isTafssir ? "feather" : "scale"} size={11} />
-        {isTafssir ? "قراءة تفسيرية تجريبية" : "جواب — مستند على القرآن وحدَه"}
+        {isTafssir ? t("قراءة تفسيرية تجريبية") : t("جواب — مستند على القرآن وحدَه")}
       </div>
 
       {sections.length > 0 ? (
@@ -400,7 +417,7 @@ function BotMessage({
 
       {ayahs.length > 0 ? (
         <div className="evidence">
-          <div className="evidence-label">الدليل القرآني ({formatNumber(ayahs.length)} آية)</div>
+          <div className="evidence-label">{t("الدليل القرآني (")}{formatNumber(ayahs.length)} {t("آية)")}</div>
           {ayahs.map((ayah, index) => (
             <button
               key={ayah.ayah_id}
@@ -418,7 +435,7 @@ function BotMessage({
               <span className="num">[{formatNumber(index + 1)}]</span>
               <span className="ev-body">
                 <span className="ev-meta">
-                  سورة {ayah.surah}: {formatNumber(ayah.ayah)}
+                  {t("سورة")} {ayah.surah}: {formatNumber(ayah.ayah)}
                 </span>
                 <span className="ev-text">{renderHighlightedVerseText(ayah.text.trim(), ayah.highlights ?? [])}</span>
               </span>

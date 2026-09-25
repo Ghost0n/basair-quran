@@ -23,6 +23,8 @@ import { useReaderWindow, type ScrollControls } from "../use-reader-window";
 import { useWordNav } from "../use-word-nav";
 import { useAyahTranslations, type AyahTranslation } from "../use-ayah-translations";
 
+import { t } from "@/lib/i18n";
+
 type AyahReaderProps = {
   mushafId: number;
   anchorData: QuranPageResponse;
@@ -110,7 +112,7 @@ function AyahPage({
                   {formatNumber(ayah.ayah)}
                 </span>
               )}
-              <span className="qb-sr-only">الآية {formatNumber(ayah.ayah)}</span>
+              <span className="qb-sr-only">{t("الآية")} {formatNumber(ayah.ayah)}</span>
               <div className="qb-ayah-row-text">
                 {glyph && hasGlyph ? (
                   <GlyphAyah
@@ -147,7 +149,7 @@ function AyahPage({
         );
       })}
       <div className="qb-scroll-page-mark" aria-hidden>
-        صفحة {formatNumber(data.page ?? 0)}
+        {t("صفحة")} {formatNumber(data.page ?? 0)}
       </div>
     </div>
   );
@@ -177,7 +179,7 @@ function AyahTranslations({ items }: { items: AyahTranslation[] | undefined }) {
             </a>
             {item.footnotes ? (
               <details>
-                <summary>حواشٍ</summary>
+                <summary>{t("حواشٍ")}</summary>
                 <p style={{ fontFamily: fontStackFor(item.meta.language) }}>{item.footnotes}</p>
               </details>
             ) : null}
@@ -223,7 +225,7 @@ export function AyahReader({
       ref={mushaf.bodyRef}
       onClick={onClearMorph}
       role="region"
-      aria-label="المصحف — آية بآية"
+      aria-label={t("المصحف — آية بآية")}
       tabIndex={0}
     >
       {pages.map((pg) => (

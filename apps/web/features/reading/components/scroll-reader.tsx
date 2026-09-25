@@ -13,6 +13,8 @@ import { useGlyphFitWidth } from "../use-glyph-fit-width";
 import { useReaderWindow, type ScrollControls } from "../use-reader-window";
 import { useWordNav } from "../use-word-nav";
 
+import { t } from "@/lib/i18n";
+
 export type { ScrollControls };
 
 type SharedHandlers = {
@@ -78,7 +80,7 @@ export function ScrollReader({
       ref={mushaf.bodyRef}
       onClick={onClearMorph}
       role="region"
-      aria-label="المصحف — تمرير مستمر"
+      aria-label={t("المصحف — تمرير مستمر")}
       tabIndex={0}
     >
       {pages.map((pg) => (
@@ -95,7 +97,7 @@ export function ScrollReader({
             onWordKey={onWordKey}
           />
           <div className="qb-scroll-page-mark" aria-hidden>
-            صفحة {formatNumber(pg.page ?? 0)}
+            {t("صفحة")} {formatNumber(pg.page ?? 0)}
           </div>
         </section>
       ))}

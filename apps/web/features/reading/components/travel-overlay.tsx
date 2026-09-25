@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { useNumerals } from "@/lib/preferences-context";
 import { useSequencer } from "@/features/shell/lib/run-sequence";
 
+import { t } from "@/lib/i18n";
+
 const STEPS = 14; // the design's ~14-step page-counter scrub
 const SCRUB_MS = 650;
 
@@ -65,7 +67,7 @@ export function TravelOverlay({
   return (
     <div className={`qb-travel ${phase}`} aria-hidden>
       <div className="qb-travel-counter" dir="rtl">
-        <span className="k">الصفحة</span>
+        <span className="k">{t("الصفحة")}</span>
         <span className="n" dir="ltr">
           {formatNumber(display)}
         </span>

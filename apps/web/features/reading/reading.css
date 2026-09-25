@@ -356,6 +356,7 @@
   flex: 1;
   min-width: 0;
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: var(--fs-ayah);
   line-height: 2.1;
   color: var(--verse-fg);
@@ -439,6 +440,7 @@
 .qb-basmala-line {
   text-align: center;
   font-family: var(--font-arabic-display);
+  direction: rtl;
   /* Clamp ≥15px so the basmala's diacritics stay legible at the slider's 18px floor. */
   font-size: max(15px, calc(var(--fs-ayah) * var(--basmala-scale)));
   line-height: 2;
@@ -450,6 +452,7 @@
 
 .qb-ayat-flow {
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: var(--fs-ayah);
   line-height: 2.4;
   color: var(--verse-fg);
@@ -502,6 +505,7 @@
 
 .qb-num-glyph {
   font-family: var(--font-arabic-display);
+  direction: rtl;
   color: var(--gold-text);
   /* Clamp ≥15px so the ﴿n﴾ ayah marker stays legible at small font sizes. */
   font-size: max(15px, 0.78em);
@@ -607,6 +611,7 @@
 .qb-glyph-basmala {
   text-align: center;
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: max(15px, calc(var(--fs-ayah) * 0.92 * var(--qcf-fit, 1)));
   line-height: 2;
   color: var(--gold-text);
@@ -741,6 +746,7 @@
 
 .qb-morph-pop .word {
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 32px;
   color: var(--gold-text);
   /* Comfortable leading — tall vocalized words (waṣla + high marks) overflow a
@@ -780,6 +786,7 @@
 
 .qb-morph-pop .cell .v {
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 16px;
   color: var(--fg-1);
   margin-top: 2px;
@@ -1579,6 +1586,7 @@
   background: none;
   color: var(--fg-2);
   font-family: var(--font-arabic-display);
+  direction: rtl;
   font-size: 16px;
   line-height: 1;
   cursor: pointer;
@@ -1820,4 +1828,10 @@
   line-height: 1.8;
   color: var(--fg-3);
   white-space: pre-line;
+}
+
+/* The mushaf keeps its own right-to-left page order in every interface language. */
+.qb-mushaf-stage,
+.qb-mushaf-page {
+  direction: rtl;
 }

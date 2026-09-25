@@ -1,5 +1,7 @@
 import type { IconName } from "@/components/icon";
 
+import { t } from "@/lib/i18n";
+
 /**
  * The reader toolbox: the active tool decides what a tap on the Quran text
  * does. It is an open registry — adding a tool means adding an entry here and
@@ -19,10 +21,26 @@ export type ReaderTool = {
 };
 
 export const READER_TOOLS: ReaderTool[] = [
-  { id: "grammar", label: "تحليل", icon: "tree", hint: "اضغط كلمة: الجذر والأصل والإعراب", key: "1" },
-  { id: "highlight", label: "تظليل", icon: "highlight", hint: "اضغط آية: احفظها وظلِّلها بموضوع", key: "2" },
-  { id: "select", label: "تحديد", icon: "select", hint: "اضغط كلمة ثم أخرى: ابحث، اسأل، أحصِ، انسخ", key: "3" },
-  { id: "tafssir", label: "تفسير", icon: "feather", hint: "اضغط آية: قراءة تفسيرية تجريبية في سياقها", key: "4" },
+  { id: "grammar", get label() {
+    return t("تحليل");
+  }, icon: "tree", get hint() {
+    return t("اضغط كلمة: الجذر والأصل والإعراب");
+  }, key: "1" },
+  { id: "highlight", get label() {
+    return t("تظليل");
+  }, icon: "highlight", get hint() {
+    return t("اضغط آية: احفظها وظلِّلها بموضوع");
+  }, key: "2" },
+  { id: "select", get label() {
+    return t("تحديد");
+  }, icon: "select", get hint() {
+    return t("اضغط كلمة ثم أخرى: ابحث، اسأل، أحصِ، انسخ");
+  }, key: "3" },
+  { id: "tafssir", get label() {
+    return t("تفسير");
+  }, icon: "feather", get hint() {
+    return t("اضغط آية: قراءة تفسيرية تجريبية في سياقها");
+  }, key: "4" },
 ];
 
 export const DEFAULT_READER_TOOL: ReaderToolId = "grammar";

@@ -12,6 +12,8 @@ import { useNumerals } from "@/lib/preferences-context";
 
 import "./merge-toast.css";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const MOTIFS = Object.keys(AVATAR_MOTIFS) as AvatarMotif[];
 const COUNTDOWN = 30;
@@ -71,15 +73,15 @@ export function MergeToast() {
   if (undone) {
     return (
       <div className="qb-merge-undone" role="status">
-        أُلغي الضمّ — بقيت محفوظات الضيف محليّةً على هذا الجهاز
+        {t("أُلغي الضمّ — بقيت محفوظات الضيف محليّةً على هذا الجهاز")}
       </div>
     );
   }
 
   const summary = [
-    result.notebook_moved ? `${formatNumber(result.notebook_moved)} آية مُثبَّتة` : null,
-    result.sessions_moved ? `${formatNumber(result.sessions_moved)} جلسة بحث` : null,
-    result.roots_moved ? `${formatNumber(result.roots_moved)} جذر مُتابَع` : null,
+    result.notebook_moved ? t("{0} آية مُثبَّتة", { 0: formatNumber(result.notebook_moved) }) : null,
+    result.sessions_moved ? t("{0} جلسة بحث", { 0: formatNumber(result.sessions_moved) }) : null,
+    result.roots_moved ? t("{0} جذر مُتابَع", { 0: formatNumber(result.roots_moved) }) : null,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -106,11 +108,11 @@ export function MergeToast() {
     <div className="qb-merge-toast" role="status">
       <UserAvatar motif={motif} size={38} />
       <div className="qb-merge-copy">
-        <div className="title">ضممنا محفوظاتِ الضيف إلى حسابك</div>
-        <div className="sub">{summary || "موضع القراءة"} — أصبحت تُزامَن</div>
+        <div className="title">{t("ضممنا محفوظاتِ الضيف إلى حسابك")}</div>
+        <div className="sub">{summary || t("موضع القراءة")} {t("— أصبحت تُزامَن")}</div>
       </div>
       <button type="button" className="qb-merge-undo" onClick={undo}>
-        تراجَع
+        {t("تراجَع")}
       </button>
       <span
         className="qb-merge-ring"

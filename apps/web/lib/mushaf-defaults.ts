@@ -1,5 +1,7 @@
 import type { MushafEditionId } from "@q-basair/shared";
 
+import { t } from "@/lib/i18n";
+
 /**
  * Mushaf editions — the reader's one "which mushaf" setting (account preference
  * `mushaf_edition`). An edition fixes the riwāyah AND how it is drawn, so the
@@ -28,9 +30,15 @@ export type MushafEdition = {
 export const MUSHAF_EDITIONS: readonly MushafEdition[] = [
   {
     id: "madani-hafs",
-    name: "مصحف المدينة النبوية",
-    description: "رواية حفص عن عاصم · صفحات مجمّع الملك فهد",
-    shortLabel: "حفص",
+    get name() {
+    return t("مصحف المدينة النبوية");
+  },
+    get description() {
+    return t("رواية حفص عن عاصم · صفحات مجمّع الملك فهد");
+  },
+    get shortLabel() {
+    return t("حفص");
+  },
     mushafId: 2,
     riwayah: "hafs",
     authentic: true,

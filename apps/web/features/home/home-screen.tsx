@@ -17,6 +17,8 @@ import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 const LAST_PAGE_KEY = "qbasair.mushaf.lastPage";
@@ -25,6 +27,7 @@ const LAST_SURAH_KEY = "qbasair.mushaf.lastSurah";
 // A small rotating set of well-known āyāt — the page's centerpiece. The text is
 // shown exactly as in the muṣḥaf; only the reference number follows the numeral
 // preference. Any addition must be exact Uthmani text, 2–6 words, owner-reviewed.
+// i18n-ignore — Quran text and its surah names stay as they are.
 const ROTATING_AYAHS: { text: string; surah: string; ayah: number }[] = [
   { text: "ٱللَّهُ نُورُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ", surah: "النور", ayah: 35 },
   { text: "وَقُل رَّبِّ زِدْنِى عِلْمًا", surah: "طه", ayah: 114 },
@@ -153,7 +156,7 @@ export function HomeScreen() {
         {/* Personalized greeting — signed-in only; a quiet line above the hero. */}
         {displayName ? (
           <div className="qb-home-greeting">
-            أهلاً بعودتك، <strong>{displayName}</strong>
+            {t("أهلاً بعودتك،")} <strong>{displayName}</strong>
           </div>
         ) : null}
 
@@ -161,7 +164,7 @@ export function HomeScreen() {
             No aria-live: a forever-rotating announcement is screen-reader noise —
             the verse stays ordinary readable (and selectable) text. */}
         <header className="qb-home-ayah-hero">
-          <span className="kicker">بَصَائِر</span>
+          <span className="kicker">{t("بَصَائِر")}</span>
           <p key={ayahIndex} className="ayah-text">
             {ayah.text}
           </p>
@@ -176,12 +179,12 @@ export function HomeScreen() {
             type="text"
             value={ask}
             onChange={(event) => setAsk(event.target.value)}
-            placeholder="اسأل سؤالاً… أو اكتب جذراً/كلمة للبحث"
-            aria-label="اسأل سؤالاً أو ابحث في القرآن"
-            dir="rtl"
+            placeholder={t("اسأل سؤالاً… أو اكتب جذراً/كلمة للبحث")}
+            aria-label={t("اسأل سؤالاً أو ابحث في القرآن")}
+            dir="auto"
           />
           <button type="submit" disabled={!ask.trim()}>
-            {askIsQuestion ? "اسأل" : "ابحث"}
+            {askIsQuestion ? t("اسأل") : t("ابحث")}
           </button>
         </form>
 
@@ -200,14 +203,14 @@ export function HomeScreen() {
               title={recentSessions[0].title}
             >
               <span className="eyebrow">
-                <Icon name="sparkles" size={13} /> تابِع من حيث توقّفت
+                <Icon name="sparkles" size={13} /> {t("تابِع من حيث توقّفت")}
               </span>
               <span className="lead">{recentSessions[0].title}</span>
               <span className="meta">
-                {recentSessions[0].mode === "tafssir" ? "قراءة تفسيرية" : "القرآن وحدَه"} ·{" "}
-                {formatNumber(recentSessions[0].message_count)} رسالة
+                {recentSessions[0].mode === "tafssir" ? t("قراءة تفسيرية") : t("القرآن وحدَه")} ·{" "}
+                {formatNumber(recentSessions[0].message_count)} {t("رسالة")}
               </span>
-              <span className="cta">تابِع الجلسة ←</span>
+              <span className="cta">{t("تابِع الجلسة ←")}</span>
             </button>
           ) : (
             <button
@@ -216,49 +219,50 @@ export function HomeScreen() {
               onClick={() => setMode("studio")}
             >
               <span className="eyebrow">
-                <Icon name="sparkles" size={13} /> ابدأ جلسة دراسة
+                <Icon name="sparkles" size={13} /> {t("ابدأ جلسة دراسة")}
               </span>
-              <span className="lead">اسأل سؤالاً موجَّهاً في المعاني</span>
-              <span className="meta">جواب مستند على القرآن، مع شواهده</span>
-              <span className="cta">افتح الاستوديو ←</span>
+              <span className="lead">{t("اسأل سؤالاً موجَّهاً في المعاني")}</span>
+              <span className="meta">{t("جواب مستند على القرآن، مع شواهده")}</span>
+              <span className="cta">{t("افتح الاستوديو ←")}</span>
             </button>
           )}
 
           <button type="button" className="qb-home-gridcard" onClick={() => setMode("reading")}>
-            <span className="eyebrow">{resumePage ? "تابع القراءة" : "ابدأ القراءة"}</span>
+            <span className="eyebrow">{resumePage ? t("تابع القراءة") : t("ابدأ القراءة")}</span>
             <span className="lead sm">
               {resumePage ? (
                 <>
-                  {lastSurah && resumePage === lastPage ? <>سورة {lastSurah}، </> : null}صفحة {formatNumber(resumePage)}
+                  {lastSurah && resumePage === lastPage ? <>{t("سورة {0}", { 0: lastSurah })}{t("، ")}</> : null}
+                  {t("صفحة {0}", { 0: formatNumber(resumePage) })}
                 </>
               ) : (
-                <>سورة الفاتحة</>
+                <>{t("سورة الفاتحة")}</>
               )}
             </span>
-            {resumeAyah ? <span className="meta">عند الآية {formatNumber(resumeAyah)}</span> : null}
+            {resumeAyah ? <span className="meta">{t("عند الآية")} {formatNumber(resumeAyah)}</span> : null}
             {resumePage ? (
               <span className="hairline" aria-hidden>
                 <span style={{ width: `${Math.min(100, Math.round((resumePage / 604) * 100))}%` }} />
               </span>
             ) : null}
-            <span className="cta">{resumePage ? "تابِع ←" : "افتح المصحف ←"}</span>
+            <span className="cta">{resumePage ? t("تابِع ←") : t("افتح المصحف ←")}</span>
           </button>
 
           <button type="button" className="qb-home-gridcard" onClick={() => setMode("notebook")}>
             <span className="eyebrow">
-              مثبَّتات حديثة{savedCount ? <> ({formatNumber(savedCount)})</> : null}
+              {t("مثبَّتات حديثة")}{savedCount ? <> ({formatNumber(savedCount)})</> : null}
             </span>
             <span className="lead sm">
-              {savedCount ? `${formatNumber(savedCount)} آية مُثبَّتة في الدفتر` : "لا مثبَّتات بعد"}
+              {savedCount ? t("{0} آية مُثبَّتة في الدفتر", { 0: formatNumber(savedCount) }) : t("لا مثبَّتات بعد")}
             </span>
-            <span className="cta">افتح الدفتر ←</span>
+            <span className="cta">{t("افتح الدفتر ←")}</span>
           </button>
         </div>
 
         {/* Saved muṣḥaf pages — reopen the reader exactly where you bookmarked. */}
         {savedPages.length > 0 ? (
           <div className="qb-home-saved">
-            <div className="lbl">صفحات محفوظة</div>
+            <div className="lbl">{t("صفحات محفوظة")}</div>
             <div className="chips">
               {savedPages.slice(0, 10).map((entry) => (
                 <button
@@ -266,11 +270,11 @@ export function HomeScreen() {
                   type="button"
                   className="chip"
                   onClick={() => openSavedPage(entry)}
-                  title={`${entry.surah ?? "المصحف"} · صفحة ${entry.page}`}
+                  title={t("{0} · صفحة {1}", { 0: entry.surah ?? t("المصحف"), 1: entry.page })}
                 >
                   <Icon name="bookmarkFilled" size={12} />
-                  <span className="s">{entry.surah ?? "المصحف"}</span>
-                  <span className="p">صفحة {formatNumber(entry.page)}</span>
+                  <span className="s">{entry.surah ?? t("المصحف")}</span>
+                  <span className="p">{t("صفحة")} {formatNumber(entry.page)}</span>
                 </button>
               ))}
             </div>

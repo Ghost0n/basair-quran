@@ -9,14 +9,16 @@ import { AUTH_ENABLED } from "@/lib/config";
 import "./auth.css";
 import { continueAsGuest, identityApi, routeAfterAuth, sanitizeNextPath } from "./identity-flow";
 
+import { t } from "@/lib/i18n";
+
 type AuthTab = "in" | "up";
 
 function messageForError(error: unknown, tab: AuthTab): string {
   const text = error instanceof Error ? error.message : "";
-  if (text.includes(" 409")) return "هذا البريد مُسجَّل بالفعل — جرّب تسجيل الدخول.";
-  if (text.includes(" 401")) return "البريد أو كلمة المرور غير صحيحة.";
-  if (text.includes(" 422")) return "تحقّق من البريد وكلمة المرور (ثمانية أحرف فأكثر).";
-  return tab === "up" ? "تعذّر إنشاء الحساب." : "تعذّر تسجيل الدخول.";
+  if (text.includes(" 409")) return t("هذا البريد مُسجَّل بالفعل — جرّب تسجيل الدخول.");
+  if (text.includes(" 401")) return t("البريد أو كلمة المرور غير صحيحة.");
+  if (text.includes(" 422")) return t("تحقّق من البريد وكلمة المرور (ثمانية أحرف فأكثر).");
+  return tab === "up" ? t("تعذّر إنشاء الحساب.") : t("تعذّر تسجيل الدخول.");
 }
 
 export function LoginPageShell() {
@@ -77,7 +79,7 @@ export function LoginPageShell() {
 
   async function requestReset() {
     if (!email.trim()) {
-      setError("أدخل بريدك الإلكتروني أولاً.");
+      setError(t("أدخل بريدك الإلكتروني أولاً."));
       return;
     }
     setLoading(true);
@@ -88,27 +90,27 @@ export function LoginPageShell() {
       // Deliberately ignore — never reveal whether the email exists.
     }
     setLoading(false);
-    setNotice("إن كان البريد مُسجَّلاً، فقد أرسلنا إليه رابطاً ورمزاً لإعادة التعيين (صالحَين لساعة). افتح الرابط أو أدخِل الرمز هنا.");
+    setNotice(t("إن كان البريد مُسجَّلاً، فقد أرسلنا إليه رابطاً ورمزاً لإعادة التعيين (صالحَين لساعة). افتح الرابط أو أدخِل الرمز هنا."));
     setView("reset");
   }
 
   async function submitReset(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!resetToken.trim() || !password.trim()) {
-      setError("أدخل الرمز وكلمة المرور الجديدة (ثمانية أحرف فأكثر).");
+      setError(t("أدخل الرمز وكلمة المرور الجديدة (ثمانية أحرف فأكثر)."));
       return;
     }
     setLoading(true);
     setError("");
     try {
       await identityApi.resetPassword(resetToken.trim(), password, { suppressAuthRedirect: true });
-      setNotice("تم تغيير كلمة المرور. سجّل الدخول بها الآن.");
+      setNotice(t("تم تغيير كلمة المرور. سجّل الدخول بها الآن."));
       setView("auth");
       setPassword("");
       setResetToken("");
     } catch (err) {
       const text = err instanceof Error ? err.message : "";
-      setError(text.includes(" 422") ? "كلمة المرور قصيرة (ثمانية أحرف فأكثر)." : "الرمز غير صالح أو منتهٍ.");
+      setError(text.includes(" 422") ? t("كلمة المرور قصيرة (ثمانية أحرف فأكثر).") : t("الرمز غير صالح أو منتهٍ."));
     }
     setLoading(false);
   }
@@ -124,8 +126,8 @@ export function LoginPageShell() {
     if (!email.trim() || !password.trim() || (isSignup && !name.trim())) {
       setError(
         isSignup
-          ? "أكمِل الحقول — البريد وكلمة المرور مطلوبان، والاسم أيضاً."
-          : "أكمِل الحقول — البريد وكلمة المرور مطلوبان.",
+          ? t("أكمِل الحقول — البريد وكلمة المرور مطلوبان، والاسم أيضاً.")
+          : t("أكمِل الحقول — البريد وكلمة المرور مطلوبان."),
       );
       return;
     }
@@ -139,7 +141,7 @@ export function LoginPageShell() {
           )
         : await identityApi.login({ email, password, platform: "web" }, { suppressAuthRedirect: true });
       if (!session.authenticated) {
-        throw new Error("تعذّر إنشاء الجلسة.");
+        throw new Error(t("تعذّر إنشاء الجلسة."));
       }
       await routeAfterAuth(session, nextPath);
     } catch (err) {
@@ -152,7 +154,7 @@ export function LoginPageShell() {
     return (
       <div className="qb-auth">
         <div className="qb-auth-guest-note" style={{ animation: "none" }}>
-          جارٍ التحقّق من الجلسة…
+          {t("جارٍ التحقّق من الجلسة…")}
         </div>
       </div>
     );
@@ -164,7 +166,7 @@ export function LoginPageShell() {
         <BrandMark size={66} />
       </div>
       <div className="qb-auth-head" style={{ animation: "qbRise 500ms var(--motion-ease-settle) 80ms both" }}>
-        <div className="qb-auth-wordmark">بَصَائِر القُرآن</div>
+        <div className="qb-auth-wordmark">{t("بَصَائِر القُرآن")}</div>
         <div className="qb-auth-sub">BASAIR · THE SCHOLAR&apos;S ROOM</div>
       </div>
 
@@ -172,9 +174,9 @@ export function LoginPageShell() {
 
       {view === "forgot" ? (
         <div className="qb-auth-card" style={{ animation: "qbRise 500ms var(--motion-ease-settle) 160ms both" }}>
-          <div className="qb-auth-reset-title">إعادة تعيين كلمة المرور</div>
+          <div className="qb-auth-reset-title">{t("إعادة تعيين كلمة المرور")}</div>
           <label className="qb-auth-field">
-            <span className="label">البريد الإلكتروني</span>
+            <span className="label">{t("البريد الإلكتروني")}</span>
             <input
               className="qb-auth-input ltr"
               type="email"
@@ -186,10 +188,10 @@ export function LoginPageShell() {
           </label>
           {error ? <div className="qb-auth-error" role="alert">{error}</div> : null}
           <button type="button" className="qb-auth-cta" onClick={requestReset} disabled={loading}>
-            {loading ? "لحظة…" : "أرسِل رمز إعادة التعيين"}
+            {loading ? t("لحظة…") : t("أرسِل رمز إعادة التعيين")}
           </button>
           <button type="button" className="forgot" onClick={backToAuth}>
-            ← العودة لتسجيل الدخول
+            {t("← العودة لتسجيل الدخول")}
           </button>
         </div>
       ) : view === "reset" ? (
@@ -198,9 +200,9 @@ export function LoginPageShell() {
           onSubmit={submitReset}
           style={{ animation: "qbRise 500ms var(--motion-ease-settle) 160ms both" }}
         >
-          <div className="qb-auth-reset-title">أدخِل الرمز وكلمة المرور الجديدة</div>
+          <div className="qb-auth-reset-title">{t("أدخِل الرمز وكلمة المرور الجديدة")}</div>
           <label className="qb-auth-field">
-            <span className="label">رمز إعادة التعيين</span>
+            <span className="label">{t("رمز إعادة التعيين")}</span>
             <input
               className="qb-auth-input ltr"
               value={resetToken}
@@ -210,22 +212,22 @@ export function LoginPageShell() {
             />
           </label>
           <label className="qb-auth-field">
-            <span className="label">كلمة المرور الجديدة</span>
+            <span className="label">{t("كلمة المرور الجديدة")}</span>
             <input
               className="qb-auth-input"
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder="ثمانية أحرف فأكثر"
+              placeholder={t("ثمانية أحرف فأكثر")}
               autoComplete="new-password"
             />
           </label>
           {error ? <div className="qb-auth-error" role="alert">{error}</div> : null}
           <button type="submit" className="qb-auth-cta" disabled={loading}>
-            {loading ? "لحظة…" : "غيّر كلمة المرور"}
+            {loading ? t("لحظة…") : t("غيّر كلمة المرور")}
           </button>
           <button type="button" className="forgot" onClick={backToAuth}>
-            ← العودة لتسجيل الدخول
+            {t("← العودة لتسجيل الدخول")}
           </button>
         </form>
       ) : (
@@ -242,7 +244,7 @@ export function LoginPageShell() {
             className={`qb-auth-tab ${!isSignup ? "active" : ""}`}
             onClick={() => switchTab("in")}
           >
-            دخول
+            {t("دخول")}
           </button>
           <button
             type="button"
@@ -251,25 +253,25 @@ export function LoginPageShell() {
             className={`qb-auth-tab ${isSignup ? "active" : ""}`}
             onClick={() => switchTab("up")}
           >
-            حساب جديد
+            {t("حساب جديد")}
           </button>
         </div>
 
         {isSignup ? (
           <label className="qb-auth-field qb-auth-signup-name">
-            <span className="label">اسمك — كما تحبّ أن تُنادى</span>
+            <span className="label">{t("اسمك — كما تحبّ أن تُنادى")}</span>
             <input
               className="qb-auth-input"
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="أبو محمد"
+              placeholder={t("أبو محمد")}
               autoComplete="name"
             />
           </label>
         ) : null}
 
         <label className="qb-auth-field">
-          <span className="label">البريد الإلكتروني</span>
+          <span className="label">{t("البريد الإلكتروني")}</span>
           <input
             className="qb-auth-input ltr"
             type="email"
@@ -282,7 +284,7 @@ export function LoginPageShell() {
 
         <label className="qb-auth-field">
           <span className="label-row">
-            <span className="label">كلمة المرور</span>
+            <span className="label">{t("كلمة المرور")}</span>
             {!isSignup ? (
               <button
                 type="button"
@@ -293,7 +295,7 @@ export function LoginPageShell() {
                   setView("forgot");
                 }}
               >
-                نسيتها؟
+                {t("نسيتها؟")}
               </button>
             ) : null}
           </span>
@@ -302,7 +304,7 @@ export function LoginPageShell() {
             type="password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
-            placeholder="ثمانية أحرف فأكثر"
+            placeholder={t("ثمانية أحرف فأكثر")}
             autoComplete={isSignup ? "new-password" : "current-password"}
           />
         </label>
@@ -311,20 +313,20 @@ export function LoginPageShell() {
 
         <button type="submit" className="qb-auth-cta" disabled={loading}>
           {loading ? <span className="qb-auth-spinner" aria-hidden /> : null}
-          {loading ? "لحظة…" : isSignup ? "أنشئ حسابك" : "دخول"}
+          {loading ? t("لحظة…") : isSignup ? t("أنشئ حسابك") : t("دخول")}
         </button>
 
         {isSignup ? (
           <div className="qb-auth-invite">
             <div className="qb-auth-invite-head">
-              <span>رمز دعوة؟</span>
-              <span className="optional">اختياري</span>
+              <span>{t("رمز دعوة؟")}</span>
+              <span className="optional">{t("اختياري")}</span>
             </div>
             <input
               value={invite}
               onChange={(event) => setInvite(event.target.value)}
               placeholder="INVITE-CODE"
-              aria-label="رمز دعوة اختياري"
+              aria-label={t("رمز دعوة اختياري")}
             />
           </div>
         ) : null}
@@ -339,11 +341,11 @@ export function LoginPageShell() {
           window.location.assign("/");
         }}
       >
-        تصفّح كضيف ←
+        {t("تصفّح كضيف ←")}
       </button>
 
       <div className="qb-auth-guest-note">
-        عند إنشاء الحساب نضمّ محفوظاتك تلقائياً
+        {t("عند إنشاء الحساب نضمّ محفوظاتك تلقائياً")}
       </div>
     </div>
   );

@@ -82,6 +82,9 @@ export const ICON_PATHS = {
 
 export type IconName = keyof typeof ICON_PATHS;
 
+/** Arrows that point "forward/back": mirrored in left-to-right interface languages. */
+const DIRECTIONAL = new Set<IconName>(["chevLeft", "chevRight", "arrowLeft", "arrowRight", "arrowDownLeft"]);
+
 type IconProps = {
   name: IconName;
   size?: number;
@@ -92,8 +95,9 @@ type IconProps = {
 
 export function Icon({ name, size = 18, stroke = 1.75, className = "", title }: IconProps) {
   const d = ICON_PATHS[name];
+  const flip = DIRECTIONAL.has(name) ? " dir-flip" : "";
   return (
-    <span className={`qb-icon ${className}`.trim()} style={{ width: size, height: size, display: "inline-flex" }}>
+    <span className={`qb-icon${flip} ${className}`.trim()} style={{ width: size, height: size, display: "inline-flex" }}>
       <svg
         viewBox="0 0 24 24"
         // "…Filled" variants share their outline's path and fill it (saved / liked states).

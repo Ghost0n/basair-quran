@@ -9,12 +9,20 @@ import { useNumerals } from "@/lib/preferences-context";
 import { parseNavCommand, surahMatches, toAsciiDigits, TOTAL_PAGES } from "@/lib/quran-nav";
 import { useDialog } from "@/lib/use-dialog";
 
+import { t } from "@/lib/i18n";
+
 type Tab = "surah" | "juz" | "page";
 
 const TABS: { value: Tab; label: string }[] = [
-  { value: "surah", label: "السور" },
-  { value: "juz", label: "الأجزاء" },
-  { value: "page", label: "صفحة" },
+  { value: "surah", get label() {
+    return t("السور");
+  } },
+  { value: "juz", get label() {
+    return t("الأجزاء");
+  } },
+  { value: "page", get label() {
+    return t("صفحة");
+  } },
 ];
 
 export type NavigateTarget =
@@ -76,27 +84,27 @@ export function NavigateSheet({
   function commandLabel(): string | null {
     if (!command) return null;
     if (command.type === "ayah") {
-      const name = surahs.find((s) => s.id === command.surah)?.name ?? `سورة ${formatNumber(command.surah)}`;
-      return `${name} · الآية ${formatNumber(command.ayah)}`;
+      const name = surahs.find((s) => s.id === command.surah)?.name ?? t("سورة {0}", { 0: formatNumber(command.surah) });
+      return t("{0} · الآية {1}", { 0: name, 1: formatNumber(command.ayah) });
     }
     if (command.type === "surah") {
-      return surahs.find((s) => s.id === command.surah)?.name ?? `سورة ${formatNumber(command.surah)}`;
+      return surahs.find((s) => s.id === command.surah)?.name ?? t("سورة {0}", { 0: formatNumber(command.surah) });
     }
-    if (command.type === "juz") return `الجزء ${formatNumber(command.juz)}`;
-    return `الصفحة ${formatNumber(command.page)}`;
+    if (command.type === "juz") return t("الجزء {0}", { 0: formatNumber(command.juz) });
+    return t("الصفحة {0}", { 0: formatNumber(command.page) });
   }
 
   const pageNumber = Number(toAsciiDigits(pageDraft));
   const pageValid = Number.isInteger(pageNumber) && pageNumber >= 1 && pageNumber <= TOTAL_PAGES;
 
   return (
-    <div className="qb-rsheet qb-nav-sheet" role="dialog" aria-modal="true" aria-label="انتقل في المصحف">
+    <div className="qb-rsheet qb-nav-sheet" role="dialog" aria-modal="true" aria-label={t("انتقل في المصحف")}>
       <div className="backdrop" onClick={onClose} aria-hidden />
       <div className="panel" ref={panelRef} tabIndex={-1}>
         <div className="grip" aria-hidden />
         <div className="head">
-          <h2>انتقل</h2>
-          <button type="button" className="close" onClick={onClose} aria-label="إغلاق">
+          <h2>{t("انتقل")}</h2>
+          <button type="button" className="close" onClick={onClose} aria-label={t("إغلاق")}>
             <Icon name="close" size={18} />
           </button>
         </div>
@@ -118,11 +126,11 @@ export function NavigateSheet({
                 runCommand();
               }
             }}
-            placeholder="اسم السورة أو رقمها · ٢:٢٥٥ · صفحة ٥٠"
+            placeholder={t("اسم السورة أو رقمها · ٢:٢٥٥ · صفحة ٥٠")}
             // Type-to-filter on desktop; on touch screens don't pop the keyboard
             // over the list — the user may just scroll and tap.
             autoFocus={canHover}
-            aria-label="ابحث عن سورة أو اكتب مرجعاً"
+            aria-label={t("ابحث عن سورة أو اكتب مرجعاً")}
             enterKeyHint="go"
           />
         </div>
@@ -130,11 +138,11 @@ export function NavigateSheet({
         {command ? (
           <button type="button" className="command" onClick={runCommand}>
             <Icon name="arrowLeft" size={16} />
-            <span>انتقل إلى {commandLabel()}</span>
+            <span>{t("انتقل إلى")} {commandLabel()}</span>
           </button>
         ) : null}
 
-        <div className="tabs" role="tablist" aria-label="طريقة التنقل">
+        <div className="tabs" role="tablist" aria-label={t("طريقة التنقل")}>
           {TABS.map((item) => (
             <button
               key={item.value}
@@ -164,15 +172,15 @@ export function NavigateSheet({
                       <span className="num">{formatNumber(surah.id)}</span>
                       <span className="name">{surah.name}</span>
                       <span className="meta">
-                        {surah.type === "medinan" ? "مدنيّة" : surah.type === "meccan" ? "مكّيّة" : ""}
-                        {surah.ayah_count ? `، ${formatNumber(surah.ayah_count)} آية` : ""}
+                        {surah.type === "medinan" ? t("مدنيّة") : surah.type === "meccan" ? t("مكّيّة") : ""}
+                        {surah.ayah_count ? t("، {0} آية", { 0: formatNumber(surah.ayah_count) }) : ""}
                       </span>
                     </button>
                   </li>
                 ))}
               </ul>
             ) : (
-              <div className="empty">لا توجد سورة بهذا الاسم.</div>
+              <div className="empty">{t("لا توجد سورة بهذا الاسم.")}</div>
             )
           ) : null}
 
@@ -184,7 +192,7 @@ export function NavigateSheet({
                   type="button"
                   className={juz === currentJuz ? "current" : ""}
                   aria-current={juz === currentJuz ? "true" : undefined}
-                  aria-label={`الجزء ${formatNumber(juz)}`}
+                  aria-label={t("الجزء {0}", { 0: formatNumber(juz) })}
                   onClick={() => go({ type: "juz", juz })}
                 >
                   {formatNumber(juz)}
@@ -201,7 +209,7 @@ export function NavigateSheet({
                 if (pageValid) go({ type: "page", page: pageNumber });
               }}
             >
-              <label htmlFor="qbNavPage">رقم الصفحة (١–{formatNumber(TOTAL_PAGES)})</label>
+              <label htmlFor="qbNavPage">{t("رقم الصفحة (١–")}{formatNumber(TOTAL_PAGES)})</label>
               <div className="row">
                 <input
                   id="qbNavPage"
@@ -211,7 +219,7 @@ export function NavigateSheet({
                   aria-invalid={pageDraft !== "" && !pageValid}
                 />
                 <button type="submit" disabled={!pageValid}>
-                  انتقال
+                  {t("انتقال")}
                 </button>
               </div>
             </form>

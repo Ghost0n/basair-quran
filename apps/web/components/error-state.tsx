@@ -6,6 +6,8 @@ import { isTechnicalMessage, sanitizeErrorMessage, sendDiagnosticReport } from "
 
 import { Icon } from "./icon";
 
+import { t } from "@/lib/i18n";
+
 /**
  * A recoverable error surface — a calm, non-technical message plus an optional
  * Retry action so a transient backend/network failure isn't a dead end. Raw
@@ -18,7 +20,7 @@ import { Icon } from "./icon";
 export function ErrorState({
   message,
   onRetry,
-  retryLabel = "إعادة المحاولة",
+  retryLabel = t("إعادة المحاولة"),
   className = "",
   reportScope,
 }: {
@@ -59,7 +61,7 @@ export function ErrorState({
             onClick={() => void report()}
             disabled={reportState !== "idle"}
           >
-            {reportState === "sent" ? "شُكراً، تمّ الإبلاغ" : "أبلِغ عن المشكلة"}
+            {reportState === "sent" ? t("شُكراً، تمّ الإبلاغ") : t("أبلِغ عن المشكلة")}
           </button>
         ) : null}
       </div>

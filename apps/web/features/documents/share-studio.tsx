@@ -28,13 +28,23 @@ import {
 } from "./share-card";
 import { buildZip } from "./zip";
 
+import { t } from "@/lib/i18n";
+
 export type ShareArtifact = "research" | "verse" | "carousel" | "print";
 
 const ARTIFACTS: { value: ShareArtifact; label: string; icon: "page" | "book" | "cards" | "download" }[] = [
-  { value: "research", label: "بطاقة البحث", icon: "page" },
-  { value: "verse", label: "بطاقة آية", icon: "book" },
-  { value: "carousel", label: "سلسلة شرائح", icon: "cards" },
-  { value: "print", label: "طباعة / PDF", icon: "download" },
+  { value: "research", get label() {
+    return t("بطاقة البحث");
+  }, icon: "page" },
+  { value: "verse", get label() {
+    return t("بطاقة آية");
+  }, icon: "book" },
+  { value: "carousel", get label() {
+    return t("سلسلة شرائح");
+  }, icon: "cards" },
+  { value: "print", get label() {
+    return t("طباعة / PDF");
+  }, icon: "download" },
 ];
 
 const PREFS_KEY = "qb.shareStudio";
@@ -125,9 +135,9 @@ export function ShareStudio({
         {
           kind: "verse",
           text: chosen.ref.text,
-          reference: `سورة ${surahName(chosen.ref.surah_id)}، الآية ${formatNumber(chosen.ref.ayah)}`,
+          reference: t("سورة {0}، الآية {1}", { 0: surahName(chosen.ref.surah_id), 1: formatNumber(chosen.ref.ayah) }),
           note: withNote && chosen.note ? chosen.note : null,
-          noteLabel: withNote && chosen.note && chosen.ai ? AI_NOTE_LABEL : null,
+          noteLabel: withNote && chosen.note && chosen.ai ? t(AI_NOTE_LABEL) : null,
         },
       ];
     }
@@ -135,11 +145,11 @@ export function ShareStudio({
       return [
         {
           kind: "research",
-          title: research.title || "بحث",
+          title: research.title || t("بحث"),
           summary: research.summary,
           meta: researchMeta(research, helpers),
           excerpt: ayahs[0]?.ref.text ?? null,
-          badge: research.mode === "tafssir" ? TAFSSIR_BADGE : null,
+          badge: research.mode === "tafssir" ? t(TAFSSIR_BADGE) : null,
         },
       ];
     }
@@ -214,16 +224,16 @@ export function ShareStudio({
       if (artifact === "carousel") {
         const files = blobs.map((blob, index) => new File([blob], fileName(index), { type: "image/png" }));
         if ((await shareFiles(files, research.title)) === "shared") {
-          setNote("تمت مشاركة الشرائح.");
+          setNote(t("تمت مشاركة الشرائح."));
           return;
         }
         await downloadZip(blobs);
         return;
       }
       const result = await shareOrDownload(blobs[0], fileName(0), research.title);
-      setNote(result === "shared" ? "تمت المشاركة." : "حُفظت الصورة.");
+      setNote(result === "shared" ? t("تمت المشاركة.") : t("حُفظت الصورة."));
     } catch {
-      setNote("تعذّر إنشاء الصورة.");
+      setNote(t("تعذّر إنشاء الصورة."));
     } finally {
       setBusy(false);
     }
@@ -235,7 +245,7 @@ export function ShareStudio({
       blobs.map(async (blob, index) => ({ name: fileName(index), data: new Uint8Array(await blob.arrayBuffer()) })),
     );
     downloadBlob(new Blob([buildZip(entries)], { type: "application/zip" }), `${slug(research.title)}.zip`);
-    setNote(`حُفظت ${formatNumber(entries.length)} شرائح في ملف مضغوط.`);
+    setNote(t("حُفظت {0} شرائح في ملف مضغوط.", { 0: formatNumber(entries.length) }));
   }
 
   async function download() {
@@ -245,10 +255,10 @@ export function ShareStudio({
       if (artifact === "carousel") await downloadZip();
       else {
         downloadBlob((await renderAll())[0], fileName(0));
-        setNote("حُفظت الصورة.");
+        setNote(t("حُفظت الصورة."));
       }
     } catch {
-      setNote("تعذّر إنشاء الصورة.");
+      setNote(t("تعذّر إنشاء الصورة."));
     } finally {
       setBusy(false);
     }
@@ -258,18 +268,18 @@ export function ShareStudio({
   const current = previews[Math.min(slide, previews.length - 1)];
 
   return createPortal(
-    <div className="qb-rsheet qb-share-studio" role="dialog" aria-modal="true" aria-label="مشاركة البحث">
+    <div className="qb-rsheet qb-share-studio" role="dialog" aria-modal="true" aria-label={t("مشاركة البحث")}>
       <div className="backdrop" onClick={onClose} aria-hidden />
       <div className="panel" ref={panelRef} tabIndex={-1}>
         <div className="grip" aria-hidden />
         <div className="head">
-          <h2>مشاركة البحث</h2>
-          <button type="button" className="close" onClick={onClose} aria-label="إغلاق">
+          <h2>{t("مشاركة البحث")}</h2>
+          <button type="button" className="close" onClick={onClose} aria-label={t("إغلاق")}>
             <Icon name="close" size={18} />
           </button>
         </div>
         <div className="body">
-          <div className="kinds" role="radiogroup" aria-label="الصيغة">
+          <div className="kinds" role="radiogroup" aria-label={t("الصيغة")}>
             {ARTIFACTS.map((entry) => (
               <button
                 key={entry.value}
@@ -292,12 +302,11 @@ export function ShareStudio({
           {artifact === "print" ? (
             <div className="print-pane">
               <p>
-                نسخة مطبوعة نظيفة من البحث: العنوان والملخّص والآيات بخطّ المصحف والملاحظات والمراجع
-                {research.mode === "tafssir" ? "، مع تنبيه القراءة التفسيرية التجريبية" : ""}. اختر «حفظ بصيغة PDF» في
-                نافذة الطباعة لتحصل على ملف.
+                {t("نسخة مطبوعة نظيفة من البحث: العنوان والملخّص والآيات بخطّ المصحف والملاحظات والمراجع")}
+                {research.mode === "tafssir" ? t("، مع تنبيه القراءة التفسيرية التجريبية") : ""}{t(". اختر «حفظ بصيغة PDF» في نافذة الطباعة لتحصل على ملف.")}
               </p>
               <button type="button" className="qb-btn primary" onClick={() => setPrinting(true)}>
-                <Icon name="download" size={15} /> طباعة / حفظ PDF
+                <Icon name="download" size={15} /> {t("طباعة / حفظ PDF")}
               </button>
             </div>
           ) : (
@@ -309,17 +318,17 @@ export function ShareStudio({
                   aria-live="polite"
                   aria-busy={!current}
                 >
-                  {current ? <img src={current} alt="معاينة الصورة" /> : <span className="qb-skeleton-page" aria-hidden />}
+                  {current ? <img src={current} alt={t("معاينة الصورة")} /> : <span className="qb-skeleton-page" aria-hidden />}
                 </div>
                 {artifact === "carousel" && previews.length > 1 ? (
-                  <div className="thumbs" role="tablist" aria-label="الشرائح">
+                  <div className="thumbs" role="tablist" aria-label={t("الشرائح")}>
                     {previews.map((url, index) => (
                       <button
                         key={index}
                         type="button"
                         role="tab"
                         aria-selected={index === slide}
-                        aria-label={`الشريحة ${formatNumber(index + 1)}`}
+                        aria-label={t("الشريحة {0}", { 0: formatNumber(index + 1) })}
                         className={index === slide ? "on" : ""}
                         onClick={() => setSlide(index)}
                       >
@@ -333,9 +342,9 @@ export function ShareStudio({
               <div className="controls">
                 {artifact === "verse" && ayahs.length ? (
                   <div className="group">
-                    <div className="label">الآية</div>
+                    <div className="label">{t("الآية")}</div>
                     <SelectMenu
-                      ariaLabel="الآية"
+                      ariaLabel={t("الآية")}
                       value={chosen?.key ?? ""}
                       options={ayahs.map((entry) => ({
                         value: entry.key,
@@ -346,15 +355,15 @@ export function ShareStudio({
                     {chosen?.note ? (
                       <label className="check">
                         <input type="checkbox" checked={withNote} onChange={(event) => setWithNote(event.target.checked)} />
-                        مع ملاحظة القسم{chosen.ai ? " (موسومة: مولَّدة آلياً)" : ""}
+                        {t("مع ملاحظة القسم")}{chosen.ai ? t(" (موسومة: مولَّدة آلياً)") : ""}
                       </label>
                     ) : null}
                   </div>
                 ) : null}
 
                 <div className="group">
-                  <div className="label">المقاس</div>
-                  <div className="qb-segmented" role="radiogroup" aria-label="المقاس">
+                  <div className="label">{t("المقاس")}</div>
+                  <div className="qb-segmented" role="radiogroup" aria-label={t("المقاس")}>
                     {(Object.keys(SHARE_FORMATS) as ShareFormat[]).map((value) => (
                       <button
                         key={value}
@@ -371,8 +380,8 @@ export function ShareStudio({
                 </div>
 
                 <div className="group">
-                  <div className="label">النمط</div>
-                  <div className="swatches" role="radiogroup" aria-label="النمط">
+                  <div className="label">{t("النمط")}</div>
+                  <div className="swatches" role="radiogroup" aria-label={t("النمط")}>
                     {(Object.keys(SHARE_STYLES) as ShareStyle[]).map((value) => (
                       <button
                         key={value}
@@ -400,20 +409,19 @@ export function ShareStudio({
 
                 {artifact === "carousel" ? (
                   <p className="hint">
-                    {formatNumber(previews.length || cards.length)} شرائح: غلاف، ثم آية في كل شريحة مع ملاحظة قسمها، ثم خاتمة.
-                    تُشارَك معاً أو تُحفظ في ملف مضغوط.
+                    {formatNumber(previews.length || cards.length)} {t("شرائح: غلاف، ثم آية في كل شريحة مع ملاحظة قسمها، ثم خاتمة. تُشارَك معاً أو تُحفظ في ملف مضغوط.")}
                   </p>
                 ) : null}
                 {research.mode === "tafssir" ? (
-                  <p className="hint copper">يحمل الغلاف والخاتمة وسم «{TAFSSIR_BADGE}».</p>
+                  <p className="hint copper">{t("يحمل الغلاف والخاتمة وسم «{0}».", { 0: t(TAFSSIR_BADGE) })}</p>
                 ) : null}
 
                 <div className="actions">
                   <button type="button" className="qb-btn primary" onClick={() => void share()} disabled={busy || !cards.length}>
-                    <Icon name="share" size={15} /> {artifact === "carousel" ? "مشاركة الشرائح" : "مشاركة"}
+                    <Icon name="share" size={15} /> {artifact === "carousel" ? t("مشاركة الشرائح") : t("مشاركة")}
                   </button>
                   <button type="button" className="qb-btn ghost" onClick={() => void download()} disabled={busy || !cards.length}>
-                    <Icon name="download" size={15} /> {artifact === "carousel" ? "تنزيل ZIP" : "تنزيل"}
+                    <Icon name="download" size={15} /> {artifact === "carousel" ? t("تنزيل ZIP") : t("تنزيل")}
                   </button>
                 </div>
                 {note ? (

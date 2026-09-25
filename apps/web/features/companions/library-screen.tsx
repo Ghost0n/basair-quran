@@ -20,15 +20,23 @@ import { createDocumentUrl } from "@/features/documents/open-document";
 
 import { relativeAge, useCompanions } from "./use-companions";
 
+import { t as tt } from "@/lib/i18n";
+
 type LibraryTab = "verses" | "documents" | "sessions" | "roots";
 type VerseView = "recent" | "themes";
 type SessionFilter = "all" | "strict" | "tafssir";
 
 const UNTAGGED = "بلا موضوع";
 const SESSION_FILTERS: { value: SessionFilter; label: string }[] = [
-  { value: "all", label: "الكل" },
-  { value: "strict", label: "القرآن وحدَه" },
-  { value: "tafssir", label: "تفسيرية" },
+  { value: "all", get label() {
+    return tt("الكل");
+  } },
+  { value: "strict", get label() {
+    return tt("القرآن وحدَه");
+  } },
+  { value: "tafssir", get label() {
+    return tt("تفسيرية");
+  } },
 ];
 
 /**
@@ -76,22 +84,22 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
   );
 
   const TABS: { value: LibraryTab; label: string; count: number }[] = [
-    { value: "verses", label: "الآيات", count: companions.notebook.length },
-    { value: "documents", label: "الأبحاث", count: companions.documents.length },
-    { value: "sessions", label: "الجلسات", count: companions.sessions.length },
-    { value: "roots", label: "الجذور", count: companions.roots.length },
+    { value: "verses", label: tt("الآيات"), count: companions.notebook.length },
+    { value: "documents", label: tt("الأبحاث"), count: companions.documents.length },
+    { value: "sessions", label: tt("الجلسات"), count: companions.sessions.length },
+    { value: "roots", label: tt("الجذور"), count: companions.roots.length },
   ];
 
   return (
     <div className="qb-aux">
       <div className="qb-aux-h">
         <div>
-          <div className="kicker">الدفتر</div>
-          <h2>الدفتر</h2>
+          <div className="kicker">{tt("الدفتر")}</div>
+          <h2>{tt("الدفتر")}</h2>
           <div className="sub">
-            {formatNumber(companions.notebook.length)} آية، {formatNumber(companions.documents.length)} بحث،{" "}
-            {formatNumber(companions.sessions.length)} جلسة،{" "}
-            {formatNumber(companions.roots.length)} جذر
+            {formatNumber(companions.notebook.length)} {tt("آية،")} {formatNumber(companions.documents.length)} {tt("بحث،")}{" "}
+            {formatNumber(companions.sessions.length)} {tt("جلسة،")}{" "}
+            {formatNumber(companions.roots.length)} {tt("جذر")}
           </div>
         </div>
       </div>
@@ -110,20 +118,20 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
       </div>
 
       {companions.error ? <div className="qb-aux-state">{companions.error}</div> : null}
-      {companions.loading ? <div className="qb-aux-state is-loading">جارٍ التحميل…</div> : null}
+      {companions.loading ? <div className="qb-aux-state is-loading">{tt("جارٍ التحميل…")}</div> : null}
 
       {/* ---- Verses ---- */}
       {tab === "verses" && !companions.loading ? (
         companions.notebook.length === 0 ? (
-          <div className="qb-aux-state">لا توجد آيات محفوظة بعد. احفظ آية من القراءة أو من نتائج البحث.</div>
+          <div className="qb-aux-state">{tt("لا توجد آيات محفوظة بعد. احفظ آية من القراءة أو من نتائج البحث.")}</div>
         ) : (
           <>
             <div className="qb-form-tabs" style={{ display: "flex", gap: 6, marginBottom: 16 }}>
               <button type="button" className={`qb-pill${verseView === "recent" ? " active" : ""}`} onClick={() => setVerseView("recent")}>
-                الأحدث
+                {tt("الأحدث")}
               </button>
               <button type="button" className={`qb-pill${verseView === "themes" ? " active" : ""}`} onClick={() => setVerseView("themes")}>
-                حسب الموضوع
+                {tt("حسب الموضوع")}
               </button>
             </div>
 
@@ -134,16 +142,16 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                     <span className="icon-tile"><Icon name="book" size={16} /></span>
                     <button type="button" className="grow qb-row-open" onClick={() => openVerse(item)}>
                       <div className="title">
-                        {item.surah ?? "آية"} {item.ayah != null ? formatNumber(item.ayah) : ""}
+                        {item.surah ?? tt("آية")} {item.ayah != null ? formatNumber(item.ayah) : ""}
                       </div>
                       <div className="meta">
                         <ThemeDots themeIds={item.theme_ids ?? []} themeById={themeById} />
                         {item.text ? <span className="qb-quran-snip">{item.text.slice(0, 64)}</span> : null}
-                        {item.text ? "، " : ""}
+                        {item.text ? tt("، ") : ""}
                         {relativeAge(item.created_at, formatNumber)}
                       </div>
                     </button>
-                    <button type="button" className="row-action" aria-label="حذف" onClick={() => void companions.deleteNotebookItem(item.id)}>
+                    <button type="button" className="row-action" aria-label={tt("حذف")} onClick={() => void companions.deleteNotebookItem(item.id)}>
                       <Icon name="trash" size={15} />
                     </button>
                   </div>
@@ -161,8 +169,8 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                 {untagged.length > 0 ? (
                   <div className="qb-collection-card">
                     <div className="head">
-                      <span className="name">{UNTAGGED}</span>
-                      <span className="count">{formatNumber(untagged.length)} آية</span>
+                      <span className="name">{tt(UNTAGGED)}</span>
+                      <span className="count">{formatNumber(untagged.length)} {tt("آية")}</span>
                     </div>
                     <div className="body">
                       {untagged.map((item) => (
@@ -188,7 +196,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                 try {
                   router.push(
                     await createDocumentUrl({
-                      title: "بحث جديد",
+                      title: tt("بحث جديد"),
                       summary: null,
                       tags: [],
                       theme_ids: [],
@@ -202,12 +210,12 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                 }
               }}
             >
-              <Icon name="plus" size={13} /> بحث جديد
+              <Icon name="plus" size={13} /> {tt("بحث جديد")}
             </button>
           </div>
           {companions.documents.length === 0 ? (
             <div className="qb-aux-state">
-              لا أبحاث بعد. حوِّل جلسة من الدراسة، أو صدِّر لوحة موضوع، أو ابدأ بحثاً جديداً.
+              {tt("لا أبحاث بعد. حوِّل جلسة من الدراسة، أو صدِّر لوحة موضوع، أو ابدأ بحثاً جديداً.")}
             </div>
           ) : (
             <div className="qb-aux-list">
@@ -223,15 +231,15 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                   >
                     <div className="title">{document.title}</div>
                     <div className="meta">
-                      {formatNumber(document.section_count)} أقسام، {formatNumber(document.ayah_count)} آية،{" "}
+                      {formatNumber(document.section_count)} {tt("أقسام،")} {formatNumber(document.ayah_count)} {tt("آية،")}{" "}
                       {relativeAge(document.updated_at)}
-                      {document.created_from === "studio" ? "، من الدراسة" : document.created_from === "board" ? "، من لوحة" : ""}
+                      {document.created_from === "studio" ? tt("، من الدراسة") : document.created_from === "board" ? tt("، من لوحة") : ""}
                     </div>
                   </button>
                   <button
                     type="button"
                     className="row-action"
-                    aria-label="حذف البحث"
+                    aria-label={tt("حذف البحث")}
                     onClick={() => void companions.deleteDocument(document.id)}
                   >
                     <Icon name="trash" size={15} />
@@ -254,7 +262,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
             ))}
           </div>
           {visibleSessions.length === 0 ? (
-            <div className="qb-aux-state">لا توجد جلسات محفوظة في هذا التصنيف.</div>
+            <div className="qb-aux-state">{tt("لا توجد جلسات محفوظة في هذا التصنيف.")}</div>
           ) : (
             <div className="qb-aux-list">
               {visibleSessions.map((session) => (
@@ -265,11 +273,11 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                   <div className="grow">
                     <div className="title">{session.title}</div>
                     <div className="meta">
-                      {formatNumber(session.message_count)} رسالة، {relativeAge(session.updated_at)} ·{" "}
-                      {session.mode === "tafssir" ? "قراءة تفسيرية" : "القرآن وحدَه"}
+                      {formatNumber(session.message_count)} {tt("رسالة،")} {relativeAge(session.updated_at)} ·{" "}
+                      {session.mode === "tafssir" ? tt("قراءة تفسيرية") : tt("القرآن وحدَه")}
                     </div>
                   </div>
-                  <button type="button" className="row-action" aria-label="حذف الجلسة" onClick={() => void companions.deleteSession(session.id)}>
+                  <button type="button" className="row-action" aria-label={tt("حذف الجلسة")} onClick={() => void companions.deleteSession(session.id)}>
                     <Icon name="trash" size={15} />
                   </button>
                 </div>
@@ -282,7 +290,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
       {/* ---- Roots ---- */}
       {tab === "roots" && !companions.loading ? (
         companions.roots.length === 0 ? (
-          <div className="qb-aux-state">لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.</div>
+          <div className="qb-aux-state">{tt("لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.")}</div>
         ) : (
           <div className="qb-aux-list">
             {companions.roots.map((root) => (
@@ -291,14 +299,14 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                 <div className="grow">
                   <div className="root-disp">{root.root_text}</div>
                   <div className="meta">
-                    {root.occurrences != null ? `${formatNumber(root.occurrences)} موضع، ` : ""}
+                    {root.occurrences != null ? tt("{0} موضع، ", { 0: formatNumber(root.occurrences) }) : ""}
                     {relativeAge(root.created_at)}
                   </div>
                 </div>
-                <button type="button" className="row-action" aria-label="خريطة انتشار الجذر" title="خريطة الانتشار" onClick={() => router.push(`/?mode=heatmap&root=${encodeURIComponent(root.root_text)}`)}>
+                <button type="button" className="row-action" aria-label={tt("خريطة انتشار الجذر")} title={tt("خريطة الانتشار")} onClick={() => router.push(`/?mode=heatmap&root=${encodeURIComponent(root.root_text)}`)}>
                   <Icon name="graph" size={15} />
                 </button>
-                <button type="button" className="row-action" aria-label="إلغاء المتابعة" onClick={() => void companions.unfollowRoot(root.id)}>
+                <button type="button" className="row-action" aria-label={tt("إلغاء المتابعة")} onClick={() => void companions.unfollowRoot(root.id)}>
                   <Icon name="trash" size={15} />
                 </button>
               </div>
@@ -320,7 +328,7 @@ function ThemeDots({
   const live = themeIds.map(themeById).filter((theme): theme is ThemeSummary => theme != null);
   if (live.length === 0) return null;
   return (
-    <span className="qb-theme-dots" aria-label={`المواضيع: ${live.map((theme) => theme.name).join("، ")}`}>
+    <span className="qb-theme-dots" aria-label={tt("المواضيع: {0}", { 0: live.map((theme) => theme.name).join(tt("، ")) })}>
       {live.map((theme) => (
         <span key={theme.id} className="dot" data-hl={theme.color} title={theme.name} />
       ))}
@@ -345,7 +353,7 @@ function MiniVerse({ item, onOpen }: { item: NotebookItem; onOpen: (item: Notebo
       </button>
       {long ? (
         <button type="button" className="more" aria-expanded={expanded} onClick={() => setExpanded((value) => !value)}>
-          {expanded ? "أقلّ" : "الآية كاملة"}
+          {expanded ? tt("أقلّ") : tt("الآية كاملة")}
         </button>
       ) : null}
     </div>
@@ -381,8 +389,8 @@ function ThemeCard({ theme, count, children }: { theme: ThemeSummary; count: num
               setEditing(false);
             }}
           >
-            <input value={name} onChange={(event) => setName(event.target.value)} maxLength={60} aria-label="اسم الموضوع" autoFocus />
-            <button type="submit" className="row-action" aria-label="حفظ الاسم">
+            <input value={name} onChange={(event) => setName(event.target.value)} maxLength={60} aria-label={tt("اسم الموضوع")} autoFocus />
+            <button type="submit" className="row-action" aria-label={tt("حفظ الاسم")}>
               <Icon name="check" size={15} />
             </button>
           </form>
@@ -392,27 +400,27 @@ function ThemeCard({ theme, count, children }: { theme: ThemeSummary; count: num
             {theme.name}
           </span>
         )}
-        <span className="count">{formatNumber(count)} آية</span>
+        <span className="count">{formatNumber(count)} {tt("آية")}</span>
         {!editing ? (
           <button
             type="button"
             className="row-action"
-            aria-label={`لوحة «${theme.name}»`}
-            title="افتح لوحة الموضوع: رتّب الآيات واربط بينها وأضف ملاحظات"
+            aria-label={tt("لوحة «{0}»", { 0: theme.name })}
+            title={tt("افتح لوحة الموضوع: رتّب الآيات واربط بينها وأضف ملاحظات")}
             onClick={() => router.push(`/?mode=board&theme=${theme.id}`)}
           >
             <Icon name="graph" size={14} />
           </button>
         ) : null}
         {!editing ? (
-          <button type="button" className="row-action" aria-label={`تعديل «${theme.name}»`} onClick={() => { setName(theme.name); setEditing(true); }}>
+          <button type="button" className="row-action" aria-label={tt("تعديل «{0}»", { 0: theme.name })} onClick={() => { setName(theme.name); setEditing(true); }}>
             <Icon name="edit" size={14} />
           </button>
         ) : null}
       </div>
       {editing ? (
         <div className="edit">
-          <div className="swatches" role="radiogroup" aria-label="لون الموضوع">
+          <div className="swatches" role="radiogroup" aria-label={tt("لون الموضوع")}>
             {THEME_PALETTE.map((entry) => (
               <button
                 key={entry.key}
@@ -428,23 +436,23 @@ function ThemeCard({ theme, count, children }: { theme: ThemeSummary; count: num
           </div>
           {confirming ? (
             <div className="confirm">
-              <span>حذف الموضوع؟ تبقى آياته محفوظة.</span>
+              <span>{tt("حذف الموضوع؟ تبقى آياته محفوظة.")}</span>
               <button type="button" className="danger" onClick={() => void deleteTheme(theme.id).catch(() => {})}>
-                حذف
+                {tt("حذف")}
               </button>
               <button type="button" onClick={() => setConfirming(false)}>
-                إلغاء
+                {tt("إلغاء")}
               </button>
             </div>
           ) : (
             <button type="button" className="delete" onClick={() => setConfirming(true)}>
-              <Icon name="trash" size={13} /> حذف الموضوع
+              <Icon name="trash" size={13} /> {tt("حذف الموضوع")}
             </button>
           )}
         </div>
       ) : null}
       <div className="body">
-        {count === 0 ? <div className="empty">لا آيات بعد — ظلِّل آية بهذا الموضوع من القراءة.</div> : children}
+        {count === 0 ? <div className="empty">{tt("لا آيات بعد — ظلِّل آية بهذا الموضوع من القراءة.")}</div> : children}
       </div>
     </div>
   );

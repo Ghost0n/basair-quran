@@ -6,13 +6,24 @@ import "./globals.css";
 import "./motion.css";
 import "./glass.css";
 
+import { LOCALE_INIT_SCRIPT } from "@/lib/i18n/init-script";
+import { I18nProvider } from "@/lib/i18n/provider";
+
+import { t } from "@/lib/i18n";
+
 export const metadata: Metadata = {
-  title: "بصائر القرآن",
-  description: "مساحة بحث قرآنية للباحث تجمع بين الاستكشاف والقراءة والسياق.",
+  get title() {
+    return t("بصائر القرآن");
+  },
+  get description() {
+    return t("مساحة بحث قرآنية للباحث تجمع بين الاستكشاف والقراءة والسياق.");
+  },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "بصائر القرآن",
+    get title() {
+    return t("بصائر القرآن");
+  },
     statusBarStyle: "black-translucent",
   },
   icons: {
@@ -28,7 +39,7 @@ const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');i
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ar" dir="rtl">
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         <link
           rel="preload"
@@ -38,10 +49,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           crossOrigin="anonymous"
         />
         <meta name="theme-color" content="#131210" />
+        <script dangerouslySetInnerHTML={{ __html: LOCALE_INIT_SCRIPT }} />
       </head>
       <body suppressHydrationWarning>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-        {children}
+        <I18nProvider>{children}</I18nProvider>
       </body>
     </html>
   );

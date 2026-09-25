@@ -19,6 +19,8 @@ import { PostCard, type PostCardActions } from "./post-card";
 import { sharePostLink } from "./share-link";
 import { useCommunityAccess } from "./use-community-access";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 type Tab = "feed" | "saved" | "mine" | "moderation";
@@ -136,7 +138,7 @@ export function CommunityScreen() {
 
   function requireAccount(): boolean {
     if (access.canWrite) return true;
-    say("سجّل الدخول لتتفاعل مع المجتمع.");
+    say(t("سجّل الدخول لتتفاعل مع المجتمع."));
     return false;
   }
 
@@ -162,7 +164,7 @@ export function CommunityScreen() {
       patchPost(post.id, { saved_by_me: next });
       try {
         await api.setSaved(post.id, next);
-        say(next ? "حُفظ في «المحفوظة»." : "أُزيل من «المحفوظة».");
+        say(next ? t("حُفظ في «المحفوظة».") : t("أُزيل من «المحفوظة»."));
         if (!next && tab === "saved") setPosts((current) => current.filter((entry) => entry.id !== post.id));
       } catch {
         patchPost(post.id, { saved_by_me: post.saved_by_me });
@@ -170,8 +172,8 @@ export function CommunityScreen() {
     },
     async onShare(post) {
       const result = await sharePostLink(post);
-      if (result === "copied") say("نُسخ رابط المنشور.");
-      else if (result === "failed") say("تعذّرت المشاركة.");
+      if (result === "copied") say(t("نُسخ رابط المنشور."));
+      else if (result === "failed") say(t("تعذّرت المشاركة."));
     },
     onComments(post) {
       router.push(`/?mode=post&id=${encodeURIComponent(post.id)}#comments`);
@@ -188,14 +190,14 @@ export function CommunityScreen() {
   };
 
   const tabs: { value: Tab; label: string; icon: "users" | "user" | "gavel" | "bookmark" }[] = [
-    { value: "feed", label: "الموجز", icon: "users" },
-    ...(access.canWrite ? [{ value: "saved" as Tab, label: "المحفوظة", icon: "bookmark" as const }] : []),
-    ...(access.canWrite ? [{ value: "mine" as Tab, label: "منشوراتي", icon: "user" as const }] : []),
-    ...(access.isModerator ? [{ value: "moderation" as Tab, label: "الإشراف", icon: "gavel" as const }] : []),
+    { value: "feed", label: t("الموجز"), icon: "users" },
+    ...(access.canWrite ? [{ value: "saved" as Tab, label: t("المحفوظة"), icon: "bookmark" as const }] : []),
+    ...(access.canWrite ? [{ value: "mine" as Tab, label: t("منشوراتي"), icon: "user" as const }] : []),
+    ...(access.isModerator ? [{ value: "moderation" as Tab, label: t("الإشراف"), icon: "gavel" as const }] : []),
   ];
 
   const surahOptions = useMemo(
-    () => [{ value: "", label: "كل السور" }, ...surahs.map((surah) => ({ value: String(surah.id), label: `${surah.id}. ${surah.name}` }))],
+    () => [{ value: "", label: t("كل السور") }, ...surahs.map((surah) => ({ value: String(surah.id), label: `${surah.id}. ${surah.name}` }))],
     [surahs],
   );
   const filterCount = activeFilterCount(filters);
@@ -205,19 +207,18 @@ export function CommunityScreen() {
     <div className="qb-community qb-page-enter">
       <header className="qb-community-hero">
         <div>
-          <div className="kicker">المجتمع</div>
-          <h1>أبحاث يتشاركها المتدبّرون</h1>
+          <div className="kicker">{t("المجتمع")}</div>
+          <h1>{t("أبحاث يتشاركها المتدبّرون")}</h1>
           <p>
-            كل بحث هنا مرّ بفحص نصوص الآيات ومراجعة وفق <a href="#guidelines">إرشادات المجتمع</a>. القرآن هو الدليل،
-            وما سواه فهمٌ يُناقش.
+            {t("كل بحث هنا مرّ بفحص نصوص الآيات ومراجعة وفق")} <a href="#guidelines">{t("إرشادات المجتمع")}</a>{t(". القرآن هو الدليل، وما سواه فهمٌ يُناقش.")}
           </p>
         </div>
         <button type="button" className="qb-btn primary" onClick={() => router.push("/?mode=notebook&tab=documents")}>
-          <Icon name="plus" size={15} /> شارك بحثاً
+          <Icon name="plus" size={15} /> {t("شارك بحثاً")}
         </button>
       </header>
 
-      <div className="qb-segmented qb-community-tabs" role="tablist" aria-label="المجتمع">
+      <div className="qb-segmented qb-community-tabs" role="tablist" aria-label={t("المجتمع")}>
         {tabs.map((entry) => (
           <button
             key={entry.value}
@@ -233,23 +234,23 @@ export function CommunityScreen() {
       </div>
 
       {listTab ? (
-        <section className="qb-feed-tools qb-glass" aria-label="تصفية المنشورات">
+        <section className="qb-feed-tools qb-glass" aria-label={t("تصفية المنشورات")}>
           <div className="row">
             <label className="search">
               <Icon name="search" size={15} />
               <input
                 type="search"
                 value={filters.q}
-                placeholder="ابحث في العناوين والملخّصات والوسوم…"
-                aria-label="ابحث في المنشورات"
+                placeholder={t("ابحث في العناوين والملخّصات والوسوم…")}
+                aria-label={t("ابحث في المنشورات")}
                 onChange={(event) => setFilter("q", event.target.value)}
               />
             </label>
-            <div className="qb-segmented sort" role="radiogroup" aria-label="الترتيب">
+            <div className="qb-segmented sort" role="radiogroup" aria-label={t("الترتيب")}>
               {(
                 [
-                  ["latest", "الأحدث"],
-                  ["top", "الأبرز"],
+                  ["latest", t("الأحدث")],
+                  ["top", t("الأبرز")],
                 ] as const
               ).map(([value, label]) => (
                 <button
@@ -270,24 +271,24 @@ export function CommunityScreen() {
               aria-expanded={showFilters}
               onClick={() => setShowFilters((value) => !value)}
             >
-              <Icon name="filter" size={15} /> تصفية{filterCount ? <span className="n">{filterCount}</span> : null}
+              <Icon name="filter" size={15} /> {t("تصفية")}{filterCount ? <span className="n">{filterCount}</span> : null}
             </button>
           </div>
 
           {showFilters ? (
             <div className="more-filters">
               <SelectMenu
-                ariaLabel="السورة"
+                ariaLabel={t("السورة")}
                 value={filters.surah ? String(filters.surah) : ""}
                 options={surahOptions}
                 onChange={(value) => setFilter("surah", value ? Number(value) : null)}
               />
-              <div className="qb-segmented" role="radiogroup" aria-label="نوع البحث">
+              <div className="qb-segmented" role="radiogroup" aria-label={t("نوع البحث")}>
                 {(
                   [
-                    [null, "الكل"],
-                    ["strict", "القرآن وحدَه"],
-                    ["tafssir", "تفسيرية"],
+                    [null, t("الكل")],
+                    ["strict", t("القرآن وحدَه")],
+                    ["tafssir", t("تفسيرية")],
                   ] as const
                 ).map(([value, label]) => (
                   <button
@@ -308,13 +309,13 @@ export function CommunityScreen() {
                 aria-pressed={filters.board}
                 onClick={() => setFilter("board", !filters.board)}
               >
-                <Icon name="graph" size={12} /> بلوحة موضوع
+                <Icon name="graph" size={12} /> {t("بلوحة موضوع")}
               </button>
             </div>
           ) : null}
 
           {tags.length ? (
-            <div className="tag-rail" aria-label="وسوم شائعة">
+            <div className="tag-rail" aria-label={t("وسوم شائعة")}>
               {tags.map((entry) => (
                 <button
                   key={entry.tag}
@@ -332,17 +333,17 @@ export function CommunityScreen() {
           {narrowed ? (
             <div className="active-filters">
               {filters.author ? (
-                <FilterPill label={`منشورات ${filters.author.name}`} onClear={() => setFilter("author", null)} />
+                <FilterPill label={t("منشورات {0}", { 0: filters.author.name })} onClear={() => setFilter("author", null)} />
               ) : null}
               {filters.tag ? <FilterPill label={`#${filters.tag}`} onClear={() => setFilter("tag", null)} /> : null}
-              {filters.surah ? <FilterPill label={`سورة ${surahName(filters.surah)}`} onClear={() => setFilter("surah", null)} /> : null}
+              {filters.surah ? <FilterPill label={t("سورة {0}", { 0: surahName(filters.surah) })} onClear={() => setFilter("surah", null)} /> : null}
               {filters.mode ? (
-                <FilterPill label={filters.mode === "tafssir" ? "تفسيرية" : "القرآن وحدَه"} onClear={() => setFilter("mode", null)} />
+                <FilterPill label={filters.mode === "tafssir" ? t("تفسيرية") : t("القرآن وحدَه")} onClear={() => setFilter("mode", null)} />
               ) : null}
-              {filters.board ? <FilterPill label="بلوحة موضوع" onClear={() => setFilter("board", false)} /> : null}
+              {filters.board ? <FilterPill label={t("بلوحة موضوع")} onClear={() => setFilter("board", false)} /> : null}
               {filters.q.trim() ? <FilterPill label={`«${filters.q.trim()}»`} onClear={() => setFilter("q", "")} /> : null}
               <button type="button" className="clear-all" onClick={() => setFilters({ ...EMPTY_FILTERS, sort: filters.sort })}>
-                مسح الكل
+                {t("مسح الكل")}
               </button>
             </div>
           ) : null}
@@ -363,7 +364,7 @@ export function CommunityScreen() {
         <ModerationPanel surahName={surahName} onOpen={open} />
       ) : (
         <div className="qb-feed" aria-busy={loading}>
-          {error ? <div className="qb-empty">تعذّر تحميل المنشورات.</div> : null}
+          {error ? <div className="qb-empty">{t("تعذّر تحميل المنشورات.")}</div> : null}
           {listTab ? (
             <>
               {posts.map((post, index) => (
@@ -374,14 +375,14 @@ export function CommunityScreen() {
                   <Icon name={tab === "saved" ? "bookmark" : "users"} size={28} />
                   <p>
                     {narrowed
-                      ? "لا منشورات تطابق هذه التصفية."
+                      ? t("لا منشورات تطابق هذه التصفية.")
                       : tab === "saved"
-                        ? "لم تحفظ منشوراً بعد. اضغط رمز الحفظ على أي بحث لتجده هنا."
-                        : "لم يُنشر بحث بعد. كن أول من يشارك تدبّره."}
+                        ? t("لم تحفظ منشوراً بعد. اضغط رمز الحفظ على أي بحث لتجده هنا.")
+                        : t("لم يُنشر بحث بعد. كن أول من يشارك تدبّره.")}
                   </p>
                   {narrowed ? (
                     <button type="button" className="qb-btn ghost" onClick={() => setFilters({ ...EMPTY_FILTERS, sort: filters.sort })}>
-                      مسح التصفية
+                      {t("مسح التصفية")}
                     </button>
                   ) : null}
                 </div>
@@ -389,7 +390,7 @@ export function CommunityScreen() {
               <div ref={sentinel} className="qb-feed-sentinel" aria-hidden />
               {cursor ? (
                 <button type="button" className="qb-btn ghost more" onClick={() => void loadFeed(cursor)} disabled={loading}>
-                  المزيد
+                  {t("المزيد")}
                 </button>
               ) : null}
             </>
@@ -400,7 +401,7 @@ export function CommunityScreen() {
               ))}
               {!loading && mine.length === 0 ? (
                 <div className="qb-empty">
-                  <p>لم تنشر بحثاً بعد. افتح بحثاً من الدفتر واضغط «نشر».</p>
+                  <p>{t("لم تنشر بحثاً بعد. افتح بحثاً من الدفتر واضغط «نشر».")}</p>
                 </div>
               ) : null}
             </>
@@ -410,16 +411,16 @@ export function CommunityScreen() {
       )}
 
       <section id="guidelines" className="qb-guidelines qb-glass">
-        <h2>إرشادات المجتمع باختصار</h2>
+        <h2>{t("إرشادات المجتمع باختصار")}</h2>
         <ul>
-          <li><b>القرآن هو الدليل:</b> انقل الآيات بنصّها ومرجعها، ولا تجتزئها من سياقها.</li>
-          <li><b>تدبّر لا فتوى:</b> لا أحكام شرعية بصيغة الإلزام دون مرجع معتبر.</li>
-          <li><b>المحتوى الآلي موسوم:</b> والقراءة التفسيرية تبقى تجريبية بتنبيهها.</li>
-          <li><b>الأدب والإنصاف:</b> ناقش الفكرة لا الشخص، ولا طعن طائفياً.</li>
-          <li><b>الأمانة العلمية:</b> انسب الأقوال لأصحابها واذكر درجة الحديث ومصدره.</li>
+          <li><b>{t("القرآن هو الدليل:")}</b> {t("انقل الآيات بنصّها ومرجعها، ولا تجتزئها من سياقها.")}</li>
+          <li><b>{t("تدبّر لا فتوى:")}</b> {t("لا أحكام شرعية بصيغة الإلزام دون مرجع معتبر.")}</li>
+          <li><b>{t("المحتوى الآلي موسوم:")}</b> {t("والقراءة التفسيرية تبقى تجريبية بتنبيهها.")}</li>
+          <li><b>{t("الأدب والإنصاف:")}</b> {t("ناقش الفكرة لا الشخص، ولا طعن طائفياً.")}</li>
+          <li><b>{t("الأمانة العلمية:")}</b> {t("انسب الأقوال لأصحابها واذكر درجة الحديث ومصدره.")}</li>
         </ul>
         <p className="fine">
-          تمرّ المنشورات بفحوص آلية ثم بمراجعة وكيل آلي استشاري، والقرار الأخير للمشرفين.
+          {t("تمرّ المنشورات بفحوص آلية ثم بمراجعة وكيل آلي استشاري، والقرار الأخير للمشرفين.")}
         </p>
       </section>
     </div>
@@ -430,7 +431,7 @@ function FilterPill({ label, onClear }: { label: string; onClear: () => void }) 
   return (
     <span className="pill">
       <span className="lbl">{label}</span>
-      <button type="button" aria-label={`إزالة ${label}`} onClick={onClear}>
+      <button type="button" aria-label={t("إزالة {0}", { 0: label })} onClick={onClear}>
         <Icon name="close" size={11} />
       </button>
     </span>

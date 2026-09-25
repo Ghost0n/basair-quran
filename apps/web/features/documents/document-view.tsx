@@ -7,12 +7,22 @@ import { useNumerals } from "@/lib/preferences-context";
 
 import { parseBlocks, type Inline } from "./markdown-lite";
 
+import { t } from "@/lib/i18n";
+
 const KIND_LABEL: Record<ResearchSection["kind"], string> = {
   text: "",
-  ayahs: "الآيات",
-  note: "ملاحظة",
-  question: "سؤال",
-  ai_answer: "جواب آلي",
+  get ayahs() {
+    return t("الآيات");
+  },
+  get note() {
+    return t("ملاحظة");
+  },
+  get question() {
+    return t("سؤال");
+  },
+  get ai_answer() {
+    return t("جواب آلي");
+  },
 };
 
 function InlineText({ parts }: { parts: Inline[] }) {
@@ -98,7 +108,7 @@ export function DocumentView({
       })}
       {references.length ? (
         <section className="qb-docview-refs">
-          <h3>المراجع</h3>
+          <h3>{t("المراجع")}</h3>
           <ul>
             {references.map((reference, index) => (
               <li key={index}>

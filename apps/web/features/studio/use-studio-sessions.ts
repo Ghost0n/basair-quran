@@ -21,6 +21,8 @@ import {
   type ClientResearchSettings,
 } from "@/features/research/lib/research-client-settings";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 export type StudioMode = "strict" | "tafssir";
@@ -72,7 +74,7 @@ function createSession(defaults?: {
   sessionCounter += 1;
   return {
     id: `studio-${Date.now()}-${sessionCounter}`,
-    title: "جلسة جديدة",
+    title: t("جلسة جديدة"),
     messages: [],
     mode: defaults?.mode ?? "strict",
     depth: defaults?.depth ?? "balanced",
@@ -83,12 +85,12 @@ function createSession(defaults?: {
 
 function assistantText(response: ResearchAgentResponse): string {
   if (response.status === "needs_clarification") {
-    return response.clarifying_question ?? "ما الزاوية التي تريد التركيز عليها في السؤال؟";
+    return response.clarifying_question ?? t("ما الزاوية التي تريد التركيز عليها في السؤال؟");
   }
   if (response.mode === "tafssir" && response.tafssir?.summary) {
     return response.tafssir.summary;
   }
-  return response.answer ?? "لم تصلني صياغة جواب من الخدمة.";
+  return response.answer ?? t("لم تصلني صياغة جواب من الخدمة.");
 }
 
 /**
@@ -278,7 +280,7 @@ export function useStudioSessions() {
       } catch (err) {
         reportError("studio:submit", err);
         const raw = err instanceof Error ? err.message : "";
-        setError(isTechnicalMessage(raw) ? "تعذّر الاتصال بخدمة الباحث الذكي." : raw);
+        setError(isTechnicalMessage(raw) ? t("تعذّر الاتصال بخدمة الباحث الذكي.") : raw);
       } finally {
         setIsResearching(false);
       }
@@ -353,7 +355,7 @@ export function useStudioSessions() {
         );
         setActiveId(id);
       } catch {
-        setError("تعذّر فتح الجلسة المحفوظة.");
+        setError(t("تعذّر فتح الجلسة المحفوظة."));
       }
     },
     [],

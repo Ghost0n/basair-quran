@@ -17,6 +17,8 @@ import { getVerseSelectionKey, kwicWindow, renderHighlightedVerseText } from "@/
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
+import { t } from "@/lib/i18n";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 /**
@@ -184,15 +186,15 @@ export function ConcordancePanel() {
   }
 
   return (
-    <aside className="qb-side-panel" aria-label="لوحة المطابقة">
+    <aside className="qb-side-panel" aria-label={t("لوحة المطابقة")}>
       <div className="qb-side-head">
         <div>
-          <div className="kicker">المطابقة</div>
-          <h3>{primary ? primary.root : "البحث"}</h3>
+          <div className="kicker">{t("المطابقة")}</div>
+          <h3>{primary ? primary.root : t("البحث")}</h3>
           <div className="meta">
             {primary
-              ? `${formatNumber(totalOccurrences)} موضع، ${formatNumber(totalVerses)} آية`
-              : "اكتب جذراً أو كلمة في شريط الأوامر"}
+              ? t("{0} موضع، {1} آية", { 0: formatNumber(totalOccurrences), 1: formatNumber(totalVerses) })
+              : t("اكتب جذراً أو كلمة في شريط الأوامر")}
           </div>
         </div>
         <div className="qb-side-head-actions">
@@ -200,8 +202,8 @@ export function ConcordancePanel() {
             <button
               type="button"
               className={`close${compact ? " on" : ""}`}
-              title={compact ? "عرض الآيات كاملة" : "عرض مختصر (سطر لكل موضع)"}
-              aria-label={compact ? "عرض الآيات كاملة" : "عرض مختصر"}
+              title={compact ? t("عرض الآيات كاملة") : t("عرض مختصر (سطر لكل موضع)")}
+              aria-label={compact ? t("عرض الآيات كاملة") : t("عرض مختصر")}
               aria-pressed={compact}
               onClick={toggleDensity}
             >
@@ -212,14 +214,14 @@ export function ConcordancePanel() {
             <button
               type="button"
               className="close"
-              title="بحث جديد"
-              aria-label="مسح البحث وبدء بحث جديد"
+              title={t("بحث جديد")}
+              aria-label={t("مسح البحث وبدء بحث جديد")}
               onClick={() => actions.resetSearch()}
             >
               <Icon name="history" size={15} />
             </button>
           ) : null}
-          <button type="button" className="close" title="إغلاق" aria-label="إغلاق لوحة المطابقة" onClick={() => setMode("reading")}>
+          <button type="button" className="close" title={t("إغلاق")} aria-label={t("إغلاق لوحة المطابقة")} onClick={() => setMode("reading")}>
             <Icon name="close" size={16} />
           </button>
         </div>
@@ -231,7 +233,7 @@ export function ConcordancePanel() {
             {state.errorMessage}
             {state.didYouMean ? (
               <div className="did-you-mean">
-                <span>هل تقصد:</span>
+                <span>{t("هل تقصد:")}</span>
                 <button type="button" onClick={actions.applyDidYouMean}>
                   {state.didYouMean.text}
                 </button>
@@ -239,7 +241,7 @@ export function ConcordancePanel() {
             ) : (
               <div className="did-you-mean">
                 <button type="button" onClick={() => void actions.runSearch()}>
-                  <Icon name="history" size={13} /> إعادة المحاولة
+                  <Icon name="history" size={13} /> {t("إعادة المحاولة")}
                 </button>
               </div>
             )}
@@ -260,10 +262,10 @@ export function ConcordancePanel() {
               <Icon name="search" size={26} />
             </div>
             <p className="qb-conc-empty-lead">
-              اكتب جذراً أو كلمة قرآنية في شريط الأوامر بالأعلى ↑ لتبدأ البحث.
+              {t("اكتب جذراً أو كلمة قرآنية في شريط الأوامر بالأعلى ↑ لتبدأ البحث.")}
             </p>
             <div className="qb-conc-watermark" aria-hidden>
-              ب · ص · ر
+              {t("ب · ص · ر")}
             </div>
           </div>
         ) : null}
@@ -272,20 +274,20 @@ export function ConcordancePanel() {
           <div className="qb-root-summary">
             <div className="root-disp">{primary.root}</div>
             <div className="root-gloss">
-              {primary.search_type === "root" ? "جذر قرآني" : "بحث لفظي"} · {results.length > 1 ? `${formatNumber(results.length)} مجموعة` : "مجموعة واحدة"}
+              {primary.search_type === "root" ? t("جذر قرآني") : t("بحث لفظي")} · {results.length > 1 ? t("{0} مجموعة", { 0: formatNumber(results.length) }) : t("مجموعة واحدة")}
             </div>
             <div className="root-stats">
               <div className="s">
                 <div className="v">{formatNumber(totalOccurrences)}</div>
-                <div className="l">موضع</div>
+                <div className="l">{t("موضع")}</div>
               </div>
               <div className="s">
                 <div className="v">{formatNumber(totalVerses)}</div>
-                <div className="l">آية</div>
+                <div className="l">{t("آية")}</div>
               </div>
               <div className="s">
                 <div className="v">{formatNumber(surahCount)}</div>
-                <div className="l">سورة</div>
+                <div className="l">{t("سورة")}</div>
               </div>
             </div>
             <button
@@ -295,7 +297,7 @@ export function ConcordancePanel() {
               disabled={rootFollowed}
             >
               <Icon name={rootFollowed ? "check" : "tree"} size={12} />
-              {rootFollowed ? "جذر مُتابَع" : "تابِع هذا الجذر"}
+              {rootFollowed ? t("جذر مُتابَع") : t("تابِع هذا الجذر")}
             </button>
             <button
               type="button"
@@ -304,7 +306,7 @@ export function ConcordancePanel() {
               onClick={() => router.push(`/?mode=heatmap&root=${encodeURIComponent(primary.root)}`)}
             >
               <Icon name="graph" size={12} />
-              خريطة انتشار الجذر
+              {t("خريطة انتشار الجذر")}
             </button>
           </div>
         ) : null}
@@ -329,7 +331,7 @@ export function ConcordancePanel() {
                 <div
                   key={selectionKey}
                   className={`qb-verse-row${isSelected ? " selected" : ""}${compact ? " compact" : ""}`}
-                  title={compact ? `سورة ${verse.surah}` : undefined}
+                  title={compact ? t("سورة {0}", { 0: verse.surah }) : undefined}
                   style={{ "--i": Math.min(verseIndex, 8) } as CSSProperties}
                   role="button"
                   tabIndex={0}
@@ -343,16 +345,16 @@ export function ConcordancePanel() {
                   }}
                 >
                   <div className="vmeta">
-                    <span className="surah">سورة {verse.surah}</span>
+                    <span className="surah">{t("سورة")} {verse.surah}</span>
                     <span className="ayah-ref">
                       {formatNumber(verse.surah_id)}:{formatNumber(verse.ayah)}
                     </span>
                     <button
                       type="button"
                       className={`pin${isPinned ? " on" : ""}`}
-                      aria-label={isPinned ? "مثبّت في الدفتر" : "ثبّت في الدفتر"}
+                      aria-label={isPinned ? t("مثبّت في الدفتر") : t("ثبّت في الدفتر")}
                       aria-pressed={isPinned}
-                      title="ثبّت في الدفتر"
+                      title={t("ثبّت في الدفتر")}
                       onClick={(event) => {
                         event.stopPropagation();
                         if (!isPinned) flyToNotebook(event.currentTarget, verse.text.trim());
@@ -379,7 +381,7 @@ export function ConcordancePanel() {
                   disabled={result.page <= 1}
                   onClick={() => void actions.loadResultPage(result.result_key, result.page - 1)}
                 >
-                  السابق
+                  {t("السابق")}
                 </button>
                 <span className="count" dir="ltr">
                   {formatNumber(result.page)} / {formatNumber(result.total_pages)}
@@ -389,7 +391,7 @@ export function ConcordancePanel() {
                   disabled={result.page >= result.total_pages}
                   onClick={() => void actions.loadResultPage(result.result_key, result.page + 1)}
                 >
-                  التالي
+                  {t("التالي")}
                 </button>
               </div>
             ) : null}
