@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { APP_MODE } from "@/lib/app-mode/config";
 import { installFetchRouter } from "@/lib/app-mode/fetch-router";
+import { startAccountSync } from "@/lib/app-mode/sync";
 
 import { Onboarding } from "./onboarding";
 
@@ -32,6 +33,10 @@ function AppModeGate({ children }: { children: ReactNode }) {
       setOnboarded(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (onboarded) startAccountSync();
+  }, [onboarded]);
 
   if (onboarded === null) return null;
   if (!onboarded) {

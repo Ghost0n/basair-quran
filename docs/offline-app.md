@@ -54,6 +54,31 @@ a connection. Changing the language later in Settings works the same way.
    «يتطلّب هذا القسم اتصالًا بالإنترنت» instead of failing, and the account
    menu shows the last signed-in account.
 
+## Account sync
+
+The device is offline-first: the notebook, themes and boards, research
+sessions, followed roots, research documents and preferences are always read
+and written on the device. When online and signed in, they are reconciled
+with the account (`packages/offline-engine/src/sync.ts`, scheduled by
+`apps/web/lib/app-mode/sync.ts`) through the account's ordinary routes:
+
+1. **Push** what changed here: deletions of rows the account has, new rows
+   (the account's ids are recorded), edits. Theme references in saved ayahs
+   are translated to the account's theme ids.
+2. **Pull** the account: rows from other devices arrive, rows deleted
+   elsewhere go, edits land (theme references translated back).
+
+It runs at start, when the connection returns, a few seconds after a change
+on the device, right after sign-in, and every five minutes; a failed run
+keeps what it already sent and retries on the next trigger. Conflicts: the
+last device to sync wins, per row.
+
+- Data saved on the device before signing in is uploaded to the account that
+  signs in (the app's equivalent of the web's guest → account merge).
+- Signing out removes the account's data from the device; anything created
+  while signed out stays. Another account signing in never sees the previous
+  account's synced data.
+
 ## Code map
 
 | Path | Role |
@@ -66,6 +91,7 @@ a connection. Changing the language later in Settings works the same way.
 | `apps/web/lib/app-mode/packs.ts` | catalogue, download, SHA-256 check, install / update / remove |
 | `apps/web/lib/app-mode/language.ts` | one language choice → interface + translation + preferences |
 | `apps/web/lib/app-mode/audio.ts` | recitations downloaded per surah, played from the device |
+| `apps/web/lib/app-mode/sync.ts` | when account sync runs (the algorithm is in `packages/offline-engine/src/sync.ts`) |
 | `apps/web/features/app-mode/` | onboarding, the Downloads card, the online-only notice |
 | `apps/web/app/**/*.app.tsx` | the app build's route files (the static shell layout) |
 
@@ -144,6 +170,10 @@ pnpm --filter @q-basair/mobile open          # opens Android Studio
 - `packages/offline-engine`: the parity suite — the device answers the same
   JSON as the server for ~4,000 recorded Quran requests and a scripted
   user-data session (`docs/offline-engine.md`).
+- `packages/offline-engine/test/sync.test.ts`: two devices and one account —
+  offline saves reach the other device with theme references intact, edits
+  and deletions travel both ways, a quiet sync writes nothing, accounts never
+  mix, a failed sync leaves no duplicates.
 - `apps/web/lib/app-mode/*.test.ts`: pack install / checksum refusal / removal
   / language install / updates, and the fetch router (device vs server vs
   offline, bearer token).

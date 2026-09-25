@@ -21,7 +21,9 @@ themes and boards, research documents (with quoted-ayah verification and the
 publication audit), research sessions, followed roots and preferences — from
 a local JSON store (`src/local-store.ts`, ported from `app_data_service.py`
 and `research_document_service.py`): same validation, limits, ordering and
-shapes, plus tombstones for account sync.
+shapes. Changed rows are marked and deletions leave tombstones, which
+`src/sync.ts` (`syncAccount`) uses to reconcile the device with the account
+(see "Account sync" in `docs/offline-app.md`).
 
 Everything else — accounts, the research agent, Community — is not answered
 on the device: `OfflineApi.handle()` returns `null` and the app decides (the

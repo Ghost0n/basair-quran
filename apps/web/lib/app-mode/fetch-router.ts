@@ -17,6 +17,47 @@ const TOKEN_KEY = "qb.auth.token";
 const SESSION_KEY = "qb.auth.session";
 
 let token: string | null = null;
+let nativeFetchRef: typeof fetch | null = null;
+
+type AuthListener = (session: { authenticated?: boolean; user?: { id: number } | null } | null) => void;
+const localWriteListeners = new Set<() => void>();
+const authListeners = new Set<AuthListener>();
+
+/** Called after the user's data changed on the device (account sync schedules a push). */
+export function onLocalWrite(listener: () => void): () => void {
+  localWriteListeners.add(listener);
+  return () => localWriteListeners.delete(listener);
+}
+
+/** Called on sign-in (the session) and sign-out (null). */
+export function onAuthChange(listener: AuthListener): () => void {
+  authListeners.add(listener);
+  return () => authListeners.delete(listener);
+}
+
+/** The account last seen on this device (offline too), or null. */
+export async function cachedSession(): Promise<{ authenticated?: boolean; user?: { id: number } | null } | null> {
+  const { platform } = await appRuntime();
+  const raw = await platform.kv.get(SESSION_KEY);
+  return raw ? JSON.parse(raw) : null;
+}
+
+/** One JSON request to the account's API (account sync). */
+export async function remoteRequest(method: string, path: string, body?: unknown): Promise<{ status: number; body: any }> { // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (!REMOTE_ORIGIN || !nativeFetchRef) throw new Error("no server configured");
+  await loadToken();
+  const headers: Record<string, string> = { Accept: "application/json" };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const response = await nativeFetchRef(`${REMOTE_ORIGIN}${path}`, {
+    method,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+    credentials: "omit",
+  });
+  const text = await response.text();
+  return { status: response.status, body: text ? JSON.parse(text) : null };
+}
 let tokenLoaded: Promise<void> | null = null;
 
 async function loadToken(): Promise<void> {
@@ -82,11 +123,13 @@ async function remote(nativeFetch: typeof fetch, path: string, method: string, i
       await remember(TOKEN_KEY, token);
     }
     await remember(SESSION_KEY, JSON.stringify({ ...session, token: undefined }));
+    if (path !== "/api/auth/session") authListeners.forEach((listener) => listener(session as never));
   }
   if (path === "/api/auth/logout" || (path === "/api/auth/session" && response.status === 401)) {
     token = null;
     await remember(TOKEN_KEY, null);
     await remember(SESSION_KEY, null);
+    authListeners.forEach((listener) => listener(null));
   }
   return response;
 }
@@ -97,6 +140,7 @@ export function installFetchRouter(): void {
   if (installed || typeof window === "undefined") return;
   installed = true;
   const nativeFetch = window.fetch.bind(window);
+  nativeFetchRef = nativeFetch;
 
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const href = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
@@ -109,7 +153,10 @@ export function installFetchRouter(): void {
     if (api.handles(method, url.pathname)) {
       try {
         const answer = await api.handle({ method, url: path, body: await readBody(input, init) });
-        if (answer) return json(answer.status, answer.body, answer.headers);
+        if (answer) {
+          if (method !== "GET" && answer.status < 300) localWriteListeners.forEach((listener) => listener());
+          return json(answer.status, answer.body, answer.headers);
+        }
       } catch (error) {
         console.error("offline engine", error);
         return json(500, { detail: "internal error" });

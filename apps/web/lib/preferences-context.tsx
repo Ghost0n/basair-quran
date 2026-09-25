@@ -83,19 +83,24 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    api
-      .getPreferences()
-      .then((loaded) => {
-        if (!cancelled) setAccount(loaded);
-      })
-      .catch(() => {
-        /* keep defaults if the store is unreachable */
-      })
-      .finally(() => {
-        if (!cancelled) setReady(true);
-      });
+    const load = () =>
+      api
+        .getPreferences()
+        .then((loaded) => {
+          if (!cancelled) setAccount(loaded);
+        })
+        .catch(() => {
+          /* keep defaults if the store is unreachable */
+        })
+        .finally(() => {
+          if (!cancelled) setReady(true);
+        });
+    void load();
+    // The standalone app: preferences synced from the account (lib/app-mode/sync.ts).
+    window.addEventListener("qb:data-synced", load);
     return () => {
       cancelled = true;
+      window.removeEventListener("qb:data-synced", load);
     };
   }, []);
 
