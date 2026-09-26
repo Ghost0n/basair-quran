@@ -122,6 +122,32 @@ export class PackManager {
     await this.platform.kv.set(INSTALLED_KEY, JSON.stringify(next));
   }
 
+  /**
+   * Make the registry match what the device actually holds: a pack whose data
+   * is gone (an app update replaced the core and the kept copy was purged by
+   * the system) is marked not installed, so it is offered for download again.
+   */
+  async reconcile(): Promise<string[]> {
+    const installed = await this.installed();
+    const missing: string[] = [];
+    for (const pack of Object.values(installed)) {
+      let present = true;
+      if (pack.kind === "narration" && pack.mushaf_id !== undefined) {
+        present = (await this.quranDb.all("SELECT 1 AS found FROM ayahs WHERE mushaf_id = ? LIMIT 1", [pack.mushaf_id])).length > 0;
+      } else if (pack.kind === "translation" && pack.key) {
+        present = (await this.translationsDb.all("SELECT 1 AS found FROM translations WHERE key = ?", [pack.key])).length > 0;
+      } else if (pack.kind === "interface" && pack.language) {
+        present = (await this.platform.kv.get(interfaceKey(pack.language))) !== null;
+      }
+      if (!present) {
+        missing.push(pack.id);
+        delete installed[pack.id];
+      }
+    }
+    if (missing.length) await this.setInstalled(installed);
+    return missing;
+  }
+
   /** Installed packs whose catalogue version changed (a corrected text, a new translation revision). */
   async updates(): Promise<PackEntry[]> {
     const [manifest, installed] = await Promise.all([this.catalogue(), this.installed()]);

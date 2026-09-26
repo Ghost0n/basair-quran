@@ -1,4 +1,4 @@
-"""Draw the Android launcher icons and splash screens (committed PNGs).
+"""Draw the Android and iOS launcher icons and splash screens (committed PNGs).
 
 The mark is ۞ — the eight-pointed star that divides the Quran into hizbs — in
 the app's gold on its dark background (apps/web/app/tokens.css). Drawn with
@@ -13,7 +13,9 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-RES = Path(__file__).resolve().parents[1] / "android" / "app" / "src" / "main" / "res"
+MOBILE = Path(__file__).resolve().parents[1]
+RES = MOBILE / "android" / "app" / "src" / "main" / "res"
+IOS_ASSETS = MOBILE / "ios" / "App" / "App" / "Assets.xcassets"
 BG = (19, 18, 16, 255)        # --bg
 GOLD = (212, 175, 55, 255)    # --gold-400
 GOLD_SOFT = (212, 175, 55, 70)
@@ -84,6 +86,17 @@ def main() -> None:
         canvas.alpha_composite(render(side, background=False, mark=0.9), ((width - side) // 2, (height - side) // 2))
         canvas.convert("RGB").save(splash)
     print(f"icons and splash screens → {RES}")
+
+    if IOS_ASSETS.exists():
+        # iOS masks the corners itself and refuses an icon with transparency.
+        render(1024, background=True).convert("RGB").save(IOS_ASSETS / "AppIcon.appiconset" / "AppIcon-512@2x.png")
+        for splash in sorted((IOS_ASSETS / "Splash.imageset").glob("*.png")):
+            size = Image.open(splash).size[0]
+            canvas = Image.new("RGBA", (size, size), BG)
+            side = round(size * 0.18)
+            canvas.alpha_composite(render(side, background=False, mark=0.9), ((size - side) // 2, (size - side) // 2))
+            canvas.convert("RGB").save(splash)
+        print(f"iOS icon and splash screens → {IOS_ASSETS}")
 
 
 if __name__ == "__main__":

@@ -79,8 +79,8 @@ This document freezes the backend contract that the future frontend migration wi
   (`QBASAIR_OFFLINE_PACKS_PATH`, default `build/offline/`): `manifest.json` (`Cache-Control:
   no-cache`), `narration-<id>.db`, `translation-<slug>.db`, `interface-<code>.json`
   (`public, max-age=86400`). Other names are `404`. Open without sign-in.
-- The app calls the server from its own origin (`https://localhost` on Android): add it to
-  `QBASAIR_CORS_ORIGINS`. It authenticates with `Authorization: Bearer <token>` (the `token` of
+- The app calls the server from its own origin (`https://localhost` on Android,
+  `capacitor://localhost` on iOS): add both to `QBASAIR_CORS_ORIGINS`. It authenticates with `Authorization: Bearer <token>` (the `token` of
   `AuthSessionResponse`), never cookies.
 
 ## Text count notes (reader «تحديد» → «إحصاء»)

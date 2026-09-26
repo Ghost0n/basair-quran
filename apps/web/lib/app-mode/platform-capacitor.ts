@@ -1,5 +1,5 @@
 /**
- * Android: native SQLite (@capacitor-community/sqlite) for the databases,
+ * Android and iOS: native SQLite (@capacitor-community/sqlite) for the databases,
  * the app's private storage (@capacitor/filesystem) for settings, the user's
  * data, installed packs and recitations.
  *
@@ -19,6 +19,13 @@ import { type DeviceDatabase, type DevicePlatform, type FileStore, type KeyValue
 import { packStatements } from "./pack-reader";
 
 const DATA = Directory.Data;
+/**
+ * Downloaded packs and recitations can always be fetched again, so on iOS they
+ * live in Library/Caches, which iCloud does not back up (App Store rule). The
+ * system may purge it: recitations then stream again, and the pack registry
+ * reconciles with the database at start (PackManager.reconcile).
+ */
+const BULK = Capacitor.getPlatform() === "ios" ? Directory.Cache : Directory.Data;
 const CORE_VERSION_KEY = "qb.core.version";
 const sqlite = new SQLiteConnection(CapacitorSQLite);
 
@@ -37,8 +44,8 @@ function fromBase64(text: string): Uint8Array {
   return bytes;
 }
 
-const exists = (path: string) =>
-  Filesystem.stat({ path, directory: DATA }).then(
+const exists = (path: string, directory: Directory) =>
+  Filesystem.stat({ path, directory }).then(
     () => true,
     () => false,
   );
@@ -62,13 +69,13 @@ const kv: KeyValue = {
   },
 };
 
-async function listFiles(dir: string): Promise<{ path: string; size: number }[]> {
+async function listFiles(dir: string, directory: Directory = BULK): Promise<{ path: string; size: number }[]> {
   try {
-    const { files } = await Filesystem.readdir({ path: dir, directory: DATA });
+    const { files } = await Filesystem.readdir({ path: dir, directory });
     const out: { path: string; size: number }[] = [];
     for (const file of files) {
       const path = `${dir}/${file.name}`;
-      if (file.type === "directory") out.push(...(await listFiles(path)));
+      if (file.type === "directory") out.push(...(await listFiles(path, directory)));
       else out.push({ path, size: file.size });
     }
     return out;
@@ -79,22 +86,22 @@ async function listFiles(dir: string): Promise<{ path: string; size: number }[]>
 
 const files: FileStore = {
   async write(path, bytes) {
-    await Filesystem.writeFile({ path, directory: DATA, data: toBase64(bytes), recursive: true });
+    await Filesystem.writeFile({ path, directory: BULK, data: toBase64(bytes), recursive: true });
   },
   async url(path) {
-    if (!(await exists(path))) return null;
-    const { uri } = await Filesystem.getUri({ path, directory: DATA });
+    if (!(await exists(path, BULK))) return null;
+    const { uri } = await Filesystem.getUri({ path, directory: BULK });
     return Capacitor.convertFileSrc(uri);
   },
   async remove(prefix) {
     const dir = prefix.endsWith("/") ? prefix.slice(0, -1) : prefix.slice(0, prefix.lastIndexOf("/"));
     for (const file of await listFiles(dir)) {
-      if (file.path.startsWith(prefix)) await Filesystem.deleteFile({ path: file.path, directory: DATA }).catch(() => undefined);
+      if (file.path.startsWith(prefix)) await Filesystem.deleteFile({ path: file.path, directory: BULK }).catch(() => undefined);
     }
   },
   async download(url, path) {
-    await Filesystem.downloadFile({ url, path, directory: DATA, recursive: true });
-    return (await Filesystem.stat({ path, directory: DATA })).size;
+    await Filesystem.downloadFile({ url, path, directory: BULK, recursive: true });
+    return (await Filesystem.stat({ path, directory: BULK })).size;
   },
   async size(prefix) {
     const dir = prefix.endsWith("/") ? prefix.slice(0, -1) : prefix.slice(0, prefix.lastIndexOf("/"));
@@ -143,13 +150,13 @@ class NativeDatabase implements DeviceDatabase {
 
   async removePack(id: string, statements: { sql: string; params?: SqlValue[] }[]): Promise<void> {
     await this.transaction(statements);
-    await Filesystem.deleteFile({ path: this.packPath(id), directory: DATA }).catch(() => undefined);
+    await Filesystem.deleteFile({ path: this.packPath(id), directory: BULK }).catch(() => undefined);
   }
 
   /** Apply every kept pack again (after the core was replaced). */
   async replayPacks(): Promise<void> {
     for (const file of await listFiles(`packs/${this.scope}`)) {
-      const { data } = await Filesystem.readFile({ path: file.path, directory: DATA });
+      const { data } = await Filesystem.readFile({ path: file.path, directory: BULK });
       const { statements } = await packStatements(fromBase64(typeof data === "string" ? data : await blobToBase64(data)));
       await this.transaction(statements);
     }
@@ -171,7 +178,7 @@ async function bundledCoreVersion(): Promise<string> {
 
 export async function createCapacitorPlatform(): Promise<DevicePlatform> {
   return {
-    name: "android",
+    name: Capacitor.getPlatform() === "ios" ? "ios" : "android",
     kv,
     files,
     async openQuran() {

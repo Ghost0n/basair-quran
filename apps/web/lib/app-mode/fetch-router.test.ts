@@ -21,7 +21,7 @@ vi.mock("./runtime", () => ({
 
 type Call = { url: string; init?: RequestInit };
 
-async function setup(online = true) {
+async function setup(online = true, origin = "https://localhost") {
   vi.resetModules();
   process.env.NEXT_PUBLIC_REMOTE_ORIGIN = "https://basair.example";
   const calls: Call[] = [];
@@ -30,7 +30,9 @@ async function setup(online = true) {
     if (String(url).endsWith("/api/auth/login")) return new Response(JSON.stringify({ authenticated: true, token: "tok-1" }), { status: 200 });
     return new Response(JSON.stringify({ remote: true }), { status: 200 });
   });
-  const win = { fetch: nativeFetch, location: { href: "https://localhost/", origin: "https://localhost" } };
+  const base = new URL(`${origin}/`);
+  // WebKit reports a custom scheme's page origin as "capacitor://localhost" while URL() says "null".
+  const win = { fetch: nativeFetch, location: { href: base.href, origin, protocol: base.protocol, host: base.host } };
   vi.stubGlobal("window", win);
   vi.stubGlobal("navigator", { onLine: online });
   const { installFetchRouter } = await import("./fetch-router");
@@ -76,5 +78,12 @@ describe("the app's /api fetch router", () => {
     await fetch("https://everyayah.com/data/x/001001.mp3");
     await fetch("/offline/manifest.json");
     expect(calls.map((call) => call.url)).toEqual(["https://everyayah.com/data/x/001001.mp3", "/offline/manifest.json"]);
+  });
+
+  test("iOS: the app's capacitor:// origin is recognised, so /api stays on the device", async () => {
+    const { fetch, calls } = await setup(false, "capacitor://localhost");
+    const response = await fetch("/api/search-v2?q=x");
+    expect(await response.json()).toEqual({ local: "/api/search-v2?q=x" });
+    expect(calls).toEqual([]);
   });
 });

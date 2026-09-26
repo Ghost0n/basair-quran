@@ -45,7 +45,9 @@ export function appRuntime(): Promise<AppRuntime> {
         write: (text) => platform.kv.set(USER_DATA_KEY, text),
       };
       const api = new OfflineApi({ quran: quranDb, translations: translationsDb, userData });
-      return { platform, quranDb, translationsDb, api, packs: new PackManager(platform, quranDb, translationsDb, api) };
+      const packs = new PackManager(platform, quranDb, translationsDb, api);
+      await packs.reconcile().catch(() => []);
+      return { platform, quranDb, translationsDb, api, packs };
     })();
     runtime.catch(() => {
       runtime = null; // let a later call retry (e.g. after a storage error)

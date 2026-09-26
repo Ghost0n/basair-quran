@@ -145,7 +145,10 @@ export function installFetchRouter(): void {
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const href = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
     const url = new URL(href, window.location.href);
-    if (url.origin !== window.location.origin || !url.pathname.startsWith("/api/")) return nativeFetch(input, init);
+    // Compare scheme + host, not `origin`: iOS serves the app from capacitor://localhost,
+    // and a custom scheme's URL origin is the opaque "null".
+    const sameOrigin = url.protocol === window.location.protocol && url.host === window.location.host;
+    if (!sameOrigin || !url.pathname.startsWith("/api/")) return nativeFetch(input, init);
 
     const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
     const path = url.pathname + url.search;

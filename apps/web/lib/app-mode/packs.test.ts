@@ -172,4 +172,14 @@ describe("PackManager", () => {
     await manager.catalogue(true);
     expect((await manager.updates()).map((pack) => pack.id)).toEqual(["translation-fr"]);
   });
+
+  test("reconcile forgets packs whose data is gone, so they can be downloaded again", async () => {
+    const { manager, quran, manifest } = setup(files());
+    await manager.install(manifest.packs[0]);
+    await manager.install(manifest.packs[2]);
+    expect(await manager.reconcile()).toEqual([]);
+    quran.run("DELETE FROM ayahs WHERE mushaf_id = 3"); // e.g. the core was replaced and the kept copy purged
+    expect(await manager.reconcile()).toEqual(["narration-3"]);
+    expect(Object.keys(await manager.installed())).toEqual(["interface-fr"]);
+  });
 });
