@@ -53,7 +53,7 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   Bengali, Hindi, Chinese, Japanese, Korean and Swahili, with RTL/LTR
   switching and per-script fonts. Non-Arabic dictionaries are machine-drafted (marked β) pending
   native review. Quran text is never translated by this layer (see `docs/i18n.md`).
-- Offline data packs for the standalone Android app: `python scripts/build_offline_packs.py --verify`
+- Offline data packs for the standalone Android and iOS app: `python scripts/build_offline_packs.py --verify`
   splits the data into a ~53 MB core (the Madani mushaf, Ḥafṣ, with every search index) and
   downloadable narration, translation, interface and reciter packs, and proves the split changes no
   search or reader answer (see `docs/offline-packs.md`).
@@ -61,7 +61,7 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   routes ported to TypeScript, held to the server's exact JSON by a parity suite —
   `python scripts/offline_parity.py && pnpm --filter @q-basair/offline-engine test`
   (see `docs/offline-engine.md`).
-- Standalone Android app, offline-first: the same web app built as a static bundle
+- Standalone Android and iOS app, offline-first: the same web app built as a static bundle
   (`pnpm --filter @q-basair/web build:app`) that answers the Quran and the user's data on the device,
   starts with a language choice (interface + translation in one), and downloads narrations,
   translations, languages and recitations on demand (see `docs/offline-app.md`).

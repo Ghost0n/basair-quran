@@ -1,6 +1,6 @@
-# The standalone app (offline-first, Android)
+# The standalone app (offline-first, Android and iOS)
 
-The Android app is **the same web app**, built as a static bundle that runs
+The Android and iOS app is **the same web app**, built as a static bundle that runs
 on the phone without a server. The web app is unchanged and keeps using the
 FastAPI server; both are released from this repository.
 
@@ -86,7 +86,7 @@ last device to sync wins, per row.
 | `apps/web/lib/app-mode/config.ts` | `APP_MODE`, `REMOTE_ORIGIN`, `PACKS_URL` (build-time constants) |
 | `apps/web/lib/app-mode/runtime.ts` | opens the device databases once and wires the engine, local store and packs |
 | `apps/web/lib/app-mode/platform.ts` | the device contract (databases, key-value, files) |
-| `apps/web/lib/app-mode/platform-capacitor.ts` | Android: native SQLite, Preferences, Filesystem |
+| `apps/web/lib/app-mode/platform-capacitor.ts` | Android and iOS: native SQLite, Filesystem |
 | `apps/web/lib/app-mode/platform-web.ts` | a desktop browser preview: sql.js + IndexedDB |
 | `apps/web/lib/app-mode/packs.ts` | catalogue, download, SHA-256 check, install / update / remove |
 | `apps/web/lib/app-mode/language.ts` | one language choice → interface + translation + preferences |
@@ -119,11 +119,12 @@ Server side: `GET /api/offline/{name}` serves `build/offline/`
 (`QBASAIR_OFFLINE_PACKS_PATH`), and the app's origin must be in
 `QBASAIR_CORS_ORIGINS` (see `docs/api-contract.md`).
 
-## Android
+## Android and iOS
 
 `apps/mobile` is the Capacitor shell (`app.qbasair.quran`, "Basair"): its
-`android/` project is committed; the web assets it serves are copied from
-`apps/web/out` by `cap sync` and are not.
+`android/` and `ios/` projects are committed; the web assets they serve are
+copied from `apps/web/out` by `cap sync` and are not. Both platforms run the
+same code (`apps/web/lib/app-mode/platform-capacitor.ts`).
 
 - **Databases:** the bundled `core.db` is copied into the app's databases on
   first launch (native SQLite). `assets/databases/core.version` records its
@@ -134,35 +135,64 @@ Server side: `GET /api/offline/{name}` serves `build/offline/`
 - **Storage:** settings, the user's data, kept packs and recitations are
   files in the app's private storage (`@capacitor/filesystem`); recitations
   are downloaded natively (no CORS) and played from the device.
+- **iOS specifics:**
+  - The app is served from `capacitor://localhost` (Android:
+    `https://localhost`); the server must allow both origins.
+  - Nothing re-downloadable is backed up to iCloud (an App Store rule): the
+    databases live in `Library/CapacitorDatabase` (excluded from backup), and
+    packs and recitations in `Library/Caches`. The system may purge that
+    folder: recitations then stream again, and at start the pack registry is
+    reconciled with the database (`PackManager.reconcile`), so a purged pack
+    is offered for download again.
+  - Recitations keep playing with the screen locked (`UIBackgroundModes:
+    audio`); the app declares no non-exempt encryption (HTTPS only).
 - **Fonts:** the mushaf fonts ship in the bundle; the interface fonts
   (Amiri, Cairo) are downloaded into it at build time.
 - **Icons and splash:** `python apps/mobile/scripts/make_icons.py` draws them
-  (the ۞ mark in gold on the app's dark background) into `android/app/src/main/res`.
+  (the ۞ mark in gold on the app's dark background) into
+  `android/app/src/main/res` and `ios/App/App/Assets.xcassets`.
 
 ### Building
 
-CI: `.github/workflows/android.yml` runs on changes to the app on `develop` /
-`main`, on `android-v*` tags and on demand. It builds the Quran data (fonts,
-`quran.db`, the Madani layout), the offline core and packs (verified), the
-app bundle, then `assembleDebug`, `assembleRelease` and `bundleRelease`, and
-uploads the APKs, the AAB and the packs as artifacts. Versions: `versionCode`
-is the run number, `versionName` the tag (`android-v1.2.0`) or `0.1.<run>`.
+CI: `.github/workflows/mobile.yml` runs on changes to the app on `develop` /
+`main`, on `mobile-v*` tags and on demand. One job builds the Quran data
+(fonts, `quran.db`, the Madani layout), the offline core and packs
+(verified) and the app bundle; then, from that same bundle:
 
-- Signing: repository secrets `ANDROID_KEYSTORE_BASE64` (the `.jks`, base64),
+- **Android** (Linux): `assembleDebug`, `assembleRelease`, `bundleRelease` →
+  the APKs and the AAB.
+- **iOS** (macOS, Xcode): a simulator build (`Basair-simulator.zip`: unzip and
+  drag `App.app` onto a running iOS Simulator), and a device build — a signed
+  `.ipa` when the Apple secrets exist, otherwise `Basair-unsigned.ipa` (to be
+  re-signed before it installs). On a `mobile-v*` tag the signed build is
+  uploaded to App Store Connect (TestFlight).
+
+Versions: the build number is the run number; the version is the tag
+(`mobile-v1.2.0`) or `0.1.<run>`.
+
+- Android signing: repository secrets `ANDROID_KEYSTORE_BASE64` (the `.jks`, base64),
   `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD`.
   Without them the release outputs are unsigned; the debug APK installs as is.
+- iOS signing: an Apple Developer account, an App Store Connect API key
+  ("App Manager" role) and the app's bundle id `app.qbasair.quran` registered
+  (App Store Connect → Apps → new app). Repository secrets `APPLE_TEAM_ID`,
+  `APPSTORE_API_KEY_ID`, `APPSTORE_API_ISSUER_ID` and `APPSTORE_API_KEY_P8`
+  (the `.p8` file's contents). Xcode's cloud-managed signing creates the
+  certificate and profile itself — no certificate or profile to export.
 - The server: repository variable `QBASAIR_REMOTE_ORIGIN` (e.g.
   `https://basair.example`), which must serve `/api/offline/*` (publish the
   `basair-offline-packs` artifact to `QBASAIR_OFFLINE_PACKS_PATH`) and list
-  `https://localhost` in `QBASAIR_CORS_ORIGINS`.
+  `https://localhost` (Android) and `capacitor://localhost` (iOS) in
+  `QBASAIR_CORS_ORIGINS`.
 
-Locally (Android Studio + SDK 36, JDK 21):
+Locally (Android: Android Studio + SDK 36, JDK 21; iOS: a Mac with Xcode 16+):
 
 ```bash
 python scripts/build_offline_packs.py
 pnpm --filter @q-basair/web build:app
-pnpm --filter @q-basair/mobile sync          # cap sync android
-pnpm --filter @q-basair/mobile open          # opens Android Studio
+pnpm --filter @q-basair/mobile sync               # cap sync (both platforms)
+pnpm --filter @q-basair/mobile open               # Android Studio
+pnpm --filter @q-basair/mobile exec cap open ios  # Xcode (pick your team under Signing, then Run)
 ```
 
 ## Tests

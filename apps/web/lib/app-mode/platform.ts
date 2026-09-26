@@ -1,8 +1,8 @@
 import type { SqlDriver, SqlValue } from "@q-basair/offline-engine";
 
 /**
- * What the app needs from the device. Android implements it with native SQLite
- * and the filesystem (platform-capacitor.ts); a desktop browser previewing the
+ * What the app needs from the device. Android and iOS implement it with native
+ * SQLite and the filesystem (platform-capacitor.ts); a desktop browser previewing the
  * app build uses sql.js and IndexedDB (platform-web.ts).
  */
 export interface DeviceDatabase extends SqlDriver {
@@ -34,7 +34,7 @@ export interface FileStore {
 }
 
 export interface DevicePlatform {
-  readonly name: "android" | "web";
+  readonly name: "android" | "ios" | "web";
   /** core.db (bundled) plus every installed narration pack. */
   openQuran(): Promise<DeviceDatabase>;
   /** Installed translation packs, merged (created empty on first launch). */
