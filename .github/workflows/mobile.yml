@@ -41,9 +41,8 @@ jobs:
   bundle:
     name: Data and app bundle
     runs-on: ubuntu-latest
-    # The first run downloads every translation (~35 min); later runs reuse
-    # the cached downloads.
-    timeout-minutes: 90
+    # Translations are bounded by their own step timeout; the rest takes ~15 min.
+    timeout-minutes: 60
     env:
       NEXT_PUBLIC_REMOTE_ORIGIN: ${{ vars.QBASAIR_REMOTE_ORIGIN }}
       NEXT_PUBLIC_AUTH_ENABLED: "1"
@@ -55,23 +54,46 @@ jobs:
           cache: pip
       - name: Python dependencies
         run: python -m pip install -r requirements-dev.txt
-      # Translation downloads (QuranEnc / Tanzil), so the packs artifact carries
-      # every translation without re-fetching ~6,800 files on each run.
-      - uses: actions/cache@v4
-        with:
-          path: data/translation_cache
-          key: translations-${{ hashFiles('scripts/translation_sources.json', 'scripts/build_translations.py') }}
-          restore-keys: translations-
-      - name: Quran data and the offline core (fonts, database, Madani layout, translations, packs)
+      - name: Quran data (fonts, database, Madani layout)
         env:
           PYTHONPATH: .
+          PYTHONUNBUFFERED: "1"
           QBASAIR_BUILD_DB_ON_START: never
         run: |
           python scripts/fetch_mushaf_fonts.py
           python scripts/build_db.py
           python scripts/build_mushaf_layout.py
-          python scripts/build_translations.py
-          python scripts/build_offline_packs.py --verify
+      # Translation downloads (QuranEnc / Tanzil, ~6,800 files) are cached
+      # between runs. Restore and save are separate so a failed, timed-out or
+      # cancelled run still keeps what it downloaded: the next run resumes.
+      - name: Restore the translation downloads
+        uses: actions/cache/restore@v4
+        with:
+          path: data/translation_cache
+          key: translations-${{ hashFiles('scripts/translation_sources.json', 'scripts/build_translations.py') }}-${{ github.run_id }}
+          restore-keys: translations-
+      - name: Translations of meanings
+        id: translations
+        # Never blocks the app: without translations the packs simply ship none
+        # (and this step shows as failed).
+        continue-on-error: true
+        timeout-minutes: 30
+        env:
+          PYTHONPATH: .
+          PYTHONUNBUFFERED: "1"
+        run: python scripts/build_translations.py
+      - name: Save the translation downloads
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/translation_cache
+          key: translations-${{ hashFiles('scripts/translation_sources.json', 'scripts/build_translations.py') }}-${{ github.run_id }}
+      - name: Offline core and packs
+        env:
+          PYTHONPATH: .
+          PYTHONUNBUFFERED: "1"
+          QBASAIR_BUILD_DB_ON_START: never
+        run: python scripts/build_offline_packs.py --verify
       - uses: pnpm/action-setup@v4
         with:
           version: 10.8.1

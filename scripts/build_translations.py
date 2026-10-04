@@ -33,6 +33,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable
@@ -166,6 +167,11 @@ def normalise_language(code: str) -> str:
     return {"zh-cn": "zh", "zh-tw": "zh", "pt-br": "pt", "ckb": "ku", "fil": "tl"}.get(code, code.split("-")[0])
 
 
+# Concurrent surah downloads per translation (polite: each request still
+# pauses; ~6x faster than one at a time over ~6,800 requests).
+FETCH_WORKERS = 6
+
+
 def fetch_quranenc(manifest: dict, entry: dict, fetch: Fetcher) -> Translation:
     api = manifest["sources"]["quranenc"]["api"]
     language = normalise_language(entry.get("language_iso_code", ""))
@@ -180,8 +186,13 @@ def fetch_quranenc(manifest: dict, entry: dict, fetch: Fetcher) -> Translation:
         direction=(entry.get("direction") or ("rtl" if language in RTL_LANGUAGES else "ltr")).lower(),
         description=(entry.get("description") or "").strip(),
     )
-    for sura in range(1, SURAH_COUNT + 1):
-        payload = json.loads(fetch(f"{api}/translation/sura/{entry['key']}/{sura}"))
+    # A translation is 114 surah requests: fetch a few at a time (each request
+    # still waits its polite delay), then assemble in surah order.
+    urls = [f"{api}/translation/sura/{entry['key']}/{sura}" for sura in range(1, SURAH_COUNT + 1)]
+    with ThreadPoolExecutor(max_workers=FETCH_WORKERS) as pool:
+        bodies = list(pool.map(fetch, urls))
+    for body in bodies:
+        payload = json.loads(body)
         for row in payload.get("result", []):
             text = (row.get("translation") or "").strip()
             footnotes = (row.get("footnotes") or "").strip() or None
@@ -393,9 +404,11 @@ def build(
 def main(argv: list[str] | None = None) -> int:
     # Translator names and the log's arrows are not in the Windows console's
     # code page: never let printing a line abort a finished build.
+    # Line-buffered too: in CI (stdout is a pipe) progress shows as it happens
+    # instead of all at once when the process ends.
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
-            stream.reconfigure(encoding="utf-8", errors="replace")
+            stream.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--languages", help="Comma-separated ISO 639-1 codes (default: the recommended preset)")
     parser.add_argument("--all", action="store_true", help="Every language QuranEnc publishes, plus Tanzil gaps")
