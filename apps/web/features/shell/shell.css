@@ -329,63 +329,6 @@
   box-shadow: var(--glass-edge), var(--glass-shadow), 0 0 0 4px var(--gold-a12);
 }
 
-/* Empty-search hint surfaced directly beneath the command bar. */
-.qb-cmd-hint {
-  position: absolute;
-  inset-inline-start: 0;
-  inset-inline-end: 0;
-  top: calc(100% + 8px);
-  border-radius: var(--r-xl);
-  border: 1px solid var(--glass-rim);
-  background-color: var(--glass-tint-overlay);
-  background-image: var(--glass-sheen);
-  box-shadow: var(--glass-edge), var(--glass-shadow-lift);
-  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
-  animation: qbPopIn var(--motion-dur-base) var(--spring-soft) both;
-  transform-origin: top center;
-  z-index: 200;
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.qb-cmd-hint .lead {
-  color: var(--fg-2);
-  font-size: 13px;
-}
-
-.qb-cmd-hint .ex {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.qb-cmd-hint .ex .lbl {
-  color: var(--fg-3);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.qb-cmd-hint .ex button {
-  font-family: var(--font-arabic-display);
-  direction: rtl;
-  font-size: 15px;
-  color: var(--gold-text-bright);
-  background: rgba(212, 175, 55, 0.08);
-  border: 1px solid var(--border-accent);
-  border-radius: 999px;
-  padding: 4px 14px;
-  cursor: pointer;
-  transition: background 140ms var(--ease-out);
-}
-
-.qb-cmd-hint .ex button:hover {
-  background: rgba(212, 175, 55, 0.16);
-}
-
 .qb-cmd-icon {
   color: var(--fg-3);
   display: inline-flex;
@@ -647,6 +590,7 @@
 
 .qb-tabbar-btn {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -659,7 +603,7 @@
 }
 
 .qb-tabbar-btn .tile {
-  width: 44px;
+  width: min(44px, 100%);
   height: 30px;
   border-radius: var(--r-pill);
   display: flex;
@@ -700,6 +644,8 @@
   justify-content: flex-start;
 }
 
+/* Two lines only between words: a single long word ("Community") gets the
+   tighter face instead of being broken mid-word. */
 .qb-tabbar[data-fit="2"] .qb-tabbar-btn .label {
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -708,8 +654,20 @@
   line-height: 1.05;
   text-align: center;
   text-wrap: balance;
-  hyphens: auto;
-  overflow-wrap: break-word;
+  hyphens: manual;
+  overflow-wrap: normal;
+  word-break: normal;
+  font-size: 8.5px;
+  letter-spacing: -0.02em;
+  padding-inline: 0;
+}
+
+/* Narrow phones: the dock gives its tabs a little more width. */
+@media (max-width: 380px) {
+  .qb-tabbar {
+    inset-inline: 6px !important;
+    padding-inline: 2px !important;
+  }
 }
 
 .qb-tabbar-btn.active {
@@ -728,7 +686,8 @@
     display: none;
   }
 
-  /* A floating glass dock. */
+  /* A floating glass dock: a translucent tint, sheen and lift over the page
+     that scrolls on beneath it (no band of background under it). */
   .qb-tabbar {
     display: flex;
     position: fixed;
@@ -738,12 +697,22 @@
     padding: 0 4px;
     border-radius: 24px;
     border: 1px solid var(--glass-rim);
-    background-color: var(--glass-tint-strong);
+    background-color: var(--glass-tint-soft);
     background-image: var(--glass-sheen);
     box-shadow: var(--glass-edge), var(--glass-shadow-lift);
     -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
     z-index: 45;
+  }
+
+  /* Pages scroll under the dock (their own bottom padding clears it). The
+     reader, search and study keep their room: their controls sit at the bottom. */
+  html:not([data-shell-mode="reading"]):not([data-shell-mode="search"]):not([data-shell-mode="studio"]) .qb-main {
+    padding-bottom: 0;
+  }
+
+  .qb-post {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   }
 
   .qb-tabbar-btn {

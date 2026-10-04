@@ -397,3 +397,53 @@
   color: var(--hl-ink);
   border-color: var(--hl-ink);
 }
+
+/* The board is a theme's main workspace: a labelled pill, not a hidden icon. */
+.qb-theme-card .head .qb-board-open {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--hl-ink);
+  background: var(--hl);
+  color: var(--hl-ink);
+  font-family: var(--font-arabic-ui);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-theme-card .head .qb-board-open:hover {
+  filter: brightness(1.08);
+}
+
+/* «لوحة لـ…» — start a board for a theme this ayah belongs to. */
+.qb-theme-sheet .boards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.qb-theme-sheet .boards .board {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px dashed var(--hl-ink);
+  background: none;
+  color: var(--hl-ink);
+  font-family: var(--font-arabic-ui);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-theme-sheet .boards .board:hover:not(:disabled) {
+  background: var(--hl);
+}

@@ -55,9 +55,10 @@
   position: relative;
 }
 
+/* The active tool reads as a soft gold chip (no outline: the bar is flat). */
 .qb-reader-bar .qb-toolbox-compact .act.on-tool {
   color: var(--gold-text);
-  border-color: var(--border-accent);
+  background: var(--gold-a08);
 }
 
 .qb-toolbox-menu {
@@ -127,6 +128,89 @@
 .light .qb-word.qb-word-picked {
   background: rgba(47, 94, 168, 0.18);
   box-shadow: 0 0 0 1px rgba(47, 94, 168, 0.45);
+}
+
+/* --- «تظليل»: verse by verse, never word by word --- */
+
+/* The tapped verse (focus) and the one under the pointer (hover), as one
+   continuous block — glyph segments, Unicode verses and verse rows alike. */
+.qb-verse-focus {
+  background: rgba(212, 175, 55, 0.2);
+  box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.14), 0 0 14px rgba(212, 175, 55, 0.14);
+  border-radius: 6px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  transition: background-color var(--motion-dur-fast, 120ms) ease;
+}
+
+.qb-verse-focus.is-hover {
+  background: rgba(212, 175, 55, 0.1);
+  box-shadow: none;
+}
+
+.light .qb-verse-focus {
+  background: rgba(164, 129, 41, 0.18);
+}
+
+.light .qb-verse-focus.is-hover {
+  background: rgba(164, 129, 41, 0.09);
+}
+
+/* A little room around the lit verse, given back by the margin: the line keeps
+   its exact width, so hovering never re-fits (shrinks) the page. */
+.qb-glyph-vf {
+  padding: 0 3px;
+  margin: 0 -3px;
+}
+
+/* The verse being recited: one continuous block like the others, in a calm
+   jade (the gold belongs to «تظليل»), breathing slowly while it plays. */
+.qb-verse-focus.is-recite {
+  --recite-glow: rgba(96, 196, 172, 0.2);
+  background: rgba(96, 196, 172, 0.13);
+  box-shadow: 0 0 0 1px rgba(96, 196, 172, 0.18), 0 0 18px var(--recite-glow);
+  color: #d9f3ec;
+}
+
+.light .qb-verse-focus.is-recite,
+.light-mode .qb-verse-focus.is-recite {
+  --recite-glow: rgba(24, 120, 100, 0.12);
+  background: rgba(24, 120, 100, 0.1);
+  box-shadow: 0 0 0 1px rgba(24, 120, 100, 0.16), 0 0 16px var(--recite-glow);
+  color: #0f4f42;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .qb-verse-focus.is-recite {
+    animation: qbReciteBreath 2.8s ease-in-out infinite;
+  }
+}
+
+@keyframes qbReciteBreath {
+  0%,
+  100% {
+    box-shadow: 0 0 0 1px rgba(96, 196, 172, 0.16), 0 0 10px var(--recite-glow);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(96, 196, 172, 0.26), 0 0 24px var(--recite-glow);
+  }
+}
+
+/* No per-word feedback with this tool: words, marks and the verse number
+   belong to the verse. */
+.qb-mushaf-stage.tool-highlight :is(.qb-word, .qb-glyph-word):hover,
+.qb-mushaf-stage.tool-highlight :is(.qb-word, .qb-glyph-word).qb-word-picked,
+.qb-mushaf-stage.tool-highlight .qb-verse-mark:hover {
+  background: none;
+  box-shadow: none;
+  color: inherit;
+}
+
+/* Nor a word cursor: a click focuses the tapped word, but this tool acts on
+   the verse, so no ring is drawn around the word. */
+.qb-mushaf-stage.tool-highlight :is(.qb-word, .qb-glyph-word, .qb-verse-mark):focus {
+  outline: none;
+  background: none;
 }
 
 /* --- Selection action bar --- */
@@ -243,6 +327,68 @@
   opacity: 0.5;
 }
 
+/* A single word's analysis (root · lemma · part of speech · grammar). */
+.qb-selection-bar .analysis {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: var(--r-md);
+  background: var(--gold-a08);
+  border: 1px solid var(--border);
+}
+
+.qb-selection-bar .analysis.state {
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.qb-selection-bar .analysis dl {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px 10px;
+}
+
+.qb-selection-bar .analysis .cell {
+  min-width: 0;
+}
+
+.qb-selection-bar .analysis dt {
+  font-size: 10.5px;
+  color: var(--fg-3);
+}
+
+.qb-selection-bar .analysis dd {
+  margin: 0;
+  font-family: var(--font-arabic-display);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--fg-1);
+  overflow-wrap: anywhere;
+}
+
+.qb-selection-bar .analysis .features {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--fg-2);
+}
+
+@media (max-width: 480px) {
+  .qb-selection-bar .analysis dl {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* The verse-number ornament is the verse's handle (select / highlight it whole). */
+.qb-verse-mark {
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color var(--motion-dur-fast, 120ms) ease;
+}
+
+.qb-verse-mark:hover {
+  background: var(--gold-a12);
+}
+
 .qb-selection-bar .note {
   margin-top: 6px;
   font-size: 12px;
@@ -347,4 +493,17 @@
   .qb-selection-bar {
     bottom: calc(82px + env(safe-area-inset-bottom, 0px));
   }
+}
+
+/* In the slim reader bar the segmented toolbox sits flush: no outline, a
+   whisper of fill, and buttons matching the bar's 34px actions. */
+.qb-reader-bar .qb-toolbox {
+  padding: 2px;
+  border-color: transparent;
+  background: var(--glass-tint-soft, rgba(0, 0, 0, 0.1));
+}
+
+.qb-reader-bar .qb-toolbox .tool {
+  height: 30px;
+  min-width: 30px;
 }

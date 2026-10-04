@@ -4,11 +4,11 @@ import { Fragment } from "react";
 
 import type { QuranPageAyah } from "@q-basair/shared";
 
-import { Icon } from "@/components/icon";
 import { highlightProps, useAyahMarks } from "@/features/themes/ayah-marks";
-import { usePickedWords, wordKey } from "@/features/reading/tools/word-selection";
-import { flyToNotebook } from "@/lib/fly-to-notebook";
+import { usePickedWords, useVerseFocus, verseFocusClass, wordKey } from "@/features/reading/tools/word-selection";
 import { useNumerals } from "@/lib/preferences-context";
+
+import { VerseMark } from "./glyph-page";
 
 import { t } from "@/lib/i18n";
 
@@ -77,7 +77,6 @@ type AyahTokensProps = {
 export function AyahTokens({
   ayah,
   selectedAyahId,
-  isSaved,
   onToggleSave,
   onWordClick,
   onWordKey,
@@ -87,10 +86,11 @@ export function AyahTokens({
   const isSelected = ayah.is_selected || ayah.ayah_id === selectedAyahId;
   const mark = useAyahMarks()(ayah.ayah_id);
   const isPicked = usePickedWords();
-  const highlight = isSelected ? { className: "" } : highlightProps(mark);
+  const focus = useVerseFocus()(ayah.ayah_id);
+  const highlight = isSelected || focus ? { className: "" } : highlightProps(mark);
   return (
     <span
-      className={`qb-ayah-tok${isSelected ? " selected" : ""}${highlight.className}`}
+      className={`qb-ayah-tok${isSelected && !focus ? " selected" : ""}${highlight.className}${verseFocusClass(focus)}`}
       data-hl={highlight["data-hl"]}
       data-ayah-id={ayah.ayah_id}
       data-page={ayah.page}
@@ -134,23 +134,9 @@ export function AyahTokens({
             {word}{" "}
           </span>
         ))}
-      {showNumber ? <span className="qb-num-glyph">{`﴿${formatNumber(ayah.ayah)}﴾`}</span> : null}
-      <button
-        type="button"
-        className={`qb-save-ayah${isSaved(ayah.ayah_id) ? " on" : ""}${mark && mark.themes > 1 ? " multi" : ""}`}
-        data-hl={mark?.color ?? undefined}
-        aria-label={isSaved(ayah.ayah_id) ? t("المواضيع والحفظ") : t("حفظ في الدفتر")}
-        aria-haspopup="dialog"
-        title={isSaved(ayah.ayah_id) ? t("محفوظة — المواضيع") : t("حفظ الآية وتظليلها")}
-        onClick={(event) => {
-          event.stopPropagation();
-          // Ghost flight to the notebook only on SAVE (not un-save).
-          if (!isSaved(ayah.ayah_id)) flyToNotebook(event.currentTarget, ayah.text.trim());
-          onToggleSave(ayah);
-        }}
-      >
-        <Icon name={isSaved(ayah.ayah_id) ? "bookmarkFilled" : "bookmark"} size={13} />
-      </button>
+      {showNumber ? (
+        <VerseMark className="qb-num-glyph" text={`﴿${formatNumber(ayah.ayah)}﴾`} label={ayah.ayah} ayahId={ayah.ayah_id} onActivate={() => onToggleSave(ayah)} />
+      ) : null}
     </span>
   );
 }

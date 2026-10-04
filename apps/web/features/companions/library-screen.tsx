@@ -2,15 +2,19 @@
 
 import "./companions.css";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import "@/features/themes/themes.css";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import type { NotebookItem, ThemeColor, ThemeSummary } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { useNumerals } from "@/lib/preferences-context";
+import { queueStudioOpenSession } from "@/lib/studio-prefill";
+import { boardUrl } from "@/features/board/last-board";
+import { createThemeBoard, useThemeBoards, type BoardListing } from "@/features/board/theme-boards";
+import { useStickyState } from "@/lib/use-sticky-state";
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
@@ -22,7 +26,13 @@ import { relativeAge, useCompanions } from "./use-companions";
 
 import { t as tt, tn } from "@/lib/i18n";
 
-type LibraryTab = "verses" | "documents" | "sessions" | "roots";
+type LibraryTab = "verses" | "boards" | "documents" | "sessions" | "roots";
+const LIBRARY_TABS: readonly LibraryTab[] = ["verses", "boards", "documents", "sessions", "roots"];
+
+/** The library tab named in the URL (`&tab=`), else «الآيات». */
+export function libraryTab(value: string | null): LibraryTab {
+  return LIBRARY_TABS.includes(value as LibraryTab) ? (value as LibraryTab) : "verses";
+}
 type VerseView = "recent" | "themes";
 type SessionFilter = "all" | "strict" | "tafssir";
 
@@ -53,9 +63,23 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
   const formatNumber = useNumerals();
   const router = useRouter();
 
-  const [tab, setTab] = useState<LibraryTab>(initialTab);
-  const [verseView, setVerseView] = useState<VerseView>("recent");
-  const [sessionFilter, setSessionFilter] = useState<SessionFilter>("all");
+  const [tab, setTabState] = useState<LibraryTab>(initialTab);
+  // «اللوحات» can open on one theme (from its card or the save sheet).
+  const params = useSearchParams();
+  const [focusTheme, setFocusTheme] = useState<number | null>(Number(params.get("focus")) || null);
+  // The tab lives in the URL too, so «الدفتر» reopens on it (see mode-context).
+  function setTab(next: LibraryTab, focus: number | null = null) {
+    setTabState(next);
+    setFocusTheme(focus);
+    const sp = new URLSearchParams(window.location.search);
+    sp.set("mode", "notebook");
+    sp.set("tab", next);
+    if (focus) sp.set("focus", String(focus));
+    else sp.delete("focus");
+    router.replace(`/?${sp.toString()}`, { scroll: false });
+  }
+  const [verseView, setVerseView] = useStickyState<VerseView>("qb.notebook.verseView", "recent", ["recent", "themes"]);
+  const [sessionFilter, setSessionFilter] = useStickyState<SessionFilter>("qb.notebook.sessionFilter", "all", ["all", "strict", "tafssir"]);
 
   function openVerse(item: NotebookItem) {
     // A verse saved under another riwāyah opens in the current edition by its
@@ -70,6 +94,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
   }
 
   const { themes, byId: themeById } = useThemes();
+  const themeBoards = useThemeBoards();
   // Themes in creation order, each with its saved ayahs (an ayah can sit in
   // several); ayahs without a (live) theme gather under «بلا موضوع».
   const themeGroups = themes.map((theme) => ({
@@ -85,6 +110,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
 
   const TABS: { value: LibraryTab; label: string; count: number }[] = [
     { value: "verses", label: tt("الآيات"), count: companions.notebook.length },
+    { value: "boards", label: tt("اللوحات"), count: themeBoards.boards?.length ?? 0 },
     { value: "documents", label: tt("الأبحاث"), count: companions.documents.length },
     { value: "sessions", label: tt("الجلسات"), count: companions.sessions.length },
     { value: "roots", label: tt("الجذور"), count: companions.roots.length },
@@ -107,7 +133,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
         </div>
       </div>
 
-      <div className="qb-lib-tabs qb-fit-track" data-autofit="1" role="tablist">
+      <div className="qb-lib-tabs qb-fit-track" data-autofit="2" role="tablist">
         {TABS.map((t) => (
           <button
             key={t.value}
@@ -165,7 +191,13 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
             ) : (
               <div className="qb-aux-grid">
                 {themeGroups.map(({ theme, items }) => (
-                  <ThemeCard key={theme.id} theme={theme} count={items.length}>
+                  <ThemeCard
+                    key={theme.id}
+                    theme={theme}
+                    count={items.length}
+                    boards={themeBoards.boards ? themeBoards.boards.filter((board) => board.theme.id === theme.id) : null}
+                    onOpenBoards={() => setTab("boards", theme.id)}
+                  >
                     {items.map((item) => (
                       <MiniVerse key={item.id} item={item} onOpen={openVerse} />
                     ))}
@@ -189,6 +221,9 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
           </>
         )
       ) : null}
+
+      {/* ---- Boards (several per theme, made on purpose) ---- */}
+      {tab === "boards" ? <BoardsTab themes={themes} boards={themeBoards} focusTheme={focusTheme} /> : null}
 
       {/* ---- Research documents ---- */}
       {tab === "documents" && !companions.loading ? (
@@ -278,7 +313,14 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                   <span className={`icon-tile${session.mode === "tafssir" ? " copper" : ""}`}>
                     <Icon name={session.mode === "tafssir" ? "feather" : "scale"} size={18} />
                   </span>
-                  <div className="grow">
+                  <button
+                    type="button"
+                    className="grow qb-row-open"
+                    onClick={() => {
+                      queueStudioOpenSession(session.id);
+                      setMode("studio");
+                    }}
+                  >
                     <div className="title">{session.title}</div>
                     <div className="meta">
                       {tn("{0} رسالة", session.message_count, { 0: formatNumber(session.message_count) })}
@@ -286,7 +328,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                       {relativeAge(session.updated_at)} ·{" "}
                       {session.mode === "tafssir" ? tt("قراءة تفسيرية") : tt("القرآن وحدَه")}
                     </div>
-                  </div>
+                  </button>
                   <button type="button" className="row-action" aria-label={tt("حذف الجلسة")} onClick={() => void companions.deleteSession(session.id)}>
                     <Icon name="trash" size={15} />
                   </button>
@@ -324,6 +366,184 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
           </div>
         )
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * «اللوحات» — the boards, grouped by theme in the same cards as «حسب الموضوع».
+ * A new board is made on purpose: «لوحة جديدة» asks for its name first.
+ */
+function BoardsTab({
+  themes,
+  boards,
+  focusTheme,
+}: {
+  themes: ThemeSummary[];
+  boards: ReturnType<typeof useThemeBoards>;
+  focusTheme: number | null;
+}) {
+  if (boards.boards === null) return <div className="qb-aux-state is-loading">{tt("جارٍ التحميل…")}</div>;
+  if (themes.length === 0) {
+    return <div className="qb-aux-state">{tt("لا مواضيع بعد. ظلِّل آيات بموضوع من القراءة، ثم أنشئ لها لوحة.")}</div>;
+  }
+  const byTheme = new Map<number, BoardListing[]>();
+  for (const board of boards.boards) byTheme.set(board.theme.id, [...(byTheme.get(board.theme.id) ?? []), board]);
+  // The focused theme first, then themes with boards (most recently edited), then the rest.
+  const latest = (themeId: number) => Math.max(0, ...(byTheme.get(themeId) ?? []).map((board) => board.updated_at || 1));
+  const ordered = [...themes].sort((a, b) => Number(b.id === focusTheme) - Number(a.id === focusTheme) || latest(b.id) - latest(a.id));
+  return (
+    <div className="qb-aux-grid">
+      {ordered.map((theme) => (
+        <ThemeBoardsCard key={theme.id} theme={theme} boards={byTheme.get(theme.id) ?? []} actions={boards} focused={theme.id === focusTheme} />
+      ))}
+    </div>
+  );
+}
+
+function ThemeBoardsCard({
+  theme,
+  boards,
+  actions,
+  focused,
+}: {
+  theme: ThemeSummary;
+  boards: BoardListing[];
+  actions: ReturnType<typeof useThemeBoards>;
+  focused: boolean;
+}) {
+  const router = useRouter();
+  const formatNumber = useNumerals();
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  // Opened from a theme with no board: the naming step is already showing.
+  const [creating, setCreating] = useState(focused && boards.length === 0);
+  const [newName, setNewName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [confirming, setConfirming] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (focused) cardRef.current?.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [focused]);
+
+  const suggested = boards.length ? `${theme.name} ${formatNumber(boards.length + 1)}` : theme.name;
+
+  async function create() {
+    setBusy(true);
+    try {
+      router.push(boardUrl(theme.id, await createThemeBoard(theme, newName.trim() || suggested)));
+    } catch {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div ref={cardRef} className={`qb-collection-card qb-theme-card qb-boards-card${focused ? " focused" : ""}`} data-hl={theme.color}>
+      <div className="head">
+        <span className="name">
+          <span className="dot" aria-hidden />
+          {theme.name}
+        </span>
+        <span className="count">{tt("اللوحات: {0}", { 0: formatNumber(boards.length) })}</span>
+      </div>
+      <div className="body">
+        {boards.length === 0 && !creating ? <p className="empty">{tt("لا لوحات لهذا الموضوع بعد.")}</p> : null}
+        {boards.map((board) => {
+          const key = board.id;
+          return (
+            <div key={key} className="qb-board-item">
+              {renaming === key ? (
+                <form
+                  className="rename"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void actions.renameBoard(theme.id, board.id, name);
+                    setRenaming(null);
+                  }}
+                >
+                  <input value={name} onChange={(event) => setName(event.target.value.slice(0, 80))} aria-label={tt("اسم اللوحة")} autoFocus />
+                  <button type="submit" className="row-action" aria-label={tt("حفظ الاسم")}>
+                    <Icon name="check" size={15} />
+                  </button>
+                </form>
+              ) : (
+                <button type="button" className="open" onClick={() => router.push(boardUrl(theme.id, board.id))}>
+                  <Icon name="graph" size={15} />
+                  <span className="text">
+                    <span className="title">{board.name}</span>
+                    <span className="meta">
+                      {tn("{0} آية", board.ayahs, { 0: formatNumber(board.ayahs) })}
+                      {board.updated_at ? `${tt("، ")}${relativeAge(board.updated_at, formatNumber)}` : ""}
+                    </span>
+                  </span>
+                </button>
+              )}
+              {confirming === key ? (
+                <span className="confirm">
+                  <button
+                    type="button"
+                    className="danger"
+                    onClick={() => {
+                      void actions.removeBoard(theme.id, board.id);
+                      setConfirming(null);
+                    }}
+                  >
+                    {tt("حذف")}
+                  </button>
+                  <button type="button" onClick={() => setConfirming(null)}>
+                    {tt("إلغاء")}
+                  </button>
+                </span>
+              ) : renaming === key ? null : (
+                <>
+                  <button
+                    type="button"
+                    className="row-action"
+                    aria-label={tt("تعديل «{0}»", { 0: board.name })}
+                    onClick={() => {
+                      setName(board.name);
+                      setRenaming(key);
+                    }}
+                  >
+                    <Icon name="edit" size={14} />
+                  </button>
+                  <button type="button" className="row-action" aria-label={tt("حذف اللوحة")} onClick={() => setConfirming(key)}>
+                    <Icon name="trash" size={14} />
+                  </button>
+                </>
+              )}
+            </div>
+          );
+        })}
+        {creating ? (
+          <form
+            className="qb-board-create"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void create();
+            }}
+          >
+            <input
+              value={newName}
+              onChange={(event) => setNewName(event.target.value.slice(0, 80))}
+              placeholder={suggested}
+              aria-label={tt("اسم اللوحة")}
+              autoFocus
+            />
+            <button type="submit" className="primary" disabled={busy}>
+              {tt("إنشاء")}
+            </button>
+            <button type="button" onClick={() => setCreating(false)} disabled={busy}>
+              {tt("إلغاء")}
+            </button>
+          </form>
+        ) : (
+          <button type="button" className="qb-board-new" onClick={() => setCreating(true)}>
+            <Icon name="plus" size={13} /> {tt("لوحة جديدة")}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -371,7 +591,21 @@ function MiniVerse({ item, onOpen }: { item: NotebookItem; onOpen: (item: Notebo
 }
 
 /** A theme's card: colour, name, count, and inline rename / recolour / delete. */
-function ThemeCard({ theme, count, children }: { theme: ThemeSummary; count: number; children: React.ReactNode }) {
+function ThemeCard({
+  theme,
+  count,
+  boards,
+  onOpenBoards,
+  children,
+}: {
+  theme: ThemeSummary;
+  count: number;
+  /** This theme's boards (null while loading). */
+  boards: BoardListing[] | null;
+  /** Show this theme's boards (and the way to make one) in «اللوحات». */
+  onOpenBoards: () => void;
+  children: React.ReactNode;
+}) {
   const formatNumber = useNumerals();
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -412,14 +646,17 @@ function ThemeCard({ theme, count, children }: { theme: ThemeSummary; count: num
         )}
         <span className="count">{tn("{0} آية", count, { 0: formatNumber(count) })}</span>
         {!editing ? (
+          // Access, not creation: one board opens directly; otherwise the
+          // theme's boards (where a new one is made on purpose, with a name).
           <button
             type="button"
-            className="row-action"
-            aria-label={tt("لوحة «{0}»", { 0: theme.name })}
-            title={tt("افتح لوحة الموضوع: رتّب الآيات واربط بينها وأضف ملاحظات")}
-            onClick={() => router.push(`/?mode=board&theme=${theme.id}`)}
+            className="qb-board-open"
+            aria-label={tt("لوحات «{0}»", { 0: theme.name })}
+            title={tt("لوحات الموضوع: رتّب الآيات واربط بينها وأضف ملاحظات")}
+            onClick={() => (boards?.length === 1 ? router.push(boardUrl(theme.id, boards[0].id)) : onOpenBoards())}
           >
-            <Icon name="graph" size={14} />
+            <Icon name="graph" size={14} /> {tt("اللوحات")}
+            {boards?.length ? <span className="n">{formatNumber(boards.length)}</span> : null}
           </button>
         ) : null}
         {!editing ? (

@@ -122,14 +122,14 @@ account preferences. `reader_layout` values:
 
 | Value | Behaviour | Renderer |
 |---|---|---|
-| `auto` (default) | Resolves per viewport, recomputing on resize: phones (<768px) → `scroll`; tablet/desktop → paged (spread on wide authentic Hafs, single otherwise). | either |
+| `auto` (default) | Paged on every device (spread when two pages fit at full size, single otherwise). | either |
 | `single` | One fit‑to‑height page, centred. Forces single even on a wide authentic Hafs screen. | either |
 | `spread` | Two facing pages, fit‑to‑height. Authentic Hafs only — degrades to `single` otherwise. | authentic |
-| `scroll` | Continuous vertical scroll of stacked pages inside the reader viewport (the document never scrolls). Neighbours stream in on scroll; the top‑of‑viewport page drives the footer + persisted last page. | either |
-| `ayah` | One verse per row (number chip · verse · save), surah banner + basmala at surah starts. Same continuous windowing as `scroll`. | Unicode |
+| `scroll` | Retired (the continuous page scroll was removed): still accepted, reads as paged. | either |
+| `ayah` | One verse per row (number chip · verse · save), surah banner + basmala at surah starts. Continuous windowing (`useReaderWindow`). | Unicode |
 
-`MushafStage` is a dispatcher: `PagedReader` (single/spread/auto), `ScrollReader`, and
-`AyahReader`. The two continuous readers share the `useReaderWindow` hook: a
+`MushafStage` is a dispatcher: `PagedReader` (single/spread/auto/scroll) and
+`AyahReader`. The continuous verse-by-verse reader uses the `useReaderWindow` hook: a
 **sliding** 12‑page window (scroll‑proximity + fill loading; growing one edge prunes
 the far edge) kept visually still by anchor compensation — the active page element's
 viewport offset is captured before each mutation and restored after render. The

@@ -52,10 +52,12 @@ active at a time; the choice is remembered per device.
 
 | Tool | Action on the text |
 |---|---|
-| «تحليل» (grammar insights, default) | today's behaviour: word → root, lemma, POS, iʿrāb, root occurrences |
-| «تظليل» (highlight) | tap an ayah → theme picker (toggle themes, create one) |
-| «تحديد» (selection) | select a word range (tap first + last word, or drag) → action bar |
-| «تفسير» (contextual tafssir) | tap an ayah → Studio opens an experimental tafssir of it (§4) |
+| «تحديد» (selection, default) | tap a word → it is selected and its analysis (root, lemma, POS, iʿrāb) shows in the action bar; tap a second word → the run between them; tap the verse-number ornament → the whole verse |
+| «تظليل» (highlight) | tap any word of an ayah (or its number) → the whole verse is selected and the theme picker opens (toggle themes, create one) |
+
+2026-09 revision: the former «تحليل» tool merged into «تحديد» (a single picked word carries
+the analysis), and the «تفسير» tool was retired from the reader — contextual tafssir is asked
+from the Studio (§4). The per-verse save bookmark is gone; «تظليل» is the save path.
 
 Selection actions: بحث بالعبارة · بحث بالجذر (single word) · اسأل في الدراسة (AI) ·
 **إحصاء**: occurrences of the selected word/phrase and of a chosen letter in the page,
@@ -63,7 +65,8 @@ the surah and the whole Quran · نسخ مع المرجع.
 
 Tools are registered in one place (`features/reading/tools/registry.ts`: id, label, icon,
 shortcut, handlers), so new tools are additive. Toolbox UI: a slim vertical rail at the
-reader's edge on desktop, a «الأداة» chooser in the reader bar on phones; keys `1…9`.
+reader's edge on desktop, a «الأداة» chooser in the reader bar on phones; keys `1…9`
+(today `1` = تحديد, `2` = تظليل).
 
 ## 4. Contextual tafssir
 

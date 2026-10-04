@@ -14,6 +14,9 @@ data/app_data.db
 data/app_data.db-shm
 data/app_data.db-wal
 data/auth.db
+data/cache.db
+data/cache.db-shm
+data/cache.db-wal
 data/auth.db-shm
 data/auth.db-wal
 data/research_sources/**

@@ -216,57 +216,12 @@
   align-items: center;
 }
 
-/* ---------- Scroll mode: continuous vertical reading ---------- */
+/* ---------- Verse-by-verse pages ---------- */
 
-/* A wider reading column so the flowing text fills a 16:9 screen instead of
-   wasting the sides — the whole point of scroll mode. */
-.qb-mushaf-stage.is-scroll {
-  max-width: 74rem;
-}
-
-/* Ultrawide: grow the scroll column so 2560–3440px screens become reading area
-   instead of dead side gutters (the spread stays authentic-Ḥafṣ-only). Authentic
-   glyph pages fit-to-width, so a wider column means bigger calligraphy; the
-   simple flow keeps its readable measure via the cap below. */
-@media (min-width: 1800px) {
-  .qb-mushaf-stage.is-scroll {
-    max-width: 88rem;
-  }
-}
-
-@media (min-width: 2400px) {
-  .qb-mushaf-stage.is-scroll {
-    max-width: min(108rem, 82vw);
-  }
-}
-
-/* The page itself is the scroller (base already sets overflow-y:auto); pages
-   stack as normal block flow — no glyph centring. scroll-padding keeps a page
-   from tucking under the top padding when the footer pager jumps to it; the
-   stable gutter keeps the fit width from oscillating with the scrollbar. */
-.qb-mushaf-page.is-scroll {
-  scroll-padding-top: 8px;
-  scrollbar-gutter: stable;
-}
-
-/* Cap the SIMPLE flow's line length in scroll so a wide / ultrawide column
-   doesn't run 80–100 characters per line (WCAG 1.4.8). The authentic glyph
-   pages fill the column by design (fit-to-width) and are unaffected. */
-.qb-mushaf-page.is-scroll .qb-ayat-flow {
-  max-inline-size: 62rem;
-  margin-inline: auto;
-}
-
+/* The verse-by-verse reader groups each page's verses in a section (page
+   tracking reads data-page). */
 .qb-scroll-page {
   position: relative;
-}
-
-/* Authentic page in the scroll column: the wrapper is the width budget for
-   useGlyphFitWidth and centres the pinned-width page (tall page, big text). */
-.qb-glyph-scroll-wrap {
-  display: flex;
-  justify-content: center;
-  margin: 10px 0;
 }
 
 /* A quiet page-break marker between successive pages: the page number centred
@@ -930,21 +885,22 @@
    tab bar; on larger screens at the top.
    ===================================================================== */
 
-/* A glass capsule floating over the reading room. */
+/* A slim glass capsule over the reading room: one line of identity, flat
+   icon actions (no pill per button), a soft edge instead of a drop shadow. */
 .qb-reader-bar {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  min-height: 56px;
-  margin: 2px 0 10px;
-  padding: 6px 10px 6px 12px;
-  border-radius: 22px;
+  gap: 10px;
+  min-height: 46px;
+  margin: 2px 0 8px;
+  padding: 4px 6px 4px 10px;
+  border-radius: 16px;
   border: 1px solid var(--glass-rim);
   background-color: var(--glass-tint);
   background-image: var(--glass-sheen);
-  box-shadow: var(--glass-edge), var(--glass-shadow);
+  box-shadow: var(--glass-edge);
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   flex-shrink: 0;
@@ -952,13 +908,16 @@
     transform var(--motion-dur-base) var(--motion-ease-settle);
 }
 
+/* The name keeps a readable minimum: when the row is short of room the bar
+   sheds labels and secondary buttons (auto-fit levels) instead of crushing it. */
 .qb-reader-bar .identity {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0;
-  min-width: 0;
-  padding: 2px 8px;
+  flex: 1 1 auto;
+  min-width: min(7.5rem, 40%);
+  padding: 0 6px;
   background: none;
   border: 0;
   border-radius: var(--r-md);
@@ -974,8 +933,9 @@
 
 .qb-reader-bar .identity .name {
   font-family: var(--font-arabic-heading);
-  font-size: 24px;
-  line-height: var(--lh-heading);
+  font-size: 19px;
+  /* Tight but mark-safe (overflow-y stays visible for stacked marks). */
+  line-height: 1.4;
   color: var(--gold-text);
   white-space: nowrap;
   overflow: hidden;
@@ -984,12 +944,14 @@
   overflow-y: visible;
   text-overflow: ellipsis;
   max-width: 100%;
+  padding-bottom: 2px;
 }
 
 .qb-reader-bar .identity .meta {
   font-family: var(--font-arabic-ui);
+  line-height: 1.25;
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--fg-3);
   white-space: nowrap;
 }
@@ -997,7 +959,7 @@
 .qb-reader-bar .actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   flex-shrink: 0;
 }
 
@@ -1006,10 +968,10 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  min-width: 40px;
-  height: 40px;
-  padding: 0 10px;
-  border-radius: var(--r-pill);
+  min-width: 34px;
+  height: 34px;
+  padding: 0 8px;
+  border-radius: 11px;
   border: 1px solid transparent;
   background: none;
   color: var(--fg-2);
@@ -1021,11 +983,7 @@
 }
 
 .qb-reader-bar .act.labelled {
-  border-color: var(--glass-rim);
-  background-color: var(--glass-tint-soft);
-  background-image: var(--glass-sheen);
-  box-shadow: var(--glass-edge);
-  padding: 0 14px;
+  padding: 0 10px;
 }
 
 .qb-reader-bar .act:active:not(:disabled) {
@@ -1039,6 +997,13 @@
 
 .qb-reader-bar .act.on {
   color: var(--gold-text);
+  background: var(--gold-a08);
+}
+
+/* A saved page's bookmark reads red, as on the page ribbon. */
+.qb-reader-bar .act.bookmark-btn.saved {
+  color: #c0392b;
+  background: none;
 }
 
 .qb-reader-bar .act:disabled {
@@ -1049,8 +1014,8 @@
 .qb-reader-bar .pager {
   display: flex;
   gap: 2px;
-  margin-inline-start: 6px;
-  padding-inline-start: 8px;
+  margin-inline-start: 4px;
+  padding-inline-start: 6px;
   border-inline-start: 1px solid var(--border);
 }
 
@@ -1081,16 +1046,18 @@
   text-overflow: ellipsis;
 }
 
-.qb-reader-bar:is([data-fit="1"], [data-fit="2"], [data-fit="3"], [data-fit="4"], [data-fit="5"]) :is(.qb-toolbox .tool, .on-tool) .lbl,
-.qb-reader-bar:is([data-fit="2"], [data-fit="3"], [data-fit="4"], [data-fit="5"]) .display-btn .lbl,
-.qb-reader-bar:is([data-fit="3"], [data-fit="4"], [data-fit="5"]) .go-btn .lbl,
-.qb-reader-bar:is([data-fit="4"], [data-fit="5"]) .identity .meta .of,
-.qb-reader-bar[data-fit="5"] .identity .meta .juz {
+.qb-reader-bar:not([data-fit="0"]):is([data-fit]) :is(.qb-toolbox .tool, .on-tool) .lbl,
+.qb-reader-bar:is([data-fit="2"], [data-fit="3"], [data-fit="4"], [data-fit="5"], [data-fit="6"], [data-fit="7"]) .display-btn .lbl,
+.qb-reader-bar:is([data-fit="3"], [data-fit="4"], [data-fit="5"], [data-fit="6"], [data-fit="7"]) .go-btn .lbl,
+.qb-reader-bar:is([data-fit="4"], [data-fit="5"], [data-fit="6"], [data-fit="7"]) .identity .meta .of,
+.qb-reader-bar:is([data-fit="5"], [data-fit="6"], [data-fit="7"]) .identity .meta .juz,
+.qb-reader-bar:is([data-fit="6"], [data-fit="7"]) .search-btn,
+.qb-reader-bar[data-fit="7"] .focus-toggle {
   display: none;
 }
 
-.qb-reader-bar:is([data-fit="2"], [data-fit="3"], [data-fit="4"], [data-fit="5"]) .display-btn,
-.qb-reader-bar:is([data-fit="3"], [data-fit="4"], [data-fit="5"]) .go-btn {
+.qb-reader-bar:is([data-fit="2"], [data-fit="3"], [data-fit="4"], [data-fit="5"], [data-fit="6"], [data-fit="7"]) .display-btn,
+.qb-reader-bar:is([data-fit="3"], [data-fit="4"], [data-fit="5"], [data-fit="6"], [data-fit="7"]) .go-btn {
   padding: 0;
 }
 
@@ -1098,11 +1065,80 @@
    flex:1 behaviour. touch-action lets the browser keep vertical scrolling while
    our gesture hook reads horizontal swipes. */
 .qb-reader-surface {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   touch-action: pan-y pinch-zoom;
+}
+
+/* touch-action isn't inherited, and the page is its own scroller: without
+   this the browser claims horizontal drags inside it (pointercancel) and a
+   swipe never reaches the page-turn gesture. */
+.qb-reader-surface * {
+  touch-action: pan-y pinch-zoom;
+}
+
+/* Page-turn zones: invisible bands on the page's outer edges that glow softly
+   under the pointer; a click turns the page. Pointer screens only (touch
+   swipes). Physical sides — the mushaf is RTL whatever the interface: the
+   next page lies to the left. */
+.qb-turn-zone {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .qb-turn-zone {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 2;
+    width: clamp(40px, 6%, 88px);
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--motion-dur-base, 220ms) var(--motion-ease-settle, ease);
+  }
+
+  .qb-turn-zone.next {
+    left: 0;
+    background: linear-gradient(90deg, var(--gold-a18), transparent);
+    border-radius: 18px 0 0 18px;
+  }
+
+  .qb-turn-zone.prev {
+    right: 0;
+    background: linear-gradient(270deg, var(--gold-a18), transparent);
+    border-radius: 0 18px 18px 0;
+  }
+
+  .qb-turn-zone:hover:not(:disabled) {
+    opacity: 1;
+  }
+
+  .qb-turn-zone:disabled {
+    cursor: default;
+  }
+}
+
+/* A wide reader (measured on the reader itself, not the window: a side panel
+   can leave it narrow on a big screen): the surah name and its page line share
+   one line, so the bar stays one slim row. */
+@container reader-head (min-width: 600px) {
+  .qb-reader-bar .identity {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 10px;
+  }
+
+  .qb-reader-bar .identity .name {
+    line-height: 1.5;
+    padding-bottom: 0;
+  }
 }
 
 /* Touch screens: swipe turns the page, so the arrows go; the labels shrink to
@@ -1113,27 +1149,31 @@
   }
 }
 
+/* Phones: the bar sits at the top (out of the reading thumb's way) and slim;
+   it folds into a one-line strip (the tab bar folds with it). */
 @media (max-width: 768px) {
   .qb-reader-bar {
-    order: 2;
-    min-height: 56px;
-    margin: 8px 0 6px;
-    padding: 6px 8px 6px 10px;
+    min-height: 42px;
+    margin: 4px 0 4px;
+    padding: 3px 4px 3px 6px;
+    border-radius: 14px;
     background-color: var(--glass-tint-strong);
   }
 
-  .qb-reader-bar .progress {
-    top: -1px;
-    bottom: auto;
+  .qb-reader-bar .identity .name {
+    font-size: 17px;
+    line-height: 1.4;
+    padding-bottom: 0;
   }
 
-  .qb-reader-bar .identity .name {
-    font-size: 20px;
+  .qb-reader-bar .identity .meta {
+    font-size: 10.5px;
+    line-height: 1.2;
   }
 
   .qb-reader-bar .act {
-    min-width: 44px;
-    height: 44px;
+    min-width: 34px;
+    height: 34px;
   }
 }
 
@@ -1493,6 +1533,43 @@
   background: var(--gold-a12);
 }
 
+/* Hizb tiles: the number, and where the hizb opens (surah · verse). */
+.qb-nav-sheet .hizb-grid {
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+}
+
+.qb-nav-sheet .hizb-grid button {
+  height: auto;
+  min-height: 58px;
+  padding: 6px 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.qb-nav-sheet .hizb-grid .n {
+  font-size: 16px;
+}
+
+.qb-nav-sheet .hizb-grid .at {
+  max-width: 100%;
+  font-family: var(--font-arabic-heading);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fg-3);
+  white-space: nowrap;
+  overflow-x: clip;
+  overflow-y: visible;
+  text-overflow: ellipsis;
+}
+
+.qb-nav-sheet .hizb-grid button.current .at,
+.qb-nav-sheet .hizb-grid button:hover .at {
+  color: var(--gold-text);
+}
+
 .qb-nav-sheet .page-form label {
   display: block;
   font-size: 13px;
@@ -1540,134 +1617,151 @@
   cursor: default;
 }
 
-/* --- «العرض» --- */
+/* --- «العرض»: a strip under the reader bar (no modal) --- */
 
-.qb-display-sheet .panel {
-  width: min(480px, 100%);
+/* The bar + its strip. The strip overlays the page (absolute) so opening it
+   never re-fits the page underneath. */
+.qb-reader-head {
+  position: relative;
+  z-index: 6;
+  flex-shrink: 0;
+  /* The bar's layout follows the reader's own width (container queries). */
+  container: reader-head / inline-size;
 }
 
-.qb-display-sheet section + section {
-  margin-top: 22px;
-}
-
-.qb-display-sheet .modes {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.qb-display-sheet .modes button {
+.qb-display-strip {
+  position: absolute;
+  top: calc(100% - 4px);
+  inset-inline: 0;
+  z-index: 30;
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 4px;
-  padding: 14px 6px 12px;
-  border-radius: var(--r-xl);
+  gap: 8px 14px;
+  padding: 6px 8px;
+  border-radius: 16px;
   border: 1px solid var(--glass-rim);
-  background: var(--glass-tint-soft);
-  color: var(--fg-2);
-  font-family: var(--font-arabic-ui);
-  cursor: pointer;
-  transition: transform var(--motion-dur-instant) var(--motion-ease-settle), border-color var(--motion-dur-fast),
-    background-color var(--motion-dur-base);
-}
-
-.qb-display-sheet .modes button:active {
-  transform: scale(var(--press-scale));
-}
-
-.qb-display-sheet .modes button .t {
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.qb-display-sheet .modes button .d {
-  font-size: 11px;
-  color: var(--fg-3);
-  text-align: center;
-}
-
-.qb-display-sheet .modes button.active {
-  border-color: var(--gold-a55);
-  background: var(--seg-on-bg);
+  background-color: var(--glass-tint-overlay, var(--glass-tint-strong));
   background-image: var(--glass-sheen);
-  box-shadow: var(--seg-on-shadow);
-  color: var(--gold-text);
+  box-shadow: var(--glass-edge), var(--glass-shadow-lift, var(--glass-shadow));
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong, var(--glass-blur))) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-strong, var(--glass-blur))) saturate(var(--glass-saturate));
+  animation: qbStripIn var(--motion-dur-fast, 160ms) var(--motion-ease-settle, ease-out) both;
 }
 
-.qb-display-sheet .size-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+@keyframes qbStripIn {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.qb-display-sheet .size-row input[type="range"] {
-  flex: 1;
-  accent-color: var(--gold-400);
-  height: 44px;
-}
-
-.qb-display-sheet .step {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  border: 1px solid var(--border);
-  background: none;
-  color: var(--fg-2);
-  font-family: var(--font-arabic-display);
-  direction: rtl;
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.qb-display-sheet .step.big {
-  font-size: 26px;
-}
-
-.qb-display-sheet .step:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-
-.qb-display-sheet .split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-.qb-display-sheet .seg {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
+.qb-display-strip .modes {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
   border-radius: var(--r-pill);
   background: var(--glass-tint-soft);
-  border: 1px solid var(--glass-rim);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
-.qb-display-sheet .seg button {
-  flex: 1;
+.qb-display-strip button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 38px;
+  height: 32px;
+  padding: 0 12px;
   border: 0;
   border-radius: var(--r-pill);
   background: none;
   color: var(--fg-2);
   font-family: var(--font-arabic-ui);
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
+  transition: background-color 140ms var(--ease-out), color 140ms var(--ease-out);
 }
 
-.qb-display-sheet .seg button.active {
-  background: var(--seg-on-bg);
-  background-image: var(--glass-sheen);
-  box-shadow: var(--seg-on-shadow);
+.qb-display-strip button:hover:not(:disabled) {
   color: var(--gold-text);
+}
+
+.qb-display-strip button.active {
+  background: var(--seg-on-bg, var(--gold-a18));
+  color: var(--gold-text);
+}
+
+.qb-display-strip .size {
+  flex: 1 1 200px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.qb-display-strip .size input[type="range"] {
+  flex: 1;
+  min-width: 60px;
+  height: 32px;
+  accent-color: var(--gold-400);
+}
+
+.qb-display-strip .step {
+  width: 32px;
+  padding: 0;
+  font-family: var(--font-arabic-display);
+  direction: rtl;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.qb-display-strip .step.big {
+  font-size: 22px;
+}
+
+.qb-display-strip .step:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.qb-display-strip .value {
+  min-width: 2ch;
+  font-family: var(--font-arabic-ui);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--gold-text);
+  text-align: center;
+}
+
+/* Phones: modes + the highlight toggle (icon only) on the first line, the
+   text size on its own full line. */
+@media (max-width: 480px) {
+  .qb-display-strip {
+    justify-content: space-between;
+  }
+
+  .qb-display-strip .size {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .qb-display-strip .toggle span {
+    display: none;
+  }
+
+  .qb-display-strip .toggle {
+    width: 32px;
+    padding: 0;
+  }
+}
+
+.qb-mushaf-stage.is-immersive .qb-reader-head {
+  display: none;
 }
 
 @media (max-width: 600px) {
@@ -1693,10 +1787,6 @@
     border-radius: 2px;
     background: var(--border-strong, var(--border));
   }
-
-  .qb-display-sheet .split {
-    grid-template-columns: 1fr;
-  }
 }
 
 @keyframes qbSheetIn {
@@ -1721,8 +1811,30 @@
   }
 }
 
-/* Phones: the page is the screen — no outer card frame (it cost ~40px of
-   width), minimal gutters. */
+/* Every device: the page is the room — no card frame around the reading
+   area and no sheet frame around the printed page (they cost width and read
+   as a frame within a frame). */
+.qb-mushaf-page,
+.light .qb-mushaf-page {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.qb-mushaf-page {
+  padding: 18px 28px 24px;
+}
+
+.qb-glyph-page,
+.light .qb-glyph-page {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Phones: minimal gutters too. */
 @media (max-width: 600px) {
   .qb-mushaf-stage {
     padding: 0 6px;
@@ -1738,6 +1850,33 @@
 
   .light .qb-mushaf-page {
     background: none;
+  }
+
+  /* No sheet frame either: on a phone the text itself is the page — every
+     pixel of width goes to the calligraphy. */
+  .qb-glyph-page,
+  .light .qb-glyph-page {
+    padding: 4px 2px 8px;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .qb-mushaf-page.is-glyph {
+    padding: 4px 0;
+  }
+
+  /* Verse by verse: the verses take the width (the desktop column padding
+     would leave ~30px of dead margin a side). */
+  .qb-mushaf-page.is-ayah {
+    padding: 6px 0 16px;
+  }
+
+  .qb-ayah-row,
+  .qb-ayah-row.is-glyph {
+    padding: 8px 2px;
+    gap: 8px;
   }
 }
 
@@ -1863,4 +2002,103 @@
 .qb-mushaf-stage,
 .qb-mushaf-page {
   direction: rtl;
+}
+
+/* Desktop page ribbons (use-saved-pages.ts): every page wears one at its
+   upper-left corner — an outline on an unsaved page, red on a saved page; a
+   click saves / unsaves it. Absolute, so the page fit never measures it. */
+.qb-glyph-page,
+.qb-page-turn {
+  position: relative;
+}
+
+.qb-page-ribbon {
+  position: absolute;
+  top: -2px;
+  left: 10px;
+  z-index: 2;
+  display: block;
+  padding: 0 2px 4px;
+  border: 0;
+  background: none;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.qb-page-ribbon path {
+  fill: transparent;
+  stroke: var(--fg-mute, rgba(120, 100, 60, 0.55));
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+  transition: fill var(--motion-dur-fast, 120ms) ease, stroke var(--motion-dur-fast, 120ms) ease;
+}
+
+.qb-page-ribbon:hover path {
+  stroke: #c0392b;
+}
+
+.qb-page-ribbon.on path {
+  fill: #c0392b;
+  stroke: #c0392b;
+}
+
+.qb-page-ribbon.on {
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.25));
+}
+
+.qb-page-ribbon:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Room above the first line for the ribbon (the page fit measures it). */
+.qb-glyph-page.has-ribbon {
+  padding-top: 18px;
+}
+
+/* Phones: the bookmark floats on its own beside the reader bar — same glass,
+   same height — red once the page is saved. */
+.qb-reader-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.qb-reader-row .qb-reader-bar {
+  flex: 1;
+  min-width: 0;
+}
+
+.qb-reader-bookmark {
+  flex-shrink: 0;
+  /* Same height as the bar beside it (same vertical margins, stretched). */
+  align-self: stretch;
+  width: 44px;
+  margin: 4px 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+.qb-reader-bookmark.on {
+  color: #c0392b;
+}
+
+.qb-reader-bookmark:active {
+  transform: scale(var(--press-scale, 0.97));
+}
+
+.qb-mushaf-stage.is-immersive .qb-reader-row {
+  display: none;
 }

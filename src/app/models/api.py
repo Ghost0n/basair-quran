@@ -1018,6 +1018,17 @@ class TranslationAyahsResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class ReciterDurations(BaseModel):
+    """Every verse's audio duration for one reciter's surah (seconds; None = not
+    measured yet). ``complete`` once all are known — the response is then
+    immutable and cacheable for a year."""
+
+    reciter_id: str
+    surah: int
+    durations: list[float | None]
+    complete: bool
+
+
 class ReciterItem(BaseModel):
     id: str
     name: str

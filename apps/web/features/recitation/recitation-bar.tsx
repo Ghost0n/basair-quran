@@ -8,10 +8,22 @@ import { Icon } from "@/components/icon";
 import { useNumerals } from "@/lib/preferences-context";
 import { useMushaf } from "@/features/reading/mushaf-context";
 
+import { RangePicker } from "./range-picker";
 import { ReciterDropdown } from "./reciter-dropdown";
 import { RECITATION_SPEEDS, useRecitation } from "./recitation-context";
 
 import { t } from "@/lib/i18n";
+
+/** 0:07 · 12:45 · 1:02:09 — in the interface's digits. */
+function clock(seconds: number, formatNumber: (value: number) => string): string {
+  const whole = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(whole / 3600);
+  const minutes = Math.floor((whole % 3600) / 60);
+  const rest = whole % 60;
+  const two = (value: number) => String(value).padStart(2, "0");
+  const text = hours ? `${hours}:${two(minutes)}:${two(rest)}` : `${minutes}:${two(rest)}`;
+  return text.replace(/\d/g, (digit) => formatNumber(Number(digit)));
+}
 
 /**
  * RecitationBar — the persistent bottom media bar, global across every screen.
@@ -39,24 +51,25 @@ export function RecitationBar() {
     reciterRiwayah && readerRiwayah && reciterRiwayah !== readerRiwayah,
   );
 
-  // Seek by clicking (or arrowing) along the track. RTL: the fill grows from the
-  // inline-start (right) edge, so ratio 0 is the right edge, 1 the left.
+  // The track is the whole surah. It always runs right-to-left (like the
+  // mushaf, in every interface language): ratio 0 at the right edge, 1 at the
+  // left; a click lands on the right verse at the right moment.
   function seekFromPointer(event: MouseEvent<HTMLDivElement>) {
     if (!current) return;
     const rect = event.currentTarget.getBoundingClientRect();
     if (rect.width <= 0) return;
-    recitation.seek((rect.right - event.clientX) / rect.width);
+    recitation.seekSurah((rect.right - event.clientX) / rect.width);
   }
 
   function seekFromKey(event: KeyboardEvent<HTMLDivElement>) {
     if (!current) return;
-    // In RTL, ArrowLeft advances (toward the end of the fill), ArrowRight rewinds.
+    // Right-to-left track: ArrowLeft moves forward 5 s, ArrowRight back 5 s.
     if (event.key === "ArrowLeft") {
       event.preventDefault();
-      recitation.seek(Math.min(1, recitation.progress + 0.05));
+      recitation.seekBy(5);
     } else if (event.key === "ArrowRight") {
       event.preventDefault();
-      recitation.seek(Math.max(0, recitation.progress - 0.05));
+      recitation.seekBy(-5);
     }
   }
 
@@ -67,7 +80,10 @@ export function RecitationBar() {
 
   if (!current && !recitation.idle) return null;
 
-  const progressPct = Math.round(recitation.progress * 100);
+  const timing = recitation.surahTiming;
+  const progressPct = timing ? Math.round(timing.progress * 1000) / 10 : 0;
+  const elapsedText = timing ? clock(timing.elapsed, formatNumber) : clock(0, formatNumber);
+  const totalText = timing && timing.total > 0 ? `${timing.exact ? "" : "~"}${clock(timing.total, formatNumber)}` : "--:--";
   const canPlay = Boolean(current) || Boolean(recitation.pendingStart);
 
   return (
@@ -107,7 +123,8 @@ export function RecitationBar() {
           subtitle={
             current ? (
               <>
-                {t("سورة")} {formatNumber(current.surah)}{t("، آية")} {formatNumber(current.ayah)}
+                {t("سورة")} {recitation.surahs.find((item) => item.id === current.surah)?.name ?? formatNumber(current.surah)}
+                {t("، آية")} {formatNumber(current.ayah)}
               </>
             ) : (
               t("جاهز — اختر قارئاً ثم شغّل")
@@ -122,23 +139,29 @@ export function RecitationBar() {
           </div>
         ) : null}
 
-        <div
-          className={`qb-media-seek${current ? "" : " is-idle"}`}
-          role="slider"
-          tabIndex={current ? 0 : -1}
-          aria-label={t("موضع التلاوة")}
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={progressPct}
-          aria-disabled={!current}
-          onClick={seekFromPointer}
-          onKeyDown={seekFromKey}
-        >
-          <span className="fill" style={{ width: `${progressPct}%` }} />
+        <div className="qb-media-progress">
+          <span className="time">{elapsedText}</span>
+          <div
+            className={`qb-media-seek${current ? "" : " is-idle"}`}
+            role="slider"
+            tabIndex={current ? 0 : -1}
+            aria-label={t("موضع التلاوة")}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(progressPct)}
+            aria-valuetext={`${elapsedText} / ${totalText}`}
+            aria-disabled={!current}
+            onClick={seekFromPointer}
+            onKeyDown={seekFromKey}
+          >
+            <span className="fill" style={{ width: `${progressPct}%` }} />
+          </div>
+          <span className="time total">{totalText}</span>
         </div>
       </div>
 
       <div className="qb-media-tools">
+        <RangePicker />
         <button
           type="button"
           className={`chip${recitation.repeatAyah ? " active" : ""}`}

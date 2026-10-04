@@ -21,6 +21,8 @@ export type SavableAyah = {
   surah: string;
   ayah: number;
   text: string;
+  /** Optional notebook grouping (search results tag the searched root). */
+  collection?: string;
 };
 
 /**
@@ -120,6 +122,7 @@ export function useSavedAyat() {
         ayah: ayah.ayah,
         text: cleanAyahText(ayah.text),
         theme_ids: themeIds,
+        ...(ayah.collection ? { collection: ayah.collection } : {}),
       });
       put(ayah.ayah_id, { id: created.id, themeIds: created.theme_ids ?? [] });
       emitNotebookChange({ kind: "added", item: created });

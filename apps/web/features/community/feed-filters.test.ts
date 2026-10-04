@@ -4,8 +4,9 @@ import { EMPTY_FILTERS, activeFilterCount, feedQuery } from "./feed-filters";
 
 describe("feed filters", () => {
   it("counts only narrowing filters, not the sort order", () => {
+    expect(EMPTY_FILTERS.sort).toBe("top");
     expect(activeFilterCount(EMPTY_FILTERS)).toBe(0);
-    expect(activeFilterCount({ ...EMPTY_FILTERS, sort: "top" })).toBe(0);
+    expect(activeFilterCount({ ...EMPTY_FILTERS, sort: "latest" })).toBe(0);
     expect(activeFilterCount({ ...EMPTY_FILTERS, q: "   " })).toBe(0);
     expect(
       activeFilterCount({ ...EMPTY_FILTERS, q: "صبر", tag: "تدبر", surah: 2, mode: "strict", board: true, author: { id: 3, name: "أ" } }),
@@ -16,7 +17,7 @@ describe("feed filters", () => {
     const filters = { ...EMPTY_FILTERS, q: "صبر وشكر", tag: "تدبر", author: { id: 7, name: "باحث" } };
     expect(feedQuery(filters, "صبر", true, "cur")).toEqual({
       cursor: "cur",
-      sort: "latest",
+      sort: "top",
       q: "صبر",
       surah: null,
       tag: "تدبر",

@@ -41,6 +41,8 @@ export type WordSelection = {
   ayahId: number | null;
   /** Printed page of the first selected word, when known. */
   page: number | null;
+  /** Every word of one verse is selected (a verse number tap, or all its words). */
+  wholeVerse: boolean;
 };
 
 /** Build the selection from the reader surface's word elements. */
@@ -52,7 +54,8 @@ export function readSelection(root: HTMLElement, anchor: string, focus: string):
   const wanted = new Set(keys);
   const picked = elements.filter((el) => wanted.has(el.dataset.wk ?? ""));
   const text = picked
-    .map((el) => (el.querySelector(".qb-sr-only")?.textContent ?? el.textContent ?? "").trim())
+    // The glyph readers' last word of an ayah carries its number: drop it.
+    .map((el) => (el.querySelector(".qb-sr-only")?.textContent ?? el.textContent ?? "").replace(/\s*[0-9٠-٩۰-۹]+\s*$/, "").trim())
     .filter(Boolean)
     .join(" ");
   const start = parseWordKey(keys[0]);
@@ -60,6 +63,10 @@ export function readSelection(root: HTMLElement, anchor: string, focus: string):
   if (!start || !end) return null;
   const first = picked[0];
   const pageAttr = first?.closest<HTMLElement>("[data-page]")?.dataset.page;
+  const versePrefix = `${start.surah}:${start.ayah}:`;
+  const verseWords = new Set(ordered.filter((key) => key.startsWith(versePrefix)));
+  const wholeVerse =
+    start.surah === end.surah && start.ayah === end.ayah && verseWords.size > 0 && wanted.size === verseWords.size;
   return {
     anchor,
     keys,
@@ -68,7 +75,30 @@ export function readSelection(root: HTMLElement, anchor: string, focus: string):
     end,
     ayahId: first?.dataset.aid ? Number(first.dataset.aid) : null,
     page: pageAttr ? Number(pageAttr) || null : null,
+    wholeVerse,
   };
+}
+
+/**
+ * «تظليل» works on whole verses: the tapped verse ("focus") and the verse under
+ * the pointer ("hover") render as one continuous block — never word by word.
+ */
+/** "recite": the verse being recited (media bar), lit the same continuous way. */
+export type VerseFocus = "focus" | "hover" | "recite" | null;
+
+const VerseFocusContext = createContext<(ayahId: number) => VerseFocus>(() => null);
+
+export const VerseFocusProvider = VerseFocusContext.Provider;
+
+export function useVerseFocus(): (ayahId: number) => VerseFocus {
+  return useContext(VerseFocusContext);
+}
+
+/** Class suffix for a verse wrapper in the given focus state. */
+export function verseFocusClass(state: VerseFocus): string {
+  if (state === "focus") return " qb-verse-focus";
+  if (state === "hover") return " qb-verse-focus is-hover";
+  return state === "recite" ? " qb-verse-focus is-recite" : "";
 }
 
 const PickedWordsContext = createContext<(key: string) => boolean>(() => false);

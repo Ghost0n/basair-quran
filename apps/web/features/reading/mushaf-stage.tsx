@@ -10,22 +10,23 @@ import type { QuranPageAyah, SurahListItem } from "@q-basair/shared";
 import { API_BASE_URL } from "@/lib/config";
 import { ErrorState } from "@/components/error-state";
 import { useWorkspace } from "@/features/shell/workspace-context";
+import { useRecitation } from "@/features/recitation/recitation-context";
+import { divisionOf, divisionRange } from "@/lib/quran-ranges";
 import { Icon } from "@/components/icon";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { AyahMarksProvider, useShowHighlights, type AyahMark } from "@/features/themes/ayah-marks";
-import { ThemeSheet } from "@/features/themes/theme-sheet";
+import { useSaveAyah } from "@/features/themes/save-ayah-context";
 import { useThemes } from "@/features/themes/themes-store";
 
 import "./reading.css";
 
 import { ReaderBar } from "./components/reader-bar";
 import { NavigateSheet, type NavigateTarget } from "./components/navigate-sheet";
-import { DisplaySheet } from "./components/display-sheet";
 import { TravelOverlay } from "./components/travel-overlay";
 import { type MorphTarget } from "./components/morph-popover";
 import { type GlyphSaveTarget } from "./components/glyph-page";
 import { PagedReader } from "./components/paged-reader";
-import { ScrollReader, type ScrollControls } from "./components/scroll-reader";
+import type { ScrollControls } from "./use-reader-window";
 import { AyahReader } from "./components/ayah-reader";
 import { prefetchQuranPage, useMushaf } from "./mushaf-context";
 import { prefetchMushafLayout, useMushafLayout } from "./use-mushaf-layout";
@@ -33,13 +34,12 @@ import { useReaderGestures } from "./use-reader-gestures";
 import { nextReaderLayout, resolveReaderMode, spreadFits } from "./reader-modes";
 import { useGlyphFit } from "./use-glyph-fit";
 import { useCompactReader, useElementSize } from "./use-wide-screen";
-import { useSavedAyat, type SavableAyah } from "./use-saved-ayat";
-import { useShellMode } from "@/features/shell/mode-context";
-import { queueStudioAsk } from "@/lib/studio-prefill";
+import type { SavableAyah } from "./use-saved-ayat";
+import { PageRibbonsProvider, useSavedPages, type PageRibbons } from "./use-saved-pages";
 import { toolForKey } from "./tools/registry";
 import { SelectionBar } from "./tools/selection-bar";
 import { setReaderTool, useReaderTool } from "./tools/use-reader-tool";
-import { PickedWordsProvider, readSelection, type WordSelection } from "./tools/word-selection";
+import { PickedWordsProvider, VerseFocusProvider, readSelection, type VerseFocus, type WordSelection } from "./tools/word-selection";
 
 import { t as tt } from "@/lib/i18n";
 
@@ -61,7 +61,7 @@ function pageSpread(page: number): { right: number; left: number; facing: number
 export function MushafStage() {
   const { state } = useWorkspace();
   const mushaf = useMushaf();
-  const { preferences, updateAccount, updateAccountDebounced, ready } = usePreferences();
+  const { preferences, updateAccount, persistQuietly, ready } = usePreferences();
   const formatNumber = useNumerals();
   const selectedMushaf = state.selectedMushaf;
 
@@ -72,18 +72,30 @@ export function MushafStage() {
   // reader's fit engine can't survive a remount, so it stays un-animated.
   const [navDir, setNavDir] = useState<"fwd" | "back">("fwd");
   // Reader sheets («انتقل», «العرض») and focus mode (all chrome hidden).
-  const [sheet, setSheet] = useState<"navigate" | "display" | null>(null);
+  const [sheet, setSheet] = useState<"navigate" | null>(null);
+  // «العرض» drops a strip under the bar (no modal: the page stays in view).
+  const [displayOpen, setDisplayOpen] = useState(false);
   // «حفظ وتظليل»: the ayah whose save/theme sheet is open.
-  const [themeTarget, setThemeTarget] = useState<SavableAyah | null>(null);
   // Reader toolbox: the active tool decides what a tap on a word does.
   const tool = useReaderTool();
-  const { setMode } = useShellMode();
   const [selection, setSelection] = useState<WordSelection | null>(null);
+  // «تظليل»: the tapped verse and the one under the pointer.
+  const [focusAyahId, setFocusAyahId] = useState<number | null>(null);
+  const [hoverAyahId, setHoverAyahId] = useState<number | null>(null);
   // Switching tools drops the previous tool's transient state.
   useEffect(() => {
     setSelection(null);
     setMorphTarget(null);
+    setFocusAyahId(null);
+    setHoverAyahId(null);
   }, [tool]);
+  // The recited verse (set below, once the recitation has one on screen).
+  const [recitingAyahId, setRecitingAyahId] = useState<number | null>(null);
+  const verseFocus = useMemo(
+    () => (ayahId: number): VerseFocus =>
+      ayahId === focusAyahId ? "focus" : ayahId === recitingAyahId ? "recite" : ayahId === hoverAyahId ? "hover" : null,
+    [focusAyahId, hoverAyahId, recitingAyahId],
+  );
   const [immersive, setImmersive] = useState(false);
 
   // Focus mode hides the shell chrome too (top bar, rail, tab bar) — a class on
@@ -163,7 +175,7 @@ export function MushafStage() {
       ? pd.ayahs.find((a) => a.ayah_id === mushaf.selectedAyahId)!
       : pd.ayahs[0];
     persistedRef.current = { page: pd.page ?? null, ayahId: anchor.ayah_id };
-    updateAccountDebounced({
+    persistQuietly({
       last_position: {
         ayah_id: anchor.ayah_id,
         mushaf_id: pd.mushaf_id ?? selectedMushaf,
@@ -222,20 +234,14 @@ export function MushafStage() {
   // «صفحتان» (header switcher + Shift+M) needs the glyph page.
   const spreadAvailable = authentic;
 
-  // Reader layout preference dispatches the surface. `scroll` is a continuous
-  // Unicode scroller; the ayah surface arrives in a later phase (reads as paged
-  // for now). Everything else resolves within the paged family.
-  const readerLayout = preferences.reader_layout;
-  // Three modes (see reader-modes.ts): "auto" is device-smart — continuous
-  // scroll on phones / short screens (a fit-to-height page has no room there),
-  // pages elsewhere; explicit choices are honoured on every device.
+  // Two modes (see reader-modes.ts): the printed page (one page or a spread)
+  // and verse by verse, on every device.
   const compact = useCompactReader();
-  const readerMode = resolveReaderMode(readerLayout, compact);
-  const scrollMode = readerMode === "scroll";
+  const readerMode = resolveReaderMode(preferences.reader_layout);
   const ayahMode = readerMode === "ayah";
-  // The continuous readers (scroll + ayah) share a windowing engine and route
-  // prev/next to a smooth in-place scroll rather than a page swap.
-  const continuousMode = scrollMode || ayahMode;
+  // The verse-by-verse reader is continuous (a windowing engine): prev/next
+  // become a smooth in-place scroll rather than a page swap.
+  const continuousMode = ayahMode;
 
   // Measure the room for pages: the canvas width (independent of the stage's own
   // max-width, which depends on whether a spread shows) and the reading
@@ -243,6 +249,12 @@ export function MushafStage() {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const surfaceRef = useRef<HTMLDivElement | null>(null);
   const canvasSize = useElementSize(stageRef, (stage) => stage.parentElement);
+  // A panel beside the reader (search, study, or a companion screen such as the
+  // notebook) takes part of that room.
+  const panelSize = useElementSize(
+    stageRef,
+    (stage) => stage.parentElement?.querySelector<HTMLElement>(":scope > .qb-side-panel, :scope > .qb-companion-panel") ?? null,
+  );
   const surfaceSize = useElementSize(surfaceRef);
 
   // The stage-level layout fetch serves the PAGED reader only. In scroll mode
@@ -263,7 +275,8 @@ export function MushafStage() {
 
   // Save an ayah to the library (الدفتر) straight from the reader and highlight
   // it with themes: the bookmark opens «حفظ وتظليل» (which saves on open).
-  const saved = useSavedAyat();
+  // The app-wide saved-ayah store + the one theme sheet every save opens.
+  const { saved, openSave } = useSaveAyah();
   const { byId: themeById } = useThemes();
   const showHighlights = useShowHighlights();
 
@@ -278,10 +291,50 @@ export function MushafStage() {
     [saved, themeById, showHighlights],
   );
 
-  // Glyph reader save: build the ayah payload from the clicked word + catalog.
+  // The whole verse as a word selection (every word carrying its ayah id).
+  function verseSelection(ayahId: number): WordSelection | null {
+    const root = surfaceRef.current;
+    if (!root) return null;
+    const words = root.querySelectorAll<HTMLElement>(`[data-wk][data-aid="${ayahId}"]`);
+    const first = words[0]?.dataset.wk;
+    const last = words[words.length - 1]?.dataset.wk;
+    return first && last ? readSelection(root, first, last) : null;
+  }
+
+  // A tap on a verse (its number ornament, or any word with «تظليل»): select
+  // the whole verse; with «تظليل» also open its save/theme sheet.
+  function activateVerse(target: SavableAyah) {
+    setMorphTarget(null);
+    if (tool === "highlight") {
+      // Verse, not words: the whole ayah lights as one block.
+      setSelection(null);
+      setFocusAyahId(target.ayah_id);
+      openSave(target, {
+        onClose: () => {
+          setSelection(null);
+          setFocusAyahId(null);
+        },
+      });
+      return;
+    }
+    setSelection(verseSelection(target.ayah_id));
+  }
+
+  // «تظليل» hover: the verse under the pointer lights whole (mouse only).
+  function onSurfaceHover(event: React.PointerEvent<HTMLDivElement>) {
+    if (tool !== "highlight" || event.pointerType !== "mouse") return;
+    const target = event.target as Element;
+    const verse = target.closest<HTMLElement>("[data-aid], [data-ayah-id]");
+    // Between two words of a line: keep the current verse (no flicker).
+    if (!verse && target.closest(".qb-glyph-line, .qb-ayat-flow")) return;
+    const next = verse ? Number(verse.dataset.aid ?? verse.dataset.ayahId) || null : null;
+    setHoverAyahId((current) => (current === next ? current : next));
+  }
+
+  // Glyph readers: build the ayah payload from the ornament + catalog.
   function handleGlyphSave(target: GlyphSaveTarget) {
     const surahName = surahs.find((item) => item.id === target.surahId)?.name ?? `${target.surahId}`;
-    setThemeTarget({
+    activateVerse({
       ayah_id: target.ayahId,
       mushaf_id: pageData?.mushaf_id ?? selectedMushaf,
       surah_id: target.surahId,
@@ -292,7 +345,7 @@ export function MushafStage() {
   }
 
   function handleAyahSave(ayah: QuranPageAyah) {
-    setThemeTarget({
+    activateVerse({
       ayah_id: ayah.ayah_id,
       mushaf_id: ayah.mushaf_id,
       surah_id: ayah.surah_id,
@@ -306,7 +359,8 @@ export function MushafStage() {
   // window is too narrow, when the user forces single, or on the simple reader /
   // non-Hafs (where layout is null).
   // A facing spread only when two pages keep (almost) single-page size.
-  const roomForSpread = spreadFits(canvasSize.width - 64, surfaceSize.height - 64);
+  const readerRoom = canvasSize.width - (panelSize.width ? panelSize.width + 10 : 0);
+  const roomForSpread = spreadFits(readerRoom - 64, surfaceSize.height - 64);
   const currentPage = pageData?.page ?? null;
   const pair = currentPage != null && currentPage >= 1 ? pageSpread(currentPage) : null;
   const spreadIntent =
@@ -343,11 +397,85 @@ export function MushafStage() {
     });
   }, [currentPageNumber, spreadRight, continuousMode, selectedMushaf, authentic, totalPages]);
 
+  // ---------- Recitation: the recited verse, lit and followed ----------
+  // The verse being recited is lit as one continuous block wherever it is on
+  // screen (the "recite" verse state, drawn like the «تظليل» focus). With «متابعة» on,
+  // the reader keeps it in view: pages turn to it, the verse-by-verse list
+  // scrolls to it. Each verse is followed once, so a reader who turns away
+  // mid-verse is only brought back by the next verse.
+  const recitation = useRecitation();
+  const reciting = recitation.current;
+  const recitingKey = reciting ? `${reciting.surah}:${reciting.ayah}` : null;
+  const followedRef = useRef<string | null>(null);
+  const showAyahPage = mushaf.showAyahPage;
+  useEffect(() => {
+    if (!recitingKey || !reciting) {
+      setRecitingAyahId(null);
+      followedRef.current = null;
+      return;
+    }
+    let frame = 0;
+    let tries = 0;
+    const locate = () => {
+      const word = surfaceRef.current?.querySelector<HTMLElement>(`[data-wk^="${recitingKey}:"]`) ?? null;
+      if (word) {
+        setRecitingAyahId(word.dataset.aid ? Number(word.dataset.aid) : null);
+        if (recitation.follow && ayahMode && followedRef.current !== `${recitingKey}@scroll`) {
+          followedRef.current = `${recitingKey}@scroll`;
+          const row = word.closest<HTMLElement>(".qb-ayah-row") ?? word;
+          const box = row.getBoundingClientRect();
+          const view = surfaceRef.current?.getBoundingClientRect();
+          if (view && (box.top < view.top || box.bottom > view.bottom)) {
+            const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+            row.scrollIntoView({ block: "center", behavior: reduce ? "auto" : "smooth" });
+          }
+        }
+        return;
+      }
+      // Not drawn yet (a page still rendering): look again for a few frames.
+      if (tries < 12) {
+        tries += 1;
+        frame = requestAnimationFrame(locate);
+        return;
+      }
+      setRecitingAyahId(null);
+      if (!recitation.follow || followedRef.current === recitingKey || !pageData) return;
+      const onPage = pageData.ayahs.some((ayah) => ayah.surah_id === reciting.surah && ayah.ayah === reciting.ayah);
+      if (onPage) return;
+      followedRef.current = recitingKey;
+      void showAyahPage(pageData.mushaf_id ?? selectedMushaf, reciting.surah, reciting.ayah);
+    };
+    locate();
+    return () => cancelAnimationFrame(frame);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recitingKey, recitation.follow, ayahMode, pageData, layout, facing.layout, showSpread]);
+
+  // Desktop page ribbons: outline / red, a click (un)saves that page.
+  const savedPages = useSavedPages();
+  const ribbonMushaf = pageData?.mushaf_id ?? selectedMushaf;
+  const pageRibbons = useMemo<PageRibbons>(
+    () => ({
+      enabled: !compact,
+      isSaved: (page) => savedPages.isSaved(page, ribbonMushaf),
+      toggle: (page, surahId) =>
+        savedPages.toggle({
+          page,
+          mushaf_id: ribbonMushaf,
+          surah: surahs.find((item) => item.id === surahId)?.name ?? null,
+          surah_id: surahId,
+        }),
+    }),
+    [compact, savedPages, ribbonMushaf, surahs],
+  );
+
+  // Swipe turns the page in every mode (the continuous ones scroll a page);
+  // a tap on the empty page toggles focus mode (on phones, a click too).
   const gestures = useReaderGestures({
-    swipeEnabled: !continuousMode,
+    swipeEnabled: true,
     onNext: () => goNextRef.current(),
     onPrev: () => goPrevRef.current(),
     onTap: () => setImmersive((value) => !value),
+    mouseTaps: compact,
   });
   function goPrev() {
     if (continuousMode && scrollControlsRef.current) {
@@ -374,14 +502,47 @@ export function MushafStage() {
     }
   }
 
+  // Mouse wheel / trackpad in the paged modes: once the page itself can't
+  // scroll further that way, a deliberate wheel turns the page (a cooldown so
+  // one flick turns one page, not five).
+  const wheelRef = useRef({ total: 0, last: 0, lockedUntil: 0 });
+  function onSurfaceWheel(event: React.WheelEvent<HTMLDivElement>) {
+    if (continuousMode || event.ctrlKey || Math.abs(event.deltaY) < Math.abs(event.deltaX)) return;
+    const scroller = mushaf.bodyRef.current;
+    if (scroller) {
+      const down = event.deltaY > 0;
+      const room = down
+        ? scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop
+        : scroller.scrollTop;
+      if (room > 2) return;
+    }
+    const now = performance.now();
+    const wheel = wheelRef.current;
+    if (now < wheel.lockedUntil) return;
+    if (now - wheel.last > 250) wheel.total = 0;
+    wheel.last = now;
+    wheel.total += event.deltaY;
+    if (Math.abs(wheel.total) < 60) return;
+    const forward = wheel.total > 0;
+    wheel.total = 0;
+    wheel.lockedUntil = now + 550;
+    if (forward) goNextRef.current();
+    else goPrevRef.current();
+  }
+
   // Shift+M cycles the three reading modes (صفحات → تمرير → آية آية).
   function cycleLayout() {
-    void updateAccount({ reader_layout: nextReaderLayout(preferences.reader_layout, compact) });
+    void updateAccount({ reader_layout: nextReaderLayout(preferences.reader_layout) });
   }
 
   function navigateTo(target: NavigateTarget) {
     if (target.type === "surah") void mushaf.loadBySurah(selectedMushaf, target.surah, target.ayah);
     else if (target.type === "juz") void mushaf.loadByJuz(selectedMushaf, target.juz);
+    else if (target.type === "hizb") {
+      // A hizb opens at its first verse (Madani mushaf divisions, lib/quran-divisions).
+      const { start } = divisionRange("hizb", target.hizb);
+      void mushaf.loadBySurah(selectedMushaf, start.surah, start.ayah);
+    }
     else void mushaf.loadPage(selectedMushaf, target.page, { persist: true });
   }
 
@@ -428,17 +589,6 @@ export function MushafStage() {
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // Grammar insights: anchor the morphology popover at a viewport point.
-  function openMorph(surah: number, ayah: number, position: number, word: string, x: number, y: number, ayahText?: string) {
-    const container = mushaf.bodyRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    const top = y - rect.top + container.scrollTop;
-    const rawLeft = x - rect.left - 160;
-    const left = Math.min(Math.max(rawLeft, 12), Math.max(rect.width - 332, 12));
-    setMorphTarget({ surah, ayah, position, word, ayahText, top, left });
-  }
-
   function ayahFromWord(element: HTMLElement, surah: number, ayah: number, ayahText?: string): SavableAyah | null {
     const ayahId = Number(element.dataset.aid);
     if (!Number.isFinite(ayahId) || ayahId <= 0) return null;
@@ -452,8 +602,9 @@ export function MushafStage() {
     };
   }
 
-  // «تحديد»: first tap picks a word; a second tap extends the run to it; a
-  // tap on a lone picked word, or any tap after a run, starts over.
+  // «تحديد»: first tap picks a word (and shows its analysis); a second tap
+  // extends the run to it; a tap on a lone picked word, or any tap after a
+  // run, starts over.
   function pickWord(element: HTMLElement) {
     const root = surfaceRef.current;
     const key = element.dataset.wk;
@@ -469,73 +620,40 @@ export function MushafStage() {
   }
 
   // One entry point for pointer + keyboard word activation, routed by tool.
-  function activateWord(
-    surah: number,
-    ayah: number,
-    position: number,
-    word: string,
-    element: HTMLElement,
-    point: { x: number; y: number },
-    ayahText?: string,
-  ) {
-    switch (tool) {
-      case "highlight": {
-        const target = ayahFromWord(element, surah, ayah, ayahText);
-        if (target) setThemeTarget(target);
-        return;
-      }
-      case "select":
-        pickWord(element);
-        return;
-      case "tafssir": {
-        const name = surahs.find((item) => item.id === surah)?.name ?? `${surah}`;
-        queueStudioAsk(
-          tt("فسِّر الآية {0} من سورة {1} في سياقها: ما قبلها وما بعدها ومقصد السورة.", { 0: formatNumber(ayah), 1: name }),
-          { mode: "tafssir", focus: { surah, ayah }, focusLabel: tt("{0}، الآية {1}", { 0: name, 1: formatNumber(ayah) }) },
-        );
-        setMode("studio");
-        return;
-      }
-      default:
-        openMorph(surah, ayah, position, word, point.x, point.y, ayahText);
+  function activateWord(surah: number, ayah: number, element: HTMLElement, ayahText?: string) {
+    if (tool === "highlight") {
+      // «تظليل» works on verses: a tap on any word takes its whole ayah.
+      const target = ayahFromWord(element, surah, ayah, ayahText);
+      if (target) activateVerse(target);
+      return;
     }
+    pickWord(element);
   }
 
   function handleWordClick(
     surah: number,
     ayah: number,
-    position: number,
-    word: string,
+    _position: number,
+    _word: string,
     event: React.MouseEvent,
     ayahText?: string,
   ) {
-    const element = event.currentTarget as HTMLElement;
-    activateWord(surah, ayah, position, word, element, { x: event.clientX, y: event.clientY + 22 }, ayahText);
+    activateWord(surah, ayah, event.currentTarget as HTMLElement, ayahText);
   }
 
-  // Keyboard path: anchor off the focused word element instead of a pointer
-  // position, so Enter/Space uses the active tool without a mouse.
+  // Keyboard path: Enter/Space on the focused word uses the active tool.
   function handleWordKey(
     surah: number,
     ayah: number,
-    position: number,
-    word: string,
+    _position: number,
+    _word: string,
     element: HTMLElement,
     ayahText?: string,
   ) {
-    const wordRect = element.getBoundingClientRect();
-    activateWord(
-      surah,
-      ayah,
-      position,
-      word,
-      element,
-      { x: wordRect.left + wordRect.width / 2, y: wordRect.bottom + 6 },
-      ayahText,
-    );
+    activateWord(surah, ayah, element, ayahText);
   }
 
-  // Tool shortcuts (1–4) and Esc to drop a selection — ignored while typing.
+  // Tool shortcuts (1–2) and Esc to drop a selection — ignored while typing.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null;
@@ -588,13 +706,15 @@ export function MushafStage() {
   return (
     <AyahMarksProvider value={markOf}>
     <PickedWordsProvider value={isPicked}>
+    <VerseFocusProvider value={verseFocus}>
+    <PageRibbonsProvider value={pageRibbons}>
     <div
       ref={stageRef}
-      className={`qb-mushaf-stage${showSpread ? " is-spread" : ""}${scrollMode ? " is-scroll" : ""}${ayahMode ? " is-ayah" : ""}${immersive ? " is-immersive" : ""}`}
+      className={`qb-mushaf-stage tool-${tool}${showSpread ? " is-spread" : ""}${ayahMode ? " is-ayah" : ""}${immersive ? " is-immersive" : ""}`}
     >
       {/* Shared SR hint: words reference this via aria-describedby so the analyze
           affordance is described once, instead of turning every word into a button. */}
-      <span id="qb-word-hint" className="qb-sr-only">{tt("اضغط Enter لتحليل الكلمة صرفياً")}</span>
+      <span id="qb-word-hint" className="qb-sr-only">{tt("اضغط Enter لتحديد الكلمة وتحليلها")}</span>
       <ReaderBar
         pageData={pageData}
         surahs={surahs}
@@ -604,8 +724,11 @@ export function MushafStage() {
         immersive={immersive}
         onPrev={goPrev}
         onNext={goNext}
+        ayahMode={ayahMode}
         onOpenNavigate={() => setSheet("navigate")}
-        onOpenDisplay={() => setSheet("display")}
+        displayOpen={displayOpen}
+        onToggleDisplay={() => setDisplayOpen((open) => !open)}
+        onCloseDisplay={() => setDisplayOpen(false)}
         onToggleImmersive={() => setImmersive((value) => !value)}
       />
 
@@ -618,24 +741,33 @@ export function MushafStage() {
         onPointerUp={gestures.onPointerUp}
         onPointerCancel={gestures.onPointerCancel}
         onClick={gestures.onClick}
+        onWheel={onSurfaceWheel}
+        onPointerOver={onSurfaceHover}
+        onPointerLeave={() => setHoverAyahId(null)}
       >
-      {scrollMode ? (
-        <ScrollReader
-          mushafId={selectedMushaf}
-          anchorData={pageData}
-          totalPages={totalPages}
-          authentic={authentic}
-          selectedAyahId={mushaf.selectedAyahId}
-          isSaved={saved.isSaved}
-          onToggleSave={handleAyahSave}
-          onGlyphSave={handleGlyphSave}
-          onWordClick={handleWordClick}
-          onWordKey={handleWordKey}
-          morphTarget={morphTarget}
-          onClearMorph={() => setMorphTarget(null)}
-          registerControls={registerScrollControls}
-        />
-      ) : ayahMode ? (
+      {/* Page-turn zones at the page edges (pointer screens): a soft glow on
+          hover, a click turns the page. RTL book: the next page is on the left. */}
+      {!continuousMode ? (
+        <>
+          <button
+            type="button"
+            className="qb-turn-zone next"
+            onClick={goNext}
+            disabled={isLoading || !pageData.has_next}
+            aria-label={tt("الصفحة التالية")}
+            tabIndex={-1}
+          />
+          <button
+            type="button"
+            className="qb-turn-zone prev"
+            onClick={goPrev}
+            disabled={isLoading || !pageData.has_previous}
+            aria-label={tt("الصفحة السابقة")}
+            tabIndex={-1}
+          />
+        </>
+      ) : null}
+      {ayahMode ? (
         <AyahReader
           mushafId={selectedMushaf}
           anchorData={pageData}
@@ -709,21 +841,13 @@ export function MushafStage() {
               currentSurahId={displaySurahId}
               currentPage={displayPage}
               currentJuz={pageData.juz}
+              currentHizb={pageData.ayahs[0] ? divisionOf("hizb", { surah: pageData.ayahs[0].surah_id, ayah: pageData.ayahs[0].ayah }) : null}
               onNavigate={navigateTo}
               onClose={() => setSheet(null)}
             />,
             document.body,
           )
         : null}
-      {sheet === "display" ? createPortal(<DisplaySheet onClose={() => setSheet(null)} />, document.body) : null}
-      {themeTarget ? (
-        <ThemeSheet
-          key={themeTarget.ayah_id}
-          ayah={themeTarget}
-          saved={saved}
-          onClose={() => setThemeTarget(null)}
-        />
-      ) : null}
 
       {/* Long-jump flourish — a gold wash + page-counter scrub over the stage,
           keyed so each far jump is a fresh, self-clearing overlay. */}
@@ -744,6 +868,8 @@ export function MushafStage() {
         />
       ) : null}
     </div>
+    </PageRibbonsProvider>
+    </VerseFocusProvider>
     </PickedWordsProvider>
     </AyahMarksProvider>
   );

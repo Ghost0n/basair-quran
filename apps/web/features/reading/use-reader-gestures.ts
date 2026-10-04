@@ -15,12 +15,13 @@ const TAP_MAX_MS = 350;
 const INTERACTIVE = "a, button, input, select, textarea, [role=button], [role=dialog], .qb-glyph-word, .qb-ayah-tok, .qb-morph-pop";
 
 type Handlers = {
-  /** Paged layouts only — continuous layouts scroll vertically instead. */
   swipeEnabled: boolean;
   onNext: () => void;
   onPrev: () => void;
-  /** Tap on the page background (touch only). */
+  /** Tap on the page background (touch; mouse too when `mouseTaps`). */
   onTap: () => void;
+  /** Phone layouts: a mouse click on the empty page toggles focus mode too. */
+  mouseTaps?: boolean;
 };
 
 /**
@@ -31,7 +32,7 @@ type Handlers = {
  * dragging the page to the right (finger moving left → right) goes forward.
  * Mouse pointers are ignored — desktop uses the arrows, PageUp/PageDown and F.
  */
-export function useReaderGestures({ swipeEnabled, onNext, onPrev, onTap }: Handlers) {
+export function useReaderGestures({ swipeEnabled, onNext, onPrev, onTap, mouseTaps = false }: Handlers) {
   const start = useRef<{ x: number; y: number; t: number; id: number } | null>(null);
   // A touch tap is only *recognised* on pointerup; the toggle runs on the click
   // that follows, whose target the browser fixed before any chrome moves — so
@@ -70,7 +71,8 @@ export function useReaderGestures({ swipeEnabled, onNext, onPrev, onTap }: Handl
   function onClick(event: ReactMouseEvent<HTMLElement>) {
     const tapped = pendingTap.current && performance.now() - pendingTap.current < 800;
     pendingTap.current = 0;
-    if (!tapped) return;
+    // detail > 0: a real click (not a keyboard-triggered one).
+    if (!tapped && !(mouseTaps && event.detail > 0)) return;
     const target = event.target;
     if (target instanceof Element && target.closest(INTERACTIVE)) return;
     onTap();

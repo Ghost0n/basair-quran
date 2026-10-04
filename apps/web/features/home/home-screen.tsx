@@ -2,26 +2,38 @@
 
 import "./home.css";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { ResearchSessionSummary, SavedPageEntry } from "@q-basair/shared";
+import type { ResearchSessionSummary, SavedPageEntry, SearchMode } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
 import { useAuthSession } from "@/lib/auth-session-context";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
-import { looksLikeQuestion, queueStudioAsk, queueStudioOpenSession } from "@/lib/studio-prefill";
+import { queueStudioAsk, queueStudioOpenSession } from "@/lib/studio-prefill";
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
+import { ThemeButton } from "@/features/shell/top-bar";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
+import { boardUrl, readLastBoard, type LastBoard } from "@/features/board/last-board";
+import "@/features/themes/themes.css";
+import { relativeAge } from "@/features/companions/use-companions";
+
+import { HomeAsk } from "./home-ask";
 
 import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 const LAST_PAGE_KEY = "qbasair.mushaf.lastPage";
+
+/** Card buttons read as plain words — no trailing «←» / «→» (translations keep theirs). */
+function noArrow(label: string): string {
+  return label.replace(/\s*[←→]\s*$/u, "");
+}
 const LAST_SURAH_KEY = "qbasair.mushaf.lastSurah";
 
 // A small rotating set of well-known āyāt — the page's centerpiece. The text is
@@ -50,7 +62,7 @@ const LANDED_KEY = "qb.landed";
 export function HomeScreen() {
   const { setMode } = useShellMode();
   const formatNumber = useNumerals();
-  const { actions } = useWorkspace();
+  const { state: workspace, actions } = useWorkspace();
   const { preferences, ready } = usePreferences();
 
   // Returning readers land in the reader: the first Home of a browser session
@@ -75,7 +87,10 @@ export function HomeScreen() {
     setMode("reading");
   }
 
-  const [ask, setAsk] = useState("");
+
+  const router = useRouter();
+  const [lastBoard, setLastBoard] = useState<LastBoard | null>(null);
+  useEffect(() => setLastBoard(readLastBoard()), []);
   const [lastPage, setLastPage] = useState<number | null>(null);
   const [lastSurah, setLastSurah] = useState<string | null>(null);
   const [ayahIndex, setAyahIndex] = useState(0);
@@ -128,37 +143,123 @@ export function HomeScreen() {
     return () => window.clearInterval(timer);
   }, []);
 
-  // Same intent routing as the command bar: a natural-language question goes to
-  // the Studio; a short root/word/phrase runs as a search (URL-driven, so the
-  // workspace picks it up). The submit button label mirrors the detected intent.
-  const askIsQuestion = !ask.trim() || looksLikeQuestion(ask);
+  // «اسأل» opens a new Studio session with the prompt; «ابحث» (or a suggestion)
+  // runs a Quran search and lands on the results (see HomeAsk).
+  function askStudio(value: string) {
+    queueStudioAsk(value);
+    setMode("studio");
+  }
 
-  function submitAsk(event: FormEvent) {
-    event.preventDefault();
-    const value = ask.trim();
-    if (!value) return;
-    setAsk("");
-    if (looksLikeQuestion(value)) {
-      queueStudioAsk(value);
-      setMode("studio");
-    } else {
-      // Runs through the shared workspace (same path as the command bar's
-      // example chips); the workspace-active effect switches the mode itself.
-      actions.runQuickExample({ query: value, mode: "exact" });
-    }
+  function searchQuran(value: string, searchMode: SearchMode = "exact") {
+    // The shared workspace runs it (same path as the command bar's chips).
+    actions.runQuickExample({ query: value, mode: searchMode });
+    setMode("search");
   }
 
   const ayah = ROTATING_AYAHS[ayahIndex];
 
+  // «تابِع…» cards, most recent activity first: the Studio session, the
+  // reading position, the board. The first one is promoted.
+  const session = recentSessions[0] ?? null;
+  const continueCards: { key: string; at: number; render: (promoted: boolean) => ReactNode }[] = [];
+  if (session) {
+    continueCards.push({
+      key: "session",
+      at: session.updated_at,
+      render: (promoted) => (
+        <button
+          type="button"
+          className={`qb-home-gridcard${promoted ? " promoted" : ""}`}
+          onClick={() => {
+            queueStudioOpenSession(session.id);
+            setMode("studio");
+          }}
+          title={session.title}
+        >
+          <span className="eyebrow">
+            <Icon name="sparkles" size={13} /> {t("تابِع الجلسة")}
+          </span>
+          <span className={`lead${promoted ? "" : " sm"}`}>{session.title}</span>
+          <span className="meta">
+            {session.mode === "tafssir" ? t("قراءة تفسيرية") : t("القرآن وحدَه")} ·{" "}
+            {tn("{0} رسالة", session.message_count, { 0: formatNumber(session.message_count) })}
+          </span>
+          <span className="cta">{noArrow(t("تابِع الجلسة ←"))}</span>
+        </button>
+      ),
+    });
+  }
+  continueCards.push({
+    key: "reading",
+    at: resumePage ? preferences.last_position?.updated_at ?? 1 : 0,
+    render: (promoted) => (
+      <button type="button" className={`qb-home-gridcard${promoted ? " promoted" : ""}`} onClick={() => setMode("reading")}>
+        <span className="eyebrow">
+          <Icon name="book" size={13} /> {resumePage ? t("تابع القراءة") : t("ابدأ القراءة")}
+        </span>
+        <span className="lead sm">
+          {resumePage ? (
+            <>
+              {lastSurah && resumePage === lastPage ? <>{t("سورة {0}", { 0: lastSurah })}{t("، ")}</> : null}
+              {t("صفحة {0}", { 0: formatNumber(resumePage) })}
+            </>
+          ) : (
+            <>{t("سورة الفاتحة")}</>
+          )}
+        </span>
+        {resumeAyah ? <span className="meta">{t("عند الآية")} {formatNumber(resumeAyah)}</span> : null}
+        {resumePage ? (
+          <span className="hairline" aria-hidden>
+            <span style={{ width: `${Math.min(100, Math.round((resumePage / 604) * 100))}%` }} />
+          </span>
+        ) : null}
+        <span className="cta">{noArrow(resumePage ? t("تابِع ←") : t("افتح المصحف ←"))}</span>
+      </button>
+    ),
+  });
+  if (lastBoard) {
+    continueCards.push({
+      key: "board",
+      at: lastBoard.at ?? 1,
+      render: (promoted) => (
+        <button
+          type="button"
+          className={`qb-home-gridcard board${promoted ? " promoted" : ""}`}
+          data-hl={lastBoard.color}
+          onClick={() => router.push(boardUrl(lastBoard.theme, lastBoard.board))}
+        >
+          <span className="eyebrow">
+            <Icon name="graph" size={13} /> {t("تابِع اللوحة")}
+          </span>
+          <span className="lead sm">{lastBoard.name}</span>
+          <span className="meta">
+            <span className="dot" aria-hidden /> {lastBoard.themeName}
+          </span>
+          <span className="cta">{noArrow(t("افتح اللوحة ←"))}</span>
+        </button>
+      ),
+    });
+  }
+  continueCards.sort((a, b) => b.at - a.at);
+
+  const greetingName = displayName?.trim();
+
   return (
     <div className="qb-home">
       <div className="qb-home-inner">
-        {/* Personalized greeting — signed-in only; a quiet line above the hero. */}
-        {displayName ? (
+        {/* Phones have no top bar: the theme switch sits beside the greeting. */}
+        <div className="qb-home-top">
           <div className="qb-home-greeting">
-            {t("أهلاً بعودتك،")} <strong>{displayName}</strong>
+            {greetingName ? (
+              <>
+                {t("أهلاً،")} <strong>{greetingName}</strong>
+              </>
+            ) : (
+              t("أهلاً بك")
+            )}
           </div>
-        ) : null}
+          <ThemeButton className="qb-icon-btn qb-home-theme" />
+        </div>
 
         {/* The verse holds the seat of honor; the brand is a whisper above it.
             No aria-live: a forever-rotating announcement is screen-reader noise —
@@ -173,113 +274,62 @@ export function HomeScreen() {
           </span>
         </header>
 
-        <form className="qb-home-ask" onSubmit={submitAsk} role="search">
-          <Icon name="sparkles" size={18} />
-          <input
-            type="text"
-            value={ask}
-            onChange={(event) => setAsk(event.target.value)}
-            placeholder={t("اسأل سؤالاً… أو اكتب جذراً/كلمة للبحث")}
-            aria-label={t("اسأل سؤالاً أو ابحث في القرآن")}
-            dir="auto"
-          />
-          <button type="submit" disabled={!ask.trim()}>
-            {askIsQuestion ? t("اسأل") : t("ابحث")}
-          </button>
-        </form>
+        <HomeAsk
+          mushaf={workspace.selectedMushaf}
+          examples={workspace.quickExamples}
+          onSearch={searchQuran}
+          onAsk={askStudio}
+        />
 
-        {/* Your workspace — 1.5/1/1: continue-session (promoted, gold), continue-
-            reading (progress hairline), recent pins. The last active session is
-            promoted regardless of type — it's the likeliest next click. */}
-        <div className="qb-home-grid">
-          {recentSessions[0] ? (
-            <button
-              type="button"
-              className="qb-home-gridcard promoted"
-              onClick={() => {
-                queueStudioOpenSession(recentSessions[0].id);
-                setMode("studio");
-              }}
-              title={recentSessions[0].title}
-            >
-              <span className="eyebrow">
-                <Icon name="sparkles" size={13} /> {t("تابِع من حيث توقّفت")}
-              </span>
-              <span className="lead">{recentSessions[0].title}</span>
-              <span className="meta">
-                {recentSessions[0].mode === "tafssir" ? t("قراءة تفسيرية") : t("القرآن وحدَه")} ·{" "}
-                {tn("{0} رسالة", recentSessions[0].message_count, { 0: formatNumber(recentSessions[0].message_count) })}
-              </span>
-              <span className="cta">{t("تابِع الجلسة ←")}</span>
-            </button>
+        {/* Saved muṣḥaf pages first — the reader's own bookmarks are the way in. */}
+        <section className="qb-home-pages" aria-label={t("صفحات محفوظة")}>
+          <div className="qb-home-section-h">
+            <Icon name="bookmarkFilled" size={14} /> {t("صفحات محفوظة")}
+          </div>
+          {savedPages.length > 0 ? (
+            <div className="rail">
+              {savedPages.slice(0, 12).map((entry) => (
+                <button key={`${entry.mushaf_id}-${entry.page}`} type="button" className="qb-home-page" onClick={() => openSavedPage(entry)}>
+                  <span className="ribbon" aria-hidden>
+                    <svg viewBox="0 0 16 24" width="12" height="18">
+                      <path d="M1 0h14v22l-7-5-7 5z" />
+                    </svg>
+                  </span>
+                  <span className="surah">{entry.surah ?? t("المصحف")}</span>
+                  <span className="page">{t("صفحة {0}", { 0: formatNumber(entry.page) })}</span>
+                  {entry.saved_at ? <span className="age">{relativeAge(entry.saved_at, formatNumber)}</span> : null}
+                </button>
+              ))}
+            </div>
           ) : (
-            <button
-              type="button"
-              className="qb-home-gridcard promoted"
-              onClick={() => setMode("studio")}
-            >
-              <span className="eyebrow">
-                <Icon name="sparkles" size={13} /> {t("ابدأ جلسة دراسة")}
-              </span>
-              <span className="lead">{t("اسأل سؤالاً موجَّهاً في المعاني")}</span>
-              <span className="meta">{t("جواب مستند على القرآن، مع شواهده")}</span>
-              <span className="cta">{t("افتح الاستوديو ←")}</span>
-            </button>
+            <p className="empty">{t("احفظ صفحة من القراءة (علامة الحفظ في شريط القارئ) لتجدها هنا.")}</p>
           )}
+        </section>
 
-          <button type="button" className="qb-home-gridcard" onClick={() => setMode("reading")}>
-            <span className="eyebrow">{resumePage ? t("تابع القراءة") : t("ابدأ القراءة")}</span>
-            <span className="lead sm">
-              {resumePage ? (
-                <>
-                  {lastSurah && resumePage === lastPage ? <>{t("سورة {0}", { 0: lastSurah })}{t("، ")}</> : null}
-                  {t("صفحة {0}", { 0: formatNumber(resumePage) })}
-                </>
-              ) : (
-                <>{t("سورة الفاتحة")}</>
-              )}
-            </span>
-            {resumeAyah ? <span className="meta">{t("عند الآية")} {formatNumber(resumeAyah)}</span> : null}
-            {resumePage ? (
-              <span className="hairline" aria-hidden>
-                <span style={{ width: `${Math.min(100, Math.round((resumePage / 604) * 100))}%` }} />
-              </span>
-            ) : null}
-            <span className="cta">{resumePage ? t("تابِع ←") : t("افتح المصحف ←")}</span>
-          </button>
-
-          <button type="button" className="qb-home-gridcard" onClick={() => setMode("notebook")}>
+        <div className="qb-home-grid">
+          {continueCards.map((card, index) => (
+            <Fragment key={card.key}>{card.render(index === 0)}</Fragment>
+          ))}
+          <button type="button" className="qb-home-gridcard" onClick={() => setMode("notebook", { resume: true })}>
             <span className="eyebrow">
-              {t("مثبَّتات حديثة")}{savedCount ? <> ({formatNumber(savedCount)})</> : null}
+              <Icon name="notebook" size={13} /> {t("مثبَّتات حديثة")}
+              {savedCount ? <span className="count"> ({formatNumber(savedCount)})</span> : null}
             </span>
             <span className="lead sm">
               {savedCount ? tn("{0} آية مُثبَّتة في الدفتر", savedCount, { 0: formatNumber(savedCount) }) : t("لا مثبَّتات بعد")}
             </span>
-            <span className="cta">{t("افتح الدفتر ←")}</span>
+            <span className="cta">{noArrow(t("افتح الدفتر ←"))}</span>
           </button>
+          {!session ? (
+            <button type="button" className="qb-home-gridcard" onClick={() => setMode("studio")}>
+              <span className="eyebrow">
+                <Icon name="sparkles" size={13} /> {t("ابدأ جلسة دراسة")}
+              </span>
+              <span className="lead sm">{t("اسأل سؤالاً موجَّهاً في المعاني")}</span>
+              <span className="cta">{noArrow(t("افتح الاستوديو ←"))}</span>
+            </button>
+          ) : null}
         </div>
-
-        {/* Saved muṣḥaf pages — reopen the reader exactly where you bookmarked. */}
-        {savedPages.length > 0 ? (
-          <div className="qb-home-saved">
-            <div className="lbl">{t("صفحات محفوظة")}</div>
-            <div className="chips">
-              {savedPages.slice(0, 10).map((entry) => (
-                <button
-                  key={`${entry.mushaf_id}-${entry.page}`}
-                  type="button"
-                  className="chip"
-                  onClick={() => openSavedPage(entry)}
-                  title={t("{0} · صفحة {1}", { 0: entry.surah ?? t("المصحف"), 1: entry.page })}
-                >
-                  <Icon name="bookmarkFilled" size={12} />
-                  <span className="s">{entry.surah ?? t("المصحف")}</span>
-                  <span className="p">{t("صفحة")} {formatNumber(entry.page)}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </div>
     </div>
   );

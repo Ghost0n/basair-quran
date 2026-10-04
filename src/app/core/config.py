@@ -27,6 +27,7 @@ _translations_db_path = _research_index_path.parent / "translations.db"
 _research_sources_path = BASE_DIR / "data" / "research_sources"
 _auth_db_path = BASE_DIR / "data" / "auth.db"
 _app_db_path = BASE_DIR / "data" / "app_data.db"
+_cache_db_path = BASE_DIR / "data" / "cache.db"
 _mushaf_layout_path = BASE_DIR / "data" / "mushaf_layout"
 
 # The authentic Madani (QCF) page layout is Hafs-only; this is the Hafs mushaf id.
@@ -118,6 +119,19 @@ def get_app_db_path() -> str:
 def set_app_db_path(path: str) -> None:
     global _app_db_path
     _app_db_path = Path(path)
+
+
+def get_cache_db_path() -> str:
+    """Path to the shared cache (derived data computed once and served to every
+    user, e.g. verse audio durations). A runtime artifact: never user data,
+    never committed, safe to delete (it refills on demand)."""
+    raw_path = os.environ.get("QBASAIR_CACHE_DB_PATH")
+    return str(Path(raw_path) if raw_path else _cache_db_path)
+
+
+def set_cache_db_path(path: str) -> None:
+    global _cache_db_path
+    _cache_db_path = Path(path)
 
 
 def get_mushaf_layout_path() -> str:

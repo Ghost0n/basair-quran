@@ -592,8 +592,12 @@ export interface ThemeSummary {
 }
 
 export interface ThemeDetail extends ThemeSummary {
-  /** The theme board (graph of ayahs, notes, relations); versioned JSON, see ThemeBoard. */
-  board?: ThemeBoard | null;
+  /**
+   * The theme's boards, as versioned JSON (the server stores it opaquely):
+   * v2 = a set of named boards (ThemeBoardSet); v1 = one legacy ThemeBoard,
+   * read as a set of one. Null until a board is created.
+   */
+  board?: ThemeBoardSet | ThemeBoard | null;
 }
 
 export interface ThemeCreate {
@@ -608,7 +612,7 @@ export interface ThemeUpdate {
   description?: string | null;
 }
 
-export type ThemeBoardNodeType = "ayah" | "note" | "heading";
+export type ThemeBoardNodeType = "ayah" | "note" | "heading" | "shape";
 
 export interface ThemeBoardNode {
   id: string;
@@ -617,7 +621,11 @@ export interface ThemeBoardNode {
   y: number;
   w?: number;
   h?: number;
-  /** ayah: { ayah_id, expanded? } · note: { text } · heading: { text } */
+  /**
+   * ayah: { ayah_id, expanded? } · note: { text } · heading: { text } ·
+   * shape: { shape: "rect" | "ellipse" | "diamond", text? }. Any node may carry
+   * `style: { color, bg, border, borderColor, size, font }` (see board-style.ts).
+   */
   data: Record<string, unknown>;
 }
 
@@ -633,6 +641,22 @@ export interface ThemeBoard {
   nodes: ThemeBoardNode[];
   edges: ThemeBoardEdge[];
   viewport?: { x: number; y: number; zoom: number } | null;
+  /** Ayah node ids the researcher hid from the board (they stay saved in the theme). */
+  hidden?: string[];
+}
+
+/** One named board of a theme (a theme can have several, or none). */
+export interface ThemeBoardEntry {
+  id: string;
+  name: string;
+  created_at: number;
+  updated_at: number;
+  board: ThemeBoard;
+}
+
+export interface ThemeBoardSet {
+  v: 2;
+  boards: ThemeBoardEntry[];
 }
 
 export interface NotebookItemCreate {
@@ -782,6 +806,16 @@ export interface RootDistributionResponse {
   total: number;
   surah_count: number;
   surahs: RootDistributionSurah[];
+}
+
+/** GET /api/reciters/{id}/durations/{surah}: every verse's audio duration,
+ *  measured once on the server and shared by every user (null = not measured
+ *  yet). Immutable once `complete`. */
+export interface ReciterDurations {
+  reciter_id: string;
+  surah: number;
+  durations: (number | null)[];
+  complete: boolean;
 }
 
 export interface ReciterItem {

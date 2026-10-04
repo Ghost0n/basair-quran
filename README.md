@@ -21,25 +21,47 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   `2:255`, «صفحة 50», «جزء 30», juz grid), swipe to turn pages on touch screens,
   focus mode (`F` or a tap on the page) that hides all chrome, and prefetching of the
   neighbouring pages so turns are instant.
-- Three reading modes — «صفحات» (the printed page; a facing spread when two pages fit
-  at full size), «تمرير» (continuous pages) and «آية آية» (one verse per row) — with
-  one text-size setting that means the same thing in every mode. The default adapts:
-  continuous scroll on phones and landscape screens, pages elsewhere (see
+- Two reading modes — «صفحات» (the printed page, frameless; a facing spread when two
+  pages fit at full size) and «آية آية» (one verse per row, with the chosen
+  translations) — with one text-size setting that means the same thing in both. The
+  reader bar's «العرض» opens a strip under the bar (mode, text size, highlights) so
+  the page stays in view while it changes (see
   [docs/api-contract.md](docs/api-contract.md) → Reader layout notes).
 - The Madani mushaf (Hafs, authentic line-faithful QCF pages) as the reader's single edition in this first version, chosen from Settings → «المصحف». The database also holds Qaloun, Warsh, Shuba, Douri, and Sousi for future standard editions; they are not exposed in the UI.
-- A reader toolbox (open registry, keys 1–4) that sets what a tap on the text does: «تحليل» (grammar
-  insights: root, lemma, iʿrāb), «تظليل» (save + theme an ayah), «تحديد» (select words, then exact /
-  root search, ask the Studio, count the phrase and each letter in page / surah / Quran, or copy with
-  the reference) and «تفسير» (an experimental tafssir of the tapped ayah, read in its context).
+- A reader toolbox (open registry, keys 1–2) that sets what a tap on the text does: «تحديد» (the
+  default — a tapped word shows its analysis: root, lemma, part of speech, iʿrāb; tap a second word
+  for a run, or the verse-number ornament for the whole verse; then exact / root search, ask the
+  Studio, count the phrase and each letter in page / surah / Quran, or copy with the reference) and
+  «تظليل» (a tap anywhere on a verse selects it whole and opens save + themes — the only save path;
+  there is no per-verse bookmark). Contextual tafssir is asked from the Studio.
+- Page turns: swipe on touch screens (every reading mode; the continuous ones scroll a page); on
+  pointer screens, glowing edge zones (click) and the mouse wheel / trackpad once the page can't
+  scroll further. A tap on the empty page toggles focus mode. Saving a page: on desktop every page
+  wears a ribbon at its upper-left corner (outline; red once saved — a click toggles it); on phones a
+  floating bookmark button beside the reader bar (red when saved). Phones have no page arrows.
+- Home (phones first): a greeting, the rotating verse, the ask / search bar with suggestions (words,
+  roots, phrases — and a last «“…” — ask the researcher» line that opens a new Studio session), the
+  saved pages, then «continue» cards ordered by most recent activity (session, reading, board). On phones the reader bar sits on top and folds
+  (with the tab bar) into a one-line strip; the top search bar shows in Search only (`⌘K` / `/` open it
+  from anywhere).
+- Small interface choices (notebook grouping and filters, the folded reader bar, the picker source)
+  are remembered per device without a setting; account preferences are cached on the device so the
+  reader opens as it was left.
 - Themes (مواضيع): the reader's save action highlights an ayah with one or more named colours, so
   saved ayahs group by subject as you read; the library lists them by theme (rename, recolour,
   delete) and «العرض» can hide the highlights.
-- Theme boards (لوحة الموضوع, `/?mode=board&theme=<id>`): a theme's ayahs on a canvas to arrange,
-  annotate (notes, headings) and link with labelled relations («يفسّر»، «يؤكّد»…); an ayah expands
-  into a scrollable mini reader of its passage. The board autosaves as the theme's metadata.
+- Theme boards (لوحات, `/?mode=board&theme=<id>&board=<board id>`): a theme can have several named
+  boards, or none — a board is created on purpose (the notebook's «اللوحات» tab, «+ لوحة» on a theme,
+  or «لوحة لـ…» when saving an ayah). A board puts the theme's ayahs on a canvas to arrange, annotate
+  (notes, headings, shapes — rectangle / ellipse / diamond) and link with labelled relations
+  («يفسّر»، «يؤكّد»…); elements can be restyled or deleted, ayahs hidden from the board (they stay in the
+  theme), and changes undone / redone (7 steps). Boards autosave as the theme's metadata; Home offers to
+  resume the last board, and a research exported from one shows it (with its relations) in its editor.
+- «الدفتر» reopens where it was left (a board, a research, the tab) from the tab bar or rail.
 - Research documents («الأبحاث»): a structured, versioned research format (sections, quoted ayahs
   verified against the mushaf, notes, references, AI sections labelled), created from a Studio
-  session («حوّل إلى بحث»), a theme board («صدّر كبحث») or from scratch; exported as Markdown / JSON,
+  session («حوّل إلى بحث»), a theme board («صدّر كبحث») or from scratch; verses are added with
+  «أضف آيات» (from the notebook, a Quran search, or a surah + verse range); exported as Markdown / JSON,
   or through the «مشاركة» studio as a research or verse card, a numbered carousel (ZIP or
   multi-image share) or a print / PDF page — in 4:5, square or story size and three styles. Publishing to the community runs a blocking audit, then
   an AI audit agent that fails closed to human moderation.
@@ -76,7 +98,15 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   mushaf itself kept opaque and reduced-motion respected.
 - A persistent floating media bar (transport · reciter chip · seekable progress ·
   repeat/speed) shown across every screen; reciter selection lives in a filterable
-  sheet opened from the bar or the rail.
+  sheet opened from the bar or the rail. The verse being recited is lit red in the reader,
+  which follows it (pages turn, the verse-by-verse list scrolls) unless «متابعة» is off.
+  «نطاق التلاوة» recites a range — the page, a surah, a juz, a hizb or a custom from → to —
+  and stops at its end or repeats it. Juz / hizb / quarter boundaries come from
+  `apps/web/lib/quran-divisions.generated.ts` (`scripts/build_quran_divisions.py`: King Fahd
+  juz, quran.com hizb/quarters verified against the printed ۞ signs). The bar's whole-surah
+  progress and timestamps use verse durations measured once on the server and shared by all
+  users (`GET /api/reciters/{id}/durations/{surah}`, cached in `data/cache.db`, immutable
+  once complete).
 - Optional invite-only authentication with backend-managed users and signed session cookies.
 - Strict-context research agent that uses local transcript/book sources for term discovery and answers only from Quran search results.
 - Dedicated `/research` workspace with per-session Ollama cloud key entry, model switching, request-usage observability, and an experimental Tafssir mode that reads every ayah with its neighbouring ayahs and its surah's context (and can be centred on one ayah).

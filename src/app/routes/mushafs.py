@@ -1,9 +1,9 @@
 import time
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Path, Query, Response
 
-from src.app.models.api import MushafItem, ReciterItem, SurahListItem
-from src.app.services import quran_service, reciter_service
+from src.app.models.api import MushafItem, ReciterDurations, ReciterItem, SurahListItem
+from src.app.services import quran_service, recitation_cache_service, reciter_service
 
 router = APIRouter(prefix="/api", tags=["catalog"])
 
@@ -82,3 +82,30 @@ def get_reciters() -> list[ReciterItem]:
     reciters = [ReciterItem(**reciter) for reciter in reciter_service.list_reciters()]
     quran_service.logger.info("GET /api/reciters - %.1fms - %s reciters", (time.time() - start) * 1000, len(reciters))
     return reciters
+
+
+@router.get("/reciters/{reciter_id}/durations/{surah}", response_model=ReciterDurations)
+def get_reciter_durations(
+    response: Response,
+    reciter_id: str = Path(..., min_length=1, max_length=64),
+    surah: int = Path(..., ge=1, le=114),
+) -> ReciterDurations:
+    """Verse audio durations of a reciter's surah, measured once on the server
+    and shared by every user (recitation_cache_service). Never waits on the
+    network: an incomplete surah returns what is known and fills in the
+    background — the client asks again a moment later."""
+    start = time.time()
+    result = recitation_cache_service.surah_durations(reciter_id, surah)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Unknown reciter")
+    durations, complete = result
+    # A complete surah never changes: browsers and any CDN keep it for a year.
+    response.headers["Cache-Control"] = "public, max-age=31536000, immutable" if complete else "no-store"
+    quran_service.logger.info(
+        "GET /api/reciters/%s/durations/%s - %.1fms - %s",
+        reciter_id,
+        surah,
+        (time.time() - start) * 1000,
+        "complete" if complete else "filling",
+    )
+    return ReciterDurations(reciter_id=reciter_id, surah=surah, durations=durations, complete=complete)

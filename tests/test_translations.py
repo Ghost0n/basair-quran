@@ -135,6 +135,15 @@ def test_tanzil_parser_rejects_malformed_lines():
         bt.parse_tanzil("garbage line")
 
 
+def test_tanzil_parser_keeps_mis_decoded_ellipsis_inside_the_ayah():
+    # Tanzil's it.piccardo carries U+0085 (a Windows-1252 "…") mid-ayah.
+    body = "3|121|ai posti di combattimento\x85 Allah è Colui\r\n3|122|Quando\n"
+    assert bt.parse_tanzil(body) == {
+        (3, 121): ("ai posti di combattimento\u2026 Allah è Colui", None),
+        (3, 122): ("Quando", None),
+    }
+
+
 def test_offline_directory_build(tmp_path):
     offline = tmp_path / "offline"
     (offline / "quranenc" / "english_saheeh").mkdir(parents=True)

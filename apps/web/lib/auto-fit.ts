@@ -106,13 +106,26 @@ export function startAutoFit(root: HTMLElement = document.body): () => void {
 
   const mutations = new MutationObserver((records) => {
     for (const record of records) {
+      // The marker itself can arrive after the element is in the document
+      // (React may insert a node before setting its attributes, or swap it
+      // without a matching "added" record): track it when it appears.
+      if (record.type === "attributes") {
+        const target = record.target;
+        if (target instanceof HTMLElement && target.isConnected && target.matches(SELECTOR)) track(target);
+        continue;
+      }
       record.addedNodes.forEach((node) => {
         if (node instanceof HTMLElement) scan(node);
       });
       record.removedNodes.forEach((node) => {
-        if (!(node instanceof HTMLElement)) return;
+        // A node React merely moved (reordered within its parent) shows up as
+        // both added and removed in one record — it is still in the document,
+        // so it must stay tracked.
+        if (!(node instanceof HTMLElement) || node.isConnected) return;
         if (node.matches(SELECTOR)) untrack(node);
-        node.querySelectorAll<HTMLElement>(SELECTOR).forEach(untrack);
+        node.querySelectorAll<HTMLElement>(SELECTOR).forEach((element) => {
+          if (!element.isConnected) untrack(element);
+        });
       });
       // Text changed inside a fitted element (page turn, count update, language).
       const target = record.target instanceof HTMLElement ? record.target : record.target.parentElement;
@@ -122,7 +135,13 @@ export function startAutoFit(root: HTMLElement = document.body): () => void {
   });
 
   scan(root);
-  mutations.observe(root, { childList: true, subtree: true, characterData: true });
+  mutations.observe(root, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+    attributes: true,
+    attributeFilter: ["data-autofit"],
+  });
   const refitAll = () => tracked.forEach(schedule);
   void document.fonts?.ready.then(refitAll);
   document.fonts?.addEventListener?.("loadingdone", refitAll);

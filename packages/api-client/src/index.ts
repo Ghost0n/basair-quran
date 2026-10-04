@@ -38,10 +38,12 @@ import type {
   NotebookItemCreate,
   TextCountResponse,
   ThemeBoard,
+  ThemeBoardSet,
   ThemeCreate,
   ThemeDetail,
   ThemeSummary,
   ThemeUpdate,
+  ReciterDurations,
   ReciterItem,
   RootDistributionResponse,
   ResearchAgentSettingsResponse,
@@ -110,11 +112,37 @@ function formatErrorDetail(detail: unknown): string {
   return String(detail ?? "");
 }
 
+/**
+ * GETs in flight, shared by every client instance on the page: when two screens
+ * ask for the same URL at the same moment (the reader and the recitation bar
+ * both loading the surah list, Home and the saved-verse store both loading the
+ * notebook), one network request answers both. Only while it is in flight —
+ * nothing is kept afterwards (freshness stays HTTP caching's job).
+ */
+const inflightGets = new Map<string, Promise<unknown>>();
+
+function cloneJson<T>(value: T): T {
+  // Each joining caller gets its own copy: no screen can mutate another's data.
+  return typeof structuredClone === "function" ? structuredClone(value) : (JSON.parse(JSON.stringify(value)) as T);
+}
+
 export function createQBasairApiClient(options: QBasairApiClientOptions) {
   const fetchImpl = options.fetchImpl ?? fetch;
   const baseUrl = options.baseUrl.replace(/\/$/, "");
 
-  async function request<T>(path: string, init?: RequestInit, options?: RequestOptions): Promise<T> {
+  function request<T>(path: string, init?: RequestInit, options?: RequestOptions): Promise<T> {
+    const method = (init?.method ?? "GET").toUpperCase();
+    // Plain reads only: a cancellable request or one with a body is never merged.
+    if (method !== "GET" || init?.body || init?.signal) return send<T>(path, init, options);
+    const key = `${baseUrl}${path}\u0000${guestIdProvider?.() ?? ""}`;
+    const shared = inflightGets.get(key) as Promise<T> | undefined;
+    if (shared) return shared.then(cloneJson);
+    const pending = send<T>(path, init, options).finally(() => inflightGets.delete(key));
+    inflightGets.set(key, pending);
+    return pending;
+  }
+
+  async function send<T>(path: string, init?: RequestInit, options?: RequestOptions): Promise<T> {
     const guestId = guestIdProvider?.();
     const mergedHeaders = {
       Accept: "application/json",
@@ -375,6 +403,9 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
     getReciters(): Promise<ReciterItem[]> {
       return request<ReciterItem[]>("/reciters");
     },
+    getReciterDurations(reciterId: string, surah: number): Promise<ReciterDurations> {
+      return request<ReciterDurations>(`/reciters/${encodeURIComponent(reciterId)}/durations/${surah}`);
+    },
     getRootDistribution(root: string, mushaf = 1): Promise<RootDistributionResponse> {
       return request<RootDistributionResponse>(
         `/root-distribution?root=${encodeURIComponent(root)}&mushaf=${mushaf}`,
@@ -507,7 +538,7 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
     updateTheme(themeId: number, patch: ThemeUpdate): Promise<ThemeDetail> {
       return request<ThemeDetail>(`/themes/${themeId}`, { method: "PATCH", body: JSON.stringify(patch) });
     },
-    saveThemeBoard(themeId: number, board: ThemeBoard): Promise<ThemeDetail> {
+    saveThemeBoard(themeId: number, board: ThemeBoardSet | ThemeBoard): Promise<ThemeDetail> {
       return request<ThemeDetail>(`/themes/${themeId}/board`, { method: "PUT", body: JSON.stringify({ board }) });
     },
     deleteTheme(themeId: number): Promise<DeleteResult> {

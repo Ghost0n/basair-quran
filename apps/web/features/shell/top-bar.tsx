@@ -4,20 +4,21 @@ import { Icon } from "@/components/icon";
 
 import { CommandBar } from "./command-bar";
 import { useShellMode } from "./mode-context";
+import { useCommandShortcut } from "./use-command-shortcut";
 import { useWorkspace } from "./workspace-context";
 
 import { t } from "@/lib/i18n";
 
-/** Dedicated theme toggle — its own top-bar button now, no longer buried in the
- *  account menu. Shows the theme you'd switch TO. (Reading display options live
- *  in the reader's «العرض» sheet and in Settings.) */
-function ThemeButton() {
+/** The theme toggle icon button — shows the theme you'd switch TO. Used on the
+ *  phone Home screen; on larger screens the rail carries its own (left-rail.tsx),
+ *  and Settings has the full choice. */
+export function ThemeButton({ className = "qb-icon-btn" }: { className?: string }) {
   const { state, actions } = useWorkspace();
   const dark = state.theme !== "light";
   return (
     <button
       type="button"
-      className="qb-icon-btn"
+      className={className}
       onClick={actions.toggleTheme}
       title={dark ? t("السِّمة الفاتحة") : t("السِّمة الداكنة")}
       aria-label={dark ? t("التبديل إلى السِّمة الفاتحة") : t("التبديل إلى السِّمة الداكنة")}
@@ -28,21 +29,17 @@ function ThemeButton() {
 }
 
 export function TopBar() {
-  const { mode } = useShellMode();
-  // Home has its own centered ask bar (the hero search) — the top command bar
-  // would be redundant there, so it's hidden on Home and the center bar
-  // "rises" into this slot when the user enters a working mode.
-  if (mode === "home") return null;
+  const { mode, setMode } = useShellMode();
+  // ⌘K / `/` work everywhere: they open Search (whose bar then takes focus).
+  useCommandShortcut(() => setMode("search"));
+  // The command bar is Search's own surface: elsewhere it would only cost a
+  // row of height (the reader bar carries a search button; Home has its hero
+  // ask bar), so it shows in Search mode only.
+  if (mode !== "search") return null;
 
   return (
-    // On phones the reader hides this bar (its own bar carries the controls;
-    // search is one tap away in the tab bar) — see .qb-topbar.is-reading.
-    <div className={`qb-topbar${mode === "reading" ? " is-reading" : ""}`}>
+    <div className="qb-topbar">
       <CommandBar />
-
-      <div className="qb-top-actions">
-        <ThemeButton />
-      </div>
     </div>
   );
 }

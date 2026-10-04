@@ -69,6 +69,9 @@ jobs:
             # The running api holds quran.db open read-only — restart it so it
             # reopens the freshly generated database.
             docker compose --env-file .env.production up -d --no-deps api
+            # The shared API cache (docs/caching.md) holds up to an hour of
+            # Quran responses from the old database: drop it.
+            docker compose --env-file .env.production exec -T nginx sh -c 'rm -rf /var/cache/nginx/qbasair/*' || true
           else
             echo "No rebuild-db tag — skipping quran.db rebuild."
           fi
@@ -84,17 +87,44 @@ jobs:
             echo "No rebuild-index tag — skipping research index rebuild."
           fi
 
-      - name: Build Quran translations if requested (or missing)
+      - name: Build Quran translations and the app's offline packs if requested (or missing)
         run: |
           cd /srv/q-basair
-          if git log -1 --pretty=%B | grep -q '\[rebuild-translations\]' || [ ! -f data/translations.db ]; then
-            echo "building data/translations.db from QuranEnc / Tanzil in the background..."
+          msg=$(git log -1 --pretty=%B)
+          # The web reads data/translations.db directly. The Android/iOS app
+          # downloads each translation (and narration) on demand as a pack from
+          # /api/offline (QBASAIR_OFFLINE_PACKS_PATH=/app/data/offline); packs are
+          # cut from quran.db + translations.db, so they follow either rebuild.
+          # Runs on the checkout itself: the api image has no apps/ (interface packs).
+          packs="python scripts/build_offline_packs.py --output data/offline"
+          run_on_checkout() {
+            docker compose --env-file .env.production run -d --rm \
+              -v "$PWD:/repo" -w /repo -e PYTHONPATH=/repo api sh -c "$1"
+          }
+          if echo "$msg" | grep -q '\[rebuild-translations\]' || [ ! -f data/translations.db ]; then
+            echo "building data/translations.db from QuranEnc / Tanzil, then the offline packs, in the background..."
             # ~60 languages x 114 surah requests: longer than a deploy should wait.
             # Detached; downloads are cached in data/translation_cache/ (resumable),
-            # and the api picks the new file up by itself once it is swapped in.
-            docker compose --env-file .env.production run -d --rm api python scripts/build_translations.py
+            # and the api picks the new files up by itself once they are swapped in.
+            run_on_checkout "python scripts/build_translations.py && $packs"
+          elif echo "$msg" | grep -q '\[rebuild-db\]' || [ ! -f data/offline/manifest.json ]; then
+            echo "building the offline packs in the background..."
+            run_on_checkout "$packs"
           else
-            echo "No rebuild-translations tag — keeping data/translations.db."
+            echo "No rebuild tag — keeping data/translations.db and data/offline/."
+          fi
+
+      - name: Pre-fill the shared recitation cache if requested (or missing)
+        run: |
+          cd /srv/q-basair
+          # Every verse duration of every reciter (docs/caching.md), so no reader
+          # ever sees an estimated surah length. ~50k small range requests to the
+          # audio host: detached, resumable (already-measured verses are skipped).
+          if git log -1 --pretty=%B | grep -q '\[prefill-recitation\]' || [ ! -f data/cache.db ]; then
+            echo "pre-filling data/cache.db (recitation durations) in the background..."
+            docker compose --env-file .env.production run -d --rm api python scripts/prefill_recitation_cache.py
+          else
+            echo "No prefill-recitation tag — keeping data/cache.db."
           fi
 
       # DB-aware readiness gate with a retry loop (the API may be mid-rebuild or

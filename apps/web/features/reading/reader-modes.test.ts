@@ -3,21 +3,21 @@ import { describe, expect, it } from "vitest";
 import { nextReaderLayout, resolveReaderMode, spreadFits } from "./reader-modes";
 
 describe("reader modes", () => {
-  it("resolves auto per device and keeps explicit choices", () => {
-    expect(resolveReaderMode("auto", true)).toBe("scroll");
-    expect(resolveReaderMode("auto", false)).toBe("pages");
-    expect(resolveReaderMode("single", true)).toBe("pages");
-    expect(resolveReaderMode("spread", false)).toBe("pages");
-    expect(resolveReaderMode("ayah", false)).toBe("ayah");
-    expect(resolveReaderMode(undefined, false)).toBe("pages");
+  it("reads every layout as pages except verse by verse", () => {
+    expect(resolveReaderMode("auto")).toBe("pages");
+    expect(resolveReaderMode("single")).toBe("pages");
+    expect(resolveReaderMode("spread")).toBe("pages");
+    // The retired continuous scroll mode opens as pages.
+    expect(resolveReaderMode("scroll")).toBe("pages");
+    expect(resolveReaderMode("ayah")).toBe("ayah");
+    expect(resolveReaderMode(undefined)).toBe("pages");
   });
 
-  it("cycles pages → scroll → ayah → pages", () => {
-    expect(nextReaderLayout("single", false)).toBe("scroll");
-    expect(nextReaderLayout("scroll", false)).toBe("ayah");
-    expect(nextReaderLayout("ayah", false)).toBe("single");
-    // auto on a phone shows scroll, so the next mode is ayah.
-    expect(nextReaderLayout("auto", true)).toBe("ayah");
+  it("toggles pages ↔ verse by verse", () => {
+    expect(nextReaderLayout("single")).toBe("ayah");
+    expect(nextReaderLayout("auto")).toBe("ayah");
+    expect(nextReaderLayout("scroll")).toBe("ayah");
+    expect(nextReaderLayout("ayah")).toBe("single");
   });
 });
 

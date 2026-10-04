@@ -35,15 +35,40 @@
   align-items: center;
   gap: 6px;
   max-width: 180px;
+  min-width: 0;
+}
+
+.qb-studio-tab > .qb-icon,
+.qb-studio-tab .x {
+  flex-shrink: 0;
 }
 
 .qb-studio-tab .label {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 1px 2px;
+  font: inherit;
+  text-align: start;
   overflow: hidden;
   /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
   overflow-x: clip;
   overflow-y: visible;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* A long session title in the panel head: two lines, then an ellipsis. */
+.qb-studio .qb-side-head > div:first-child {
+  min-width: 0;
+}
+
+.qb-studio .qb-side-head h3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .qb-studio-tab.active {

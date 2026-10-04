@@ -5,16 +5,15 @@ import type { IconName } from "@/components/icon";
 import { t } from "@/lib/i18n";
 
 /**
- * The three reading modes the UI offers. The stored `reader_layout` keeps its
- * wider vocabulary for compatibility:
- *  - "auto" (the default) is device-smart: continuous scroll on phones and
- *    short/landscape screens, pages elsewhere;
- *  - "single" / "spread" both mean pages — the reader decides one page vs. a
- *    facing spread by itself from the room available;
- *  - "scroll" / "ayah" are explicit.
+ * The two reading modes the UI offers: the printed page, and verse by verse.
+ * The stored `reader_layout` keeps its wider vocabulary for compatibility:
+ *  - "auto" (the default), "single" and "spread" all mean pages — the reader
+ *    decides one page vs. a facing spread by itself from the room available;
+ *  - "scroll" (the retired continuous mode) now reads as pages too;
+ *  - "ayah" is verse by verse.
  * Choosing «صفحات» stores "single" so it sticks on every device.
  */
-export type ReaderMode = "pages" | "scroll" | "ayah";
+export type ReaderMode = "pages" | "ayah";
 
 export const READER_MODES: {
   mode: ReaderMode;
@@ -28,11 +27,6 @@ export const READER_MODES: {
   }, get hint() {
     return t("صفحة المصحف كما طُبعت");
   }, icon: "book" },
-  { mode: "scroll", layout: "scroll", get label() {
-    return t("تمرير");
-  }, get hint() {
-    return t("الصفحات متتابعة");
-  }, icon: "page" },
   { mode: "ayah", layout: "ayah", get label() {
     return t("آية آية");
   }, get hint() {
@@ -40,17 +34,14 @@ export const READER_MODES: {
   }, icon: "cards" },
 ];
 
-/** The mode a stored layout shows on this device (`compact` = phone / short screen). */
-export function resolveReaderMode(layout: ReaderLayout | null | undefined, compact: boolean): ReaderMode {
-  if (layout === "scroll") return "scroll";
-  if (layout === "ayah") return "ayah";
-  if (layout === "single" || layout === "spread") return "pages";
-  return compact ? "scroll" : "pages";
+/** The mode a stored layout shows (every device reads the same way now). */
+export function resolveReaderMode(layout: ReaderLayout | null | undefined): ReaderMode {
+  return layout === "ayah" ? "ayah" : "pages";
 }
 
 /** Shift+M: the stored layout of the mode after the current one. */
-export function nextReaderLayout(layout: ReaderLayout | null | undefined, compact: boolean): ReaderLayout {
-  const current = resolveReaderMode(layout, compact);
+export function nextReaderLayout(layout: ReaderLayout | null | undefined): ReaderLayout {
+  const current = resolveReaderMode(layout);
   const index = READER_MODES.findIndex((item) => item.mode === current);
   return READER_MODES[(index + 1) % READER_MODES.length].layout;
 }

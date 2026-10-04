@@ -8,16 +8,17 @@ describe("reader tool registry", () => {
     expect(new Set(READER_TOOLS.map((tool) => tool.key)).size).toBe(READER_TOOLS.length);
   });
 
-  it("keeps grammar insights as the default tool", () => {
-    expect(DEFAULT_READER_TOOL).toBe("grammar");
-    expect(READER_TOOLS[0].id).toBe("grammar");
+  it("defaults to the select tool (which carries the word analysis)", () => {
+    expect(DEFAULT_READER_TOOL).toBe("select");
+    expect(READER_TOOLS[0].id).toBe("select");
   });
 
-  it("resolves keys and validates ids", () => {
-    expect(toolForKey("3")).toBe("select");
+  it("resolves keys and validates ids; retired tools are no longer valid", () => {
+    expect(toolForKey("1")).toBe("select");
+    expect(toolForKey("2")).toBe("highlight");
     expect(toolForKey("9")).toBeNull();
-    expect(isReaderToolId("tafssir")).toBe(true);
-    expect(isReaderToolId("eraser")).toBe(false);
+    expect(isReaderToolId("grammar")).toBe(false);
+    expect(isReaderToolId("tafssir")).toBe(false);
     expect(readerTool("highlight").label).toBe("تظليل");
   });
 });

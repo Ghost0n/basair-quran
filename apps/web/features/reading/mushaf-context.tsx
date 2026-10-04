@@ -96,6 +96,11 @@ export type MushafController = {
   loadBySurah: (mushafId: number, surah: number, ayah?: number) => Promise<void>;
   loadByJuz: (mushafId: number, juz: number) => Promise<void>;
   /**
+   * Turn to the page holding a verse — quietly: no selection, no mark, no
+   * loading state (the recitation follows the recited verse with it).
+   */
+  showAyahPage: (mushafId: number, surah: number, ayah: number) => Promise<void>;
+  /**
    * Swap the active page to one already fetched elsewhere (e.g. the scroll
    * reader's window) WITHOUT a network round-trip — keeps the footer/juz and the
    * persisted last-page in sync as the user scrolls. Suppresses the one
@@ -261,6 +266,18 @@ function useMushafController(): MushafController {
     [applyResult],
   );
 
+  const showAyahPage = useCallback(
+    async (mushafId: number, surah: number, ayah: number) => {
+      try {
+        const data = await api.getQuranPageForSurah(mushafId, surah, ayah);
+        if (data.found) applyResult(data, true);
+      } catch (err) {
+        reportError("reader", err);
+      }
+    },
+    [applyResult],
+  );
+
   const loadByJuz = useCallback(
     async (mushafId: number, juz: number) => {
       setIsLoading(true);
@@ -324,6 +341,7 @@ function useMushafController(): MushafController {
     loadByAyah,
     loadBySurah,
     loadByJuz,
+    showAyahPage,
     setActivePage,
     setPageDraft,
     reset,

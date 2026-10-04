@@ -10,7 +10,6 @@ import { looksLikeQuestion, queueStudioAsk } from "@/lib/studio-prefill";
 import { useMushaf } from "@/features/reading/mushaf-context";
 
 import { useShellMode } from "./mode-context";
-import { useCommandShortcut } from "./use-command-shortcut";
 import { useWorkspace } from "./workspace-context";
 import { parseNavCommand } from "@/lib/quran-nav";
 
@@ -67,8 +66,6 @@ function detectIntent(raw: string): CommandIntent | null {
  * jump vs research question) and dispatch accordingly.
  */
 export function CommandBar() {
-  useCommandShortcut();
-
   const { state, actions, refs, helpers } = useWorkspace();
   const { mode, setMode } = useShellMode();
   const mushaf = useMushaf();
@@ -85,8 +82,10 @@ export function CommandBar() {
 
   // Entering Search with nothing yet searched → focus the input so the user
   // can type immediately (the input is the point of the Search surface).
+  // Not when a search is already on its way in (Home, a suggestion, a chip):
+  // focusing would reopen the suggestion list over the results.
   useEffect(() => {
-    if (mode === "search" && !state.workspaceVisible) {
+    if (mode === "search" && !state.workspaceVisible && !state.inputValue.trim()) {
       refs.inputRef.current?.focus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -139,17 +138,12 @@ export function CommandBar() {
         ? `${tn("{0} آية", state.resultsSummary.totalVerses, { 0: state.resultsSummary.totalVerses })} · ${tn("{0} مجموعة", state.resultsSummary.cards, { 0: state.resultsSummary.cards })}`
         : "";
 
-  // In Search mode with nothing typed yet, the command bar is the focal point:
-  // highlight it and surface example chips directly beneath it.
+  // In Search mode the command bar is the focal point (a gold ring). The
+  // example chips live in the Search panel's empty state, not in a layer
+  // floating over the panel.
   const searchActive = mode === "search";
   // Live intent chip — announces how the bar reads the current input as you type.
   const intent = detectIntent(state.inputValue);
-  const showSearchHint =
-    searchActive &&
-    !state.workspaceVisible &&
-    !state.isSearching &&
-    !listboxOpen &&
-    !state.inputValue.trim();
 
   return (
     <div className={`qb-cmd${searchActive ? " is-search-active" : ""}`}>
@@ -254,27 +248,6 @@ export function CommandBar() {
         </div>
       ) : null}
 
-      {showSearchHint ? (
-        <div className="qb-cmd-hint" role="note">
-          <span className="lead">{t("ابدأ بكتابة جذر أو كلمة قرآنية للبحث")}</span>
-          <div className="ex">
-            <span className="lbl">{t("جرّب")}</span>
-            {state.quickExamples.map((example) => (
-              <button
-                key={example.label}
-                type="button"
-                onMouseDown={(event) => {
-                  // keep input focus through the click
-                  event.preventDefault();
-                  actions.runQuickExample(example);
-                }}
-              >
-                {example.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

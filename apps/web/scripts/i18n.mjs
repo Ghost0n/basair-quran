@@ -14,11 +14,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const ts = require("typescript");
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+// fileURLToPath, not URL.pathname: the latter yields "/C:/…" on Windows.
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const SCAN_DIRS = ["app", "components", "features", "lib"];
 const CATALOG = path.join(ROOT, "lib/i18n/catalog.json");
 const LOCALES_DIR = path.join(ROOT, "lib/i18n/locales");
@@ -49,7 +51,7 @@ function listFiles() {
         if (entry.name === "node_modules" || entry.name === ".next" || full.includes(`${path.sep}lib${path.sep}i18n`)) continue;
         walk(full);
       } else if (/\.(tsx?|mts)$/.test(entry.name) && !/\.test\./.test(entry.name) && !entry.name.endsWith(".d.ts")) {
-        if (!EXCLUDED_FILES.has(path.relative(ROOT, full))) out.push(full);
+        if (!EXCLUDED_FILES.has(path.relative(ROOT, full).split(path.sep).join("/"))) out.push(full);
       }
     }
   };

@@ -21,6 +21,8 @@ on:
       - "scripts/build_db.py"
       - "scripts/build_mushaf_layout.py"
       - "scripts/build_offline_packs.py"
+      - "scripts/build_translations.py"
+      - "scripts/translation_sources.json"
       - "scripts/fetch_mushaf_fonts.py"
       - "data/quran-narrations/**"
       - "data/quran-morphology.txt"
@@ -39,7 +41,9 @@ jobs:
   bundle:
     name: Data and app bundle
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    # The first run downloads every translation (~35 min); later runs reuse
+    # the cached downloads.
+    timeout-minutes: 90
     env:
       NEXT_PUBLIC_REMOTE_ORIGIN: ${{ vars.QBASAIR_REMOTE_ORIGIN }}
       NEXT_PUBLIC_AUTH_ENABLED: "1"
@@ -51,7 +55,14 @@ jobs:
           cache: pip
       - name: Python dependencies
         run: python -m pip install -r requirements-dev.txt
-      - name: Quran data and the offline core (fonts, database, Madani layout, packs)
+      # Translation downloads (QuranEnc / Tanzil), so the packs artifact carries
+      # every translation without re-fetching ~6,800 files on each run.
+      - uses: actions/cache@v4
+        with:
+          path: data/translation_cache
+          key: translations-${{ hashFiles('scripts/translation_sources.json', 'scripts/build_translations.py') }}
+          restore-keys: translations-
+      - name: Quran data and the offline core (fonts, database, Madani layout, translations, packs)
         env:
           PYTHONPATH: .
           QBASAIR_BUILD_DB_ON_START: never
@@ -59,6 +70,7 @@ jobs:
           python scripts/fetch_mushaf_fonts.py
           python scripts/build_db.py
           python scripts/build_mushaf_layout.py
+          python scripts/build_translations.py
           python scripts/build_offline_packs.py --verify
       - uses: pnpm/action-setup@v4
         with:

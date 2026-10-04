@@ -382,6 +382,33 @@ code, .mono {
   background: rgba(212, 175, 55, 0.50);
 }
 
+/* Mouse screens: scrollbars stay invisible until the pointer is over the area
+   that scrolls, so a resting interface shows no gutters' thumbs. (Touch
+   screens already use transient overlay scrollbars.) */
+@media (hover: hover) and (pointer: fine) {
+  * {
+    scrollbar-color: transparent transparent;
+  }
+
+  *:hover {
+    scrollbar-color: rgba(212, 175, 55, 0.45) transparent;
+  }
+
+  *::-webkit-scrollbar-thumb,
+  .qb-frame *::-webkit-scrollbar-thumb {
+    background: transparent;
+  }
+
+  *:hover::-webkit-scrollbar-thumb,
+  .qb-frame *:hover::-webkit-scrollbar-thumb {
+    background: rgba(212, 175, 55, 0.35);
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
 /* ---------- Recoverable error surface (components/error-state.tsx) ---------- */
 
 .qb-error-state {
@@ -532,6 +559,57 @@ html[dir="ltr"] .qb-icon.dir-flip svg {
   transform: scaleX(-1);
 }
 
-html[dir="ltr"] :is(.qb-reader-bar, .qb-mushaf-stage, .qb-nav-sheet) .qb-icon.dir-flip svg {
+html[dir="ltr"] :is(.qb-reader-bar, .qb-mushaf-stage, .qb-nav-sheet, .qb-media-transport) .qb-icon.dir-flip svg {
   transform: none;
+}
+
+/* =====================================================================
+   Page gutters — one standard for every full page (notebook, settings,
+   community, research, home). Content over margin: phones get a slim 12px
+   gutter. The double class beats each page's own stylesheet.
+   ===================================================================== */
+:root {
+  --page-x: 28px;
+  --page-top: 20px;
+  --page-bottom: 40px;
+}
+
+@media (max-width: 768px) {
+  :root {
+    --page-x: 12px;
+    --page-top: 12px;
+    /* Clears the floating tab bar the page scrolls under. */
+    --page-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.qb-canvas .qb-aux,
+.qb-canvas .qb-settings,
+.qb-canvas .qb-community,
+.qb-canvas .qb-doc-body {
+  padding: var(--page-top) var(--page-x) var(--page-bottom);
+}
+
+.qb-canvas .qb-home {
+  padding: var(--page-top) var(--page-x) var(--page-bottom);
+}
+
+/* Cards inside pages: tighter on phones so the verses get the width. */
+@media (max-width: 768px) {
+  .qb-canvas .qb-aux-h {
+    margin-bottom: 10px;
+  }
+
+  .qb-canvas .qb-collection-card .head {
+    padding: 10px 10px;
+    gap: 6px;
+  }
+
+  .qb-canvas .qb-collection-card .body {
+    padding: 8px;
+  }
+
+  .qb-canvas .qb-aux-grid {
+    gap: 10px;
+  }
 }

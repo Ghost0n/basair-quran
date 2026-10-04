@@ -5,7 +5,7 @@ import { createContext, Fragment, useCallback, useContext, useEffect, useState, 
 import { startAutoFit } from "@/lib/auto-fit";
 import { ensureScriptFont, scriptFamily } from "@/lib/script-fonts";
 
-import { LOCALE_CODES, SOURCE_LOCALE, localeInfo, matchLocale, type LocaleInfo } from "./locales";
+import { LOCALE_CODES, SOURCE_LOCALE, localeInfo, type LocaleInfo } from "./locales";
 import { setActiveDictionary, type Dictionary } from "./translate";
 
 import { LOCALE_STORAGE_KEY } from "./init-script";
@@ -83,9 +83,8 @@ function reveal() {
 }
 
 /**
- * Interface language. On first load it uses, in order: this device's explicit
- * choice (`qb.locale`), then the browser's primary language when supported,
- * else Arabic. (An account's language is applied by `LocaleAccountSync` once
+ * Interface language. On first load it uses this device's explicit choice
+ * (`qb.locale`), else Arabic. (An account's language is applied by `LocaleAccountSync` once
  * preferences load.) The dictionary is installed before the app remounts
  * under the new language, so every `t()` call sees it.
  */
@@ -129,10 +128,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const stored = readStored();
     if (stored) setExplicit(true);
-    // The standalone app starts in English until onboarding asks for a language.
-    const initial =
-      stored ??
-      (process.env.NEXT_PUBLIC_APP_MODE === "1" ? "en" : matchLocale(navigator.languages?.length ? [navigator.languages[0]] : [navigator.language]));
+    // The standalone app starts in English until onboarding asks for a language;
+    // the web opens in Arabic (the source language) until the reader picks one.
+    const initial = stored ?? (process.env.NEXT_PUBLIC_APP_MODE === "1" ? "en" : SOURCE_LOCALE);
     if (initial === SOURCE_LOCALE) {
       applyDocument(localeInfo(SOURCE_LOCALE));
       reveal();

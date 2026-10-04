@@ -67,7 +67,12 @@ export function useElementSize(
     if (observed.current?.node === node) return;
     observed.current?.observer.disconnect();
     observed.current = null;
-    if (!node || typeof ResizeObserver === "undefined") return;
+    // The picked node is gone (e.g. a side panel closed): it takes no room.
+    if (!node) {
+      setSize((prev) => (prev.width || prev.height ? { width: 0, height: 0 } : prev));
+      return;
+    }
+    if (typeof ResizeObserver === "undefined") return;
     const update = () => {
       const width = Math.round(node.clientWidth);
       const height = Math.round(node.clientHeight);

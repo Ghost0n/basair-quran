@@ -11,6 +11,7 @@ import { API_BASE_URL } from "@/lib/config";
 import { useNumerals } from "@/lib/preferences-context";
 
 import { NODE_W } from "./board-model";
+import { readShape, readStyle, styleVars } from "./board-style";
 import { useBoard } from "./board-context";
 
 import { t } from "@/lib/i18n";
@@ -41,7 +42,7 @@ export function AyahNode({ id, data, selected }: NodeProps) {
       className={`qb-bnode ayah${selected ? " sel" : ""}${expanded ? " open" : ""}`}
       data-hl={board.themeColor}
       // Same width expanded: the mini reader grows downward, never into a neighbour.
-      style={{ width: NODE_W }}
+      style={{ width: NODE_W, ...styleVars(readStyle(data)) }}
       dir="rtl"
     >
       <Handles />
@@ -131,7 +132,7 @@ export function NoteNode({ id, data, selected }: NodeProps) {
   const board = useBoard();
   const ref = useAutoFocus(data, id);
   return (
-    <div className={`qb-bnode note${selected ? " sel" : ""}`} dir="auto">
+    <div className={`qb-bnode note${selected ? " sel" : ""}`} dir="auto" style={styleVars(readStyle(data))}>
       <NodeResizer isVisible={selected && !board.readOnly} minWidth={180} minHeight={80} lineClassName="qb-resize-line" handleClassName="qb-resize-handle" />
       <Handles />
       {board.readOnly ? (
@@ -151,12 +152,47 @@ export function NoteNode({ id, data, selected }: NodeProps) {
   );
 }
 
+/** A drawn shape (rectangle · ellipse · diamond) with optional text inside. */
+export function ShapeNode({ id, data, selected }: NodeProps) {
+  const board = useBoard();
+  const ref = useAutoFocus(data, id);
+  const shape = readShape(data);
+  return (
+    <div className={`qb-bnode shape ${shape}${selected ? " sel" : ""}`} dir="auto" style={styleVars(readStyle(data))}>
+      <NodeResizer isVisible={selected && !board.readOnly} minWidth={60} minHeight={40} lineClassName="qb-resize-line" handleClassName="qb-resize-handle" />
+      <Handles />
+      <svg className="outline" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+        {shape === "ellipse" ? (
+          <ellipse cx="50" cy="50" rx="49" ry="49" vectorEffect="non-scaling-stroke" />
+        ) : shape === "diamond" ? (
+          <polygon points="50,1 99,50 50,99 1,50" vectorEffect="non-scaling-stroke" />
+        ) : (
+          <rect x="1" y="1" width="98" height="98" rx="6" vectorEffect="non-scaling-stroke" />
+        )}
+      </svg>
+      {board.readOnly ? (
+        <p className="shape-text">{String(data.text ?? "")}</p>
+      ) : (
+        <textarea
+          ref={ref}
+          className="nodrag nowheel shape-text"
+          value={String(data.text ?? "")}
+          placeholder={t("نص…")}
+          maxLength={400}
+          aria-label={t("نص الشكل")}
+          onChange={(event) => board.updateData(id, { text: event.target.value })}
+        />
+      )}
+    </div>
+  );
+}
+
 /** A heading that names a region of the board. */
 export function HeadingNode({ id, data, selected }: NodeProps) {
   const board = useBoard();
   const ref = useAutoFocus(data, id);
   return (
-    <div className={`qb-bnode heading${selected ? " sel" : ""}`} dir="auto">
+    <div className={`qb-bnode heading${selected ? " sel" : ""}`} dir="auto" style={styleVars(readStyle(data))}>
       <Handles />
       {board.readOnly ? (
         <h4 className="heading-text">{String(data.text ?? "")}</h4>

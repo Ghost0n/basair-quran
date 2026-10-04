@@ -9,8 +9,17 @@ def test_quran_data_is_cacheable_and_user_data_is_not(api_client):
     surahs = api_client.get("/api/surahs")
     assert surahs.headers["cache-control"] == http_cache.QURAN_DATA
 
-    # Per-user data must never be cached publicly.
-    for path in ("/api/user/preferences", "/api/notebook", "/api/sessions", "/api/roots"):
+    # Per-user data must never be cached publicly (the edge cache would serve one
+    # user's answer to everyone).
+    for path in (
+        "/api/user/preferences",
+        "/api/notebook",
+        "/api/sessions",
+        "/api/roots",
+        "/api/themes",
+        "/api/documents",
+        "/api/community/feed",
+    ):
         response = api_client.get(path)
         assert "public" not in response.headers.get("cache-control", ""), path
 
@@ -20,3 +29,7 @@ def test_cache_policy_skips_errors_and_writes():
     assert http_cache.cache_control_for("POST", "/api/search", 200) is None
     assert http_cache.cache_control_for("GET", "/api/search-v2", 200) == http_cache.SEARCH_DATA
     assert http_cache.cache_control_for("GET", "/api/auth/session", 200) is None
+    # Shared community aggregates are cacheable; per-user community views are not.
+    assert http_cache.cache_control_for("GET", "/api/community/tags", 200) == http_cache.COMMUNITY_SHARED
+    assert http_cache.cache_control_for("GET", "/api/community/feed", 200) is None
+    assert http_cache.cache_control_for("GET", "/api/community/mine", 200) is None

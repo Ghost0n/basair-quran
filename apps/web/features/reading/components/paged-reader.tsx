@@ -4,7 +4,7 @@ import type { RefObject } from "react";
 
 import type { MushafPageLayoutResponse, QuranPageAyah } from "@q-basair/shared";
 
-import { GlyphPage, type GlyphSaveTarget } from "./glyph-page";
+import { GlyphPage, PageRibbon, type GlyphSaveTarget } from "./glyph-page";
 import { MorphPopover, type MorphTarget } from "./morph-popover";
 import { AyatFlow, type WordClickHandler, type WordKeyHandler } from "./ayat-flow";
 import { useMushaf } from "../mushaf-context";
@@ -119,6 +119,7 @@ export function PagedReader({
         // right). Only the inner content remounts; the `.qb-mushaf-page` viewport
         // (and its bodyRef) stays put.
         <div key={page} className={`qb-page-turn ${navDir}`}>
+          <PageRibbon page={page} surahId={pageData.ayahs[0]?.surah_id ?? null} />
           <AyatFlow
             ayahs={pageData.ayahs}
             selectedAyahId={selectedAyahId}

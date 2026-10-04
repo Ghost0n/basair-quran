@@ -10,6 +10,11 @@ services:
       QBASAIR_RESEARCH_INDEX_PATH: /app/data/research_agent.db
       QBASAIR_RESEARCH_SOURCES_PATH: /app/data/research_sources
       QBASAIR_TRANSLATIONS_DB_PATH: /app/data/translations.db
+      # Shared cache (e.g. verse audio durations), computed once, served to all.
+      QBASAIR_CACHE_DB_PATH: /app/data/cache.db
+      # The standalone app's downloadable packs (/api/offline), built by the
+      # deploy from quran.db + translations.db (scripts/build_offline_packs.py).
+      QBASAIR_OFFLINE_PACKS_PATH: /app/data/offline
       QBASAIR_AUTH_ENABLED: ${QBASAIR_AUTH_ENABLED:-0}
       QBASAIR_BUILD_DB_ON_START: ${QBASAIR_BUILD_DB_ON_START:-auto}
       QBASAIR_CORS_ORIGINS: ${QBASAIR_CORS_ORIGINS:-http://localhost}
@@ -119,6 +124,10 @@ services:
     environment:
       QBASAIR_ENABLE_TLS: ${QBASAIR_ENABLE_TLS:-0}
       QBASAIR_PUBLIC_DOMAIN: ${QBASAIR_PUBLIC_DOMAIN:-}
+      # Behind a CDN only (docs/caching.md): its address ranges (comma-separated
+      # CIDRs) and the header carrying the visitor's IP (e.g. CF-Connecting-IP).
+      QBASAIR_CDN_TRUSTED_RANGES: ${QBASAIR_CDN_TRUSTED_RANGES:-}
+      QBASAIR_CDN_REAL_IP_HEADER: ${QBASAIR_CDN_REAL_IP_HEADER:-}
     # Allows nginx to reach services exposed on the host loopback (e.g. co-located
     # stacks that publish ports on 127.0.0.1). Required for /srv/nginx-vhosts.d
     # conf files that proxy to host-bound ports.

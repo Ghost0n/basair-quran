@@ -44,6 +44,20 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/surahs` — optional `mushaf` (default `1`): `ayah_count` follows that mushaf's
   numbering (e.g. al-Baqarah: Hafs 286, Qaloun 285). The web client passes the selected riwāyah.
 - `GET /api/reciters`
+- `GET /api/reciters/{reciter_id}/durations/{surah}` → `ReciterDurations`
+  `{reciter_id, surah, durations: (number|null)[], complete}` — every verse's audio
+  duration (seconds) for the recitation bar's whole-surah progress. **Shared server
+  cache:** each reciter's surah is measured once on the server (the first 16 KB of
+  each MP3: ID3 size + frame header, Xing/VBRI frame count for VBR, bytes × 8 /
+  bitrate for CBR — `src/app/services/audio_duration.py`) and stored in
+  `data/cache.db` (`QBASAIR_CACHE_DB_PATH`), then served to every user. A request
+  never waits on the network: an incomplete surah returns what is known (`null`
+  for the rest, `complete: false`, `no-store`) and starts one background job per
+  reciter+surah; the client asks again every 2.5 s. A complete surah is sent with
+  `Cache-Control: public, max-age=31536000, immutable`. Only the catalogue's
+  audio host (`everyayah.com`, HTTPS) is ever fetched. `404` unknown reciter,
+  `422` surah outside 1–114. The web client falls back to reading durations
+  itself only when this route can't be reached (offline / standalone app).
 - `GET /api/root-distribution`
 - `GET /api/suggest`
 - `POST /api/suggest-batch`
@@ -108,7 +122,8 @@ private to their author; sharing happens by publishing a snapshot to the communi
   - `AyahRef`: `{mushaf_id, surah_id, ayah, ayah_id?, text}`.
   - `references[]`: `{kind: ayah|tafsir|book|url, label, locator?}`; an `ayah` locator is `"S:A"`.
   - `provenance`: `{mode: strict|tafssir|null, ai_sections[], created_from: studio|board|manual,
-    source_id?}`.
+    source_id?}`. For `board`, `source_id` is `"<theme id>:<board id>"` (a bare `"<theme id>"` from
+    older exports means that theme's first board); the post snapshot copies that board.
 - **Quote verification on every save.** Each `AyahRef` is checked against the Quran DB:
   - An empty `text` is filled with the mushaf text, and `ayah_id` is set.
   - A quote whose normalized rasm differs is kept as written and reported in
@@ -204,13 +219,20 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
 - `NotebookItem.theme_ids: int[]` (additive, defaults to `[]`). `POST /api/notebook` accepts
   `theme_ids`; `PUT /api/notebook/{item_id}/themes {theme_ids}` replaces them (an empty list keeps the
   ayah saved, untagged). Ids the user doesn't own are dropped silently; duplicates collapse; max 12.
-- `GET /api/themes/{id}` returns `ThemeDetail` = summary + `board` (the theme board JSON, `null` until
-  saved). The list endpoint never includes boards.
-- `PUT /api/themes/{id}/board {board}` stores the board as opaque JSON (≤ 256 KB, `413` beyond). Shape
-  (`packages/shared` `ThemeBoard`): `{v: 1, nodes: [{id, type: ayah|note|heading, x, y, w?, h?, data}],
-  edges: [{id, source, target, label?}], viewport?}`. Ayah node ids are `a-<mushaf_id>-<ayah_id>`
-  (`data: {ayah_id, mushaf_id, expanded?}`); the web app reconciles them with the theme's ayahs on open
-  and always fits the view (it saves `viewport: null` — viewports are per-device).
+- `GET /api/themes/{id}` returns `ThemeDetail` = summary + `board` (the theme's boards JSON, `null` until
+  one is created). The list endpoint never includes boards.
+- `PUT /api/themes/{id}/board {board}` stores the boards as opaque JSON (≤ 256 KB for all of a theme's
+  boards, `413` beyond). A theme holds **several named boards, or none** — boards are created on
+  purpose. Shape (`packages/shared` `ThemeBoardSet`): `{v: 2, boards: [{id, name, created_at, updated_at,
+  board: ThemeBoard}]}`. A legacy value (one `ThemeBoard`, `v: 1`) reads as a set of one board with id
+  `b-1`, and is rewritten as `v: 2` on the next save.
+- `ThemeBoard`: `{v: 1, nodes: [{id, type: ayah|note|heading|shape, x, y, w?, h?, data}], edges: [{id,
+  source, target, label?}], viewport?, hidden?}`. Ayah node ids are `a-<mushaf_id>-<ayah_id>`
+  (`data: {ayah_id, mushaf_id, expanded?}`); any node may carry `data.style` (text colour, fill, border,
+  size, font); shapes carry `data.shape: rect|ellipse|diamond`. `hidden` lists ayah node ids taken off the
+  board (they stay in the theme; their edges are kept). The web app reconciles ayah nodes with the
+  theme's ayahs on open (skipping hidden ones; a newly themed ayah appears) and always fits the view
+  (it saves `viewport: null` — viewports are per-device).
 - `DELETE /api/themes/{id}` deletes the theme and its board; its ayahs stay saved without it.
 - Migration: when `theme_ids` is added to an existing store, each distinct free-text `collection`
   becomes a theme (per owner, colours in palette order). `collection` is still returned for compatibility.
@@ -261,17 +283,16 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   A page or verse arriving in another riwāyah (e.g. a notebook item saved under Qālūn) is
   re-opened in the edition by `surah:ayah`.
 - `reader_layout` is an account preference on `GET/PATCH /api/user/preferences`.
-  The API keeps its five values for compatibility; the web client offers **three
+  The API keeps its five values for compatibility; the web client offers **two
   reading modes** and maps them:
   - «صفحات» (pages) ← `"single"` or `"spread"`: the printed page; the client shows
     a facing spread by itself only when two pages keep (almost) single-page size
     in the reading area (`spreadFits` in `features/reading/reader-modes.ts`).
     Choosing «صفحات» stores `"single"`.
-  - «تمرير» ← `"scroll"`: continuous pages, fitted to the column width but never
-    larger than the chosen text size (`font_size`).
   - «آية آية» ← `"ayah"`: one verse per row at the chosen text size.
-  - `"auto"` (default) is device-smart: «تمرير» on phones and short/landscape
-    screens (≤768 px wide or ≤560 px tall), «صفحات» elsewhere.
+  - `"auto"` (default) reads as «صفحات» on every device (phones turn pages by
+    swipe). `"scroll"` — the retired continuous mode — is still accepted and also
+    reads as «صفحات».
 - It is a **presentation** preference consumed by the client only; no server
   reader endpoint changes shape.
 - `last_position` (a `ReadingPosition`: `ayah_id`, `mushaf_id`, optional
@@ -321,9 +342,14 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   `/api/reciters`, `/api/root-distribution`.
 - Search endpoints (`/api/search`, `/api/search-v2`, `/api/search-result-page`,
   `/api/suggest`) send `public, max-age=600, stale-while-revalidate=3600`.
+- `/api/community/tags` (the same for everyone) sends
+  `public, max-age=60, stale-while-revalidate=300`.
 - Only successful `GET`s are marked; per-user surfaces (auth, preferences,
-  notebook, sessions, followed roots, research) are never cached. Policy lives in
-  `src/app/core/http_cache.py`.
+  notebook, sessions, followed roots, research, the community feed) are never
+  cached. Policy lives in `src/app/core/http_cache.py`.
+- In production, nginx keeps **one shared copy** of every response marked this
+  way (edge cache with request collapsing and stale serving; `X-Cache-Status`
+  header) — see `docs/caching.md` for the layers, rules and audit.
 - The web server serves `/fonts/*` (versioned glyph fonts) with
   `public, max-age=31536000, immutable`; nginx gzips JSON/CSS/JS.
 

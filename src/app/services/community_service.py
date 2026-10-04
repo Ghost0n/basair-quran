@@ -186,19 +186,46 @@ def _index_fields(payload: dict) -> dict:
 # ----------------------------------------------------------------------
 
 
+def _pick_board(stored: object, board_id: str | None) -> tuple[dict, str | None] | None:
+    """The board a research came from, inside a theme's stored boards.
+
+    A theme stores either one legacy board (``v: 1``) or a set of named boards
+    (``v: 2``, ``boards: [{id, name, board}]``). ``board_id`` None means the
+    theme's first board (researches exported before boards were named).
+    """
+    if not isinstance(stored, dict):
+        return None
+    if stored.get("v") == 2:
+        entries = [entry for entry in stored.get("boards") or [] if isinstance(entry, dict)]
+        entry = next((item for item in entries if item.get("id") == board_id), None) if board_id else (entries[0] if entries else None)
+        if not entry or not isinstance(entry.get("board"), dict):
+            return None
+        return entry["board"], entry.get("name")
+    if stored.get("v") == 1 and board_id in (None, "b-1"):
+        return stored, None
+    return None
+
+
 def _board_snapshot(document: dict, user_id: int) -> dict | None:
-    """A read-only copy of the theme board a document was exported from."""
+    """A read-only copy of the theme board a document was exported from.
+
+    ``provenance.source_id`` is ``"<theme id>"`` or ``"<theme id>:<board id>"``.
+    """
     provenance = document.get("provenance") or {}
     if provenance.get("created_from") != "board" or not provenance.get("source_id"):
         return None
+    theme_part, _, board_part = str(provenance["source_id"]).partition(":")
     try:
-        theme_id = int(provenance["source_id"])
+        theme_id = int(theme_part)
     except (TypeError, ValueError):
         return None
     theme = app_data_service.get_theme(theme_id, user_id)
     if not theme or not theme.get("board"):
         return None
-    board = theme["board"]
+    picked = _pick_board(theme["board"], board_part or None)
+    if not picked:
+        return None
+    board, board_name = picked
     ayahs: dict[str, dict] = {}
     for node in board.get("nodes", []):
         if node.get("type") != "ayah":
@@ -216,7 +243,8 @@ def _board_snapshot(document: dict, user_id: int) -> dict | None:
                 "ayah": row["number_in_surah"],
                 "text": row["text_uthmani"],
             }
-    return {"theme": {"name": theme["name"], "color": theme["color"]}, "board": board, "ayahs": ayahs}
+    # The snapshot keeps its shape (one v1 board); a named board shows its name.
+    return {"theme": {"name": board_name or theme["name"], "color": theme["color"]}, "board": board, "ayahs": ayahs}
 
 
 def _excerpt(document: dict) -> dict | None:

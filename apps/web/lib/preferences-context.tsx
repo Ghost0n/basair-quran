@@ -38,7 +38,9 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   translations: [],
 };
 
-type TweaksPatch = Partial<Omit<UserPreferences, "research">>;
+const PREFS_CACHE_KEY = "qb.prefs.cache";
+
+type TweaksPatch =Partial<Omit<UserPreferences, "research">>;
 
 type PreferencesValue = {
   /** True once the initial account preferences have loaded (or failed) — lets the
@@ -53,6 +55,8 @@ type PreferencesValue = {
   updateAccount: (patch: UserPreferencesUpdate) => Promise<void>;
   /** Optimistic local update + debounced PATCH — for continuous inputs (sliders). */
   updateAccountDebounced: (patch: UserPreferencesUpdate) => void;
+  /** Debounced PATCH with no local state change — for background values (reading position). */
+  persistQuietly: (patch: UserPreferencesUpdate) => void;
   setTweak: (patch: TweaksPatch) => void;
   resetTweaks: () => void;
   promoteTweaks: () => Promise<void>;
@@ -65,6 +69,7 @@ const PreferencesContext = createContext<PreferencesValue>({
   tweaks: {},
   updateAccount: async () => {},
   updateAccountDebounced: () => {},
+  persistQuietly: () => {},
   setTweak: () => {},
   resetTweaks: () => {},
   promoteTweaks: async () => {},
@@ -83,6 +88,14 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    // Start from the last preferences seen on this device, so the reader opens
+    // as it was left (size, layout, numerals) before the server answers.
+    try {
+      const cached = window.localStorage.getItem(PREFS_CACHE_KEY);
+      if (cached) setAccount({ ...DEFAULT_PREFERENCES, ...(JSON.parse(cached) as Partial<UserPreferences>) });
+    } catch {
+      /* no cache — defaults until the server answers */
+    }
     const load = () =>
       api
         .getPreferences()
@@ -103,6 +116,15 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("qb:data-synced", load);
     };
   }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    try {
+      window.localStorage.setItem(PREFS_CACHE_KEY, JSON.stringify(account));
+    } catch {
+      /* private mode — the server copy still applies */
+    }
+  }, [ready, account]);
 
   const preferences = useMemo<UserPreferences>(
     () => ({ ...account, ...tweaks }),
@@ -159,6 +181,21 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Background writes nothing on screen depends on (the reading position,
+  // written on every page turn): persisted, debounced, WITHOUT touching React
+  // state — a context update here would re-render the whole app per turn.
+  const quietTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const quietPatchRef = useRef<UserPreferencesUpdate>({});
+  const persistQuietly = useCallback((patch: UserPreferencesUpdate) => {
+    quietPatchRef.current = { ...quietPatchRef.current, ...patch };
+    if (quietTimerRef.current) clearTimeout(quietTimerRef.current);
+    quietTimerRef.current = setTimeout(() => {
+      const patchToSend = quietPatchRef.current;
+      quietPatchRef.current = {};
+      void api.updatePreferences(patchToSend).catch(() => {});
+    }, 800);
+  }, []);
+
   const setTweak = useCallback((patch: TweaksPatch) => {
     setTweaks((current) => ({ ...current, ...patch }));
   }, []);
@@ -180,11 +217,12 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
       tweaks,
       updateAccount,
       updateAccountDebounced,
+      persistQuietly,
       setTweak,
       resetTweaks,
       promoteTweaks,
     }),
-    [ready, preferences, account, tweaks, updateAccount, updateAccountDebounced, setTweak, resetTweaks, promoteTweaks],
+    [ready, preferences, account, tweaks, updateAccount, updateAccountDebounced, persistQuietly, setTweak, resetTweaks, promoteTweaks],
   );
 
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;

@@ -13,6 +13,8 @@ import { queueStudioAsk } from "@/lib/studio-prefill";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
+import { useMorphology } from "../use-morphology";
+
 import type { WordSelection } from "./word-selection";
 
 import { t, tn } from "@/lib/i18n";
@@ -45,6 +47,8 @@ export function SelectionBar({
 
   const words = selection.keys.length;
   const single = words === 1;
+  // A whole verse is not a phrase to search or count: those two actions go.
+  const wholeVerse = selection.wholeVerse;
   const surahName = surahs.find((surah) => surah.id === selection.start.surah)?.name ?? `${selection.start.surah}`;
   const sameAyah = selection.start.surah === selection.end.surah && selection.start.ayah === selection.end.ayah;
   const ayahRef = sameAyah
@@ -100,7 +104,7 @@ export function SelectionBar({
   // Portaled to <body> so it layers above the mobile tab bar and media bar.
   return createPortal(
     <div className="qb-selection-bar" role="region" aria-label={t("الكلمات المحدّدة")}>
-      {counting ? (
+      {counting && !wholeVerse ? (
         <CountPanel selection={selection} mushafId={mushafId} onClose={() => setCounting(false)} />
       ) : null}
       <div className="row">
@@ -116,10 +120,13 @@ export function SelectionBar({
           <Icon name="close" size={16} />
         </button>
       </div>
+      {single ? <WordAnalysis selection={selection} mushafId={mushafId} /> : null}
       <div className="acts">
-        <button type="button" onClick={search}>
-          <Icon name="search" size={15} /> {t("بحث بالعبارة")}
-        </button>
+        {wholeVerse ? null : (
+          <button type="button" onClick={search}>
+            <Icon name="search" size={15} /> {t("بحث بالعبارة")}
+          </button>
+        )}
         {single ? (
           <button type="button" onClick={() => void searchRoot()} disabled={rootBusy}>
             <Icon name="tree" size={15} /> {t("مواضع الجذر")}
@@ -128,9 +135,11 @@ export function SelectionBar({
         <button type="button" onClick={ask}>
           <Icon name="sparkles" size={15} /> {t("اسأل الدراسة")}
         </button>
-        <button type="button" className={counting ? "on" : ""} aria-pressed={counting} onClick={() => setCounting((v) => !v)}>
-          <Icon name="graph" size={15} /> {t("إحصاء")}
-        </button>
+        {wholeVerse ? null : (
+          <button type="button" className={counting ? "on" : ""} aria-pressed={counting} onClick={() => setCounting((v) => !v)}>
+            <Icon name="graph" size={15} /> {t("إحصاء")}
+          </button>
+        )}
         <button type="button" onClick={() => void copy()}>
           <Icon name={copied ? "check" : "copy"} size={15} /> {copied ? t("نُسخ") : t("نسخ مع المرجع")}
         </button>
@@ -138,6 +147,37 @@ export function SelectionBar({
       {note ? <div className="note" role="status">{note}</div> : null}
     </div>,
     document.body,
+  );
+}
+
+/**
+ * One picked word's analysis (formerly the «تحليل» tool's popover): root,
+ * lemma, part of speech, grammar and features — inline in the bar, so it is
+ * never clipped by the page and needs no second tool.
+ */
+function WordAnalysis({ selection, mushafId }: { selection: WordSelection; mushafId: number }) {
+  const { data, loading } = useMorphology(selection.start.surah, selection.start.ayah, mushafId);
+  const word = data?.words.find((entry) => entry.position === selection.start.position) ?? null;
+  if (loading && !data) return <div className="analysis state">{t("جارٍ تحميل التحليل الصرفي…")}</div>;
+  if (!word) return <div className="analysis state">{t("لا يتوفّر تحليل صرفي لهذه الكلمة.")}</div>;
+  const cells: [string, string | null | undefined][] = [
+    [t("الجذر"), word.root],
+    [t("الأصل"), word.lemma],
+    [t("القسم"), word.pos_label],
+    [t("الإعراب"), word.case_label],
+  ];
+  return (
+    <div className="analysis" aria-label={t("تحليل الكلمة: {0}", { 0: word.text })}>
+      <dl>
+        {cells.map(([label, value]) => (
+          <div key={label} className="cell">
+            <dt>{label}</dt>
+            <dd>{value || "—"}</dd>
+          </div>
+        ))}
+      </dl>
+      {word.features.length > 0 ? <div className="features">{word.features.join(" · ")}</div> : null}
+    </div>
   );
 }
 

@@ -1314,8 +1314,12 @@
   color: var(--gold-text);
 }
 
+/* Invisible but still laid out: React Flow anchors each relation to a handle's
+   measured box — `display: none` gave every edge a (0,0) handle and the
+   relations drew nowhere. */
 .qb-board-readonly .react-flow__handle {
-  display: none;
+  opacity: 0 !important;
+  pointer-events: none;
 }
 
 .qb-post-bar .qb-btn.saved {

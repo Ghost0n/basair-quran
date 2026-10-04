@@ -38,8 +38,20 @@ python scripts/build_translations.py --offline-dir DIR     # air-gapped: pre-dow
 - **Offline layout:** `quranenc/list.json`, `quranenc/<key>/<sura>.json`, `tanzil/<id>.txt`.
 
 **Deploy:** the workflow builds translations in the background when the commit message carries
-`[rebuild-translations]`, or when `data/translations.db` does not exist yet. The host needs
-outbound HTTPS to `quranenc.com` and `tanzil.net`.
+`[rebuild-translations]`, or when `data/translations.db` does not exist yet, and then rebuilds the
+standalone app's packs (`data/offline/`, served at `/api/offline`) so every installed translation
+can also be downloaded on demand in the Android and iOS app. The host needs outbound HTTPS to
+`quranenc.com` and `tanzil.net`.
+
+**Where translations are available:** the website always shows every translation installed on the
+server (nothing to download). The app installs a translation only when the reader picks it: each is
+a 1–12 MB `translation-<slug>.db` pack. The Mobile workflow builds the translations too (its
+downloads cached between runs), so its `basair-offline-packs` artifact carries them.
+
+A few Tanzil files carry U+0085 inside an ayah — a Windows-1252 "…" (byte 0x85) decoded as a
+control character. The parser splits lines on `
+` only and restores that character to "…"; the
+text is otherwise stored verbatim.
 
 ## Storage
 

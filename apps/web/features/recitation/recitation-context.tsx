@@ -18,6 +18,8 @@ import { APP_MODE } from "@/lib/app-mode/config";
 import { API_BASE_URL } from "@/lib/config";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { usePreferences } from "@/lib/preferences-context";
+import { ayahCount, inRange, nextVerse, previousVerse, sameVerse, type VerseRange } from "@/lib/quran-ranges";
+import { useStickyState } from "@/lib/use-sticky-state";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -27,10 +29,67 @@ function pad3(value: number): string {
 
 export type RecitationPosition = { surah: number; ayah: number };
 
+/** Where the recitation is within its surah, in seconds. */
+export type SurahTiming = {
+  elapsed: number;
+  total: number;
+  /** false while some verse durations are still estimated. */
+  exact: boolean;
+  /** 0..1 over the whole surah. */
+  progress: number;
+};
+
+/** The audio file of one verse (the standalone app prefers a downloaded one). */
+async function audioSource(reciter: ReciterItem, position: RecitationPosition): Promise<string> {
+  const remote = `${reciter.audio_base}/${pad3(position.surah)}${pad3(position.ayah)}.mp3`;
+  if (!APP_MODE) return remote;
+  try {
+    const { localAudioUrl } = await import("@/lib/app-mode/audio");
+    return (await localAudioUrl(reciter.id, position.surah, position.ayah)) ?? remote;
+  } catch {
+    return remote;
+  }
+}
+
+/** A verse's duration from its file's metadata only (NaN when it can't be read). */
+function probeDuration(src: string): Promise<number> {
+  return new Promise((resolve) => {
+    const probe = new Audio();
+    let settled = false;
+    const done = (value: number) => {
+      if (settled) return;
+      settled = true;
+      probe.removeAttribute("src");
+      probe.load();
+      resolve(value);
+    };
+    probe.preload = "metadata";
+    probe.onloadedmetadata = () => done(Number.isFinite(probe.duration) ? probe.duration : Number.NaN);
+    probe.onerror = () => done(Number.NaN);
+    setTimeout(() => done(Number.NaN), 15000);
+    probe.src = src;
+  });
+}
+
+/** Seconds of each verse, with unknown ones estimated from the known average. */
+function surahSeconds(list: number[]): { seconds: number[]; exact: boolean } {
+  const known = list.filter((value) => !Number.isNaN(value));
+  const average = known.length ? known.reduce((sum, value) => sum + value, 0) / known.length : 0;
+  return {
+    seconds: list.map((value) => (Number.isNaN(value) ? average : value)),
+    exact: known.length === list.length,
+  };
+}
+
+/** A span to recite (inclusive); `repeat` loops it instead of stopping at its end. */
+export type RecitationRange = VerseRange & { repeat: boolean };
+
 type RecitationValue = {
   reciters: ReciterItem[];
   /** Mushaf catalogue (with riwāyah), for reciter/mushaf mismatch detection. */
   mushafs: MushafItem[];
+  /** The surah catalogue (names for the range picker). */
+  surahs: SurahListItem[];
   reciterId: string;
   reciter: ReciterItem | null;
   current: RecitationPosition | null;
@@ -48,6 +107,12 @@ type RecitationValue = {
   prev: () => void;
   /** Jump within the current ayah's audio (0..1 of its duration). */
   seek: (ratio: number) => void;
+  /** The recitation's place in the whole surah (null when nothing plays). */
+  surahTiming: SurahTiming | null;
+  /** Jump anywhere in the surah (0..1 of its length): the right verse, at the right moment. */
+  seekSurah: (ratio: number) => void;
+  /** Move by `seconds` within the surah (keyboard seek). */
+  seekBy: (seconds: number) => void;
   /** The bar shown in an IDLE state (no ayah playing yet) — opened from the
    *  reader footer so the user can pick a reciter before pressing play. */
   idle: boolean;
@@ -56,6 +121,15 @@ type RecitationValue = {
   openIdle: (start?: RecitationPosition | null) => void;
   /** Start the pending ayah (idle → playing). */
   startPending: () => void;
+  /** The span being recited, if one was chosen (surah, juz, hizb, page, custom). */
+  range: RecitationRange | null;
+  /** Recite `range` from its first verse. */
+  playRange: (range: VerseRange, options?: { repeat?: boolean }) => void;
+  clearRange: () => void;
+  setRangeRepeat: (repeat: boolean) => void;
+  /** The reader follows the recited verse (highlight + page turns). Remembered on this device. */
+  follow: boolean;
+  setFollow: (follow: boolean) => void;
 };
 
 const RecitationContext = createContext<RecitationValue | null>(null);
@@ -83,6 +157,15 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   const [repeatAyah, setRepeatAyah] = useState(false);
   const [idle, setIdle] = useState(false);
   const [pendingStart, setPendingStart] = useState<RecitationPosition | null>(null);
+  const [range, setRange] = useState<RecitationRange | null>(null);
+  // Verse durations per reciter + surah ("id:surah" -> seconds by verse, NaN =
+  // not known yet), filled in the background; the version re-derives timing.
+  const durationsRef = useRef<Map<string, number[]>>(new Map());
+  const [durationsVersion, setDurationsVersion] = useState(0);
+  const [ayahTime, setAyahTime] = useState(0);
+  // A surah seek that lands in another verse applies once that verse loads.
+  const pendingSeekRef = useRef<number | null>(null);
+  const [follow, setFollow] = useStickyState<boolean>("qb.recitation.follow", true);
 
   const reciter = useMemo(
     () => reciters.find((item) => item.id === reciterId) ?? reciters[0] ?? null,
@@ -122,37 +205,51 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     (position: RecitationPosition, activeReciter: ReciterItem | null) => {
       const audio = audioRef.current;
       if (!audio || !activeReciter) return;
-      const remote = `${activeReciter.audio_base}/${pad3(position.surah)}${pad3(position.ayah)}.mp3`;
-      const start = (src: string) => {
+      setAyahTime(0);
+      void audioSource(activeReciter, position).then((src) => {
         audio.src = src;
         audio.playbackRate = speed;
         void audio.play().then(
           () => setIsPlaying(true),
           () => setIsPlaying(false),
         );
-      };
-      if (!APP_MODE) {
-        start(remote);
-        return;
-      }
-      // The standalone app plays a downloaded surah from the device.
-      void import("@/lib/app-mode/audio")
-        .then(({ localAudioUrl }) => localAudioUrl(activeReciter.id, position.surah, position.ayah))
-        .then(
-          (local) => start(local ?? remote),
-          () => start(remote),
-        );
+      });
     },
     [speed],
   );
 
-  const playAyah = useCallback(
-    (surah: number, ayah: number) => {
-      setCurrent({ surah, ayah });
+  // Plays one verse, keeping any chosen range (advance, prev/next, repeat).
+  const playPosition = useCallback(
+    (position: RecitationPosition) => {
+      setCurrent(position);
       setIdle(false); // a real ayah takes over from the idle bar
-      loadAndPlay({ surah, ayah }, reciter);
+      loadAndPlay(position, reciter);
     },
     [loadAndPlay, reciter],
+  );
+
+  // Public: playing a verse outside the chosen range leaves that range.
+  const playAyah = useCallback(
+    (surah: number, ayah: number) => {
+      const position = { surah, ayah };
+      setRange((current) => (current && !inRange(position, current) ? null : current));
+      playPosition(position);
+    },
+    [playPosition],
+  );
+
+  const playRange = useCallback(
+    (next: VerseRange, options?: { repeat?: boolean }) => {
+      setRange({ start: next.start, end: next.end, repeat: options?.repeat ?? false });
+      playPosition(next.start);
+    },
+    [playPosition],
+  );
+
+  const clearRange = useCallback(() => setRange(null), []);
+  const setRangeRepeat = useCallback(
+    (repeat: boolean) => setRange((current) => (current ? { ...current, repeat } : current)),
+    [],
   );
 
   const toggle = useCallback(() => {
@@ -180,30 +277,37 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     setProgress(0);
     setIdle(false);
     setPendingStart(null);
+    setRange(null);
+  }, []);
+
+  // The end of a chosen range: pause and leave the bar ready at its start.
+  const finishRange = useCallback((start: RecitationPosition) => {
+    audioRef.current?.pause();
+    setIsPlaying(false);
+    setCurrent(null);
+    setProgress(0);
+    setPendingStart(start);
+    setIdle(true);
   }, []);
 
   const next = useCallback(() => {
     if (!current) return;
-    const surahMeta = surahs.find((s) => s.id === current.surah);
-    const ayahCount = surahMeta?.ayah_count ?? current.ayah;
-    if (current.ayah < ayahCount) {
-      playAyah(current.surah, current.ayah + 1);
-    } else if (current.surah < 114) {
-      playAyah(current.surah + 1, 1);
-    } else {
-      stop();
+    if (range && sameVerse(current, range.end)) {
+      if (range.repeat) playPosition(range.start);
+      else finishRange(range.start);
+      return;
     }
-  }, [current, surahs, playAyah, stop]);
+    const following = nextVerse(current);
+    if (following) playPosition(following);
+    else stop();
+  }, [current, range, playPosition, finishRange, stop]);
 
   const prev = useCallback(() => {
     if (!current) return;
-    if (current.ayah > 1) {
-      playAyah(current.surah, current.ayah - 1);
-    } else if (current.surah > 1) {
-      const prevSurah = surahs.find((s) => s.id === current.surah - 1);
-      playAyah(current.surah - 1, prevSurah?.ayah_count ?? 1);
-    }
-  }, [current, surahs, playAyah]);
+    if (range && sameVerse(current, range.start)) return;
+    const before = previousVerse(current);
+    if (before) playPosition(before);
+  }, [current, range, playPosition]);
 
   const setReciter = useCallback(
     (id: string) => {
@@ -241,6 +345,144 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     if (pendingStart) playAyah(pendingStart.surah, pendingStart.ayah);
   }, [pendingStart, playAyah]);
 
+  // Every verse duration of the surah being recited. The server is the source:
+  // it measures each reciter's surah once and serves it to every user
+  // (GET /api/reciters/{id}/durations/{surah}, immutable once complete, so the
+  // browser caches it too). While it is still measuring, the answer is partial
+  // and we ask again shortly. Only when the server can't be reached (offline,
+  // the standalone app) does the player read the missing durations itself.
+  const reciterKey = reciter?.id ?? null;
+  const currentSurah = current?.surah ?? null;
+  useEffect(() => {
+    if (!reciter || currentSurah == null) return;
+    const key = `${reciter.id}:${currentSurah}`;
+    let list = durationsRef.current.get(key);
+    if (!list) {
+      list = Array.from({ length: ayahCount(currentSurah) }, () => Number.NaN);
+      durationsRef.current.set(key, list);
+      setDurationsVersion((version) => version + 1);
+    }
+    const target = list;
+    let cancelled = false;
+    let poll: ReturnType<typeof setTimeout> | null = null;
+    let attempts = 0;
+
+    const fill = (values: (number | null)[]) => {
+      let changed = false;
+      values.forEach((value, index) => {
+        if (typeof value === "number" && value > 0 && Number.isNaN(target[index])) {
+          target[index] = value;
+          changed = true;
+        }
+      });
+      if (changed && !cancelled) setDurationsVersion((version) => version + 1);
+    };
+
+    // Fallback: read the missing durations from the audio files (metadata
+    // only, four at a time).
+    const probeMissing = () => {
+      const queue = target.flatMap((value, index) => (Number.isNaN(value) ? [index] : []));
+      let active = 0;
+      let flush: ReturnType<typeof setTimeout> | null = null;
+      const bump = () => {
+        if (flush) return;
+        flush = setTimeout(() => {
+          flush = null;
+          if (!cancelled) setDurationsVersion((version) => version + 1);
+        }, 300);
+      };
+      const pump = () => {
+        while (!cancelled && active < 4 && queue.length) {
+          const index = queue.shift() as number;
+          active += 1;
+          void audioSource(reciter, { surah: currentSurah, ayah: index + 1 })
+            .then(probeDuration)
+            .then((seconds) => {
+              active -= 1;
+              if (!Number.isNaN(seconds) && Number.isNaN(target[index])) {
+                target[index] = seconds;
+                bump();
+              }
+              pump();
+            });
+        }
+      };
+      pump();
+    };
+
+    const ask = () => {
+      if (cancelled || !target.some((value) => Number.isNaN(value))) return;
+      attempts += 1;
+      api.getReciterDurations(reciter.id, currentSurah).then(
+        (answer) => {
+          if (cancelled) return;
+          fill(answer.durations);
+          // Still measuring on the server: ask again in a moment (bounded).
+          if (!answer.complete && attempts < 24) poll = setTimeout(ask, 2500);
+        },
+        () => {
+          if (!cancelled) probeMissing();
+        },
+      );
+    };
+    ask();
+
+    return () => {
+      cancelled = true;
+      if (poll) clearTimeout(poll);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reciterKey, currentSurah]);
+
+  const surahTiming = useMemo<SurahTiming | null>(() => {
+    if (!current || !reciter) return null;
+    const list = durationsRef.current.get(`${reciter.id}:${current.surah}`);
+    if (!list || !list.length) return null;
+    const { seconds, exact } = surahSeconds(list);
+    const before = seconds.slice(0, current.ayah - 1).reduce((sum, value) => sum + value, 0);
+    const total = seconds.reduce((sum, value) => sum + value, 0);
+    const elapsed = total > 0 ? Math.min(before + ayahTime, total) : before + ayahTime;
+    return { elapsed, total, exact, progress: total > 0 ? Math.min(1, elapsed / total) : 0 };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, reciter, durationsVersion, ayahTime]);
+
+  const seekSurah = useCallback(
+    (ratio: number) => {
+      const audio = audioRef.current;
+      if (!audio || !current || !reciter) return;
+      const list = durationsRef.current.get(`${reciter.id}:${current.surah}`);
+      if (!list || !list.length) return;
+      const { seconds } = surahSeconds(list);
+      const total = seconds.reduce((sum, value) => sum + value, 0);
+      if (total <= 0) return;
+      let remaining = Math.min(Math.max(ratio, 0), 1) * total;
+      let ayah = seconds.length;
+      for (let index = 0; index < seconds.length; index += 1) {
+        if (remaining < seconds[index] || index === seconds.length - 1) {
+          ayah = index + 1;
+          break;
+        }
+        remaining -= seconds[index];
+      }
+      if (ayah === current.ayah) {
+        audio.currentTime = Math.max(0, remaining);
+        setAyahTime(audio.currentTime);
+      } else {
+        pendingSeekRef.current = Math.max(0, remaining);
+        playAyah(current.surah, ayah);
+      }
+    },
+    [current, reciter, playAyah],
+  );
+
+  const seekBy = useCallback(
+    (delta: number) => {
+      if (!surahTiming || surahTiming.total <= 0) return;
+      seekSurah((surahTiming.elapsed + delta) / surahTiming.total);
+    },
+    [surahTiming, seekSurah],
+  );
+
   // Audio element event wiring.
   const handleEnded = useCallback(() => {
     if (repeatAyah && current) {
@@ -254,11 +496,15 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     () => ({
       reciters,
       mushafs,
+      surahs,
       reciterId,
       reciter,
       current,
       isPlaying,
       progress,
+      surahTiming,
+      seekSurah,
+      seekBy,
       speed,
       repeatAyah,
       setReciter,
@@ -274,8 +520,21 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       pendingStart,
       openIdle,
       startPending,
+      range,
+      playRange,
+      clearRange,
+      setRangeRepeat,
+      follow,
+      setFollow,
     }),
     [
+      surahs,
+      range,
+      playRange,
+      clearRange,
+      setRangeRepeat,
+      follow,
+      setFollow,
       reciters,
       mushafs,
       reciterId,
@@ -283,6 +542,9 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       current,
       isPlaying,
       progress,
+      surahTiming,
+      seekSurah,
+      seekBy,
       speed,
       repeatAyah,
       setReciter,
@@ -309,6 +571,23 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
         onTimeUpdate={(event) => {
           const audio = event.currentTarget;
           setProgress(audio.duration > 0 ? audio.currentTime / audio.duration : 0);
+          setAyahTime(audio.currentTime);
+        }}
+        onLoadedMetadata={(event) => {
+          const audio = event.currentTarget;
+          // The playing verse's exact length joins the surah's durations.
+          if (reciter && current && Number.isFinite(audio.duration)) {
+            const list = durationsRef.current.get(`${reciter.id}:${current.surah}`);
+            if (list && Number.isNaN(list[current.ayah - 1])) {
+              list[current.ayah - 1] = audio.duration;
+              setDurationsVersion((version) => version + 1);
+            }
+          }
+          if (pendingSeekRef.current != null) {
+            audio.currentTime = Math.min(pendingSeekRef.current, Math.max(0, audio.duration - 0.05));
+            pendingSeekRef.current = null;
+            setAyahTime(audio.currentTime);
+          }
         }}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}

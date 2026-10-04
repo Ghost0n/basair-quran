@@ -514,6 +514,17 @@
   color: var(--gold-text);
 }
 
+/* Narrow (the notebook beside the reader, phones): the inactive tabs drop
+   their counts and the labels tighten, so every tab stays in view. */
+.qb-lib-tabs.qb-fit-track[data-fit="2"] > .qb-lib-tab {
+  padding-inline: 8px;
+  font-size: 12.5px;
+}
+
+.qb-lib-tabs[data-fit="2"] .qb-lib-tab:not(.active) .n {
+  display: none;
+}
+
 /* A clickable verse row that opens the ayah (button reset, fills the row). */
 .qb-row-open {
   background: none;
@@ -537,4 +548,173 @@
   .qb-lib-tab .n {
     margin-inline-start: 3px;
   }
+}
+
+/* ---------- «اللوحات»: boards inside their theme's card ---------- */
+
+.qb-boards-card.focused {
+  box-shadow: 0 0 0 2px var(--hl-ink), var(--glass-shadow, none);
+}
+
+.qb-boards-card .body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qb-boards-card .empty {
+  margin: 2px 4px;
+  font-size: 12.5px;
+  color: var(--fg-3);
+}
+
+.qb-board-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 2px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--glass-tint-soft);
+}
+
+.qb-board-item .open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 0;
+  background: none;
+  color: var(--hl-ink, var(--gold-text));
+  text-align: start;
+  cursor: pointer;
+}
+
+.qb-board-item .open .text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.qb-board-item .title {
+  font-family: var(--font-arabic-heading);
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--fg-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qb-board-item .meta {
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+
+.qb-board-item .rename {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qb-board-item .rename input,
+.qb-board-create input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-accent);
+  background: transparent;
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-size: 15px;
+}
+
+.qb-board-item .confirm {
+  display: inline-flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.qb-board-item .confirm button,
+.qb-board-create button {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.qb-board-item .confirm .danger {
+  border-color: transparent;
+  color: var(--danger-fg);
+}
+
+.qb-board-create {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qb-board-create button.primary {
+  border-color: transparent;
+  background: var(--hl-ink, var(--gold-400));
+  color: #fff;
+  font-weight: 700;
+}
+
+.qb-board-new {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px dashed var(--hl-ink, var(--border-accent));
+  background: none;
+  color: var(--hl-ink, var(--gold-text));
+  font-family: var(--font-arabic-ui);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-theme-card .head .qb-board-open .n {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--hl-ink);
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.qb-board-item .row-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+.qb-board-item .row-action:hover {
+  color: var(--hl-ink);
+  border-color: var(--hl-ink);
 }

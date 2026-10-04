@@ -92,11 +92,41 @@
   border-radius: 22px;
 }
 
+/* Previous on the right, next on the left, in every interface language (the
+   mushaf's own direction), like the reader's page arrows. */
 .qb-media-transport {
   display: flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
+  direction: rtl;
+}
+
+/* Elapsed · the whole surah · total. Right-to-left like the transport. */
+.qb-media-progress {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  direction: rtl;
+}
+
+.qb-media-progress .time {
+  flex-shrink: 0;
+  min-width: 3.2em;
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: center;
+  font-family: var(--font-arabic-ui);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-3);
+}
+
+.qb-media-progress .time.total {
+  color: var(--fg-3);
+  opacity: 0.8;
 }
 
 .qb-media-transport .nav,
@@ -341,6 +371,8 @@
 
 .qb-reciter-dd-list {
   overflow-y: auto;
+  /* Rows truncate their text instead: the list never scrolls sideways. */
+  overflow-x: hidden;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -382,9 +414,20 @@
   color: #1a1207;
 }
 
+/* Name over its Latin name + riwāyah: two stacked lines, each truncated with
+   an ellipsis (they are spans, so they must be blocks to stack and clip). */
 .qb-reciter-dd-row .info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.qb-reciter-dd-row .info .name,
+.qb-reciter-dd-row .info .meta {
+  display: block;
+  max-width: 100%;
 }
 
 .qb-reciter-dd-row .info .name {
@@ -449,4 +492,274 @@
   overflow-x: clip;
   overflow-y: visible;
   text-overflow: ellipsis;
+}
+
+/* =====================================================================
+   «نطاق التلاوة» — the range picker (opens upward from the media bar).
+   ===================================================================== */
+
+.qb-range {
+  position: relative;
+}
+
+.qb-media-tools .range-chip {
+  gap: 6px;
+  max-width: 220px;
+}
+
+.qb-media-tools .range-chip .lbl {
+  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Portaled to <body> and placed above the media bar (range-picker.tsx), so
+   its blur frosts the page behind it. */
+.qb-range-panel {
+  position: fixed;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--r-xl, 22px);
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-overlay, var(--glass-tint-strong));
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow-lift, var(--glass-shadow));
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong, var(--glass-blur))) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-strong, var(--glass-blur))) saturate(var(--glass-saturate));
+  animation: qbPopIn var(--motion-dur-fast) var(--motion-ease-settle) both;
+  font-family: var(--font-arabic-ui);
+}
+
+/* Header: like the reader sheets (title + round close). */
+.qb-range-panel .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.qb-range-panel .head h3 {
+  margin: 0;
+  font-family: var(--font-arabic-heading);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--gold-text);
+}
+
+.qb-range-panel .head .close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+.qb-range-panel .head .close:hover {
+  color: var(--gold-text);
+  border-color: var(--border-strong);
+}
+
+/* The app's segmented control (Settings / Display): a glass track, the
+   choice lit as a gel. */
+.qb-range-panel .seg {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-rim);
+  background: var(--glass-tint-soft);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.qb-range-panel .seg::-webkit-scrollbar {
+  display: none;
+}
+
+.qb-range-panel .seg button {
+  flex: 1 0 auto;
+  height: 32px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: none;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-base) var(--spring-soft), color var(--motion-dur-fast);
+}
+
+.qb-range-panel .seg button.active {
+  background: var(--seg-on-bg, var(--gold-a18));
+  background-image: var(--glass-sheen);
+  box-shadow: var(--seg-on-shadow, none);
+  color: var(--gold-text);
+}
+
+.qb-range-panel .seg button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Fields: a small bold label over the control (the sheets' label style). */
+.qb-range-panel .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qb-range-panel .label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-3);
+}
+
+.qb-range-panel .qb-range-select {
+  width: 100%;
+}
+
+.qb-range-panel .verse-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px;
+  gap: 8px;
+}
+
+.qb-range-panel input[type="number"] {
+  height: 40px;
+  min-width: 0;
+  padding: 0 12px;
+  border-radius: var(--r-lg, 14px);
+  border: 1px solid var(--border);
+  background: var(--glass-tint-soft);
+  color: var(--fg-1);
+  font: inherit;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.qb-range-panel input[type="number"]:focus {
+  outline: none;
+  border-color: var(--border-focus, var(--gold-400));
+}
+
+.qb-range-panel .summary {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--r-md, 12px);
+  background: var(--gold-a08);
+  font-size: 12.5px;
+  color: var(--gold-text);
+  text-align: center;
+}
+
+/* On / off options as pill toggles (the Display strip's highlight toggle). */
+.qb-range-panel .opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.qb-range-panel .opt {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-rim);
+  background: var(--glass-tint-soft);
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-base) var(--spring-soft), color var(--motion-dur-fast),
+    border-color var(--motion-dur-fast);
+}
+
+.qb-range-panel .opt.on {
+  border-color: var(--border-accent);
+  background: var(--seg-on-bg, var(--gold-a18));
+  background-image: var(--glass-sheen);
+  color: var(--gold-text);
+}
+
+/* The primary action: the app's gold gel. */
+.qb-range-panel .go {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--gold-gel, var(--gold-400));
+  box-shadow: var(--gold-gel-shadow, none);
+  color: #140f00;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.qb-range-panel .go:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.qb-range-panel .clear {
+  align-self: center;
+  margin-top: -6px;
+  border: 0;
+  background: none;
+  color: var(--fg-3);
+  font: inherit;
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.qb-range-panel .clear:hover {
+  color: var(--gold-text);
+}
+
+/* Phones hide the speed / repeat chips; the range chip stays, as an icon. */
+@media (max-width: 768px) {
+  .qb-media-tools .range-chip {
+    display: inline-flex !important;
+    width: 28px;
+    padding: 0;
+  }
+
+  .qb-media-tools .range-chip .lbl {
+    display: none;
+  }
+
+  /* The panel spans the media bar (the chip sits mid-bar on a phone). */
+  .qb-media-bar {
+    position: relative;
+  }
+
+  .qb-range {
+    position: static;
+  }
+
 }

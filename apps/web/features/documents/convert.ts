@@ -94,6 +94,8 @@ export function documentFromBoard(
   board: ThemeBoard,
   items: NotebookItem[],
   ayahNodeId: (item: NotebookItem) => string,
+  /** The board inside the theme (a theme can hold several): names the research and its provenance. */
+  source?: { boardId: string; name: string },
 ): ResearchDocumentSave {
   const itemByNode = new Map(items.map((item) => [ayahNodeId(item), item]));
   const label = (nodeId: string): string => {
@@ -103,7 +105,7 @@ export function documentFromBoard(
       const item = itemByNode.get(nodeId);
       return item ? `${item.surah ?? ""} ${item.ayah ?? ""}`.trim() : t("آية");
     }
-    return String(node.data.text ?? "").trim() || (node.type === "note" ? t("ملاحظة") : t("عنوان"));
+    return String(node.data.text ?? "").trim() || (node.type === "heading" ? t("عنوان") : t("ملاحظة"));
   };
 
   const ordered = [...board.nodes].sort((a, b) => (Math.abs(a.y - b.y) > 40 ? a.y - b.y : b.x - a.x));
@@ -113,7 +115,7 @@ export function documentFromBoard(
     if (node.type === "heading") {
       current = { id: node.id, kind: "text", title: String(node.data.text ?? "").trim() || null, body: "", ayahs: [] };
       sections.push(current);
-    } else if (node.type === "note") {
+    } else if (node.type === "note" || node.type === "shape") {
       const text = String(node.data.text ?? "").trim();
       if (text) sections.push({ id: node.id, kind: "note", title: null, body: text, ayahs: [] });
     } else {
@@ -139,14 +141,20 @@ export function documentFromBoard(
     sections.push({ id: "relations", kind: "text", title: t("العلاقات"), body: relations.join("\n"), ayahs: [] });
   }
   return {
-    title: theme.name,
+    title: source?.name || theme.name,
     summary: null,
     language: "ar",
     tags: [theme.name],
     theme_ids: [theme.id],
     sections: sections.filter((section) => section.body || section.ayahs.length || section.title),
     references: [],
-    provenance: { mode: null, ai_sections: [], created_from: "board", source_id: String(theme.id) },
+    // `theme:board` — a bare theme id (older researches) means its first board.
+    provenance: {
+      mode: null,
+      ai_sections: [],
+      created_from: "board",
+      source_id: source ? `${theme.id}:${source.boardId}` : String(theme.id),
+    },
   };
 }
 

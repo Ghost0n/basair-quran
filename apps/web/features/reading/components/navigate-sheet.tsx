@@ -7,11 +7,12 @@ import type { SurahListItem } from "@q-basair/shared";
 import { Icon } from "@/components/icon";
 import { useNumerals } from "@/lib/preferences-context";
 import { parseNavCommand, surahMatches, toAsciiDigits, TOTAL_PAGES } from "@/lib/quran-nav";
+import { divisionRange, DIVISION_COUNT } from "@/lib/quran-ranges";
 import { useDialog } from "@/lib/use-dialog";
 
 import { t, tn } from "@/lib/i18n";
 
-type Tab = "surah" | "juz" | "page";
+type Tab = "surah" | "juz" | "hizb" | "page";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "surah", get label() {
@@ -19,6 +20,9 @@ const TABS: { value: Tab; label: string }[] = [
   } },
   { value: "juz", get label() {
     return t("الأجزاء");
+  } },
+  { value: "hizb", get label() {
+    return t("الأحزاب");
   } },
   { value: "page", get label() {
     return t("صفحة");
@@ -28,6 +32,7 @@ const TABS: { value: Tab; label: string }[] = [
 export type NavigateTarget =
   | { type: "surah"; surah: number; ayah?: number }
   | { type: "juz"; juz: number }
+  | { type: "hizb"; hizb: number }
   | { type: "page"; page: number };
 
 /**
@@ -43,6 +48,7 @@ export function NavigateSheet({
   currentSurahId,
   currentPage,
   currentJuz,
+  currentHizb,
   onNavigate,
   onClose,
 }: {
@@ -50,6 +56,8 @@ export function NavigateSheet({
   currentSurahId?: number;
   currentPage?: number;
   currentJuz?: number | null;
+  /** The hizb the reader's page opens in (lib/quran-divisions). */
+  currentHizb?: number | null;
   onNavigate: (target: NavigateTarget) => void;
   onClose: () => void;
 }) {
@@ -198,6 +206,31 @@ export function NavigateSheet({
                   {formatNumber(juz)}
                 </button>
               ))}
+            </div>
+          ) : null}
+
+          {tab === "hizb" ? (
+            <div className="juz-grid hizb-grid">
+              {Array.from({ length: DIVISION_COUNT.hizb }, (_, index) => index + 1).map((hizb) => {
+                const { start } = divisionRange("hizb", hizb);
+                const surahName = surahs.find((item) => item.id === start.surah)?.name ?? formatNumber(start.surah);
+                return (
+                  <button
+                    key={hizb}
+                    type="button"
+                    className={hizb === currentHizb ? "current" : ""}
+                    aria-current={hizb === currentHizb ? "true" : undefined}
+                    aria-label={t("الحزب {0}", { 0: formatNumber(hizb) })}
+                    title={`${surahName} ${formatNumber(start.ayah)}`}
+                    onClick={() => go({ type: "hizb", hizb })}
+                  >
+                    <span className="n">{formatNumber(hizb)}</span>
+                    <span className="at">
+                      {surahName} {formatNumber(start.ayah)}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           ) : null}
 

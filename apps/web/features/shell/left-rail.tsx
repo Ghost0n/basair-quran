@@ -77,6 +77,8 @@ export function LeftRail() {
 
       <div className="qb-rail-spacer" />
 
+      <RailThemeButton />
+
       <RailButton
         destination={{ mode: "settings", icon: "settings", label: t("إعدادات") }}
         activeMode={mode}
@@ -88,6 +90,24 @@ export function LeftRail() {
   );
 }
 
+/** The theme switch, just above Settings: shows the theme you'd switch TO. */
+function RailThemeButton() {
+  const { state, actions } = useWorkspace();
+  const dark = state.theme !== "light";
+  return (
+    <button
+      type="button"
+      className="qb-rail-btn qb-rail-theme"
+      onClick={actions.toggleTheme}
+      title={dark ? t("التبديل إلى السِّمة الفاتحة") : t("التبديل إلى السِّمة الداكنة")}
+      aria-label={dark ? t("التبديل إلى السِّمة الفاتحة") : t("التبديل إلى السِّمة الداكنة")}
+    >
+      <Icon name={dark ? "sun" : "moon"} size={19} />
+      <span className="qb-rail-label" data-fit-watch>{t("السمة")}</span>
+    </button>
+  );
+}
+
 function RailButton({
   destination,
   activeMode,
@@ -95,7 +115,7 @@ function RailButton({
 }: {
   destination: RailDestination;
   activeMode: ShellMode;
-  onSelect: (next: ShellMode) => void;
+  onSelect: (next: ShellMode, options?: { resume?: boolean }) => void;
 }) {
   // A theme board belongs to the library (الدفتر).
   // Sub-pages light their parent: a board / document belongs to the library,
@@ -116,7 +136,8 @@ function RailButton({
     <button
       type="button"
       className={`qb-rail-btn${isActive ? " active" : ""}`}
-      onClick={() => target && onSelect(target)}
+      // The library opens where it was left (a board, a research…).
+      onClick={() => target && onSelect(target, { resume: true })}
       title={destination.label}
       aria-label={destination.label}
       aria-current={isActive ? "page" : undefined}

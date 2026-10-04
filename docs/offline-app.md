@@ -116,7 +116,9 @@ Build-time settings: `NEXT_PUBLIC_REMOTE_ORIGIN` (the server, e.g.
 `NEXT_PUBLIC_AUTH_ENABLED=1` for accounts.
 
 Server side: `GET /api/offline/{name}` serves `build/offline/`
-(`QBASAIR_OFFLINE_PACKS_PATH`), and the app's origin must be in
+(`QBASAIR_OFFLINE_PACKS_PATH`; `/app/data/offline` in production, where the
+deploy rebuilds it after `[rebuild-db]`, after a translations build, or when it
+is missing), and the app's origin must be in
 `QBASAIR_CORS_ORIGINS` (see `docs/api-contract.md`).
 
 ## Android and iOS

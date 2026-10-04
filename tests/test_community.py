@@ -372,3 +372,27 @@ def test_trending_ranking_is_cached_and_invalidated_by_writes(api_client, monkey
         connection.execute("UPDATE posts SET status = 'withdrawn' WHERE id = ?", (newer,))
         connection.commit()
     assert top() == [older]
+
+
+def test_board_snapshot_picks_the_named_board_of_a_theme():
+    """A theme holds one legacy board (v1) or a set of named boards (v2)."""
+    legacy = {"v": 1, "nodes": [{"id": "n-1"}], "edges": []}
+    assert community_service._pick_board(legacy, None) == (legacy, None)
+    assert community_service._pick_board(legacy, "b-1") == (legacy, None)
+    assert community_service._pick_board(legacy, "b-other") is None
+
+    first = {"v": 1, "nodes": [], "edges": []}
+    second = {"v": 1, "nodes": [{"id": "n-2"}], "edges": []}
+    stored = {
+        "v": 2,
+        "boards": [
+            {"id": "b-a", "name": "الأولى", "board": first},
+            {"id": "b-b", "name": "الثانية", "board": second},
+        ],
+    }
+    # A bare theme id (older researches) means the first board.
+    assert community_service._pick_board(stored, None) == (first, "الأولى")
+    assert community_service._pick_board(stored, "b-b") == (second, "الثانية")
+    assert community_service._pick_board(stored, "missing") is None
+    assert community_service._pick_board({"v": 2, "boards": []}, None) is None
+    assert community_service._pick_board(None, None) is None

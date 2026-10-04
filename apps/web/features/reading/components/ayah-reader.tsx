@@ -15,7 +15,7 @@ import {
   type WordClickHandler,
   type WordKeyHandler,
 } from "./ayat-flow";
-import { GlyphAyah, type GlyphSaveTarget } from "./glyph-page";
+import { GlyphAyah, VerseMark, type GlyphSaveTarget } from "./glyph-page";
 import { MorphPopover, type MorphTarget } from "./morph-popover";
 import { useMushaf } from "../mushaf-context";
 import { useMushafLayout } from "../use-mushaf-layout";
@@ -108,9 +108,7 @@ function AyahPage({
               {/* The Madani glyph verse already ends with its own ﴿n﴾ marker —
                   the chip would number it twice; the text fallback needs it. */}
               {hasGlyph ? null : (
-                <span className="qb-ayah-row-num" aria-hidden>
-                  {formatNumber(ayah.ayah)}
-                </span>
+                <VerseMark className="qb-ayah-row-num" text={formatNumber(ayah.ayah)} label={ayah.ayah} ayahId={ayah.ayah_id} onActivate={() => onToggleSave(ayah)} />
               )}
               <span className="qb-sr-only">{t("الآية")} {formatNumber(ayah.ayah)}</span>
               <div className="qb-ayah-row-text">

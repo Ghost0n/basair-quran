@@ -29,6 +29,8 @@ const MIN_SCALE = 0.3;
 // exactly (the historical behaviour). Below it the page shrinks; above it fills
 // more of the area, bounded by the fit so it never overflows.
 const DEFAULT_FONT_PX = 28;
+// Per-page width slack so per-glyph rounding can't wrap a line.
+const FIT_SLACK_PX = 8;
 
 export function useGlyphFit(ref: RefObject<HTMLElement | null>, fontSize: number, deps: unknown[]) {
   const rafRef = useRef(0);
@@ -96,7 +98,10 @@ export function useGlyphFit(ref: RefObject<HTMLElement | null>, fontSize: number
       const totalChromeX = metrics.reduce((sum, m) => sum + m.chromeX, 0);
       // Height headroom absorbs fixed page padding + banner margins (unscaled).
       const heightScale = (availH * 0.97) / maxNaturalH;
-      const widthScale = (availW * 0.997 - totalGap - totalChromeX) / sumMaxW;
+      // Budget the per-page rounding slack added in `apply` (+8px each): without
+      // it a width-bound page (phones) came out ~7px too wide → a horizontal
+      // scrollbar under the page.
+      const widthScale = (availW * 0.997 - totalGap - totalChromeX - FIT_SLACK_PX * pages.length) / sumMaxW;
       // The font-size preference zooms WITHIN the fit: above the default it raises
       // the natural-size cap so the page fills more of the reading area (still
       // bounded by the height/width fit — it can never overflow), and below it
@@ -110,7 +115,7 @@ export function useGlyphFit(ref: RefObject<HTMLElement | null>, fontSize: number
       // tallest page's height — no more mismatched frames side by side.
       const spread = pages.length > 1;
       const apply = (s: number) => {
-        const widths = metrics.map((m) => Math.ceil(m.maxW * s) + m.chromeX + 8);
+        const widths = metrics.map((m) => Math.ceil(m.maxW * s) + m.chromeX + FIT_SLACK_PX);
         const shared = Math.max(...widths);
         pages.forEach((page, index) => {
           page.style.setProperty("--qcf-fit", s.toFixed(4));

@@ -9,6 +9,7 @@ import { installGlobalErrorHooks } from "@/lib/error-report";
 
 import { MergeToast } from "@/features/identity/merge-toast";
 import { MushafProvider } from "@/features/reading/mushaf-context";
+import { SaveAyahProvider } from "@/features/themes/save-ayah-context";
 import { RecitationProvider } from "@/features/recitation/recitation-context";
 import { RecitationBar } from "@/features/recitation/recitation-bar";
 import { AuthSessionProvider } from "@/lib/auth-session-context";
@@ -16,6 +17,7 @@ import { PreferencesProvider } from "@/lib/preferences-context";
 
 import { LeftRail } from "./left-rail";
 import { MobileTabBar } from "./mobile-tab-bar";
+import { useShellMode } from "./mode-context";
 import { ShortcutsModal } from "./shortcuts-modal";
 import { ThemeSweep } from "./theme-sweep";
 import { TopBar } from "./top-bar";
@@ -29,6 +31,16 @@ import { WorkspaceProvider } from "./workspace-context";
  * wraps WorkspaceProvider because useSearchWorkspace delegates its
  * reader to useMushaf.
  */
+/** `<html data-shell-mode>` — lets the shell CSS adapt to the page (e.g. which
+ *  pages scroll under the floating tab bar). */
+function ShellModeAttribute() {
+  const { mode } = useShellMode();
+  useEffect(() => {
+    document.documentElement.dataset.shellMode = mode;
+  }, [mode]);
+  return null;
+}
+
 export function Shell({ children }: { children: ReactNode }) {
   // Install the Sentry-shaped global error capture (no-op unless the env flag is on).
   useEffect(() => {
@@ -41,6 +53,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <MushafProvider>
         <RecitationProvider>
           <WorkspaceProvider>
+          <SaveAyahProvider>
             <div className="qb-frame">
               <LeftRail />
               <div className="qb-main">
@@ -50,10 +63,12 @@ export function Shell({ children }: { children: ReactNode }) {
               </div>
               <MobileTabBar />
             </div>
+            <ShellModeAttribute />
             <ShortcutsModal />
             <LocaleAccountSync />
             <MergeToast />
             <ThemeSweep />
+          </SaveAyahProvider>
           </WorkspaceProvider>
         </RecitationProvider>
       </MushafProvider>

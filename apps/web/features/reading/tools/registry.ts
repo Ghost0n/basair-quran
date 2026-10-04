@@ -8,7 +8,7 @@ import { t } from "@/lib/i18n";
  * a branch in the stage's word handler; the toolbar, the phone chooser, the
  * shortcuts and the hint line all read from this list.
  */
-export type ReaderToolId = "grammar" | "highlight" | "select" | "tafssir";
+export type ReaderToolId = "select" | "highlight";
 
 export type ReaderTool = {
   id: ReaderToolId;
@@ -20,30 +20,22 @@ export type ReaderTool = {
   key: string;
 };
 
+// «تحديد» absorbed the former «تحليل» tool (a single picked word shows its
+// analysis); the «تفسير» tool was retired (Tafssir stays in the Studio).
 export const READER_TOOLS: ReaderTool[] = [
-  { id: "grammar", get label() {
-    return t("تحليل");
-  }, icon: "tree", get hint() {
-    return t("اضغط كلمة: الجذر والأصل والإعراب");
+  { id: "select", get label() {
+    return t("تحديد");
+  }, icon: "select", get hint() {
+    return t("اضغط كلمة لتحليلها، أو كلمة ثم أخرى، أو رقم الآية لتحديدها كاملة");
   }, key: "1" },
   { id: "highlight", get label() {
     return t("تظليل");
   }, icon: "highlight", get hint() {
     return t("اضغط آية: احفظها وظلِّلها بموضوع");
   }, key: "2" },
-  { id: "select", get label() {
-    return t("تحديد");
-  }, icon: "select", get hint() {
-    return t("اضغط كلمة ثم أخرى: ابحث، اسأل، أحصِ، انسخ");
-  }, key: "3" },
-  { id: "tafssir", get label() {
-    return t("تفسير");
-  }, icon: "feather", get hint() {
-    return t("اضغط آية: قراءة تفسيرية تجريبية في سياقها");
-  }, key: "4" },
 ];
 
-export const DEFAULT_READER_TOOL: ReaderToolId = "grammar";
+export const DEFAULT_READER_TOOL: ReaderToolId = "select";
 
 export function isReaderToolId(value: unknown): value is ReaderToolId {
   return READER_TOOLS.some((tool) => tool.id === value);

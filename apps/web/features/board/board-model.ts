@@ -1,4 +1,4 @@
-import type { NotebookItem, ThemeBoard, ThemeBoardEdge, ThemeBoardNode } from "@q-basair/shared";
+import type { NotebookItem, ThemeBoard, ThemeBoardEdge, ThemeBoardEntry, ThemeBoardNode, ThemeBoardSet } from "@q-basair/shared";
 
 /**
  * The theme board (لوحة الموضوع) as data. The board is stored as the theme's
@@ -24,7 +24,7 @@ export function emptyBoard(): ThemeBoard {
   return { v: 1, nodes: [], edges: [], viewport: null };
 }
 
-const NODE_TYPES = new Set(["ayah", "note", "heading"]);
+const NODE_TYPES = new Set(["ayah", "note", "heading", "shape"]);
 
 /** Accept only a well-formed v1 board from storage; anything else starts empty. */
 export function sanitizeBoard(raw: unknown): ThemeBoard {
@@ -47,7 +47,8 @@ export function sanitizeBoard(raw: unknown): ThemeBoard {
     board.viewport && [board.viewport.x, board.viewport.y, board.viewport.zoom].every(Number.isFinite)
       ? board.viewport
       : null;
-  return { v: 1, nodes: nodes.map((node) => ({ ...node, data: node.data ?? {} })), edges, viewport };
+  const hidden = Array.isArray(board.hidden) ? board.hidden.filter((id): id is string => typeof id === "string") : [];
+  return { v: 1, nodes: nodes.map((node) => ({ ...node, data: node.data ?? {} })), edges, viewport, hidden };
 }
 
 /** Grid slot `index` below everything already placed (so new ayahs never overlap). */
@@ -64,10 +65,15 @@ export function gridSlot(index: number, top: number): { x: number; y: number } {
  * content, and drop nodes for ayahs that left the theme along with their edges.
  */
 export function reconcileBoard(board: ThemeBoard, items: NotebookItem[]): ThemeBoard {
-  const wanted = new Map(items.map((item) => [ayahNodeId(item), item]));
+  // Hidden ayahs stay in the theme but off the board. An ayah that left the
+  // theme is forgotten from `hidden`, so re-adding it later shows it again.
+  const inTheme = new Set(items.map(ayahNodeId));
+  const hidden = (board.hidden ?? []).filter((id) => inTheme.has(id));
+  const hiddenSet = new Set(hidden);
+  const wanted = new Map(items.filter((item) => !hiddenSet.has(ayahNodeId(item))).map((item) => [ayahNodeId(item), item]));
   const kept = board.nodes.filter((node) => node.type !== "ayah" || wanted.has(node.id));
   const present = new Set(kept.map((node) => node.id));
-  const missing = items.filter((item) => !present.has(ayahNodeId(item)));
+  const missing = [...wanted.values()].filter((item) => !present.has(ayahNodeId(item)));
 
   const bottom = kept.length ? Math.max(...kept.map((node) => node.y + (node.h ?? ROW_H))) + GAP_Y : 0;
   const added: ThemeBoardNode[] = missing.map((item, index) => ({
@@ -79,8 +85,19 @@ export function reconcileBoard(board: ThemeBoard, items: NotebookItem[]): ThemeB
 
   const nodes = [...kept, ...added];
   const ids = new Set(nodes.map((node) => node.id));
-  const edges = board.edges.filter((edge) => ids.has(edge.source) && ids.has(edge.target));
-  return { ...board, nodes, edges };
+  // Relations of a hidden ayah are kept (parked) so they return with it.
+  const known = (id: string) => ids.has(id) || hiddenSet.has(id);
+  const edges = board.edges.filter((edge) => known(edge.source) && known(edge.target));
+  return { ...board, nodes, edges, hidden };
+}
+
+/** Split edges into those drawable now and those parked on a hidden ayah. */
+export function splitEdges<E extends { source: string; target: string }>(edges: E[], hidden: readonly string[]): { shown: E[]; parked: E[] } {
+  const off = new Set(hidden);
+  const shown: E[] = [];
+  const parked: E[] = [];
+  for (const edge of edges) (off.has(edge.source) || off.has(edge.target) ? parked : shown).push(edge);
+  return { shown, parked };
 }
 
 /** Tidy: ayahs in reading order on a grid, then notes/headings beneath. */
@@ -93,8 +110,63 @@ export function arrangeBoard(board: ThemeBoard, order: (nodeId: string) => numbe
   return { ...board, nodes: [...placed, ...rest] };
 }
 
+/**
+ * A theme's boards. v2 stores a set of named boards; a legacy v1 board (one
+ * per theme) reads as a set of one, keeping its id stable ("b-1") so research
+ * provenance pointing at the theme still finds it. Nothing stored → no board.
+ */
+export const LEGACY_BOARD_ID = "b-1";
+
+export function readBoards(raw: unknown, legacyName: string): ThemeBoardEntry[] {
+  if (raw && typeof raw === "object" && (raw as ThemeBoardSet).v === 2) {
+    const set = raw as ThemeBoardSet;
+    return (Array.isArray(set.boards) ? set.boards : [])
+      .filter((entry): entry is ThemeBoardEntry => !!entry && typeof entry.id === "string")
+      .map((entry) => ({
+        id: entry.id,
+        name: typeof entry.name === "string" && entry.name.trim() ? entry.name : legacyName,
+        created_at: Number(entry.created_at) || 0,
+        updated_at: Number(entry.updated_at) || 0,
+        board: sanitizeBoard(entry.board),
+      }));
+  }
+  if (raw && typeof raw === "object" && (raw as ThemeBoard).v === 1) {
+    return [{ id: LEGACY_BOARD_ID, name: legacyName, created_at: 0, updated_at: 0, board: sanitizeBoard(raw) }];
+  }
+  return [];
+}
+
+export function boardSet(boards: ThemeBoardEntry[]): ThemeBoardSet {
+  return { v: 2, boards };
+}
+
+export function newBoardEntry(name: string): ThemeBoardEntry {
+  const now = Math.floor(Date.now() / 1000);
+  return { id: newNodeId("b"), name, created_at: now, updated_at: now, board: emptyBoard() };
+}
+
+/** Replace (or append) one board in the list, stamping its update time. */
+export function putBoard(boards: ThemeBoardEntry[], entry: ThemeBoardEntry): ThemeBoardEntry[] {
+  const stamped = { ...entry, updated_at: Math.floor(Date.now() / 1000) };
+  return boards.some((item) => item.id === entry.id)
+    ? boards.map((item) => (item.id === entry.id ? stamped : item))
+    : [...boards, stamped];
+}
+
+/** «research from a board» provenance: `theme:board` (a bare theme id = its first board). */
+export function boardSourceId(themeId: number, boardId: string): string {
+  return `${themeId}:${boardId}`;
+}
+
+export function parseBoardSource(value: string | null | undefined): { themeId: number; boardId: string | null } | null {
+  if (!value) return null;
+  const [theme, board] = String(value).split(":");
+  const themeId = Number(theme);
+  return Number.isInteger(themeId) && themeId > 0 ? { themeId, boardId: board || null } : null;
+}
+
 let counter = 0;
-export function newNodeId(prefix: "n" | "h" | "e"): string {
+export function newNodeId(prefix: "n" | "h" | "s" | "e" | "b"): string {
   counter += 1;
   return `${prefix}-${Date.now().toString(36)}-${counter}`;
 }

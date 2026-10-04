@@ -14,7 +14,6 @@ import { DownloadsSettings } from "@/features/app-mode/downloads-settings";
 import { TranslationsSettings } from "./translations-settings";
 import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
 import { READER_MODES, resolveReaderMode } from "@/features/reading/reader-modes";
-import { useCompactReader } from "@/features/reading/use-wide-screen";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { setTransparency, useTransparency } from "@/lib/transparency";
 import { useWorkspace } from "@/features/shell/workspace-context";
@@ -46,8 +45,10 @@ const DEPTH_OPTIONS: { value: "fast" | "balanced" | "deep"; label: string }[] = 
 ];
 
 /**
- * Settings — the CANONICAL home for every preference: account & session,
- * reading & muṣḥaf, display, and guided research. (The UI is Arabic-only in v1;
+ * Settings — the CANONICAL home for every preference, ordered from what a
+ * reader changes most to what they set once: display (theme first — on phones
+ * this screen is the theme's home), reading & muṣḥaf, translations, offline
+ * downloads, guided research, then the account (sign-out last). (The UI is Arabic-only in v1;
  * `ui_language` stays in the API for the future i18n work.) Quick
  * Settings (the ⚙ top-bar popover) is a shortcut to the handful of these a
  * reader changes mid-session; both write the same account preferences, so they
@@ -63,8 +64,7 @@ export function SettingsScreen() {
   const transparency = useTransparency();
 
   const edition = state.edition;
-  const compactReader = useCompactReader();
-  const readerMode = resolveReaderMode(preferences.reader_layout, compactReader);
+  const readerMode = resolveReaderMode(preferences.reader_layout);
 
   return (
     <div className="qb-settings">
@@ -77,6 +77,76 @@ export function SettingsScreen() {
       </div>
 
       <div className="qb-settings-grid">
+
+        <section className="qb-setting-card">
+          <h3>{t("العرض")}</h3>
+          <p className="card-sub">{t("اللغة والسمة والشفافية وطريقة عرض الأرقام في الواجهة.")}</p>
+          <div className="qb-setting-row">
+            <label>{t("السمة")}</label>
+            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
+              <button
+                type="button"
+                className={state.theme === "dark" ? "active" : ""}
+                aria-pressed={state.theme === "dark"}
+                onClick={() => state.theme !== "dark" && actions.toggleTheme()}
+              >
+                {t("داكنة")}
+              </button>
+              <button
+                type="button"
+                className={state.theme === "light" ? "active" : ""}
+                aria-pressed={state.theme === "light"}
+                onClick={() => state.theme !== "light" && actions.toggleTheme()}
+              >
+                {t("فاتحة")}
+              </button>
+            </div>
+          </div>
+          <div className="qb-setting-row">
+            <label>
+              {t("لغة الواجهة")} <span className="en-hint">· Language</span>
+            </label>
+            <LanguageSelect />
+          </div>
+          <div className="qb-setting-row">
+            <label>{t("الشفافية")}</label>
+            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
+              <button
+                type="button"
+                className={transparency === "auto" ? "active" : ""}
+                aria-pressed={transparency === "auto"}
+                onClick={() => setTransparency("auto")}
+              >
+                {t("زجاجية")}
+              </button>
+              <button
+                type="button"
+                className={transparency === "reduced" ? "active" : ""}
+                aria-pressed={transparency === "reduced"}
+                onClick={() => setTransparency("reduced")}
+              >
+                {t("مُعتِمة")}
+              </button>
+            </div>
+          </div>
+          <p className="card-sub fine">{t("«مُعتِمة» تُلغي التمويه خلف الأشرطة واللوحات: أوضح للقراءة وأخفّ على الأجهزة المتواضعة. تُحفظ لهذا الجهاز.")}</p>
+          <div className="qb-setting-row">
+            <label>{t("الأرقام")}</label>
+            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
+              {NUMERAL_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={preferences.numerals === option.value ? "active" : ""}
+                  aria-pressed={preferences.numerals === option.value}
+                  onClick={() => void updateAccount({ numerals: option.value })}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
 
         <section className="qb-setting-card">
           <h3>{t("القراءة والمصحف")}</h3>
@@ -127,78 +197,6 @@ export function SettingsScreen() {
         <TranslationsSettings />
 
         <DownloadsSettings />
-
-        <AccountSettings />
-
-        <section className="qb-setting-card">
-          <h3>{t("العرض")}</h3>
-          <p className="card-sub">{t("اللغة والسمة والشفافية وطريقة عرض الأرقام في الواجهة.")}</p>
-          <div className="qb-setting-row">
-            <label>
-              {t("لغة الواجهة")} <span className="en-hint">· Language</span>
-            </label>
-            <LanguageSelect />
-          </div>
-          <div className="qb-setting-row">
-            <label>{t("السمة")}</label>
-            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
-              <button
-                type="button"
-                className={state.theme === "dark" ? "active" : ""}
-                aria-pressed={state.theme === "dark"}
-                onClick={() => state.theme !== "dark" && actions.toggleTheme()}
-              >
-                {t("داكنة")}
-              </button>
-              <button
-                type="button"
-                className={state.theme === "light" ? "active" : ""}
-                aria-pressed={state.theme === "light"}
-                onClick={() => state.theme !== "light" && actions.toggleTheme()}
-              >
-                {t("فاتحة")}
-              </button>
-            </div>
-          </div>
-          <div className="qb-setting-row">
-            <label>{t("الشفافية")}</label>
-            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
-              <button
-                type="button"
-                className={transparency === "auto" ? "active" : ""}
-                aria-pressed={transparency === "auto"}
-                onClick={() => setTransparency("auto")}
-              >
-                {t("زجاجية")}
-              </button>
-              <button
-                type="button"
-                className={transparency === "reduced" ? "active" : ""}
-                aria-pressed={transparency === "reduced"}
-                onClick={() => setTransparency("reduced")}
-              >
-                {t("مُعتِمة")}
-              </button>
-            </div>
-          </div>
-          <p className="card-sub fine">{t("«مُعتِمة» تُلغي التمويه خلف الأشرطة واللوحات: أوضح للقراءة وأخفّ على الأجهزة المتواضعة. تُحفظ لهذا الجهاز.")}</p>
-          <div className="qb-setting-row">
-            <label>{t("الأرقام")}</label>
-            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
-              {NUMERAL_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={preferences.numerals === option.value ? "active" : ""}
-                  aria-pressed={preferences.numerals === option.value}
-                  onClick={() => void updateAccount({ numerals: option.value })}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
 
         <section className="qb-setting-card">
           <h3>{t("البحث الموجَّه")}</h3>
@@ -266,6 +264,8 @@ export function SettingsScreen() {
             </div>
           </div>
         </section>
+
+        <AccountSettings />
 
       </div>
     </div>

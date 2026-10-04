@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { useShellMode } from "@/features/shell/mode-context";
 import { WorkspaceCanvas, CompanionCanvas } from "@/features/shell/workspace-canvas";
 import { HomeScreen } from "@/features/home/home-screen";
-import { LibraryScreen } from "@/features/companions/library-screen";
+import { LibraryScreen, libraryTab } from "@/features/companions/library-screen";
 import { HeatmapScreen } from "@/features/concordance/heatmap-screen";
 import { SettingsScreen } from "@/features/settings/settings-screen";
 import { BoardScreen } from "@/features/board/board-screen";
@@ -35,7 +35,7 @@ function WorkspacePage() {
     case "bookmarks":
       return (
         <CompanionCanvas>
-          <LibraryScreen initialTab={params.get("tab") === "documents" ? "documents" : "verses"} />
+          <LibraryScreen initialTab={libraryTab(params.get("tab"))} />
         </CompanionCanvas>
       );
     case "history":

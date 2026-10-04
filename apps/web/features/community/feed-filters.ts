@@ -11,7 +11,7 @@ export type FeedFilters = {
   author: { id: number; name: string } | null;
 };
 
-export const EMPTY_FILTERS: FeedFilters = { sort: "latest", q: "", surah: null, tag: null, mode: null, board: false, author: null };
+export const EMPTY_FILTERS: FeedFilters = { sort: "top", q: "", surah: null, tag: null, mode: null, board: false, author: null };
 
 /** Filters that narrow the list (the sort order doesn't count). */
 export function activeFilterCount(filters: FeedFilters): number {

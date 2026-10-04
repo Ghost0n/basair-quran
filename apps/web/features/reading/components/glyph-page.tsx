@@ -4,10 +4,9 @@ import { Fragment } from "react";
 
 import type { MushafLayoutLine, MushafLayoutGlyph } from "@q-basair/shared";
 
-import { Icon } from "@/components/icon";
 import { useAyahMarks, highlightProps, type AyahMark } from "@/features/themes/ayah-marks";
-import { usePickedWords, wordKey } from "@/features/reading/tools/word-selection";
-import { flyToNotebook } from "@/lib/fly-to-notebook";
+import { usePageRibbons } from "@/features/reading/use-saved-pages";
+import { usePickedWords, useVerseFocus, verseFocusClass, wordKey, type VerseFocus } from "@/features/reading/tools/word-selection";
 
 import { t } from "@/lib/i18n";
 
@@ -39,6 +38,20 @@ type WordKey = (
   ayahText?: string,
 ) => void;
 
+const AYAH_NUMBER_END = /[0-9٠-٩۰-۹]+\s*$/;
+
+/**
+ * The last word of an ayah carries the verse-number ornament in its own glyph
+ * string ("word␠ornament"). Split it so the ornament can be the verse's handle;
+ * the characters (and so the line's measured width) are unchanged.
+ */
+export function splitAyahEnd(word: MushafLayoutGlyph): { glyph: string; mark: string | null } {
+  const glyph = word.glyph ?? "";
+  const cut = glyph.lastIndexOf(" ");
+  if (cut <= 0 || !AYAH_NUMBER_END.test(word.text ?? "")) return { glyph, mark: null };
+  return { glyph: glyph.slice(0, cut), mark: glyph.slice(cut + 1) };
+}
+
 /** Minimal ayah info emitted by the reader when saving from a word. */
 export type GlyphSaveTarget = {
   ayahId: number;
@@ -65,7 +78,6 @@ export function GlyphPage({
   page,
   lines,
   selectedAyahId,
-  isSaved,
   onToggleSave,
   onWordClick,
   onWordKey,
@@ -74,7 +86,8 @@ export function GlyphPage({
   page?: number;
   lines: MushafLayoutLine[];
   selectedAyahId: number | null;
-  isSaved: (ayahId: number) => boolean;
+  isSaved?: (ayahId: number) => boolean;
+  /** The verse-number ornament was tapped: act on the whole ayah. */
   onToggleSave: (target: GlyphSaveTarget) => void;
   onWordClick: WordClick;
   onWordKey: WordKey;
@@ -82,6 +95,9 @@ export function GlyphPage({
   const isOpeningPage = lines.length < FULL_PAGE_LINES;
   const markOf = useAyahMarks();
   const isPicked = usePickedWords();
+  const focusOf = useVerseFocus();
+  const ribbons = usePageRibbons();
+  const pageSurah = lines.find((line) => line.words?.length)?.words?.[0]?.surah ?? null;
 
   // Per-ayah text (joined from the page's words) so the morphology lookup can
   // match the verse by skeleton — robust even where word tokenisation might
@@ -95,31 +111,27 @@ export function GlyphPage({
     }
   }
 
-  // The last word of each ayah that COMPLETES on this page carries the end-of-
-  // ayah marker (its glyph includes the number). We anchor a save toggle there,
-  // mirroring the simple reader's bookmark after ﴿n﴾. A word is an ayah end when
-  // the next word in reading order belongs to a different ayah — a trailing
-  // ayah that spills onto the next page is intentionally left for that page.
-  const ayahEndKeys = new Set<string | number>();
-  const flat = lines.flatMap((line) => line.words ?? []);
-  for (let i = 0; i < flat.length - 1; i++) {
-    if (flat[i + 1].ayah_id !== flat[i].ayah_id) ayahEndKeys.add(flat[i].word_key);
-  }
-
   const renderWord = (word: MushafLayoutGlyph) => {
     // Ayah-number ornaments / page-straddle fragments carry a glyph but no
-    // analyzable word text. Render them as decorative — no role/label/tabstop,
-    // and NOT `.qb-glyph-word` so roving word-nav skips them — instead of
-    // shipping a bare "button: تحليل الكلمة:" to the accessibility tree.
+    // analyzable word text — NOT `.qb-glyph-word`, so roving word-nav skips
+    // them. The ornament is the verse's own handle: a tap acts on the whole
+    // ayah (select it, or save/highlight it — per the active tool).
     if (!(word.text ?? "").trim()) {
       return (
-        <Fragment key={word.word_key}>
-          <span className="qb-glyph-mark" aria-hidden dangerouslySetInnerHTML={{ __html: word.glyph ?? "" }} />
-        </Fragment>
+        <VerseMark
+          key={word.word_key}
+          glyph={word.glyph ?? ""}
+          label={word.ayah}
+          ayahId={word.ayah_id}
+          onActivate={() =>
+            onToggleSave({ ayahId: word.ayah_id, surahId: word.surah, ayah: word.ayah, text: ayahTextById.get(word.ayah_id) ?? "" })
+          }
+        />
       );
     }
 
     const wk = wordKey(word.surah, word.ayah, word.word_position);
+    const split = splitAyahEnd(word);
     const glyph = (
       <span
         className={`qb-glyph-word${isPicked(wk) ? " qb-word-picked" : ""}`}
@@ -144,46 +156,30 @@ export function GlyphPage({
           }
         }}
       >
-        <span aria-hidden dangerouslySetInnerHTML={{ __html: word.glyph ?? "" }} />
+        <span aria-hidden dangerouslySetInnerHTML={{ __html: split.glyph }} />
         <span className="qb-sr-only">{word.text}</span>
       </span>
     );
 
-    if (!ayahEndKeys.has(word.word_key)) return <Fragment key={word.word_key}>{glyph}</Fragment>;
-
-    const saved = isSaved(word.ayah_id);
-    const mark = markOf(word.ayah_id);
-    // The bookmark is absolutely positioned so it never changes the line's
-    // intrinsic width (which the fit measurement relies on).
+    if (split.mark === null) return <Fragment key={word.word_key}>{glyph}</Fragment>;
     return (
-      <span key={word.word_key} className="qb-glyph-end">
-        {glyph}
-        <button
-          type="button"
-          className={`qb-glyph-save${saved ? " on" : ""}${mark && mark.themes > 1 ? " multi" : ""}`}
-          data-hl={mark?.color ?? undefined}
-          aria-label={saved ? t("المواضيع والحفظ") : t("حفظ في الدفتر")}
-          aria-haspopup="dialog"
-          title={saved ? t("محفوظة — المواضيع") : t("حفظ الآية وتظليلها")}
-          onClick={(event) => {
-            event.stopPropagation();
-            if (!saved) flyToNotebook(event.currentTarget, ayahTextById.get(word.ayah_id) ?? word.text ?? "");
-            onToggleSave({
-              ayahId: word.ayah_id,
-              surahId: word.surah,
-              ayah: word.ayah,
-              text: ayahTextById.get(word.ayah_id) ?? word.text ?? "",
-            });
-          }}
-        >
-          <Icon name={saved ? "bookmarkFilled" : "bookmark"} size={12} />
-        </button>
-      </span>
+      <Fragment key={word.word_key}>
+        {glyph}{" "}
+        <VerseMark
+          glyph={split.mark}
+          label={word.ayah}
+          ayahId={word.ayah_id}
+          onActivate={() =>
+            onToggleSave({ ayahId: word.ayah_id, surahId: word.surah, ayah: word.ayah, text: ayahTextById.get(word.ayah_id) ?? "" })
+          }
+        />
+      </Fragment>
     );
   };
 
   return (
-    <div className={`qb-glyph-page${isOpeningPage ? " is-opening" : ""}`} data-page={page}>
+    <div className={`qb-glyph-page${isOpeningPage ? " is-opening" : ""}${ribbons.enabled ? " has-ribbon" : ""}`} data-page={page}>
+      <PageRibbon page={page} surahId={pageSurah} />
       {lines.map((line) => {
         if (line.line_type === "surah_name") {
           return (
@@ -211,14 +207,16 @@ export function GlyphPage({
         // Group consecutive words by selection / theme highlight so a marked ayah
         // renders as one continuous block (covering the justified gaps), not
         // per-word. Selection wins over a theme colour.
-        const segments: { selected: boolean; mark: AyahMark; key: string; words: MushafLayoutGlyph[] }[] = [];
+        // A «تظليل» focus/hover wins over both (it is what the reader acts on).
+        const segments: { selected: boolean; focus: VerseFocus; mark: AyahMark; key: string; words: MushafLayoutGlyph[] }[] = [];
         for (const word of words) {
-          const selected = Boolean(word.is_selected) || word.ayah_id === selectedAyahId;
-          const mark = selected ? null : markOf(word.ayah_id);
-          const key = selected ? "sel" : mark?.color ? `hl:${word.ayah_id}` : "";
+          const focus = focusOf(word.ayah_id);
+          const selected = !focus && (Boolean(word.is_selected) || word.ayah_id === selectedAyahId);
+          const mark = selected || focus ? null : markOf(word.ayah_id);
+          const key = focus ? `vf:${focus}:${word.ayah_id}` : selected ? "sel" : mark?.color ? `hl:${word.ayah_id}` : "";
           const last = segments[segments.length - 1];
           if (last && last.key === key) last.words.push(word);
-          else segments.push({ selected, mark, key, words: [word] });
+          else segments.push({ selected, focus, mark, key, words: [word] });
         }
 
         return (
@@ -235,7 +233,11 @@ export function GlyphPage({
                 </Fragment>
               ));
               const highlight = highlightProps(segment.mark);
-              const node = segment.selected ? (
+              const node = segment.focus ? (
+                <span className={`qb-glyph-vf${verseFocusClass(segment.focus)}`} data-aid={segment.words[0]?.ayah_id}>
+                  {inner}
+                </span>
+              ) : segment.selected ? (
                 <span className="qb-glyph-sel" data-ayah-id={segment.words[0]?.ayah_id}>
                   {inner}
                 </span>
@@ -261,6 +263,72 @@ export function GlyphPage({
 }
 
 /**
+ * Desktop: the page's ribbon at its upper-left corner — an outline on an
+ * unsaved page, red on a saved one; a click saves / unsaves the page. Absent
+ * on phones (they bookmark from the floating button beside the reader bar).
+ */
+export function PageRibbon({ page, surahId }: { page: number | null | undefined; surahId: number | null }) {
+  const ribbons = usePageRibbons();
+  if (!ribbons.enabled || page == null) return null;
+  const saved = ribbons.isSaved(page);
+  const label = saved ? t("إزالة الصفحة من المحفوظات") : t("احفظ هذه الصفحة");
+  return (
+    <button
+      type="button"
+      className={`qb-page-ribbon${saved ? " on" : ""}`}
+      aria-pressed={saved}
+      aria-label={label}
+      title={label}
+      onClick={(event) => {
+        event.stopPropagation();
+        ribbons.toggle(page, surahId);
+      }}
+    >
+      <svg viewBox="0 0 16 24" width="13" height="20" aria-hidden>
+        <path d="M1.5 0.5h13v21l-6.5-4.6-6.5 4.6z" />
+      </svg>
+    </button>
+  );
+}
+
+/**
+ * The ayah-number ornament as the verse's handle (a tap acts on the whole
+ * ayah). Pointer-only inside the text flow — keyboard users reach verses
+ * through the word navigation — so it adds no tab stop.
+ */
+export function VerseMark({
+  glyph,
+  text,
+  label,
+  ayahId,
+  className = "qb-glyph-mark",
+  onActivate,
+}: {
+  glyph?: string;
+  text?: string;
+  label: number;
+  /** The verse's id (lets a hover over the number light the whole verse). */
+  ayahId?: number;
+  className?: string;
+  onActivate: () => void;
+}) {
+  return (
+    <span
+      className={`${className} qb-verse-mark`}
+      data-aid={ayahId}
+      role="button"
+      aria-label={t("الآية {0}", { 0: label })}
+      title={t("الآية كاملة")}
+      onClick={(event) => {
+        event.stopPropagation();
+        onActivate();
+      }}
+      {...(glyph ? { dangerouslySetInnerHTML: { __html: glyph } } : { children: text })}
+    />
+  );
+}
+
+/**
  * GlyphAyah — one ayah rendered as authentic QCF glyph words in a flowing row,
  * for the ayah-by-ayah reader (Ḥafṣ + authentic). Mirrors GlyphPage's word
  * treatment: the private-use glyph is aria-hidden and the real word is sr-only
@@ -273,7 +341,6 @@ export function GlyphAyah({
   words,
   fontFamily,
   isSelected,
-  isSaved,
   onToggleSave,
   onWordClick,
   onWordKey,
@@ -283,20 +350,20 @@ export function GlyphAyah({
   words: MushafLayoutGlyph[];
   fontFamily?: string | null;
   isSelected: boolean;
-  isSaved: (ayahId: number) => boolean;
+  isSaved?: (ayahId: number) => boolean;
   onToggleSave: (target: GlyphSaveTarget) => void;
   onWordClick: WordClick;
   onWordKey: WordKey;
   ayahText: string;
   save: GlyphSaveTarget;
 }) {
-  const saved = isSaved(save.ayahId);
   const mark = useAyahMarks()(save.ayahId);
   const isPicked = usePickedWords();
-  const highlight = isSelected ? { className: "" } : highlightProps(mark);
+  const focus = useVerseFocus()(save.ayahId);
+  const highlight = isSelected || focus ? { className: "" } : highlightProps(mark);
   return (
     <span
-      className={`qb-glyph-ayah-row${isSelected ? " qb-glyph-sel" : ""}${highlight.className}`}
+      className={`qb-glyph-ayah-row${isSelected && !focus ? " qb-glyph-sel" : ""}${highlight.className}${verseFocusClass(focus)}`}
       data-hl={highlight["data-hl"]}
       data-ayah-id={save.ayahId}
       style={{ fontFamily: fontFamily ?? undefined }}
@@ -304,13 +371,12 @@ export function GlyphAyah({
       {words.map((word) => {
         // Ayah-number ornaments / straddle fragments carry a glyph but no word.
         if (!(word.text ?? "").trim()) {
-          return (
-            <span key={word.word_key} className="qb-glyph-mark" aria-hidden dangerouslySetInnerHTML={{ __html: word.glyph ?? "" }} />
-          );
+          return <VerseMark key={word.word_key} glyph={word.glyph ?? ""} label={save.ayah} ayahId={save.ayahId} onActivate={() => onToggleSave(save)} />;
         }
+        const split = splitAyahEnd(word);
         return (
+          <Fragment key={word.word_key}>
           <span
-            key={word.word_key}
             className={`qb-glyph-word${isPicked(wordKey(word.surah, word.ayah, word.word_position)) ? " qb-word-picked" : ""}`}
             data-wk={wordKey(word.surah, word.ayah, word.word_position)}
             data-aid={word.ayah_id}
@@ -328,27 +394,14 @@ export function GlyphAyah({
               }
             }}
           >
-            <span aria-hidden dangerouslySetInnerHTML={{ __html: word.glyph ?? "" }} />
+            <span aria-hidden dangerouslySetInnerHTML={{ __html: split.glyph }} />
             <span className="qb-sr-only">{word.text}</span>
             {" "}
           </span>
+          {split.mark !== null ? <VerseMark glyph={split.mark} label={save.ayah} ayahId={save.ayahId} onActivate={() => onToggleSave(save)} /> : null}
+          </Fragment>
         );
       })}
-      <button
-        type="button"
-        className={`qb-save-ayah${saved ? " on" : ""}${mark && mark.themes > 1 ? " multi" : ""}`}
-        data-hl={mark?.color ?? undefined}
-        aria-label={saved ? t("المواضيع والحفظ") : t("حفظ في الدفتر")}
-        aria-haspopup="dialog"
-        title={saved ? t("محفوظة — المواضيع") : t("حفظ الآية وتظليلها")}
-        onClick={(event) => {
-          event.stopPropagation();
-          if (!saved) flyToNotebook(event.currentTarget, save.text);
-          onToggleSave(save);
-        }}
-      >
-        <Icon name={saved ? "bookmarkFilled" : "bookmark"} size={13} />
-      </button>
     </span>
   );
 }

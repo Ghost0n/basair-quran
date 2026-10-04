@@ -9,13 +9,13 @@ import type { SearchVerse } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
-import { flyToNotebook } from "@/lib/fly-to-notebook";
-import { emitNotebookChange, useNotebookSync } from "@/lib/notebook-sync";
+import { useNotebookSync } from "@/lib/notebook-sync";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { useNumerals } from "@/lib/preferences-context";
 import { getVerseSelectionKey, kwicWindow, renderHighlightedVerseText } from "@/lib/quran-ui";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
+import { useSaveAyah } from "@/features/themes/save-ayah-context";
 
 import { t, tn } from "@/lib/i18n";
 
@@ -47,6 +47,7 @@ function CompactVerse({ text, highlights }: { text: string; highlights?: number[
 
 export function ConcordancePanel() {
   const { state, actions } = useWorkspace();
+  const { openSave } = useSaveAyah();
   const { setMode } = useShellMode();
   const formatNumber = useNumerals();
   const router = useRouter();
@@ -148,27 +149,19 @@ export function ConcordancePanel() {
     }
   });
 
-  async function pinVerse(verse: SearchVerse) {
-    if (pinnedAyahIds.has(verse.ayah_id)) return;
-    setPinnedAyahIds((current) => new Set(current).add(verse.ayah_id));
-    try {
-      const created = await api.addNotebookItem({
-        ayah_id: verse.ayah_id,
-        mushaf_id: verse.mushaf_id,
-        surah_id: verse.surah_id,
-        surah: verse.surah,
-        ayah: verse.ayah,
-        text: verse.text.trim(),
-        collection: primary?.root,
-      });
-      emitNotebookChange({ kind: "added", item: created });
-    } catch {
-      setPinnedAyahIds((current) => {
-        const next = new Set(current);
-        next.delete(verse.ayah_id);
-        return next;
-      });
-    }
+  // Saving a verse opens the same theme sheet as the reader (useSaveAyah): the
+  // verse is saved on «تمّ», tagged with the searched root, with the themes
+  // picked there. A verse already saved opens the sheet to edit its themes.
+  function pinVerse(verse: SearchVerse) {
+    openSave({
+      ayah_id: verse.ayah_id,
+      mushaf_id: verse.mushaf_id,
+      surah_id: verse.surah_id,
+      surah: verse.surah,
+      ayah: verse.ayah,
+      text: verse.text.trim(),
+      collection: primary?.root,
+    });
   }
 
   async function followRoot() {
@@ -264,6 +257,16 @@ export function ConcordancePanel() {
             <p className="qb-conc-empty-lead">
               {t("اكتب جذراً أو كلمة قرآنية في شريط الأوامر بالأعلى ↑ لتبدأ البحث.")}
             </p>
+            {state.quickExamples.length ? (
+              <div className="qb-conc-examples">
+                <span className="lbl">{t("جرّب")}</span>
+                {state.quickExamples.map((example) => (
+                  <button key={example.label} type="button" onClick={() => actions.runQuickExample(example)}>
+                    {example.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <div className="qb-conc-watermark" aria-hidden>
               {t("ب · ص · ر")}
             </div>
@@ -357,8 +360,9 @@ export function ConcordancePanel() {
                       title={t("ثبّت في الدفتر")}
                       onClick={(event) => {
                         event.stopPropagation();
-                        if (!isPinned) flyToNotebook(event.currentTarget, verse.text.trim());
-                        void pinVerse(verse);
+                        // Nothing is saved until «تمّ» in the sheet, so no
+                        // fly-to-notebook flourish here.
+                        pinVerse(verse);
                       }}
                     >
                       <Icon name={isPinned ? "pinFilled" : "pin"} size={12} />

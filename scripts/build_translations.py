@@ -195,9 +195,15 @@ def fetch_quranenc(manifest: dict, entry: dict, fetch: Fetcher) -> Translation:
 
 
 def parse_tanzil(body: str) -> dict[tuple[int, int], tuple[str, None]]:
-    """`sura|aya|text` lines; `#` lines are the licence/metadata footer."""
+    """`sura|aya|text` lines; `#` lines are the licence/metadata footer.
+
+    Lines end at "\n" only: `str.splitlines()` would also break on U+0085,
+    which some Tanzil files carry inside an ayah as a mis-decoded Windows-1252
+    ellipsis (byte 0x85). That one character is restored to "…" — an encoding
+    repair, not an edit of the translation.
+    """
     ayahs: dict[tuple[int, int], tuple[str, None]] = {}
-    for line in body.splitlines():
+    for line in body.replace("\x85", "\u2026").split("\n"):
         line = line.strip("﻿").rstrip()
         if not line or line.startswith("#"):
             continue
@@ -385,6 +391,11 @@ def build(
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Translator names and the log's arrows are not in the Windows console's
+    # code page: never let printing a line abort a finished build.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--languages", help="Comma-separated ISO 639-1 codes (default: the recommended preset)")
     parser.add_argument("--all", action="store_true", help="Every language QuranEnc publishes, plus Tanzil gaps")

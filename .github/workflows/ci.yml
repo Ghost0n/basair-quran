@@ -29,6 +29,42 @@ jobs:
           PYTHONPATH: .
         run: pytest -q
 
+  nginx:
+    name: Nginx config (nginx -t)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate the site configs (HTTP, TLS, TLS behind a CDN)
+        # Runs the real start-nginx.sh in the production image (with a throwaway
+        # certificate and the upstream hosts pointed at localhost), stopping at
+        # `nginx -t` instead of starting nginx: the rendered site config and the
+        # generated CDN real-IP config are both checked. A broken config would
+        # otherwise only show up as a down site on deploy.
+        run: |
+          check() {
+            echo "::group::$1"
+            docker run --rm \
+              --add-host api:127.0.0.1 --add-host web:127.0.0.1 \
+              -e QBASAIR_PUBLIC_DOMAIN=example.test -e QBASAIR_ENABLE_TLS="$2" \
+              -e QBASAIR_CDN_TRUSTED_RANGES="$3" -e QBASAIR_CDN_REAL_IP_HEADER="$4" \
+              -v "$PWD/deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro" \
+              -v "$PWD/deploy/nginx/http.conf.template:/opt/qbasair/http.conf.template:ro" \
+              -v "$PWD/deploy/nginx/tls.conf.template:/opt/qbasair/tls.conf.template:ro" \
+              -v "$PWD/deploy/nginx/start-nginx.sh:/opt/qbasair/start-nginx.sh:ro" \
+              nginx:1.27-alpine sh -ec '
+                apk add --no-cache openssl >/dev/null
+                mkdir -p /etc/letsencrypt/live/example.test
+                openssl req -x509 -nodes -newkey rsa:2048 -days 1 -subj /CN=example.test \
+                  -keyout /etc/letsencrypt/live/example.test/privkey.pem \
+                  -out /etc/letsencrypt/live/example.test/fullchain.pem 2>/dev/null
+                sed "s/^exec nginx .*/nginx -t/" /opt/qbasair/start-nginx.sh | sh
+              '
+            echo "::endgroup::"
+          }
+          check "HTTP" 0 "" ""
+          check "TLS" 1 "" ""
+          check "TLS behind a CDN" 1 "173.245.48.0/20,2400:cb00::/32" "CF-Connecting-IP"
+
   frontend:
     name: Frontend (build)
     runs-on: ubuntu-latest

@@ -22,9 +22,9 @@ import type { NotebookItem, PostBoardSnapshot } from "@q-basair/shared";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
 import { BoardContext, type BoardContextValue } from "./board-context";
-import { AyahNode, HeadingNode, NoteNode } from "./board-nodes";
+import { AyahNode, HeadingNode, NoteNode, ShapeNode } from "./board-nodes";
 
-const NODE_TYPES = { ayah: AyahNode, note: NoteNode, heading: HeadingNode };
+const NODE_TYPES = { ayah: AyahNode, note: NoteNode, heading: HeadingNode, shape: ShapeNode };
 
 /**
  * A shared theme board, read-only: pan, zoom and expand ayahs into their

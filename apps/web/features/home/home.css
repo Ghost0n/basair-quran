@@ -11,13 +11,14 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Center the stack vertically; on short viewports it still scrolls. Tight
-     padding so the whole page fits ~1080p (after the topbar is hidden on Home). */
-  justify-content: center;
+  /* No justify-content:center here: in a scroller it pushes overflowing
+     content above the top, out of reach (the verse vanished on phones). The
+     inner column's auto margins centre it when it fits instead. */
   padding: var(--sp-3) 24px var(--sp-5);
 }
 
 .qb-home-inner {
+  margin-block: auto;
   width: 100%;
   max-width: 720px;
   display: flex;
@@ -131,16 +132,45 @@
   outline: none;
 }
 
+.qb-home-ask .acts {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* Two actions: «ابحث» (Quran search) and «اسأل» (the Studio agent). The one
+   matching what was typed is filled; the other stays outlined. */
 .qb-home-ask button {
   flex-shrink: 0;
-  padding: 10px 24px;
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: 1px solid var(--border-strong);
   border-radius: var(--r-pill);
-  background: var(--gold-400);
-  color: var(--ink-900);
+  background: transparent;
+  color: var(--gold-text);
   font-family: var(--font-arabic-ui);
   font-weight: 700;
   cursor: pointer;
+  transition: background-color var(--dur) var(--ease-out), color var(--dur) var(--ease-out);
+}
+
+.qb-home-ask button.primary {
+  border-color: transparent;
+  background: var(--gold-400);
+  color: var(--ink-900);
+}
+
+@media (max-width: 480px) {
+  .qb-home-ask {
+    padding-inline-start: 12px;
+    gap: 6px;
+  }
+
+  .qb-home-ask button {
+    padding: 10px 12px;
+  }
 }
 
 .qb-home-ask button:disabled {
@@ -149,6 +179,18 @@
 }
 
 /* ---------- Personalized greeting (signed-in) ---------- */
+
+.qb-home-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Desktop has the theme switch in the rail/top bar. */
+.qb-home-theme {
+  display: none;
+}
 
 .qb-home-greeting {
   font-size: var(--fs-sm);
@@ -509,6 +551,542 @@
   /* The hint would wrap awkwardly at phone widths — the tile keeps it as its
      title/aria description instead. */
   .qb-home-card .hint {
+    display: none;
+  }
+}
+
+/* A fourth card (the board being worked on) joins the row on wide screens. */
+@media (min-width: 900px) {
+  .qb-home-grid:has(> :nth-child(4)) {
+    grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  }
+}
+
+@media (min-width: 761px) and (max-width: 899px) {
+  .qb-home-grid:has(> :nth-child(4)) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.qb-home-gridcard.board .eyebrow {
+  color: var(--hl-ink, var(--gold-text));
+}
+
+.qb-home-gridcard.board .meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qb-home-gridcard.board .meta .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hl-ink, var(--gold-400));
+}
+
+/* ---------- Ask bar suggestions ---------- */
+
+/* The bar's glass makes its own stacking layer: lift the whole bar (and its
+   dropdown) above the saved pages below while the list is open. */
+.qb-home-ask {
+  position: relative;
+  z-index: 2;
+}
+
+.qb-home-ask.is-open {
+  z-index: 40;
+}
+
+.qb-home-suggest {
+  position: absolute;
+  top: calc(100% + 6px);
+  inset-inline: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-overlay);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow-lift);
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  animation: qbPopIn var(--motion-dur-fast) var(--motion-ease-settle) both;
+}
+
+.qb-home-ask .qb-home-suggest button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: none;
+  color: var(--fg-1);
+  font-weight: 500;
+  text-align: start;
+}
+
+.qb-home-suggest button .qb-icon {
+  color: var(--fg-3);
+  flex-shrink: 0;
+}
+
+.qb-home-suggest button .label {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-arabic-display);
+  font-size: 17px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qb-home-suggest button .hint {
+  flex-shrink: 0;
+  font-family: var(--font-arabic-ui);
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+
+.qb-home-ask .qb-home-suggest button:hover,
+.qb-home-ask .qb-home-suggest button.active {
+  background: var(--gold-a08);
+}
+
+/* The last line opens a conversation: it reads as the agent's action. */
+.qb-home-ask .qb-home-suggest button.ask {
+  margin-top: 2px;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 14px 14px;
+}
+
+.qb-home-suggest button.ask .qb-icon,
+.qb-home-suggest button.ask .hint {
+  color: var(--gold-text);
+  font-weight: 700;
+}
+
+/* ---------- Saved pages: the way in ---------- */
+
+.qb-home-section-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  font-family: var(--font-arabic-ui);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--gold-text);
+}
+
+.qb-home-section-h .qb-icon {
+  color: #c0392b;
+}
+
+.qb-home-pages {
+  width: 100%;
+}
+
+.qb-home-pages .rail {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  padding: 2px 2px 6px;
+}
+
+.qb-home-pages .rail::-webkit-scrollbar {
+  display: none;
+}
+
+.qb-home-page {
+  position: relative;
+  flex: 0 0 auto;
+  width: 132px;
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 26px 14px 12px;
+  scroll-snap-align: start;
+  border-radius: 18px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  color: var(--fg-1);
+  text-align: start;
+  cursor: pointer;
+}
+
+.qb-home-page .ribbon {
+  position: absolute;
+  top: -1px;
+  inset-inline-end: 14px;
+  line-height: 0;
+}
+
+.qb-home-page .ribbon path {
+  fill: #c0392b;
+}
+
+.qb-home-page .surah {
+  font-family: var(--font-arabic-heading);
+  font-size: 19px;
+  line-height: 1.7;
+  color: var(--gold-text);
+  white-space: nowrap;
+  /* Clip the ellipsis axis only: tall Arabic letters and marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
+  text-overflow: ellipsis;
+}
+
+.qb-home-page .page {
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-2);
+}
+
+.qb-home-page .age {
+  font-size: 11px;
+  color: var(--fg-3);
+}
+
+.qb-home-pages .empty {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px dashed var(--border);
+  font-size: 13px;
+  color: var(--fg-3);
+}
+
+/* ---------- Phones: one screen, no vertical scroll ---------- */
+
+/* The whole Home fits between the top of the screen and the tab bar: the
+   column fills the height, the verse absorbs whatever room is left (centred
+   in it), and every other block is compact. Shorter phones shed the
+   ornaments first (see the max-height steps below). */
+@media (max-width: 760px) {
+  .qb-home-inner {
+    flex: 1 0 auto;
+    gap: 12px;
+    margin-block: 0;
+  }
+
+  .qb-home-top {
+    align-self: stretch;
+    justify-content: space-between;
+  }
+
+  .qb-home-top .qb-home-theme {
+    display: inline-flex;
+    width: 38px;
+    height: 38px;
+    margin-block: -5px;
+  }
+
+  .qb-home-greeting {
+    font-family: var(--font-arabic-heading);
+    font-size: 19px;
+    line-height: 1.5;
+    color: var(--fg-1);
+  }
+
+  .qb-home-ayah-hero {
+    flex: 1 1 auto;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .qb-home-ayah-hero .ayah-text {
+    font-size: clamp(22px, 6.4vw, 28px);
+    min-height: calc(2em * 1.6);
+    line-height: 1.6;
+  }
+
+  .qb-home-ayah-hero .ayah-ref {
+    gap: 10px;
+    font-size: 12.5px;
+  }
+
+  .qb-home-ayah-hero .ayah-ref::before,
+  .qb-home-ayah-hero .ayah-ref::after {
+    width: 36px;
+  }
+
+  /* Search bar: the field gets the width. The two actions become round
+     icon buttons (their names stay as title/aria-label), the leading icon
+     goes, and the placeholder steps down a size so it reads whole. The
+     field itself stays at 16px so iOS does not zoom on focus. */
+  .qb-home-ask {
+    gap: 4px;
+    padding: 4px 4px 4px 4px;
+    padding-inline-start: 16px;
+  }
+
+  /* The Icon component sets an inline display, hence !important. */
+  .qb-home-ask > .qb-icon {
+    display: none !important;
+  }
+
+  .qb-home-ask input {
+    font-size: 16px;
+    height: 36px;
+  }
+
+  .qb-home-ask input::placeholder {
+    font-size: 13.5px;
+  }
+
+  .qb-home-ask .acts {
+    gap: 4px;
+  }
+
+  .qb-home-ask .acts button {
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+  }
+
+  .qb-home-ask .acts button .lbl {
+    display: none;
+  }
+
+  /* Saved pages: small bookmarks, three-and-a-bit across a phone. */
+  .qb-home-section-h {
+    margin-bottom: 6px;
+  }
+
+  .qb-home-pages .rail {
+    gap: 8px;
+    /* The rail scrolls sideways only; the extra bottom padding (given back
+       by the margin) keeps the cards' shadow from being cut flat. */
+    overflow-y: hidden;
+    padding-bottom: 14px;
+    margin-bottom: -10px;
+  }
+
+  .qb-home-page {
+    width: 104px;
+    min-height: 0;
+    padding: 18px 10px 8px;
+    gap: 0;
+    border-radius: 14px;
+  }
+
+  .qb-home-page .ribbon {
+    inset-inline-end: 10px;
+  }
+
+  .qb-home-page .ribbon svg {
+    width: 10px;
+    height: 15px;
+  }
+
+  .qb-home-page .surah {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .qb-home-page .page {
+    font-size: 12px;
+  }
+
+  .qb-home-page .age {
+    font-size: 10.5px;
+  }
+
+  /* Continue cards: the most recent one is a full-width row with its action
+     at the end; the others share a single row of small tiles (the whole tile
+     is the button, so their CTA and meta lines go). */
+  .qb-home-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .qb-home-gridcard {
+    flex: 1 1 0;
+    padding: 10px 11px;
+    border-radius: 16px;
+  }
+
+  .qb-home-gridcard .eyebrow {
+    font-size: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .qb-home-gridcard .lead {
+    margin-top: 0;
+  }
+
+  .qb-home-gridcard .lead.sm {
+    font-size: 14px;
+  }
+
+  /* The tile's lead already says the count. */
+  .qb-home-gridcard:not(.promoted) .meta,
+  .qb-home-gridcard:not(.promoted) .cta,
+  .qb-home-gridcard:not(.promoted) .eyebrow .count {
+    display: none;
+  }
+
+  .qb-home-gridcard.promoted {
+    flex-basis: 100%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "eyebrow cta"
+      "lead cta"
+      "meta cta"
+      "bar bar";
+    column-gap: 12px;
+    align-items: center;
+    padding: 10px 14px 12px;
+  }
+
+  .qb-home-gridcard.promoted .eyebrow {
+    grid-area: eyebrow;
+  }
+
+  .qb-home-gridcard.promoted .lead {
+    grid-area: lead;
+    font-size: 18px;
+    -webkit-line-clamp: 1;
+  }
+
+  .qb-home-gridcard.promoted .meta {
+    grid-area: meta;
+    font-size: 11px;
+    margin-top: 0;
+  }
+
+  .qb-home-gridcard.promoted .hairline {
+    grid-area: bar;
+    margin-top: 8px;
+  }
+
+  .qb-home-gridcard.promoted .cta {
+    grid-area: cta;
+    align-self: center;
+    margin-top: 0;
+    padding: 6px 16px;
+    font-size: 12px;
+  }
+}
+
+/* Shorter phones: the brand whisper and the reference ornaments go first. */
+@media (max-width: 760px) and (max-height: 740px) {
+  .qb-home-ayah-hero .kicker {
+    display: none;
+  }
+
+  .qb-home-inner {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 760px) and (max-height: 660px) {
+  .qb-home-greeting {
+    font-size: 17px;
+  }
+
+  .qb-home-ayah-hero .ayah-text {
+    font-size: 21px;
+  }
+
+  .qb-home-ayah-hero .ayah-ref::before,
+  .qb-home-ayah-hero .ayah-ref::after {
+    display: none;
+  }
+
+  .qb-home-page .age {
+    display: none;
+  }
+}
+
+/* ---------- Larger screens: one screen as well ---------- */
+
+/* Same contract as phones: the column fills the height, the verse is centred
+   in whatever room is left, and shorter windows compact the furniture step by
+   step instead of scrolling. */
+@media (min-width: 761px) {
+  .qb-home {
+    padding: 16px 28px 20px;
+  }
+
+  .qb-home-inner {
+    flex: 1 0 auto;
+    margin-block: 0;
+  }
+
+  .qb-home-ayah-hero {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 761px) and (max-height: 860px) {
+  .qb-home-inner {
+    gap: 12px;
+  }
+
+  .qb-home-ayah-hero .ayah-text {
+    font-size: var(--fs-2xl);
+    line-height: 1.7;
+    min-height: calc(2em * 1.7);
+  }
+
+  .qb-home-page {
+    width: 120px;
+    min-height: 0;
+    padding: 20px 12px 9px;
+    gap: 0;
+  }
+
+  .qb-home-page .surah {
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  .qb-home-gridcard {
+    padding: 12px 14px;
+  }
+
+  .qb-home-gridcard .lead {
+    margin-top: 2px;
+  }
+
+  .qb-home-gridcard .cta,
+  .qb-home-gridcard .hairline {
+    margin-top: 8px;
+  }
+}
+
+@media (min-width: 761px) and (max-height: 700px) {
+  .qb-home-ayah-hero .kicker {
+    display: none;
+  }
+
+  .qb-home-ayah-hero .ayah-text {
+    font-size: var(--fs-xl);
+  }
+
+  .qb-home-page .age,
+  .qb-home-gridcard:not(.promoted) .cta {
     display: none;
   }
 }

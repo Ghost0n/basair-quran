@@ -25,7 +25,10 @@ import { useMushaf } from "@/features/reading/mushaf-context";
 import { useShellMode } from "@/features/shell/mode-context";
 import { TafssirDisclaimer } from "@/features/studio/tafssir-disclaimer";
 
+import { AyahPicker } from "./ayah-picker";
 import { documentToMarkdown } from "./convert";
+import { DocumentBoard } from "./document-board";
+import { parseBoardSource } from "@/features/board/board-model";
 import { PublishSheet } from "./publish-sheet";
 import { downloadBlob } from "./share-card";
 import { ShareStudio, type ShareArtifact } from "./share-studio";
@@ -108,6 +111,7 @@ export function DocumentScreen() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [sharing, setSharing] = useState<{ artifact: ShareArtifact; ayahKey?: string } | null>(null);
+  const [picking, setPicking] = useState<{ sectionId: string | null } | null>(null);
   const dirtyRef = useRef(false);
   const timerRef = useRef<number | null>(null);
   const docRef = useRef<ResearchDocumentSave | null>(null);
@@ -207,6 +211,18 @@ export function DocumentScreen() {
   function addSection(kind: ResearchSectionKind) {
     if (!doc) return;
     update({ sections: [...doc.sections, { id: newSectionId(), kind, title: null, body: "", ayahs: [] }] });
+  }
+
+  // Picked verses go into the given ayahs section, or a new one at the end.
+  function addAyahs(sectionId: string | null, refs: AyahRef[]) {
+    if (!doc || refs.length === 0) return;
+    if (sectionId) {
+      update({
+        sections: doc.sections.map((section) => (section.id === sectionId ? { ...section, ayahs: [...section.ayahs, ...refs] } : section)),
+      });
+      return;
+    }
+    update({ sections: [...doc.sections, { id: newSectionId(), kind: "ayahs", title: null, body: "", ayahs: refs }] });
   }
 
   function fixQuote(sectionId: string, ref: AyahRef, expected: string) {
@@ -344,6 +360,16 @@ export function DocumentScreen() {
 
         {doc.provenance.mode === "tafssir" ? <TafssirDisclaimer /> : null}
 
+        {doc.provenance.created_from === "board" && parseBoardSource(doc.provenance.source_id) ? (
+          <DocumentBoard
+            source={parseBoardSource(doc.provenance.source_id)!}
+            onOpenAyah={(item) => {
+              void mushaf.loadByAyah(item.mushaf_id || 2, item.ayah_id, []);
+              setMode("reading");
+            }}
+          />
+        ) : null}
+
         {verification && !verification.ok ? (
           <div className="qb-doc-warn" role="alert">
             <Icon name="alert" size={15} /> {t("بعض النصوص المقتبسة لا تطابق نص المصحف — راجِعها في الأقسام المعلَّمة.")}
@@ -469,6 +495,11 @@ export function DocumentScreen() {
                     })}
                   </ul>
                 ) : null}
+                {section.kind === "ayahs" ? (
+                  <button type="button" className="add-ayahs" onClick={() => setPicking({ sectionId: section.id })}>
+                    <Icon name="plus" size={13} /> {t("أضف آيات")}
+                  </button>
+                ) : null}
               </li>
             );
           })}
@@ -476,6 +507,9 @@ export function DocumentScreen() {
 
         <div className="add-row">
           <span>{t("أضف:")}</span>
+          <button type="button" onClick={() => setPicking({ sectionId: null })}>
+            <Icon name="book" size={13} /> {t("آيات")}
+          </button>
           <button type="button" onClick={() => addSection("text")}>{t("نص")}</button>
           <button type="button" onClick={() => addSection("note")}>{t("ملاحظة")}</button>
           <button type="button" onClick={() => addSection("question")}>{t("سؤال")}</button>
@@ -499,6 +533,19 @@ export function DocumentScreen() {
             surahName={surahName}
             initial={sharing}
             onClose={() => setSharing(null)}
+          />
+        ) : null}
+
+        {picking ? (
+          <AyahPicker
+            surahs={surahs}
+            existing={
+              picking.sectionId
+                ? doc.sections.find((section) => section.id === picking.sectionId)?.ayahs ?? []
+                : doc.sections.flatMap((section) => section.ayahs)
+            }
+            onAdd={(refs) => addAyahs(picking.sectionId, refs)}
+            onClose={() => setPicking(null)}
           />
         ) : null}
 
