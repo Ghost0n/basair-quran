@@ -127,7 +127,12 @@ function cloneJson<T>(value: T): T {
 }
 
 export function createQBasairApiClient(options: QBasairApiClientOptions) {
-  const fetchImpl = options.fetchImpl ?? fetch;
+  // Resolve the global fetch at call time, never at creation: the app build
+  // swaps window.fetch for its device router (lib/app-mode/fetch-router.ts),
+  // and a client created before that would keep the native fetch and get the
+  // app's index.html back for /api (iOS: "The string did not match the
+  // expected pattern" from response.json()).
+  const fetchImpl: typeof fetch = options.fetchImpl ?? ((input, init) => fetch(input, init));
   const baseUrl = options.baseUrl.replace(/\/$/, "");
 
   function request<T>(path: string, init?: RequestInit, options?: RequestOptions): Promise<T> {

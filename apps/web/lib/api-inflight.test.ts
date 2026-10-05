@@ -43,3 +43,21 @@ describe("in-flight GET sharing", () => {
     expect(calls).toHaveLength(2);
   });
 });
+
+describe("global fetch resolution", () => {
+  it("uses the fetch installed after the client was created (the app's device router)", async () => {
+    const original = globalThis.fetch;
+    const client = createQBasairApiClient({ baseUrl: "http://api.test/api" });
+    const calls: string[] = [];
+    globalThis.fetch = (async (input: RequestInfo | URL) => {
+      calls.push(String(input));
+      return new Response(JSON.stringify([]), { status: 200, headers: { "content-type": "application/json" } });
+    }) as typeof fetch;
+    try {
+      await client.getSurahs(1);
+      expect(calls).toHaveLength(1);
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+});

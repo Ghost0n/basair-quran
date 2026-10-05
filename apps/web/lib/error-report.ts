@@ -28,6 +28,7 @@ const TECHNICAL_PATTERNS = [
   /\btimeout\b/i,
   /ECONN|ETIMEDOUT|ENOTFOUND/i,
   /unexpected token|not valid json|<!doctype/i,
+  /did not match the expected pattern|JSON\.parse|SyntaxError/i, // WebKit / JSON parse errors
   /traceback|stack/i,
 ];
 
