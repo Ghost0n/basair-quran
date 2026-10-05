@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { Icon } from "@/components/icon";
+import { canHover } from "@/lib/can-hover";
+import { useKeepOnScreen } from "@/lib/keep-on-screen";
 
 import { useRecitation } from "./recitation-context";
 
@@ -19,6 +21,8 @@ export function ReciterDropdown({ subtitle }: { subtitle?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useKeepOnScreen(panelRef, open);
 
   useEffect(() => {
     if (!open) return;
@@ -64,7 +68,7 @@ export function ReciterDropdown({ subtitle }: { subtitle?: ReactNode }) {
       </button>
 
       {open ? (
-        <div className="qb-reciter-dd-panel" role="listbox" aria-label={t("القرّاء")}>
+        <div className="qb-reciter-dd-panel" ref={panelRef} role="listbox" aria-label={t("القرّاء")}>
           <input
             type="text"
             className="qb-reciter-dd-search"
@@ -72,7 +76,7 @@ export function ReciterDropdown({ subtitle }: { subtitle?: ReactNode }) {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             aria-label={t("ابحث عن قارئ")}
-            autoFocus
+            autoFocus={canHover()}
           />
           <div className="qb-reciter-dd-list">
             {filtered.map((item) => (

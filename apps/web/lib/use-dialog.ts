@@ -1,7 +1,13 @@
 import { useEffect, useRef } from "react";
 
+import { canHover } from "./can-hover";
+
 const FOCUSABLE_SELECTOR =
   'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+const TYPING = /^(INPUT|TEXTAREA|SELECT)$/;
+const isButtonLike = (item: HTMLElement) =>
+  item instanceof HTMLInputElement && ["button", "submit", "checkbox", "radio", "range"].includes(item.type);
 
 /**
  * Modal-dialog accessibility, in one place:
@@ -25,7 +31,9 @@ export function useDialog<T extends HTMLElement>(onClose: () => void) {
     // Respect an element that already took focus on mount (e.g. an autoFocus
     // search field); otherwise focus the first focusable, else the dialog.
     if (!node || !node.contains(document.activeElement)) {
-      const focusables = node ? Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)) : [];
+      let focusables = node ? Array.from(node.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)) : [];
+      // On touch screens a text field taking focus pops the keyboard over the dialog.
+      if (!canHover()) focusables = focusables.filter((item) => !TYPING.test(item.tagName) || isButtonLike(item));
       (focusables[0] ?? node)?.focus();
     }
 

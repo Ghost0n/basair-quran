@@ -26,6 +26,21 @@ body {
   min-height: 100dvh;
 }
 
+/* Nothing may widen the page: a sideways swipe never scrolls the screen. */
+html {
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: clip;
+  /* The page draws edge to edge (viewport-fit=cover, app/layout.tsx): keep
+     content clear of the status bar / notch, and of the notch sides in
+     landscape. Bottom bars clear the home indicator themselves. */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
 body {
   background: var(--page-bg);
   background-color: var(--bg);
@@ -68,6 +83,11 @@ select,
 textarea {
   font-family: inherit;
   letter-spacing: normal;
+}
+
+/* iOS paints unstyled button text in its system blue. */
+button {
+  color: inherit;
 }
 
 h1, .h1 {

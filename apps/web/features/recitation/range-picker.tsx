@@ -64,6 +64,8 @@ export function RangePicker() {
         left,
         width: phone ? Math.min(window.innerWidth - 24, bar.width) : width,
         bottom: window.innerHeight - bar.top + 10,
+        // Never taller than the room above the bar (phones in landscape): the body scrolls.
+        ["--qb-room" as string]: `${Math.floor(bar.top - 10)}px`,
       });
     };
     locate();

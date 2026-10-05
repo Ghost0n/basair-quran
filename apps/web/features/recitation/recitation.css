@@ -338,6 +338,7 @@
   max-height: 340px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: var(--bg-elev-1);
   border: 1px solid var(--border-strong);
   border-radius: var(--r-lg);
@@ -348,6 +349,7 @@
 }
 
 .qb-reciter-dd-search {
+  flex-shrink: 0;
   width: 100%;
   height: 38px;
   padding: 0 14px;
@@ -357,7 +359,8 @@
   border-radius: 12px;
   color: var(--fg-1);
   font-family: var(--font-arabic-ui);
-  font-size: 14px;
+  /* 16px: iOS zooms the page into any smaller field it focuses. */
+  font-size: 16px;
 }
 
 .light .qb-reciter-dd-search {
@@ -533,6 +536,10 @@
   backdrop-filter: blur(var(--glass-blur-strong, var(--glass-blur))) saturate(var(--glass-saturate));
   animation: qbPopIn var(--motion-dur-fast) var(--motion-ease-settle) both;
   font-family: var(--font-arabic-ui);
+  /* Clear of the status bar / notch; the panel scrolls when the screen is short. */
+  max-height: calc(var(--qb-room, 100dvh) - env(safe-area-inset-top, 0px) - 8px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* Header: like the reader sheets (title + round close). */

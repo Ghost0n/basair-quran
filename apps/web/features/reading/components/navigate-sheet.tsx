@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import type { SurahListItem } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { canHover } from "@/lib/can-hover";
 import { useNumerals } from "@/lib/preferences-context";
 import { parseNavCommand, surahMatches, toAsciiDigits, TOTAL_PAGES } from "@/lib/quran-nav";
 import { divisionRange, DIVISION_COUNT } from "@/lib/quran-ranges";
@@ -63,9 +64,7 @@ export function NavigateSheet({
 }) {
   const formatNumber = useNumerals();
   const panelRef = useDialog<HTMLDivElement>(onClose);
-  const [canHover] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(hover: hover) and (pointer: fine)").matches,
-  );
+  const [hover] = useState(canHover);
   const [tab, setTab] = useState<Tab>("surah");
   const [query, setQuery] = useState("");
   const [pageDraft, setPageDraft] = useState(currentPage ? String(currentPage) : "");
@@ -137,7 +136,7 @@ export function NavigateSheet({
             placeholder={t("اسم السورة أو رقمها · ٢:٢٥٥ · صفحة ٥٠")}
             // Type-to-filter on desktop; on touch screens don't pop the keyboard
             // over the list — the user may just scroll and tap.
-            autoFocus={canHover}
+            autoFocus={hover}
             aria-label={t("ابحث عن سورة أو اكتب مرجعاً")}
             enterKeyHint="go"
           />

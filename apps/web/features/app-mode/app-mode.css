@@ -5,7 +5,8 @@
   inset: 0;
   display: grid;
   place-items: center;
-  padding: 24px 16px;
+  padding: calc(24px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px))
+    calc(24px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px));
   overflow-y: auto;
   background: var(--bg);
   color: var(--fg-1);

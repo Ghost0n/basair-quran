@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 import "./tokens.css";
 import "./tokens-motion.css";
@@ -7,6 +7,7 @@ import "./motion.css";
 import "./glass.css";
 
 import { AppModeRoot } from "@/features/app-mode/app-mode-root";
+import { APP_MODE } from "@/lib/app-mode/config";
 import { LOCALE_INIT_SCRIPT } from "@/lib/i18n/init-script";
 import { I18nProvider } from "@/lib/i18n/provider";
 
@@ -33,6 +34,22 @@ export const metadata: Metadata = {
   },
 };
 
+// Edge to edge on phones (under the status bar and home indicator): the CSS
+// keeps content clear with the safe-area insets (app/globals.css). The app
+// never zooms: it has its own text sizes, and no pinch belongs to a native app.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  ...(APP_MODE ? { maximumScale: 1, userScalable: false } : {}),
+};
+
+// iOS Safari zooms into any focused field under 16px and stays zoomed. A
+// maximum scale stops that auto-zoom while iOS still lets the reader pinch;
+// it is added on iOS only, where pinch-zoom is unaffected (elsewhere it would
+// block it).
+const IOS_FOCUS_ZOOM_SCRIPT = `(function(){try{var n=navigator;if(!(/iPad|iPhone|iPod/.test(n.userAgent)||(n.platform==='MacIntel'&&n.maxTouchPoints>1)))return;var m=document.querySelector('meta[name=viewport]');if(m&&m.content.indexOf('maximum-scale')<0)m.content+=', maximum-scale=1';}catch(e){}})();`;
+
 // Runs before first paint to apply the saved theme, so light-mode users
 // never see a flash of the dark default (FOUC). Mirrors the classes the
 // workspace hook applies at runtime (`light` + `light-mode`).
@@ -57,6 +74,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body suppressHydrationWarning>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: IOS_FOCUS_ZOOM_SCRIPT }} />
         <I18nProvider>
           <AppModeRoot>{children}</AppModeRoot>
         </I18nProvider>
