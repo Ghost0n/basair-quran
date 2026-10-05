@@ -25,6 +25,10 @@ const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 type Tab = "feed" | "saved" | "mine" | "moderation";
 
+function tabFrom(value: string | null): Tab {
+  return value === "saved" || value === "mine" || value === "moderation" ? value : "feed";
+}
+
 /**
  * المجتمع — researches shared by the community. «الموجز» lists published
  * public posts (latest or trending, with search and filters); «المحفوظة» the
@@ -36,7 +40,30 @@ export function CommunityScreen() {
   const router = useRouter();
   const params = useSearchParams();
   const access = useCommunityAccess();
-  const [tab, setTab] = useState<Tab>("feed");
+  // The tab follows the address (the community world's tabs: الموجز · منشوراتي · المحفوظة).
+  const urlTab = params.get("tab");
+  // Home counts the posts published since this visit.
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("qb.community.seen", String(Math.floor(Date.now() / 1000)));
+    } catch {
+      /* not remembered */
+    }
+  }, []);
+  const [tab, setTabState] = useState<Tab>(() => tabFrom(urlTab));
+  useEffect(() => {
+    setTabState(tabFrom(urlTab));
+  }, [urlTab]);
+  const setTab = useCallback(
+    (next: Tab) => {
+      setTabState(next);
+      const sp = new URLSearchParams(window.location.search);
+      if (next === "feed") sp.delete("tab");
+      else sp.set("tab", next);
+      router.replace(`/?${sp.toString()}`, { scroll: false });
+    },
+    [router],
+  );
   const [filters, setFilters] = useState<FeedFilters>(() => ({
     ...EMPTY_FILTERS,
     tag: params.get("tag"),

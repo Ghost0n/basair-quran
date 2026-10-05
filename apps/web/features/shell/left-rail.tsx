@@ -4,43 +4,29 @@ import { BrandMark } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
 import { AccountMenu } from "@/features/identity/account-menu";
 
-import { useShellMode, type ShellMode } from "./mode-context";
+import { useSearchParams } from "next/navigation";
+
+import "./worlds.css";
+
+import { useShellMode } from "./mode-context";
 import { useWorkspace } from "./workspace-context";
+import { activeTabId, useWorldNavigation, useWorldSync, WORLD_ORDER, WORLDS } from "./worlds";
 
 import { t } from "@/lib/i18n";
 
-type RailDestination = {
-  mode: ShellMode;
-  icon: IconName;
-  label: string;
-};
-
-const WORK_DESTINATIONS: RailDestination[] = [
-  { mode: "reading", icon: "book", get label() {
-    return t("القراءة");
-  } },
-  { mode: "search", icon: "search", get label() {
-    return t("البحث");
-  } },
-  { mode: "studio", icon: "feather", get label() {
-    return t("الدراسة");
-  } },
-];
-
-const SAVED_DESTINATIONS: RailDestination[] = [
-  // الدفتر consolidates the former Notebook / Bookmarks / History / Roots
-  // surfaces (all views of the same saved data) into one tabbed library.
-  { mode: "notebook", icon: "notebook", get label() {
-    return t("الدفتر");
-  } },
-  { mode: "community", icon: "users", get label() {
-    return t("المجتمع");
-  } },
-];
-
+/**
+ * The desktop rail follows the phone's worlds (shell/worlds.ts): Home, a
+ * three-world switch (gold · teal · copper), then the current world's pages.
+ */
 export function LeftRail() {
-  const { mode, setMode } = useShellMode();
+  const { mode } = useShellMode();
+  const params = useSearchParams();
+  const communityTab = params.get("tab");
+  const world = useWorldSync(communityTab);
+  const { openTab, changeWorld } = useWorldNavigation();
+  const { setMode } = useShellMode();
   const { actions } = useWorkspace();
+  const active = activeTabId(mode, communityTab);
 
   const handleBrandClick = () => {
     // One clean navigation to the root (resetSearch handles the route); with the
@@ -61,29 +47,44 @@ export function LeftRail() {
         <BrandMark size={40} themed />
       </button>
 
-      {WORK_DESTINATIONS.map((dest) => (
-        <RailButton key={dest.mode} destination={dest} activeMode={mode} onSelect={setMode} />
-      ))}
+      <RailButton icon="home" label={t("الرئيسية")} active={active === "home"} onSelect={() => openTab(world, "home")} />
+
+      <div className="qb-rail-worlds" role="group" aria-label={t("العوالم")}>
+        {WORLD_ORDER.map((id) => (
+          <button
+            key={id}
+            type="button"
+            className="qb-rail-world"
+            data-w={id}
+            aria-pressed={id === world}
+            onClick={() => changeWorld(id, mode === "home")}
+            title={`${WORLDS[id].label} — ${WORLDS[id].desc}`}
+            aria-label={WORLDS[id].label}
+          >
+            <Icon name={WORLDS[id].icon} size={16} />
+          </button>
+        ))}
+      </div>
 
       <div className="qb-rail-divider" role="separator" />
 
-      {SAVED_DESTINATIONS.map((dest) => (
-        <RailButton key={dest.mode} destination={dest} activeMode={mode} onSelect={setMode} />
+      {WORLDS[world].tabs.map((tab) => (
+        <RailButton
+          key={tab.id}
+          icon={tab.icon}
+          label={tab.label}
+          active={active === tab.id}
+          world
+          notebook={tab.id === "notebook"}
+          onSelect={() => openTab(world, tab.id)}
+        />
       ))}
-
-      {/* Recitation is no longer a rail destination — it's reached from the play
-          bar (opened by the reader's footer control), where the reciter picker
-          now lives as an upward dropdown. */}
 
       <div className="qb-rail-spacer" />
 
       <RailThemeButton />
 
-      <RailButton
-        destination={{ mode: "settings", icon: "settings", label: t("إعدادات") }}
-        activeMode={mode}
-        onSelect={setMode}
-      />
+      <RailButton icon="settings" label={t("إعدادات")} active={mode === "settings"} onSelect={() => setMode("settings")} />
 
       <AccountMenu onOpenSettings={() => setMode("settings")} />
     </aside>
@@ -109,43 +110,34 @@ function RailThemeButton() {
 }
 
 function RailButton({
-  destination,
-  activeMode,
+  icon,
+  label,
+  active,
   onSelect,
+  world = false,
+  notebook = false,
 }: {
-  destination: RailDestination;
-  activeMode: ShellMode;
-  onSelect: (next: ShellMode, options?: { resume?: boolean }) => void;
+  icon: IconName;
+  label: string;
+  active: boolean;
+  onSelect: () => void;
+  /** A page of the current world: lit in the world's colour. */
+  world?: boolean;
+  /** The notebook icon is the flight target for the pin-to-notebook ghost. */
+  notebook?: boolean;
 }) {
-  // A theme board belongs to the library (الدفتر).
-  // Sub-pages light their parent: a board / document belongs to the library,
-  // a post to the community.
-  const isActive =
-    destination.mode === activeMode ||
-    (destination.mode === "notebook" && (activeMode === "board" || activeMode === "document")) ||
-    (destination.mode === "community" && activeMode === "post");
-  // Double-effect: clicking the ACTIVE button collapses what it opened — back to
-  // the reader (the resting surface). The reader is the resting surface itself,
-  // so clicking it while active does nothing (null = no navigation).
-  const target: ShellMode | null = !isActive
-    ? destination.mode
-    : destination.mode === "reading"
-      ? null
-      : "reading";
   return (
     <button
       type="button"
-      className={`qb-rail-btn${isActive ? " active" : ""}`}
-      // The library opens where it was left (a board, a research…).
-      onClick={() => target && onSelect(target, { resume: true })}
-      title={destination.label}
-      aria-label={destination.label}
-      aria-current={isActive ? "page" : undefined}
-      // The notebook icon is the flight target for the pin-to-notebook ghost.
-      data-rail-notebook={destination.mode === "notebook" ? "" : undefined}
+      className={`qb-rail-btn${active ? " active" : ""}${world ? " is-world" : ""}`}
+      onClick={onSelect}
+      title={label}
+      aria-label={label}
+      aria-current={active ? "page" : undefined}
+      data-rail-notebook={notebook ? "" : undefined}
     >
-      <Icon name={destination.icon} size={19} />
-      <span className="qb-rail-label" data-fit-watch>{destination.label}</span>
+      <Icon name={icon} size={19} />
+      <span className="qb-rail-label" data-fit-watch>{label}</span>
     </button>
   );
 }

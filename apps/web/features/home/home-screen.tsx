@@ -1,74 +1,85 @@
 "use client";
 
 import "./home.css";
+import "@/features/shell/worlds.css";
 
-import { Fragment, useEffect, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type CSSProperties, type PointerEvent } from "react";
+import { createPortal } from "react-dom";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { ResearchSessionSummary, SavedPageEntry, SearchMode } from "@q-basair/shared";
+import type { ResearchSessionSummary } from "@q-basair/shared";
 
-import { Icon } from "@/components/icon";
-import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { BrandMark } from "@/components/brand-mark";
+import { Icon, type IconName } from "@/components/icon";
+import { relativeAge } from "@/features/companions/use-companions";
+import { useMushaf } from "@/features/reading/mushaf-context";
+import { useRecitation } from "@/features/recitation/recitation-context";
+import { useShellMode } from "@/features/shell/mode-context";
+import { stepWorld, useCurrentWorld, useWorldNavigation, WORLD_ORDER, WORLDS, type WorldId } from "@/features/shell/worlds";
+import { API_BASE_URL } from "@/lib/config";
+import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { useAuthSession } from "@/lib/auth-session-context";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
-import { queueStudioAsk, queueStudioOpenSession } from "@/lib/studio-prefill";
-import { useMushaf } from "@/features/reading/mushaf-context";
-import { useShellMode } from "@/features/shell/mode-context";
-import { useWorkspace } from "@/features/shell/workspace-context";
-import { ThemeButton } from "@/features/shell/top-bar";
-import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
-import { boardUrl, readLastBoard, type LastBoard } from "@/features/board/last-board";
-import "@/features/themes/themes.css";
-import { relativeAge } from "@/features/companions/use-companions";
+import { queueStudioOpenSession } from "@/lib/studio-prefill";
 
-import { HomeAsk } from "./home-ask";
+import { AccountSheet } from "./account-sheet";
+import { greetingFor, readLastVisit, rememberVisit } from "./greeting";
 
 import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
+const LANDED_KEY = "qb.landed";
 const LAST_PAGE_KEY = "qbasair.mushaf.lastPage";
-
-/** Card buttons read as plain words — no trailing «←» / «→» (translations keep theirs). */
-function noArrow(label: string): string {
-  return label.replace(/\s*[←→]\s*$/u, "");
-}
 const LAST_SURAH_KEY = "qbasair.mushaf.lastSurah";
+export const COMMUNITY_SEEN_KEY = "qb.community.seen";
 
-// A small rotating set of well-known āyāt — the page's centerpiece. The text is
-// shown exactly as in the muṣḥaf; only the reference number follows the numeral
-// preference. Any addition must be exact Uthmani text, 2–6 words, owner-reviewed.
-// i18n-ignore — Quran text and its surah names stay as they are.
-const ROTATING_AYAHS: { text: string; surah: string; ayah: number }[] = [
-  { text: "ٱللَّهُ نُورُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ", surah: "النور", ayah: 35 },
-  { text: "وَقُل رَّبِّ زِدْنِى عِلْمًا", surah: "طه", ayah: 114 },
-  { text: "إِنَّ مَعَ ٱلْعُسْرِ يُسْرًا", surah: "الشرح", ayah: 6 },
-  { text: "فَٱذْكُرُونِىٓ أَذْكُرْكُمْ", surah: "البقرة", ayah: 152 },
-  { text: "وَبَشِّرِ ٱلصَّٰبِرِينَ", surah: "البقرة", ayah: 155 },
-];
-
-const ROTATE_MS = 9000;
+type Card = {
+  eyebrow: string;
+  title: string;
+  /** A longer title (a question) reads smaller. */
+  small?: boolean;
+  meta?: string;
+  action: string;
+  onAction: () => void;
+  /** Reading: listen from where the reader stopped. */
+  onListen?: () => void;
+};
 
 /**
- * HomeScreen — the default landing. The rotating āyah is the hero (the Qurʾān is
- * the room's centerpiece — the brand lives in the shell chrome, whispered here
- * as a kufi kicker); beneath it, compact furniture: the ask/search bar, a desk
- * row (continue-reading + library stats), three entry tiles, and the latest
- * research sessions. One glance orients, one click reaches every room.
+ * Home — the same in every world, with a subtle change per world.
+ *
+ * Sizes follow importance: the card's title (what you came for) leads, the
+ * greeting welcomes, the brand only signs the page (top corner, opposite the
+ * account button). The three worlds sit as a deck of cards: the current one in
+ * front with one thing to continue, the other two peeking out behind in their
+ * colours. Tap a card behind, or swipe the deck, to change world (the coin and
+ * the rail follow). A new user sees a simple start on each card.
  */
-const LANDED_KEY = "qb.landed";
-
 export function HomeScreen() {
   const { setMode } = useShellMode();
   const formatNumber = useNumerals();
-  const { state: workspace, actions } = useWorkspace();
   const { preferences, ready } = usePreferences();
+  const mushaf = useMushaf();
+  const recitation = useRecitation();
+  const { user } = useAuthSession();
+  const world = useCurrentWorld();
+  const { changeWorld } = useWorldNavigation();
+  const [accountOpen, setAccountOpen] = useState(false);
+  const accountBtn = useRef<HTMLButtonElement>(null);
+  const [lastPage, setLastPage] = useState<number | null>(null);
+  const [lastSurah, setLastSurah] = useState<string | null>(null);
+  const [session, setSession] = useState<ResearchSessionSummary | null>(null);
+  const [newPosts, setNewPosts] = useState(0);
+  const [lastVisit] = useState(readLastVisit);
+  const [swap, setSwap] = useState(false);
+  const deckSwipe = useRef<{ x: number; y: number } | null>(null);
 
   // Returning readers land in the reader: the first Home of a browser session
   // with a saved position forwards to «القراءة» (which resumes there). Home is
-  // still one tap away (rail brand / tab bar) and never redirects twice.
-  const hasPosition = Boolean(preferences.last_position?.ayah_id || preferences.last_position?.page);
+  // still one tap away and never redirects twice.
+  const position = preferences.last_position;
+  const hasPosition = Boolean(position?.ayah_id || position?.page);
   useEffect(() => {
     if (!ready) return;
     try {
@@ -79,258 +90,251 @@ export function HomeScreen() {
     }
     if (hasPosition) setMode("reading", { replace: true });
   }, [ready, hasPosition, setMode]);
-  const mushaf = useMushaf();
-  const savedPages = preferences.saved_pages ?? [];
-
-  function openSavedPage(entry: SavedPageEntry) {
-    void mushaf.loadPage(entry.mushaf_id || DEFAULT_MUSHAF_ID, entry.page, { persist: true });
-    setMode("reading");
-  }
-
-
-  const router = useRouter();
-  const [lastBoard, setLastBoard] = useState<LastBoard | null>(null);
-  useEffect(() => setLastBoard(readLastBoard()), []);
-  const [lastPage, setLastPage] = useState<number | null>(null);
-  const [lastSurah, setLastSurah] = useState<string | null>(null);
-  const [ayahIndex, setAyahIndex] = useState(0);
-  // The account's saved position (what the reader resumes at) wins over this
-  // device's last page.
-  const resumePage = preferences.last_position?.page ?? lastPage;
-  const resumeAyah = preferences.last_position?.page ? preferences.last_position?.ayah ?? null : null;
-  const [savedCount, setSavedCount] = useState<number | null>(null);
-  const [recentSessions, setRecentSessions] = useState<ResearchSessionSummary[]>([]);
-  // Personalized greeting — only when signed in. Reads the shared session probe,
-  // so it also reflects a name change made in settings this session.
-  const { user } = useAuthSession();
-  const displayName = AUTH_ENABLED ? user?.name ?? null : null;
 
   useEffect(() => {
+    rememberVisit();
     try {
       const stored = Number(window.localStorage.getItem(LAST_PAGE_KEY));
       if (Number.isFinite(stored) && stored >= 1) setLastPage(stored);
       setLastSurah(window.localStorage.getItem(LAST_SURAH_KEY));
     } catch {
-      /* no last page — the continue pill falls back to "start reading" */
+      /* no last page: the reading card offers a start */
     }
-    // Seed the opening verse by day, so returning users don't always land on
-    // the same āyah (client-side effect — no SSR hydration mismatch).
-    const dayOfYear = Math.floor(
-      (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000,
-    );
-    setAyahIndex(dayOfYear % ROTATING_AYAHS.length);
-  }, []);
-
-  // Light desk stats + the latest research sessions. Each source fails silently
-  // (the row simply doesn't render) so an unreachable store can't mar the Home.
-  useEffect(() => {
     let cancelled = false;
-    void Promise.allSettled([api.getNotebook(), api.getSessions()]).then(([notebook, sessions]) => {
-      if (cancelled) return;
-      if (notebook.status === "fulfilled") setSavedCount(notebook.value.length);
-      if (sessions.status === "fulfilled") setRecentSessions(sessions.value.slice(0, 3));
-    });
+    api.getSessions().then(
+      (list) => !cancelled && setSession(list[0] ?? null),
+      () => undefined,
+    );
+    // New community posts since the last visit there (online only; silent otherwise).
+    let seen = 0;
+    try {
+      seen = Number(window.localStorage.getItem(COMMUNITY_SEEN_KEY)) || 0;
+    } catch {
+      /* never seen */
+    }
+    if (seen) {
+      api.getFeed({ limit: 20 }).then(
+        (page) => !cancelled && setNewPosts(page.posts.filter((post) => (post.published_at ?? post.updated_at) > seen).length),
+        () => undefined,
+      );
+    }
     return () => {
       cancelled = true;
     };
   }, []);
 
+  // The deck animates when the world changes (here, from the coin or the rail).
+  const previous = useRef(world);
   useEffect(() => {
-    const timer = window.setInterval(
-      () => setAyahIndex((index) => (index + 1) % ROTATING_AYAHS.length),
-      ROTATE_MS,
-    );
-    return () => window.clearInterval(timer);
-  }, []);
+    if (previous.current === world) return;
+    previous.current = world;
+    setSwap(true);
+    const timer = window.setTimeout(() => setSwap(false), 400);
+    return () => window.clearTimeout(timer);
+  }, [world]);
 
-  // «اسأل» opens a new Studio session with the prompt; «ابحث» (or a suggestion)
-  // runs a Quran search and lands on the results (see HomeAsk).
-  function askStudio(value: string) {
-    queueStudioAsk(value);
-    setMode("studio");
-  }
+  const page = position?.page ?? lastPage;
+  const newUser = !page && !session;
+  const greeting = greetingFor({
+    name: user?.name?.trim() || null,
+    newUser,
+    lastVisit,
+    formatNumber,
+  });
 
-  function searchQuran(value: string, searchMode: SearchMode = "exact") {
-    // The shared workspace runs it (same path as the command bar's chips).
-    actions.runQuickExample({ query: value, mode: searchMode });
-    setMode("search");
-  }
-
-  const ayah = ROTATING_AYAHS[ayahIndex];
-
-  // «تابِع…» cards, most recent activity first: the Studio session, the
-  // reading position, the board. The first one is promoted.
-  const session = recentSessions[0] ?? null;
-  const continueCards: { key: string; at: number; render: (promoted: boolean) => ReactNode }[] = [];
-  if (session) {
-    continueCards.push({
-      key: "session",
-      at: session.updated_at,
-      render: (promoted) => (
-        <button
-          type="button"
-          className={`qb-home-gridcard${promoted ? " promoted" : ""}`}
-          onClick={() => {
+  const cards: Record<WorldId, Card> = {
+    reading: page
+      ? {
+          eyebrow: t("تابع القراءة"),
+          title: lastSurah && (!position?.page || position.page === lastPage) ? lastSurah : t("صفحة {0}", { 0: formatNumber(page) }),
+          meta: [
+            t("صفحة {0}", { 0: formatNumber(page) }),
+            position?.updated_at ? relativeAge(position.updated_at, formatNumber) : null,
+          ]
+            .filter(Boolean)
+            .join(" · "),
+          action: t("تابع"),
+          onAction: () => setMode("reading"),
+          onListen:
+            position?.surah && position?.ayah
+              ? () => {
+                  recitation.playAyah(position.surah as number, position.ayah as number);
+                  setMode("reading");
+                }
+              : undefined,
+        }
+      : {
+          eyebrow: t("ابدأ القراءة"),
+          title: t("الفَاتِحَة"),
+          meta: t("من أول المصحف"),
+          action: t("ابدأ"),
+          onAction: () => {
+            void mushaf.loadPage(DEFAULT_MUSHAF_ID, 1, { persist: true });
+            setMode("reading");
+          },
+        },
+    research: session
+      ? {
+          eyebrow: t("تابع دراستك"),
+          title: session.title,
+          small: true,
+          meta: relativeAge(session.updated_at, formatNumber),
+          action: t("تابع الجلسة"),
+          onAction: () => {
             queueStudioOpenSession(session.id);
             setMode("studio");
-          }}
-          title={session.title}
-        >
-          <span className="eyebrow">
-            <Icon name="sparkles" size={13} /> {t("تابِع الجلسة")}
-          </span>
-          <span className={`lead${promoted ? "" : " sm"}`}>{session.title}</span>
-          <span className="meta">
-            {session.mode === "tafssir" ? t("قراءة تفسيرية") : t("القرآن وحدَه")} ·{" "}
-            {tn("{0} رسالة", session.message_count, { 0: formatNumber(session.message_count) })}
-          </span>
-          <span className="cta">{noArrow(t("تابِع الجلسة ←"))}</span>
-        </button>
-      ),
-    });
-  }
-  continueCards.push({
-    key: "reading",
-    at: resumePage ? preferences.last_position?.updated_at ?? 1 : 0,
-    render: (promoted) => (
-      <button type="button" className={`qb-home-gridcard${promoted ? " promoted" : ""}`} onClick={() => setMode("reading")}>
-        <span className="eyebrow">
-          <Icon name="book" size={13} /> {resumePage ? t("تابع القراءة") : t("ابدأ القراءة")}
-        </span>
-        <span className="lead sm">
-          {resumePage ? (
-            <>
-              {lastSurah && resumePage === lastPage ? <>{t("سورة {0}", { 0: lastSurah })}{t("، ")}</> : null}
-              {t("صفحة {0}", { 0: formatNumber(resumePage) })}
-            </>
-          ) : (
-            <>{t("سورة الفاتحة")}</>
-          )}
-        </span>
-        {resumeAyah ? <span className="meta">{t("عند الآية")} {formatNumber(resumeAyah)}</span> : null}
-        {resumePage ? (
-          <span className="hairline" aria-hidden>
-            <span style={{ width: `${Math.min(100, Math.round((resumePage / 604) * 100))}%` }} />
-          </span>
-        ) : null}
-        <span className="cta">{noArrow(resumePage ? t("تابِع ←") : t("افتح المصحف ←"))}</span>
-      </button>
-    ),
-  });
-  if (lastBoard) {
-    continueCards.push({
-      key: "board",
-      at: lastBoard.at ?? 1,
-      render: (promoted) => (
-        <button
-          type="button"
-          className={`qb-home-gridcard board${promoted ? " promoted" : ""}`}
-          data-hl={lastBoard.color}
-          onClick={() => router.push(boardUrl(lastBoard.theme, lastBoard.board))}
-        >
-          <span className="eyebrow">
-            <Icon name="graph" size={13} /> {t("تابِع اللوحة")}
-          </span>
-          <span className="lead sm">{lastBoard.name}</span>
-          <span className="meta">
-            <span className="dot" aria-hidden /> {lastBoard.themeName}
-          </span>
-          <span className="cta">{noArrow(t("افتح اللوحة ←"))}</span>
-        </button>
-      ),
-    });
-  }
-  continueCards.sort((a, b) => b.at - a.at);
+          },
+        }
+      : {
+          eyebrow: t("البحث في القرآن"),
+          title: t("ابحث بكلمة أو جذر، أو اطرح سؤالاً"),
+          small: true,
+          action: t("جرّب"),
+          onAction: () => setMode("search"),
+        },
+    community:
+      newPosts > 0
+        ? {
+            eyebrow: t("جديد المجتمع"),
+            title: tn("{0} منشور جديد", newPosts, { 0: formatNumber(newPosts) }),
+            meta: t("منذ زيارتك الأخيرة"),
+            action: t("اعرض"),
+            onAction: () => setMode("community", { params: { tab: null } }),
+          }
+        : {
+            eyebrow: t("المجتمع"),
+            title: t("ما يشاركه الباحثون من أبحاث ولوحات"),
+            small: true,
+            action: t("تصفّح"),
+            onAction: () => setMode("community", { params: { tab: null } }),
+          },
+  };
 
-  const greetingName = displayName?.trim();
+  const order: WorldId[] = [world, ...WORLD_ORDER.filter((id) => id !== world)];
+
+  function onDeckDown(event: PointerEvent<HTMLDivElement>) {
+    deckSwipe.current = { x: event.clientX, y: event.clientY };
+  }
+  function onDeckUp(event: PointerEvent<HTMLDivElement>) {
+    const start = deckSwipe.current;
+    deckSwipe.current = null;
+    if (!start) return;
+    const dx = event.clientX - start.x;
+    const dy = event.clientY - start.y;
+    if (Math.abs(dx) > 44 && Math.abs(dy) < 40) changeWorld(stepWorld(world, dx < 0 ? 1 : -1), true);
+  }
 
   return (
-    <div className="qb-home">
+    <div className="qb-home-deck">
       <div className="qb-home-inner">
-        {/* Phones have no top bar: the theme switch sits beside the greeting. */}
         <div className="qb-home-top">
-          <div className="qb-home-greeting">
-            {greetingName ? (
-              <>
-                {t("أهلاً،")} <strong>{greetingName}</strong>
-              </>
-            ) : (
-              t("أهلاً بك")
-            )}
-          </div>
-          <ThemeButton className="qb-icon-btn qb-home-theme" />
-        </div>
-
-        {/* The verse holds the seat of honor; the brand is a whisper above it.
-            No aria-live: a forever-rotating announcement is screen-reader noise —
-            the verse stays ordinary readable (and selectable) text. */}
-        <header className="qb-home-ayah-hero">
-          <span className="kicker">{t("بَصَائِر")}</span>
-          <p key={ayahIndex} className="ayah-text">
-            {ayah.text}
-          </p>
-          <span className="ayah-ref">
-            {ayah.surah}: {formatNumber(ayah.ayah)}
+          <span className="qb-brandmini" role="img" aria-label={t("بصائر")}>
+            <BrandMark size={30} themed />
+            <span className="bname" aria-hidden="true">
+              {t("بَصَائِر")}
+            </span>
           </span>
-        </header>
-
-        <HomeAsk
-          mushaf={workspace.selectedMushaf}
-          examples={workspace.quickExamples}
-          onSearch={searchQuran}
-          onAsk={askStudio}
-        />
-
-        {/* Saved muṣḥaf pages first — the reader's own bookmarks are the way in. */}
-        <section className="qb-home-pages" aria-label={t("صفحات محفوظة")}>
-          <div className="qb-home-section-h">
-            <Icon name="bookmarkFilled" size={14} /> {t("صفحات محفوظة")}
-          </div>
-          {savedPages.length > 0 ? (
-            <div className="rail">
-              {savedPages.slice(0, 12).map((entry) => (
-                <button key={`${entry.mushaf_id}-${entry.page}`} type="button" className="qb-home-page" onClick={() => openSavedPage(entry)}>
-                  <span className="ribbon" aria-hidden>
-                    <svg viewBox="0 0 16 24" width="12" height="18">
-                      <path d="M1 0h14v22l-7-5-7 5z" />
-                    </svg>
-                  </span>
-                  <span className="surah">{entry.surah ?? t("المصحف")}</span>
-                  <span className="page">{t("صفحة {0}", { 0: formatNumber(entry.page) })}</span>
-                  {entry.saved_at ? <span className="age">{relativeAge(entry.saved_at, formatNumber)}</span> : null}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="empty">{t("احفظ صفحة من القراءة (علامة الحفظ في شريط القارئ) لتجدها هنا.")}</p>
-          )}
-        </section>
-
-        <div className="qb-home-grid">
-          {continueCards.map((card, index) => (
-            <Fragment key={card.key}>{card.render(index === 0)}</Fragment>
-          ))}
-          <button type="button" className="qb-home-gridcard" onClick={() => setMode("notebook", { resume: true })}>
-            <span className="eyebrow">
-              <Icon name="notebook" size={13} /> {t("مثبَّتات حديثة")}
-              {savedCount ? <span className="count"> ({formatNumber(savedCount)})</span> : null}
-            </span>
-            <span className="lead sm">
-              {savedCount ? tn("{0} آية مُثبَّتة في الدفتر", savedCount, { 0: formatNumber(savedCount) }) : t("لا مثبَّتات بعد")}
-            </span>
-            <span className="cta">{noArrow(t("افتح الدفتر ←"))}</span>
+          <button
+            ref={accountBtn}
+            type="button"
+            className="qb-home-account"
+            onClick={() => setAccountOpen(true)}
+            aria-haspopup="dialog"
+            aria-label={t("الحساب والإعدادات")}
+          >
+            <Icon name="user" size={18} />
           </button>
-          {!session ? (
-            <button type="button" className="qb-home-gridcard" onClick={() => setMode("studio")}>
-              <span className="eyebrow">
-                <Icon name="sparkles" size={13} /> {t("ابدأ جلسة دراسة")}
-              </span>
-              <span className="lead sm">{t("اسأل سؤالاً موجَّهاً في المعاني")}</span>
-              <span className="cta">{noArrow(t("افتح الاستوديو ←"))}</span>
-            </button>
-          ) : null}
         </div>
+
+        <div className="qb-home-greeting">
+          <h1>{greeting.line}</h1>
+          {greeting.sub ? <p>{greeting.sub}</p> : null}
+        </div>
+
+        <div className="spacer" />
+
+        <div
+          className={`qb-deck${swap ? " swap" : ""}`}
+          onPointerDown={onDeckDown}
+          onPointerUp={onDeckUp}
+          onPointerCancel={() => (deckSwipe.current = null)}
+        >
+          {order
+            .map((id, depth) => {
+              const card = cards[id];
+              const W = WORLDS[id];
+              const back = depth > 0;
+              return (
+                <div
+                  key={id}
+                  className={`dcard${back ? " back" : ""}`}
+                  data-w={id}
+                  data-depth={depth}
+                  role={back ? "button" : "group"}
+                  tabIndex={back ? 0 : undefined}
+                  aria-label={back ? W.label : card.eyebrow}
+                  onClick={back ? () => changeWorld(id, true) : undefined}
+                  onKeyDown={
+                    back
+                      ? (event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            changeWorld(id, true);
+                          }
+                        }
+                      : undefined
+                  }
+                  style={{ "--deck-depth": depth } as CSSProperties}
+                >
+                  <span className="dlabel">
+                    <Icon name={W.icon as IconName} size={15} />
+                    {back ? W.label : card.eyebrow}
+                  </span>
+                  <div className="dbody" aria-hidden={back || undefined}>
+                    <h2 className={card.small ? "title-sm" : "title"}>{card.title}</h2>
+                    {card.meta ? <p className="meta">{card.meta}</p> : null}
+                    <div className="actions">
+                      <button type="button" className="go" onClick={card.onAction} tabIndex={back ? -1 : undefined}>
+                        {card.action}
+                      </button>
+                      {card.onListen ? (
+                        <button
+                          type="button"
+                          className="listen"
+                          onClick={card.onListen}
+                          tabIndex={back ? -1 : undefined}
+                          aria-label={t("استمع من حيث توقفت")}
+                        >
+                          <Icon name="play" size={18} />
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+            .reverse()}
+        </div>
+        <div className="qb-deck-dots" aria-hidden="true">
+          {WORLD_ORDER.map((id) => (
+            <i key={id} data-w={id} className={id === world ? "on" : undefined} />
+          ))}
+        </div>
+
+        <div className="spacer" />
       </div>
+
+      {accountOpen && typeof document !== "undefined"
+        ? createPortal(
+            <AccountSheet
+              onClose={() => {
+                setAccountOpen(false);
+                accountBtn.current?.focus({ preventScroll: true });
+              }}
+            />,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

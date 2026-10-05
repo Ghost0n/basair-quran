@@ -14,6 +14,7 @@ import { DocumentScreen } from "@/features/documents/document-screen";
 import { OnlineOnly } from "@/features/app-mode/online-only";
 import { CommunityScreen } from "@/features/community/community-screen";
 import { PostScreen } from "@/features/community/post-screen";
+import { IndexScreen, SavedPagesScreen } from "@/features/reading/reading-pages";
 
 function WorkspacePage() {
   const { mode } = useShellMode();
@@ -47,6 +48,11 @@ function WorkspacePage() {
     // and you don't read while configuring.
     case "settings":
       return <SettingsScreen />;
+    // The reading world's pages, beside the mushaf on wide screens.
+    case "saved":
+      return <CompanionCanvas><SavedPagesScreen /></CompanionCanvas>;
+    case "index":
+      return <CompanionCanvas><IndexScreen /></CompanionCanvas>;
     case "heatmap":
       return <HeatmapScreen />;
     // A theme's graph board — full width: it's a canvas, not a companion.

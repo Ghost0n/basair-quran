@@ -19,12 +19,13 @@ const isButtonLike = (item: HTMLElement) =>
  * Attach the returned ref to the dialog container and give it `tabIndex={-1}`
  * (fallback focus target) plus `role="dialog"` + `aria-modal="true"`.
  */
-export function useDialog<T extends HTMLElement>(onClose: () => void) {
+export function useDialog<T extends HTMLElement>(onClose: () => void, { enabled = true }: { enabled?: boolean } = {}) {
   const ref = useRef<T | null>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
   useEffect(() => {
+    if (!enabled) return;
     const node = ref.current;
     const previouslyFocused = document.activeElement as HTMLElement | null;
 
@@ -69,7 +70,7 @@ export function useDialog<T extends HTMLElement>(onClose: () => void) {
       document.removeEventListener("keydown", handleKeyDown, true);
       previouslyFocused?.focus?.();
     };
-  }, []);
+  }, [enabled]);
 
   return ref;
 }

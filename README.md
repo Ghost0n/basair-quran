@@ -96,6 +96,14 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   (floating rail and tab dock, capsule bars, glass sheets and panes), glossy gold for actions, a
   shared selected state, spring micro-interactions and view-transition page changes — with the
   mushaf itself kept opaque and reduced-motion respected.
+- Navigation by world: reading (المصحف · المحفوظة · الفهرس), research (البحث · الدراسة ·
+  الدفتر) and community (الموجز · منشوراتي · المحفوظة), each with its colour (gold, teal,
+  copper). On phones the tab bar shows Home and the current world's pages around a coin
+  that switches worlds (tap: the worlds fan out; swipe the bar: next / previous world);
+  the desktop rail shows Home, a three-world switch and the world's pages. Home is a deck
+  of the three worlds (one thing to continue in each), under a greeting that follows the
+  moment (morning / evening, Ramadan, Eid, a return after a while) and today's Hijri
+  date; account and settings open from Home's corner button.
 - A persistent floating media bar (transport · reciter chip · seekable progress ·
   repeat/speed) shown across every screen on larger screens. On phones a recitation is a
   session, from play until the player is closed: the reader opens on a clear view (page +

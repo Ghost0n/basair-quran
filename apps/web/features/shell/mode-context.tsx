@@ -21,6 +21,9 @@ export const SHELL_MODES = [
   // المجتمع — the community feed, and one shared post (`&id=<post id>`).
   "community",
   "post",
+  // The reading world's pages: saved pages, and the index (surahs · juz · hizb · page).
+  "saved",
+  "index",
 ] as const;
 
 export type ShellMode = (typeof SHELL_MODES)[number];
@@ -67,7 +70,7 @@ export function useShellMode(): {
    * «الدفتر» returns to the last library page — a board, a research — rather
    * than the list.
    */
-  setMode: (next: ShellMode, options?: { replace?: boolean; resume?: boolean }) => void;
+  setMode: (next: ShellMode, options?: { replace?: boolean; resume?: boolean; params?: Record<string, string | null> }) => void;
 } {
   const router = useRouter();
   const params = useSearchParams();
@@ -75,8 +78,12 @@ export function useShellMode(): {
   const mode: ShellMode = isShellMode(raw) ? raw : DEFAULT_MODE;
 
   const setMode = useCallback(
-    (next: ShellMode, options?: { replace?: boolean; resume?: boolean }) => {
+    (next: ShellMode, options?: { replace?: boolean; resume?: boolean; params?: Record<string, string | null> }) => {
       const sp = new URLSearchParams(params.toString());
+      for (const [key, value] of Object.entries(options?.params ?? {})) {
+        if (value === null) sp.delete(key);
+        else sp.set(key, value);
+      }
       if (next === DEFAULT_MODE) {
         sp.delete("mode");
       } else {

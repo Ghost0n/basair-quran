@@ -52,6 +52,7 @@ export function NavigateSheet({
   currentHizb,
   onNavigate,
   onClose,
+  inline = false,
 }: {
   surahs: SurahListItem[];
   currentSurahId?: number;
@@ -61,9 +62,11 @@ export function NavigateSheet({
   currentHizb?: number | null;
   onNavigate: (target: NavigateTarget) => void;
   onClose: () => void;
+  /** A page of its own (the reading world's «الفهرس»), not a dialog over the reader. */
+  inline?: boolean;
 }) {
   const formatNumber = useNumerals();
-  const panelRef = useDialog<HTMLDivElement>(onClose);
+  const panelRef = useDialog<HTMLDivElement>(onClose, { enabled: !inline });
   const [hover] = useState(canHover);
   const [tab, setTab] = useState<Tab>("surah");
   const [query, setQuery] = useState("");
@@ -105,15 +108,22 @@ export function NavigateSheet({
   const pageValid = Number.isInteger(pageNumber) && pageNumber >= 1 && pageNumber <= TOTAL_PAGES;
 
   return (
-    <div className="qb-rsheet qb-nav-sheet" role="dialog" aria-modal="true" aria-label={t("انتقل في المصحف")}>
-      <div className="backdrop" onClick={onClose} aria-hidden />
+    <div
+      className={`qb-rsheet qb-nav-sheet${inline ? " is-inline" : ""}`}
+      role={inline ? "region" : "dialog"}
+      aria-modal={inline ? undefined : true}
+      aria-label={t("انتقل في المصحف")}
+    >
+      {inline ? null : <div className="backdrop" onClick={onClose} aria-hidden />}
       <div className="panel" ref={panelRef} tabIndex={-1}>
         <div className="grip" aria-hidden />
         <div className="head">
-          <h2>{t("انتقل")}</h2>
-          <button type="button" className="close" onClick={onClose} aria-label={t("إغلاق")}>
-            <Icon name="close" size={18} />
-          </button>
+          <h2>{inline ? t("الفهرس") : t("انتقل")}</h2>
+          {inline ? null : (
+            <button type="button" className="close" onClick={onClose} aria-label={t("إغلاق")}>
+              <Icon name="close" size={18} />
+            </button>
+          )}
         </div>
 
         <div className="field">
