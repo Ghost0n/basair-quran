@@ -1,5 +1,7 @@
 import type { CSSProperties } from "react";
 
+import { BRAND_GLYPH_PATH } from "./brand-glyph.generated";
+
 import { t } from "@/lib/i18n";
 
 type ThemeOpt = { light?: boolean };
@@ -16,61 +18,49 @@ type BrandMarkProps = ThemeOpt & {
   themed?: boolean;
 };
 
+// The logo on a 100-unit square — the same numbers as apps/mobile/scripts/make_icons.py.
+const SQUARE_R = 41;
+const squarePoints = (turn: number) =>
+  Array.from({ length: 4 }, (_, k) => {
+    const angle = ((turn + 45 + 90 * k) * Math.PI) / 180;
+    return `${(50 + SQUARE_R * Math.cos(angle)).toFixed(2)},${(50 + SQUARE_R * Math.sin(angle)).toFixed(2)}`;
+  }).join(" ");
+const SQUARES = [squarePoints(0), squarePoints(45)];
+
 /**
- * BrandMark — the canonical seal (compact form).
- * Gold-bordered circle with the Arabic ب inside + two concentric
- * outer rings. Scales cleanly from 28px (rail) to 64px (header).
+ * BrandMark — the logo: the hizb star ۞ (two squares in a ring) whose centre
+ * dot becomes the dot of a ب (a dotless ب drawn from Amiri Quran, over it).
+ * The same drawing as the app icon and the favicon (make_icons.py). Scales
+ * from 16px (favicon) to the onboarding hero.
  */
 export function BrandMark({ size = 44, withWordmark = false, light = false, themed = false }: BrandMarkProps) {
   // In `themed` mode colors come from theme-aware CSS variables (resolved at
   // paint time from the body theme class), so the markup is theme-independent.
-  const goldStroke = themed ? "var(--brand-mark-stroke)" : light ? "#8a6a0c" : "#d4af37";
+  const goldStroke = themed ? "var(--brand-mark-stroke)" : light ? "#a4812a" : "#d4af37";
   const goldFill = themed ? "var(--brand-mark-fill)" : light ? "#8a6a0c" : "#e9cf73";
-  const glowFrom = themed ? "var(--brand-mark-glow)" : light ? "rgba(212,175,55,0.18)" : "rgba(212,175,55,0.22)";
-  const markFilter = themed
-    ? "var(--brand-mark-filter)"
-    : light
-      ? "none"
-      : "drop-shadow(0 4px 14px rgba(212,175,55,0.18))";
-  const vb = 80;
-  const cx = 40;
-  const cy = 40;
-  const rMain = 24;
-  const gid = `bm-glow-${size}-${themed ? "t" : light ? "l" : "d"}`;
+  const markFilter = themed ? "var(--brand-mark-filter)" : light ? "none" : "drop-shadow(0 4px 14px rgba(212,175,55,0.18))";
+  // Thin strokes vanish at small sizes: a little heavier below 28px.
+  const weight = size < 28 ? 1.3 : 1;
 
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: withWordmark ? 12 : 0 }}>
       <svg
         width={size}
         height={size}
-        viewBox={`0 0 ${vb} ${vb}`}
+        viewBox="0 0 100 100"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden
-        style={{ flexShrink: 0, filter: markFilter }}
+        style={{ flexShrink: 0, overflow: "visible", filter: markFilter }}
       >
         {/* Colors are applied via `style` (CSS) so `var()` resolves — SVG
             presentation attributes do not support CSS custom properties. */}
-        <circle cx={cx} cy={cy} r={rMain + 10} style={{ stroke: goldStroke }} strokeWidth="0.5" strokeDasharray="1 3" opacity="0.45" />
-        <circle cx={cx} cy={cy} r={rMain + 6} style={{ stroke: goldStroke }} strokeWidth="0.8" opacity="0.55" />
-        <circle cx={cx} cy={cy} r={rMain} fill={`url(#${gid})`} />
-        <circle cx={cx} cy={cy} r={rMain} style={{ stroke: goldStroke }} strokeWidth="1.6" />
-        <text
-          x={cx}
-          y={cy + rMain * 0.36}
-          textAnchor="middle"
-          fontFamily="'Amiri Quran','Amiri',serif"
-          fontSize={rMain * 1.55}
-          style={{ fontWeight: 400, fill: goldFill }}
-        >
-          ب
-        </text>
-        <defs>
-          <radialGradient id={gid} cx="50%" cy="40%" r="60%">
-            <stop offset="0%" style={{ stopColor: glowFrom }} />
-            <stop offset="100%" stopColor="rgba(20,16,8,0)" />
-          </radialGradient>
-        </defs>
+        <circle cx="50" cy="50" r="46" style={{ stroke: goldStroke }} strokeWidth={3.2 * weight} />
+        {SQUARES.map((points) => (
+          <polygon key={points} points={points} style={{ stroke: goldStroke }} strokeWidth={3.4 * weight} strokeLinejoin="miter" />
+        ))}
+        <path d={BRAND_GLYPH_PATH} style={{ fill: goldFill }} />
+        <circle cx="50" cy="67" r="4" style={{ fill: goldFill }} />
       </svg>
       {withWordmark ? <Wordmark size={size} light={light} /> : null}
     </span>

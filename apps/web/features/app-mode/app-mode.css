@@ -20,6 +20,9 @@
 }
 
 .qb-onboarding-mark {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
   font-family: var(--font-arabic-heading, "Amiri", serif);
   font-size: 44px;
   color: var(--gold-400);

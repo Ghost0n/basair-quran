@@ -161,9 +161,13 @@ same code (`apps/web/lib/app-mode/platform-capacitor.ts`).
   launch the language choice shows at once while the core database copies.
   Search indexes are then built in idle time so the first search answers at
   once. Returning from the background never shows the splash.
-- **Icons and splash:** `python apps/mobile/scripts/make_icons.py` draws them
-  (the ۞ mark in gold on the app's dark background) into
-  `android/app/src/main/res` and `ios/App/App/Assets.xcassets`.
+- **Icons and splash:** `python apps/mobile/scripts/make_icons.py` (Pillow +
+  fontTools) draws the logo — the ۞ star whose centre dot is the dot of a ب
+  drawn from the repository's Amiri Quran font — in gold on the app's dark
+  background into `android/app/src/main/res` and `ios/App/App/Assets.xcassets`,
+  the web favicon, touch and PWA icons and `icon.svg` into `apps/web/public`,
+  and the ب outline used by the React `BrandMark`
+  (`apps/web/components/brand-glyph.generated.ts`).
 
 ### Building
 

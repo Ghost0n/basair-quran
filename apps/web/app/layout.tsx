@@ -29,7 +29,11 @@ export const metadata: Metadata = {
     statusBarStyle: "black-translucent",
   },
   icons: {
-    icon: "/favicon.ico",
+    // The logo (apps/mobile/scripts/make_icons.py): SVG where supported, the .ico elsewhere.
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "16x16 32x32 48x48 64x64" },
+    ],
     apple: "/apple-touch-icon.png",
   },
 };

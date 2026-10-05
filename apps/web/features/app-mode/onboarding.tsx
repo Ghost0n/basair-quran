@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { BrandMark } from "@/components/brand-mark";
 import { chooseLanguage, BUILT_IN_LANGUAGES } from "@/lib/app-mode/language";
 import type { LanguageEntry } from "@/lib/app-mode/packs";
 import { appRuntime } from "@/lib/app-mode/runtime";
@@ -74,7 +75,8 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     <div className="qb-onboarding" dir="ltr" lang="en">
       <div className="qb-onboarding-card">
         <div className="qb-onboarding-mark" aria-hidden>
-          {BRAND}
+          <BrandMark size={72} themed />
+          <span>{BRAND}</span>
         </div>
         <h1>{t("مرحبًا بك في بصائر")}</h1>
         <p className="lead">{t("اختر لغتك. تُنزَّل الواجهة وترجمة معاني القرآن بهذه اللغة، ويمكنك تغييرها لاحقًا من الإعدادات.")}</p>

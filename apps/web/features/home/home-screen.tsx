@@ -229,7 +229,7 @@ export function HomeScreen() {
       <div className="qb-home-inner">
         <div className="qb-home-top">
           <span className="qb-brandmini" role="img" aria-label={t("بصائر")}>
-            <BrandMark size={30} themed />
+            <BrandMark size={34} themed />
             <span className="bname" aria-hidden="true">
               {t("بَصَائِر")}
             </span>
