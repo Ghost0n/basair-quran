@@ -6,6 +6,7 @@ import type { MushafLayoutLine, MushafLayoutGlyph } from "@q-basair/shared";
 
 import { useAyahMarks, highlightProps, type AyahMark } from "@/features/themes/ayah-marks";
 import { usePageRibbons } from "@/features/reading/use-saved-pages";
+import { VerseOutlines } from "@/features/reading/components/verse-outlines";
 import { usePickedWords, useVerseFocus, verseFocusClass, wordKey, type VerseFocus } from "@/features/reading/tools/word-selection";
 
 import { t } from "@/lib/i18n";
@@ -180,6 +181,7 @@ export function GlyphPage({
   return (
     <div className={`qb-glyph-page${isOpeningPage ? " is-opening" : ""}${ribbons.enabled ? " has-ribbon" : ""}`} data-page={page}>
       <PageRibbon page={page} surahId={pageSurah} />
+      <VerseOutlines />
       {lines.map((line) => {
         if (line.line_type === "surah_name") {
           return (
@@ -234,7 +236,7 @@ export function GlyphPage({
               ));
               const highlight = highlightProps(segment.mark);
               const node = segment.focus ? (
-                <span className={`qb-glyph-vf${verseFocusClass(segment.focus)}`} data-aid={segment.words[0]?.ayah_id}>
+                <span className={`qb-glyph-vf${verseFocusClass(segment.focus)}`} data-aid={segment.words[0]?.ayah_id} data-vf={segment.words[0]?.ayah_id}>
                   {inner}
                 </span>
               ) : segment.selected ? (
@@ -366,6 +368,7 @@ export function GlyphAyah({
       className={`qb-glyph-ayah-row${isSelected && !focus ? " qb-glyph-sel" : ""}${highlight.className}${verseFocusClass(focus)}`}
       data-hl={highlight["data-hl"]}
       data-ayah-id={save.ayahId}
+      data-vf={focus ? save.ayahId : undefined}
       style={{ fontFamily: fontFamily ?? undefined }}
     >
       {words.map((word) => {

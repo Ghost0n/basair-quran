@@ -156,6 +156,88 @@
   background: rgba(164, 129, 41, 0.09);
 }
 
+/* Pages with an outline layer (components/verse-outlines.tsx) draw each lit
+   verse as ONE traced block behind the text: the pieces lose their own boxes,
+   which overlapped from line to line and between neighbouring verses. */
+:where(.qb-glyph-page, .qb-page-turn, .qb-scroll-page):has(> .qb-verse-outlines) {
+  position: relative;
+  isolation: isolate;
+}
+
+.qb-verse-outlines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.qb-verse-outlines path {
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.qb-verse-outlines .is-recite path {
+  fill: rgba(96, 196, 172, 0.13);
+  stroke: rgba(96, 196, 172, 0.24);
+}
+
+.qb-verse-outlines .is-recite {
+  filter: drop-shadow(0 0 7px rgba(96, 196, 172, 0.2));
+  animation: qbOutlineIn 220ms var(--motion-ease-settle, ease-out);
+}
+
+.qb-verse-outlines .is-focus path {
+  fill: rgba(212, 175, 55, 0.2);
+  stroke: rgba(212, 175, 55, 0.28);
+}
+
+.qb-verse-outlines .is-focus {
+  filter: drop-shadow(0 0 7px rgba(212, 175, 55, 0.14));
+  animation: qbOutlineIn 160ms var(--motion-ease-settle, ease-out);
+}
+
+.qb-verse-outlines .is-hover path {
+  fill: rgba(212, 175, 55, 0.1);
+  stroke: none;
+}
+
+.light .qb-verse-outlines .is-recite path,
+.light-mode .qb-verse-outlines .is-recite path {
+  fill: rgba(24, 120, 100, 0.1);
+  stroke: rgba(24, 120, 100, 0.2);
+}
+
+.light .qb-verse-outlines .is-recite,
+.light-mode .qb-verse-outlines .is-recite {
+  filter: drop-shadow(0 0 7px rgba(24, 120, 100, 0.12));
+}
+
+.light .qb-verse-outlines .is-focus path,
+.light-mode .qb-verse-outlines .is-focus path {
+  fill: rgba(212, 175, 55, 0.22);
+  stroke: rgba(164, 129, 41, 0.3);
+}
+
+.light .qb-verse-outlines .is-hover path,
+.light-mode .qb-verse-outlines .is-hover path {
+  fill: rgba(164, 129, 41, 0.09);
+}
+
+@keyframes qbOutlineIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-verse-outlines g {
+    animation: none;
+  }
+}
+
 /* A little room around the lit verse, given back by the margin: the line keeps
    its exact width, so hovering never re-fits (shrinks) the page. */
 .qb-glyph-vf {
@@ -509,4 +591,26 @@
 .qb-reader-bar .qb-toolbox .tool {
   height: 30px;
   min-width: 30px;
+}
+
+/* While a recitation is open the reading tools are locked (reader-bar.tsx):
+   dimmed and unreachable (inert) until the player is closed. */
+.qb-tool-lock {
+  display: contents;
+}
+
+.qb-reader-bar.is-locked .qb-tool-lock > *,
+.qb-reader-bar.is-locked .display-btn:disabled {
+  opacity: 0.4;
+  filter: saturate(0.6);
+  cursor: default;
+}
+
+/* Under an outline layer the lit pieces lose their own boxes (the layer draws
+   the verse). Specific enough to win over every .qb-verse-focus state above,
+   the light theme's included. */
+:where(.qb-glyph-page, .qb-page-turn, .qb-scroll-page):has(> .qb-verse-outlines) .qb-verse-focus.qb-verse-focus[class] {
+  background: transparent;
+  box-shadow: none;
+  animation: none;
 }

@@ -18,6 +18,7 @@ import {
 import { GlyphAyah, VerseMark, type GlyphSaveTarget } from "./glyph-page";
 import { MorphPopover, type MorphTarget } from "./morph-popover";
 import { useMushaf } from "../mushaf-context";
+import { VerseOutlines } from "./verse-outlines";
 import { useMushafLayout } from "../use-mushaf-layout";
 import { useReaderWindow, type ScrollControls } from "../use-reader-window";
 import { useWordNav } from "../use-word-nav";
@@ -96,6 +97,7 @@ function AyahPage({
 
   return (
     <div className="qb-scroll-page" data-page={data.page ?? 0}>
+      <VerseOutlines />
       {data.ayahs.map((ayah) => {
         const isSelected = ayah.is_selected || ayah.ayah_id === selectedAyahId;
         const glyph = glyphByAyah.get(ayah.ayah_id);

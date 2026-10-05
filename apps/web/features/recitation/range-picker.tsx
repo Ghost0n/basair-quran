@@ -218,15 +218,6 @@ export function RangePicker() {
               <Icon name="repeat" size={15} />
               <span>{t("تكرار النطاق")}</span>
             </button>
-            <button
-              type="button"
-              className={`opt${recitation.follow ? " on" : ""}`}
-              aria-pressed={recitation.follow}
-              onClick={() => recitation.setFollow(!recitation.follow)}
-            >
-              <Icon name="book" size={15} />
-              <span>{t("متابعة الآية في المصحف")}</span>
-            </button>
           </div>
 
           <button type="button" className="go" onClick={play} disabled={!chosen}>
@@ -244,7 +235,7 @@ export function RangePicker() {
   );
 }
 
-function VerseField({
+export function VerseField({
   label,
   value,
   onChange,

@@ -18,8 +18,7 @@ import { APP_MODE } from "@/lib/app-mode/config";
 import { API_BASE_URL } from "@/lib/config";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { usePreferences } from "@/lib/preferences-context";
-import { ayahCount, inRange, nextVerse, previousVerse, sameVerse, type VerseRange } from "@/lib/quran-ranges";
-import { useStickyState } from "@/lib/use-sticky-state";
+import { ayahCount, divisionRange, inRange, nextVerse, previousVerse, sameVerse, type VerseRange } from "@/lib/quran-ranges";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -127,10 +126,14 @@ type RecitationValue = {
   playRange: (range: VerseRange, options?: { repeat?: boolean }) => void;
   clearRange: () => void;
   setRangeRepeat: (repeat: boolean) => void;
-  /** The reader follows the recited verse (highlight + page turns). Remembered on this device. */
-  follow: boolean;
-  setFollow: (follow: boolean) => void;
+  /** What repeats: nothing, the verse, or the chosen range (the surah when none was chosen). */
+  repeatMode: RepeatMode;
+  setRepeatMode: (mode: RepeatMode) => void;
+  /** A recitation session is open: from play until the player is closed (pausing keeps it open). */
+  active: boolean;
 };
+
+export type RepeatMode = "off" | "verse" | "range";
 
 const RecitationContext = createContext<RecitationValue | null>(null);
 
@@ -165,7 +168,6 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   const [ayahTime, setAyahTime] = useState(0);
   // A surah seek that lands in another verse applies once that verse loads.
   const pendingSeekRef = useRef<number | null>(null);
-  const [follow, setFollow] = useStickyState<boolean>("qb.recitation.follow", true);
 
   const reciter = useMemo(
     () => reciters.find((item) => item.id === reciterId) ?? reciters[0] ?? null,
@@ -335,6 +337,25 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const toggleRepeat = useCallback(() => setRepeatAyah((value) => !value), []);
+
+  const repeatMode: RepeatMode = repeatAyah ? "verse" : range?.repeat ? "range" : "off";
+  // Repeating "the range" without one chosen repeats the surah being recited,
+  // from where it is now (nothing restarts).
+  const setRepeatMode = useCallback(
+    (mode: RepeatMode) => {
+      setRepeatAyah(mode === "verse");
+      if (mode === "range") {
+        setRange((currentRange) => {
+          if (currentRange) return { ...currentRange, repeat: true };
+          const surah = (current ?? pendingStart)?.surah;
+          return surah ? { ...divisionRange("surah", surah), repeat: true } : null;
+        });
+      } else {
+        setRange((currentRange) => (currentRange?.repeat ? { ...currentRange, repeat: false } : currentRange));
+      }
+    },
+    [current, pendingStart],
+  );
 
   const openIdle = useCallback((start?: RecitationPosition | null) => {
     setPendingStart(start ?? null);
@@ -524,8 +545,9 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       playRange,
       clearRange,
       setRangeRepeat,
-      follow,
-      setFollow,
+      repeatMode,
+      setRepeatMode,
+      active: Boolean(current) || idle,
     }),
     [
       surahs,
@@ -533,8 +555,8 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       playRange,
       clearRange,
       setRangeRepeat,
-      follow,
-      setFollow,
+      repeatMode,
+      setRepeatMode,
       reciters,
       mushafs,
       reciterId,

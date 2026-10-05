@@ -97,9 +97,15 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   shared selected state, spring micro-interactions and view-transition page changes — with the
   mushaf itself kept opaque and reduced-motion respected.
 - A persistent floating media bar (transport · reciter chip · seekable progress ·
-  repeat/speed) shown across every screen; reciter selection lives in a filterable
-  sheet opened from the bar or the rail. The verse being recited is lit red in the reader,
-  which follows it (pages turn, the verse-by-verse list scrolls) unless «متابعة» is off.
+  repeat/speed) shown across every screen on larger screens. On phones a recitation is a
+  session, from play until the player is closed: the reader opens on a clear view (page +
+  a two-row player; the reader bar and tab bar step away), a tap on the page shrinks the
+  player into a capsule under the status bar and brings the tab bar back, and pausing
+  changes nothing on screen. The recitation sheet (reciter · what to recite · repeat ·
+  speed · end) opens from the player or the capsule. During a session the reading tools are
+  locked (dimmed; verse taps do nothing). The recited verse is lit as one traced block (no
+  per-line boxes; neighbouring lit verses keep a 4px gap), and the reader always follows it
+  (pages turn, the verse-by-verse list scrolls).
   «نطاق التلاوة» recites a range — the page, a surah, a juz, a hizb or a custom from → to —
   and stops at its end or repeats it. Juz / hizb / quarter boundaries come from
   `apps/web/lib/quran-divisions.generated.ts` (`scripts/build_quran_divisions.py`: King Fahd

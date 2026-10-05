@@ -1,0 +1,731 @@
+/* =====================================================================
+   Recitation on phones (phone-player.tsx, recitation-sheet.tsx).
+
+   A recitation is a session, from play until the player is closed
+   (html.qb-reciting). In the reader it opens on the CLEAR view: the reader
+   bar and the tab bar step away, the full player sits at the bottom. A tap
+   on the page REVEALS (html.qb-recite-revealed): the player shrinks into a
+   capsule under the status bar and the tab bar comes back. Every bar is
+   either fully there or fully away — the player and the tab bar never stack.
+   Pausing changes nothing on screen.
+   ===================================================================== */
+
+:root {
+  --qb-seek-rail: rgba(255, 255, 255, 0.09);
+  --qb-warn: #e0a15a;
+  --qb-seek-fill: linear-gradient(270deg, #c69e27, #eac54a);
+}
+
+.light,
+.light-mode,
+[data-theme="light"] {
+  --qb-seek-rail: rgba(60, 46, 18, 0.12);
+  --qb-warn: #b5532a;
+}
+
+@media (min-width: 769px) {
+  .qb-pplayer,
+  .qb-capsule,
+  .qb-recite-hint {
+    display: none;
+  }
+}
+
+/* ---------- Session states ---------- */
+
+@media (max-width: 768px) {
+  .qb-tabbar,
+  .qb-pplayer,
+  .qb-capsule,
+  .qb-mushaf-stage .qb-reader-head {
+    transition:
+      transform 380ms var(--motion-ease-settle, cubic-bezier(0.2, 0.8, 0.2, 1)),
+      opacity 260ms var(--motion-ease-settle, ease-out),
+      visibility 0s linear 0s;
+  }
+
+  /* Off: a bar that is away can't be reached (visibility drops it from
+     focus and the accessibility tree once it has faded). */
+  .qb-pplayer,
+  .qb-capsule {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transition-delay: 0s, 0s, 380ms;
+  }
+
+  .qb-pplayer {
+    transform: translateY(28px) scale(0.97);
+  }
+
+  .qb-capsule {
+    transform: translate(-50%, -18px) scale(0.9);
+  }
+
+  /* The clear view: the page and the player. */
+  html.qb-reciting[data-shell-mode="reading"]:not(.qb-recite-revealed) .qb-pplayer {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+    transition-delay: 0s;
+  }
+
+  html.qb-reciting[data-shell-mode="reading"]:not(.qb-recite-revealed) .qb-tabbar {
+    transform: translateY(calc(100% + 40px + env(safe-area-inset-bottom, 0px)));
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+    transition-delay: 0s, 0s, 380ms;
+  }
+
+  /* Revealed, or any other screen: the capsule (and the tab bar). */
+  html.qb-reciting.qb-recite-revealed .qb-capsule,
+  html.qb-reciting:not([data-shell-mode="reading"]) .qb-capsule {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%);
+    transition-delay: 0s;
+  }
+
+  /* The reader's tools are locked for the whole session: its bar steps away
+     (its room stays, so the page keeps its size and never re-fits). */
+  html.qb-reciting .qb-mushaf-stage .qb-reader-head {
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-14px);
+    transition-delay: 0s, 0s, 380ms;
+  }
+
+  /* Other screens make room for the capsule. */
+  html.qb-reciting:not([data-shell-mode="reading"]) .qb-main {
+    padding-top: 54px;
+  }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  .qb-tabbar,
+  .qb-pplayer,
+  .qb-capsule,
+  .qb-mushaf-stage .qb-reader-head {
+    transition: none;
+  }
+}
+
+/* ---------- The player: two rows ---------- */
+
+.qb-pplayer {
+  position: fixed;
+  left: calc(10px + env(safe-area-inset-left, 0px));
+  right: calc(10px + env(safe-area-inset-right, 0px));
+  bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+  z-index: 46;
+  display: grid;
+  gap: 2px;
+  padding: 7px 10px 5px;
+  border-radius: 22px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow-lift, var(--glass-shadow));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  font-family: var(--font-arabic-ui);
+  color: var(--fg-1);
+}
+
+.qb-pplayer .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Verse order runs right to left in every interface language. */
+.qb-ptransport {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  direction: rtl;
+}
+
+.qb-ptransport .nav {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-pill);
+  border: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--gold-text);
+  cursor: pointer;
+}
+
+.qb-ptransport .play {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-pill);
+  border: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: #140f00;
+  background: var(--gold-gel, var(--gold-400));
+  box-shadow: var(--gold-gel-shadow, none);
+}
+
+.qb-ptransport button:active:not(:disabled) {
+  transform: scale(0.94);
+}
+
+.qb-ptransport button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.qb-ptransport.big {
+  justify-content: center;
+  gap: 22px;
+}
+
+.qb-ptransport.big .nav {
+  width: 46px;
+  height: 46px;
+}
+
+.qb-ptransport.big .play {
+  width: 62px;
+  height: 62px;
+}
+
+.qb-pplayer .now {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  line-height: 1.3;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
+}
+
+.qb-pplayer .where,
+.qb-pplayer .who {
+  white-space: nowrap;
+  overflow-x: clip;
+  overflow-y: visible;
+  text-overflow: ellipsis;
+}
+
+.qb-pplayer .where {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg-1);
+}
+
+.qb-pplayer .who {
+  font-size: 11px;
+  color: var(--fg-3);
+}
+
+.qb-pplayer .side {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.qb-picon {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+.qb-picon:active {
+  background: rgba(212, 175, 55, 0.12);
+}
+
+/* A dot on the settings: gold when repeat or speed is set, orange when the
+   reciter's riwāyah differs from the mushaf on screen. */
+.qb-picon .dot {
+  position: absolute;
+  top: 6px;
+  inset-inline-end: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--gold-400);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.qb-picon .dot.warn {
+  background: var(--qb-warn);
+}
+
+/* ---------- The progress line ---------- */
+
+.qb-pprog {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 4px;
+  direction: rtl;
+}
+
+.qb-pprog .time {
+  flex-shrink: 0;
+  min-width: 3.4em;
+  font-size: 11px;
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.qb-pprog .time.total {
+  opacity: 0.8;
+}
+
+.qb-pseek {
+  position: relative;
+  flex: 1;
+  height: 20px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.qb-pseek .rail,
+.qb-pseek .fill {
+  position: absolute;
+  top: 7px;
+  height: 6px;
+  border-radius: var(--r-pill);
+}
+
+.qb-pseek .rail {
+  inset-inline: 0;
+  background: var(--qb-seek-rail);
+}
+
+.qb-pseek .fill {
+  inset-inline-start: 0;
+  background: var(--qb-seek-fill);
+}
+
+.qb-pseek .knob {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  margin-inline-start: -7px;
+  border-radius: 50%;
+  background: #fbf6e2;
+  border: 2px solid #c99a22;
+  transform: translateY(-50%);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.qb-pseek.is-idle {
+  cursor: default;
+}
+
+.qb-pseek.is-idle .knob {
+  display: none;
+}
+
+.qb-pseek:focus-visible {
+  outline: 2px solid var(--border-focus, var(--gold-400));
+  outline-offset: 2px;
+  border-radius: var(--r-pill);
+}
+
+/* ---------- The capsule ---------- */
+
+.qb-capsule {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 4px);
+  left: 50%;
+  z-index: 46;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 46px;
+  max-width: min(236px, calc(100vw - 32px));
+  padding: 0 5px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background-color: var(--glass-tint-overlay);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow-lift, var(--glass-shadow));
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong, var(--glass-blur)));
+  backdrop-filter: blur(var(--glass-blur-strong, var(--glass-blur)));
+  font-family: var(--font-arabic-ui);
+}
+
+.qb-capsule .cplay {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  color: #140f00;
+  background: var(--gold-gel, var(--gold-400));
+  box-shadow: var(--gold-gel-shadow, none);
+  cursor: pointer;
+}
+
+.qb-capsule .cbody {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 6px 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--fg-1);
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
+}
+
+.qb-capsule .ctext {
+  display: grid;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.qb-capsule .ctext b {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow-x: clip;
+  text-overflow: ellipsis;
+}
+
+.qb-capsule .cbar {
+  display: block;
+  width: 92px;
+  height: 3px;
+  margin-top: 3px;
+  border-radius: 3px;
+  background: var(--qb-seek-rail);
+  overflow: hidden;
+  direction: rtl;
+}
+
+.qb-capsule .cbar span {
+  display: block;
+  height: 100%;
+  background: var(--qb-seek-fill);
+}
+
+.qb-capsule .cbody > svg {
+  flex-shrink: 0;
+  color: var(--fg-3);
+}
+
+/* The one-time hint on the clear view. */
+.qb-recite-hint {
+  position: fixed;
+  left: 50%;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  z-index: 47;
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background-color: var(--glass-tint-overlay);
+  box-shadow: var(--glass-shadow);
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-size: 12.5px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -6px);
+  transition:
+    opacity 300ms,
+    transform 300ms var(--motion-ease-settle, ease-out);
+}
+
+.qb-recite-hint:empty {
+  border: 0;
+  padding: 0;
+}
+
+.qb-recite-hint.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ---------- The recitation sheet ---------- */
+
+.qb-recite-sheet .body {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.qb-recite-sheet .nowblock {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.qb-recite-sheet .snwhere {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg-1);
+}
+
+.qb-recite-sheet .setlist {
+  padding: 2px 14px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--glass-tint);
+}
+
+.qb-recite-sheet .srow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.qb-recite-sheet .srow + .srow {
+  border-top: 1px solid var(--border);
+}
+
+.qb-recite-sheet .srow.col {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.qb-recite-sheet .k {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg-1);
+}
+
+.qb-recite-sheet .k small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--fg-3);
+}
+
+.qb-recite-sheet .recrow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg-1);
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
+}
+
+.qb-recite-sheet .avatar {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #eac54a, #8a6a0c);
+  color: #1a1207;
+}
+
+.qb-recite-sheet .nm {
+  display: grid;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.qb-recite-sheet .nm b {
+  font-size: 14.5px;
+}
+
+.qb-recite-sheet .nm small {
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+
+.qb-recite-sheet .nm small.warn {
+  color: var(--qb-warn);
+  font-weight: 600;
+}
+
+.qb-recite-sheet .recrow > svg {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+  color: var(--fg-3);
+}
+
+.qb-recite-sheet .chips {
+  display: flex;
+  gap: 6px;
+}
+
+.qb-recite-sheet .chips button {
+  flex: 1;
+  padding: 8px 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.qb-recite-sheet .chips button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.qb-recite-sheet :is(.chips, .seg) button[aria-pressed="true"] {
+  border-color: var(--border-accent);
+  background: var(--seg-on-bg, rgba(212, 175, 55, 0.17));
+  box-shadow: var(--seg-on-shadow, none);
+  color: var(--gold-text);
+}
+
+.qb-recite-sheet .seg {
+  display: flex;
+  flex: 0 0 auto;
+  padding: 3px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: var(--glass-tint);
+}
+
+.qb-recite-sheet .seg button {
+  flex: 0 0 auto;
+  padding: 6px 11px;
+  border: 1px solid transparent;
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.qb-recite-sheet .endbtn {
+  width: 100%;
+  padding: 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-pill);
+  background: transparent;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-recite-sheet .sv {
+  display: grid;
+  gap: 12px;
+}
+
+.qb-recite-sheet .backrow {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  color: var(--gold-text);
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-recite-sheet .search {
+  width: 100%;
+  padding: 9px 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--glass-tint);
+  color: var(--fg-1);
+  font: inherit;
+  /* 16px: iOS never zooms on focus. */
+  font-size: 16px;
+}
+
+.qb-recite-sheet .search::placeholder {
+  color: var(--fg-3);
+}
+
+.qb-recite-sheet .reciters {
+  display: grid;
+  gap: 4px;
+}
+
+.qb-recite-sheet .rec {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--r-lg);
+  background: transparent;
+  color: var(--fg-1);
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
+}
+
+.qb-recite-sheet .rec .avatar {
+  width: 34px;
+  height: 34px;
+}
+
+.qb-recite-sheet .rec[aria-checked="true"] {
+  border-color: var(--border-accent);
+  background: var(--seg-on-bg, rgba(212, 175, 55, 0.17));
+}
+
+.qb-recite-sheet .rec .tick {
+  margin-inline-start: auto;
+  color: var(--gold-text);
+  visibility: hidden;
+}
+
+.qb-recite-sheet .rec[aria-checked="true"] .tick {
+  visibility: visible;
+}
+
+.qb-recite-sheet .empty {
+  margin: 0;
+  padding: 6px 4px;
+  font-size: 13px;
+  color: var(--fg-3);
+}

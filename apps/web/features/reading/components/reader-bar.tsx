@@ -48,6 +48,7 @@ export function ReaderBar({
   onToggleDisplay,
   onCloseDisplay,
   onToggleImmersive,
+  locked = false,
 }: {
   pageData: QuranPageResponse;
   surahs: SurahListItem[];
@@ -66,6 +67,8 @@ export function ReaderBar({
   onToggleDisplay: () => void;
   onCloseDisplay: () => void;
   onToggleImmersive: () => void;
+  /** A recitation is open: the reading tools are locked (dimmed, unreachable) until it is closed. */
+  locked?: boolean;
 }) {
   const headRef = useRef<HTMLDivElement | null>(null);
   const formatNumber = useNumerals();
@@ -106,7 +109,7 @@ export function ReaderBar({
   const progress = Math.min(100, Math.max(0, (displayPage / totalPages) * 100));
 
   const bar = (
-    <div className="qb-reader-bar" data-autofit="7">
+    <div className={`qb-reader-bar${locked ? " is-locked" : ""}`} data-autofit="7">
       <button type="button" className="identity" onClick={onOpenNavigate} aria-label={t("{0} — انتقل", { 0: surahName })}>
         <span className="name" data-fit-watch>{surahName}</span>
         <span className="meta" data-fit-watch>
@@ -117,7 +120,9 @@ export function ReaderBar({
       </button>
 
       <div className="actions">
-        <ToolPicker compact={compact} />
+        <span className="qb-tool-lock" inert={locked} title={locked ? t("الأدوات متوقفة أثناء التلاوة") : undefined}>
+          <ToolPicker compact={compact} />
+        </span>
         {compact ? null : (
           <button
             type="button"
@@ -137,6 +142,7 @@ export function ReaderBar({
           type="button"
           className={`act labelled display-btn${displayOpen ? " on" : ""}`}
           onClick={onToggleDisplay}
+          disabled={locked}
           aria-expanded={displayOpen}
           aria-label={t("العرض")}
           title={t("العرض (طريقة القراءة · حجم الخطّ)")}

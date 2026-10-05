@@ -11,9 +11,12 @@ import { MergeToast } from "@/features/identity/merge-toast";
 import { MushafProvider } from "@/features/reading/mushaf-context";
 import { SaveAyahProvider } from "@/features/themes/save-ayah-context";
 import { RecitationProvider } from "@/features/recitation/recitation-context";
+import { PhonePlayer } from "@/features/recitation/phone-player";
 import { RecitationBar } from "@/features/recitation/recitation-bar";
+import { RecitationSessionAttributes } from "@/features/recitation/session-view";
 import { AuthSessionProvider } from "@/lib/auth-session-context";
 import { PreferencesProvider } from "@/lib/preferences-context";
+import { usePhoneLayout } from "@/lib/use-phone-layout";
 
 import { LeftRail } from "./left-rail";
 import { MobileTabBar } from "./mobile-tab-bar";
@@ -42,6 +45,8 @@ function ShellModeAttribute() {
 }
 
 export function Shell({ children }: { children: ReactNode }) {
+  // Phones get the session player (two rows / capsule); larger screens the media bar.
+  const phone = usePhoneLayout();
   // Install the Sentry-shaped global error capture (no-op unless the env flag is on).
   useEffect(() => {
     installGlobalErrorHooks();
@@ -59,10 +64,12 @@ export function Shell({ children }: { children: ReactNode }) {
               <div className="qb-main">
                 <TopBar />
                 <div className="qb-canvas">{children}</div>
-                <RecitationBar />
+                {phone ? null : <RecitationBar />}
               </div>
               <MobileTabBar />
+              {phone ? <PhonePlayer /> : null}
             </div>
+            <RecitationSessionAttributes />
             <ShellModeAttribute />
             <ShortcutsModal />
             <LocaleAccountSync />

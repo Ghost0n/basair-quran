@@ -6,6 +6,7 @@ import type { MushafPageLayoutResponse, QuranPageAyah } from "@q-basair/shared";
 
 import { GlyphPage, PageRibbon, type GlyphSaveTarget } from "./glyph-page";
 import { MorphPopover, type MorphTarget } from "./morph-popover";
+import { VerseOutlines } from "./verse-outlines";
 import { AyatFlow, type WordClickHandler, type WordKeyHandler } from "./ayat-flow";
 import { useMushaf } from "../mushaf-context";
 import { useWordNav } from "../use-word-nav";
@@ -133,6 +134,7 @@ export function PagedReader({
         // (and its bodyRef) stays put.
         <div key={page} className={`qb-page-turn ${navDir}`}>
           <PageRibbon page={page} surahId={pageData.ayahs[0]?.surah_id ?? null} />
+          <VerseOutlines />
           <AyatFlow
             ayahs={pageData.ayahs}
             selectedAyahId={selectedAyahId}

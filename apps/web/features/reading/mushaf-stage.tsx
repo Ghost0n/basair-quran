@@ -11,6 +11,8 @@ import { API_BASE_URL } from "@/lib/config";
 import { ErrorState } from "@/components/error-state";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { useRecitation } from "@/features/recitation/recitation-context";
+import { toggleRevealed } from "@/features/recitation/session-view";
+import { usePhoneLayout } from "@/lib/use-phone-layout";
 import { divisionOf, divisionRange } from "@/lib/quran-ranges";
 import { Icon } from "@/components/icon";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
@@ -97,6 +99,22 @@ export function MushafStage() {
     [focusAyahId, hoverAyahId, recitingAyahId],
   );
   const [immersive, setImmersive] = useState(false);
+
+  // A recitation session locks the reader, from play until the player is
+  // closed: every tool closes, verse taps do nothing, and on phones a tap on
+  // the page only switches the view (the clear page ↔ the bars).
+  const sessionActive = useRecitation().active;
+  const phone = usePhoneLayout();
+  useEffect(() => {
+    if (!sessionActive) return;
+    setSelection(null);
+    setMorphTarget(null);
+    setFocusAyahId(null);
+    setHoverAyahId(null);
+    setDisplayOpen(false);
+    if (phone) setImmersive(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionActive]);
 
   // Focus mode hides the shell chrome too (top bar, rail, tab bar) — a class on
   // <html> lets shell.css react without threading state through the shell.
@@ -322,7 +340,7 @@ export function MushafStage() {
 
   // «تظليل» hover: the verse under the pointer lights whole (mouse only).
   function onSurfaceHover(event: React.PointerEvent<HTMLDivElement>) {
-    if (tool !== "highlight" || event.pointerType !== "mouse") return;
+    if (sessionActive || tool !== "highlight" || event.pointerType !== "mouse") return;
     const target = event.target as Element;
     const verse = target.closest<HTMLElement>("[data-aid], [data-ayah-id]");
     // Between two words of a line: keep the current verse (no flicker).
@@ -333,6 +351,7 @@ export function MushafStage() {
 
   // Glyph readers: build the ayah payload from the ornament + catalog.
   function handleGlyphSave(target: GlyphSaveTarget) {
+    if (sessionActive) return;
     const surahName = surahs.find((item) => item.id === target.surahId)?.name ?? `${target.surahId}`;
     activateVerse({
       ayah_id: target.ayahId,
@@ -345,6 +364,7 @@ export function MushafStage() {
   }
 
   function handleAyahSave(ayah: QuranPageAyah) {
+    if (sessionActive) return;
     activateVerse({
       ayah_id: ayah.ayah_id,
       mushaf_id: ayah.mushaf_id,
@@ -399,8 +419,8 @@ export function MushafStage() {
 
   // ---------- Recitation: the recited verse, lit and followed ----------
   // The verse being recited is lit as one continuous block wherever it is on
-  // screen (the "recite" verse state, drawn like the «تظليل» focus). With «متابعة» on,
-  // the reader keeps it in view: pages turn to it, the verse-by-verse list
+  // screen (the "recite" verse state, drawn like the «تظليل» focus). The reader
+  // always keeps it in view: pages turn to it, the verse-by-verse list
   // scrolls to it. Each verse is followed once, so a reader who turns away
   // mid-verse is only brought back by the next verse.
   const recitation = useRecitation();
@@ -420,7 +440,7 @@ export function MushafStage() {
       const word = surfaceRef.current?.querySelector<HTMLElement>(`[data-wk^="${recitingKey}:"]`) ?? null;
       if (word) {
         setRecitingAyahId(word.dataset.aid ? Number(word.dataset.aid) : null);
-        if (recitation.follow && ayahMode && followedRef.current !== `${recitingKey}@scroll`) {
+        if (ayahMode && followedRef.current !== `${recitingKey}@scroll`) {
           followedRef.current = `${recitingKey}@scroll`;
           const row = word.closest<HTMLElement>(".qb-ayah-row") ?? word;
           const box = row.getBoundingClientRect();
@@ -439,7 +459,7 @@ export function MushafStage() {
         return;
       }
       setRecitingAyahId(null);
-      if (!recitation.follow || followedRef.current === recitingKey || !pageData) return;
+      if (followedRef.current === recitingKey || !pageData) return;
       const onPage = pageData.ayahs.some((ayah) => ayah.surah_id === reciting.surah && ayah.ayah === reciting.ayah);
       if (onPage) return;
       followedRef.current = recitingKey;
@@ -448,7 +468,7 @@ export function MushafStage() {
     locate();
     return () => cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recitingKey, recitation.follow, ayahMode, pageData, layout, facing.layout, showSpread]);
+  }, [recitingKey, ayahMode, pageData, layout, facing.layout, showSpread]);
 
   // Desktop page ribbons: outline / red, a click (un)saves that page.
   const savedPages = useSavedPages();
@@ -474,7 +494,7 @@ export function MushafStage() {
     swipeEnabled: true,
     onNext: () => goNextRef.current(),
     onPrev: () => goPrevRef.current(),
-    onTap: () => setImmersive((value) => !value),
+    onTap: () => (sessionActive && phone ? toggleRevealed() : setImmersive((value) => !value)),
     mouseTaps: compact,
   });
   function goPrev() {
@@ -621,6 +641,12 @@ export function MushafStage() {
 
   // One entry point for pointer + keyboard word activation, routed by tool.
   function activateWord(surah: number, ayah: number, element: HTMLElement, ayahText?: string) {
+    if (sessionActive) {
+      // The verse doesn't react (no focus ring left on the tapped word).
+      element.blur();
+      if (phone) toggleRevealed();
+      return;
+    }
     if (tool === "highlight") {
       // «تظليل» works on verses: a tap on any word takes its whole ayah.
       const target = ayahFromWord(element, surah, ayah, ayahText);
@@ -730,6 +756,7 @@ export function MushafStage() {
         onToggleDisplay={() => setDisplayOpen((open) => !open)}
         onCloseDisplay={() => setDisplayOpen(false)}
         onToggleImmersive={() => setImmersive((value) => !value)}
+        locked={sessionActive}
       />
 
       {/* The reading surface: touch swipe turns the page (paged modes), a tap on

@@ -623,29 +623,29 @@
 }
 
 /* Fields: a small bold label over the control (the sheets' label style). */
-.qb-range-panel .field {
+:is(.qb-range-panel, .qb-recite-sheet) .field {
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.qb-range-panel .label {
+:is(.qb-range-panel, .qb-recite-sheet) .label {
   font-size: 12px;
   font-weight: 700;
   color: var(--fg-3);
 }
 
-.qb-range-panel .qb-range-select {
+:is(.qb-range-panel, .qb-recite-sheet) .qb-range-select {
   width: 100%;
 }
 
-.qb-range-panel .verse-row {
+:is(.qb-range-panel, .qb-recite-sheet) .verse-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 84px;
   gap: 8px;
 }
 
-.qb-range-panel input[type="number"] {
+:is(.qb-range-panel, .qb-recite-sheet) input[type="number"] {
   height: 40px;
   min-width: 0;
   padding: 0 12px;
@@ -659,7 +659,7 @@
   text-align: center;
 }
 
-.qb-range-panel input[type="number"]:focus {
+:is(.qb-range-panel, .qb-recite-sheet) input[type="number"]:focus {
   outline: none;
   border-color: var(--border-focus, var(--gold-400));
 }
@@ -709,7 +709,7 @@
 }
 
 /* The primary action: the app's gold gel. */
-.qb-range-panel .go {
+:is(.qb-range-panel, .qb-recite-sheet) .go {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -726,7 +726,7 @@
   cursor: pointer;
 }
 
-.qb-range-panel .go:disabled {
+:is(.qb-range-panel, .qb-recite-sheet) .go:disabled {
   opacity: 0.5;
   cursor: default;
 }
