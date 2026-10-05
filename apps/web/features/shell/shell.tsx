@@ -45,7 +45,7 @@ function ShellModeAttribute() {
 }
 
 export function Shell({ children }: { children: ReactNode }) {
-  // Phones get the session player (two rows / capsule); larger screens the media bar.
+  // Phones, upright or on their side, get the session player (player / capsule); larger screens the media bar.
   const phone = usePhoneLayout();
   // Install the Sentry-shaped global error capture (no-op unless the env flag is on).
   useEffect(() => {

@@ -142,11 +142,13 @@ export function Transport({ big = false }: { big?: boolean }) {
 }
 
 /**
- * The phone's recitation controls (≤768px; desktop keeps RecitationBar):
+ * The phone's recitation controls (either orientation, lib/use-phone-layout.ts;
+ * desktop keeps RecitationBar):
  *
  *  - the PLAYER, two rows at the bottom of the clear view: transport, the verse
  *    and reciter (tap: the recitation sheet), settings and close; then the
- *    surah's progress line with its times;
+ *    surah's progress line with its times. On its side the phone has little
+ *    height: the same controls sit in one row, the progress line in the middle;
  *  - the CAPSULE under the status bar when the view is revealed or on another
  *    screen: play / pause and the verse with a thin progress line (tap: the sheet).
  *

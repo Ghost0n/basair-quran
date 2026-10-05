@@ -110,7 +110,10 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   a two-row player; the reader bar and tab bar step away), a tap on the page shrinks the
   player into a capsule under the status bar and brings the tab bar back, and pausing
   changes nothing on screen. The recitation sheet (reciter · what to recite · repeat ·
-  speed · end) opens from the player or the capsule. During a session the reading tools are
+  speed · end) opens from the player or the capsule. Phones held sideways (a touch screen
+  at most 500px tall) get the same session in landscape form: a one-row player
+  beside the side rail, and a sheet with the transport and the settings side by side.
+  During a session the reading tools are
   locked (dimmed; verse taps do nothing). The recited verse is lit as one traced block (no
   per-line boxes; neighbouring lit verses keep a 4px gap), and the reader always follows it
   (pages turn, the verse-by-verse list scrolls).
