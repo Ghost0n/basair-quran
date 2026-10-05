@@ -167,13 +167,21 @@ jobs:
               echo "QBASAIR_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
               echo "QBASAIR_KEY_ALIAS=$ANDROID_KEY_ALIAS"
               echo "QBASAIR_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+              echo "QBASAIR_RELEASE_SIGNED=1"
             } >> "$GITHUB_ENV"
           else
-            echo "::notice::No Android signing secrets: the release APK/AAB are unsigned; install the debug APK."
+            echo "::notice::No Android signing secrets: only the debug APK is published (Android refuses unsigned packages)."
           fi
       - name: Gradle build
         working-directory: apps/mobile/android
         run: ./gradlew --no-daemon assembleDebug assembleRelease bundleRelease
+      # Unsigned release outputs cannot be installed ("App not installed as
+      # package appears to be invalid") nor uploaded to Play: without signing
+      # secrets they are left out, so the artifact holds only installable files.
+      - name: Drop unsigned release outputs
+        if: env.QBASAIR_RELEASE_SIGNED != '1'
+        working-directory: apps/mobile/android/app/build/outputs
+        run: rm -f apk/release/*.apk bundle/release/*.aab
       - uses: actions/upload-artifact@v4
         with:
           name: basair-android-${{ env.VERSION_NAME }}
