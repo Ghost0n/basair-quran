@@ -37,14 +37,9 @@
     radial-gradient(38vmax 30vmax at 82% 8%, var(--aurora-1), transparent 70%),
     radial-gradient(34vmax 28vmax at 12% 80%, var(--aurora-2), transparent 70%),
     radial-gradient(30vmax 26vmax at 55% 55%, var(--aurora-3), transparent 72%);
-  animation: qbAurora 38s var(--ease-in-out) infinite alternate;
+  /* Still, on purpose: see body::before in app/glass.css (an endlessly moving
+     layer under the glass kept the GPU busy and heated phones). */
   z-index: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .qb-frame::before {
-    animation: none;
-  }
 }
 
 /* ---------- Left rail ---------- */

@@ -148,16 +148,10 @@ body::before {
     radial-gradient(38vmax 30vmax at 82% 8%, var(--aurora-1), transparent 70%),
     radial-gradient(34vmax 28vmax at 12% 78%, var(--aurora-2), transparent 70%),
     radial-gradient(30vmax 26vmax at 60% 60%, var(--aurora-3), transparent 72%);
-  animation: qbAurora 38s var(--ease-in-out) infinite alternate;
-}
-
-@keyframes qbAurora {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  to {
-    transform: translate3d(-3vmax, 2vmax, 0) scale(1.06);
-  }
+  /* Deliberately still. It used to drift forever (a 38 s loop): imperceptible,
+     but a moving layer under the glass makes every backdrop blur recompute on
+     every frame — constant GPU work at 60–120 Hz that heated phones even while
+     the reader sat idle. A still background is blurred once. */
 }
 
 /* ---------- The material ---------- */

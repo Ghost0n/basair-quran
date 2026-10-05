@@ -180,7 +180,10 @@
   color: #0f4f42;
 }
 
-@media (prefers-reduced-motion: no-preference) {
+/* The breathing repaints the glow every frame for as long as audio plays (an
+   animated shadow can't be composited): desktops only — on phones and tablets
+   the glow stays steady, sparing battery and heat over a long recitation. */
+@media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) {
   .qb-verse-focus.is-recite {
     animation: qbReciteBreath 2.8s ease-in-out infinite;
   }
