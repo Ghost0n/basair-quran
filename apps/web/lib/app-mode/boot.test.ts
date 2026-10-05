@@ -3,15 +3,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const hide = vi.fn(async () => undefined);
 let lifted = false;
 const searchV2 = vi.fn(async () => ({}));
+let durations: () => Promise<unknown>;
+const getReciterDurations = vi.fn((..._args: unknown[]) => durations());
 let runtime: Promise<unknown>;
-let readerPage: Promise<void>;
+let readerPage: Promise<unknown>;
 
 vi.mock("@capacitor/splash-screen", () => ({ SplashScreen: { hide } }));
 vi.mock("./runtime", () => ({ appRuntime: () => runtime }));
 vi.mock("@/features/reading/mushaf-context", () => ({ lastReadPage: () => 42, warmQuranPage: () => readerPage }));
 vi.mock("@/features/reading/use-mushaf-layout", () => ({ warmMushafPage: () => readerPage }));
 vi.mock("@q-basair/api-client", () => ({
-  createQBasairApiClient: () => ({ getNotebook: async () => [], getSessions: async () => [], searchV2 }),
+  createQBasairApiClient: () => ({ getNotebook: async () => [], getSessions: async () => [], searchV2, getReciterDurations }),
 }));
 
 const never = () => new Promise<never>(() => undefined);
@@ -31,6 +33,8 @@ describe("app start-up", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     searchV2.mockClear();
+    getReciterDurations.mockClear();
+    durations = async () => ({ durations: [], complete: false });
     vi.stubGlobal("window", globalThis);
     runtime = Promise.resolve({});
     readerPage = Promise.resolve();
@@ -71,6 +75,16 @@ describe("app start-up", () => {
     runtime = never();
     await boot(false);
     await after(10);
+    expect(lifted).toBe(true);
+  });
+
+  it("asks for the opening page's verse durations without waiting on them", async () => {
+    readerPage = Promise.resolve({ found: true, surahs: [{ id: 2, name: "" }, { id: 3, name: "" }], ayahs: [] });
+    durations = never;
+    await boot(true);
+    await after(10);
+    expect(getReciterDurations).toHaveBeenCalledWith("alafasy", 2);
+    expect(getReciterDurations).toHaveBeenCalledWith("alafasy", 3);
     expect(lifted).toBe(true);
   });
 });

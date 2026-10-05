@@ -10,6 +10,11 @@
  * finishes in the background); only the databases may hold it longer, since
  * nothing can show without them. Search indexes warm up just after, in idle
  * time, so the first search answers at once.
+ *
+ * The verse durations of the last-read page's surahs, for the user's reciter,
+ * are asked for alongside, so the player opens on exact surah times. They
+ * never hold the splash: they come from the server and nothing on the first
+ * screen needs them.
  */
 import { createQBasairApiClient } from "@q-basair/api-client";
 
@@ -17,6 +22,7 @@ import { API_BASE_URL } from "@/lib/config";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { lastReadPage, warmQuranPage } from "@/features/reading/mushaf-context";
 import { warmMushafPage } from "@/features/reading/use-mushaf-layout";
+import { warmVerseDurations } from "@/features/recitation/verse-durations";
 
 import { appRuntime } from "./runtime";
 
@@ -32,6 +38,9 @@ const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 // Data, not interface text: the letters the fonts are loaded for, and the
 // root / word whose searches build the search indexes.
 const FONT_SAMPLE = "بصائر";
+// The account preferences cached on the device, and the player's reciter when none is set.
+const PREFS_CACHE_KEY = "qb.prefs.cache";
+const DEFAULT_RECITER = "alafasy";
 const WARM_ROOT = "رحم";
 const WARM_WORD = "رحمة";
 
@@ -67,10 +76,23 @@ function loadFonts(): Promise<unknown> {
   ]);
 }
 
-/** The reader's opening page, ready to draw without a step. */
+/** The reciter the player will start with (the cached account preference, as the player reads it). */
+function preferredReciter(): string {
+  try {
+    const cached = JSON.parse(window.localStorage.getItem(PREFS_CACHE_KEY) ?? "{}") as { reciter?: unknown };
+    if (typeof cached.reciter === "string" && cached.reciter) return cached.reciter;
+  } catch {
+    /* no cached preferences: the player's default */
+  }
+  return DEFAULT_RECITER;
+}
+
+/** The reader's opening page, ready to draw without a step; its surahs' verse durations follow on their own. */
 async function warmReader(): Promise<void> {
   const page = lastReadPage();
-  await Promise.all([warmQuranPage(DEFAULT_MUSHAF_ID, page), warmMushafPage(DEFAULT_MUSHAF_ID, page)]);
+  const [payload] = await Promise.all([warmQuranPage(DEFAULT_MUSHAF_ID, page), warmMushafPage(DEFAULT_MUSHAF_ID, page)]);
+  const reciter = preferredReciter();
+  for (const surah of payload?.surahs ?? []) void warmVerseDurations(reciter, surah.id);
 }
 
 /** The user's local data (notebook, sessions): read once so Home fills at once. */

@@ -123,7 +123,9 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   juz, quran.com hizb/quarters verified against the printed ۞ signs). The bar's whole-surah
   progress and timestamps use verse durations measured once on the server and shared by all
   users (`GET /api/reciters/{id}/durations/{surah}`, cached in `data/cache.db`, immutable
-  once complete).
+  once complete). A surah whose durations are all known is also kept on the device, so the
+  next recitation of it (offline included) shows exact times at once; the app asks for the
+  last-read surah's durations during its splash.
 - Optional invite-only authentication with backend-managed users and signed session cookies.
 - Strict-context research agent that uses local transcript/book sources for term discovery and answers only from Quran search results.
 - Dedicated `/research` workspace with per-session Ollama cloud key entry, model switching, request-usage observability, and an experimental Tafssir mode that reads every ayah with its neighbouring ayahs and its surah's context (and can be centred on one ayah).

@@ -160,7 +160,10 @@ same code (`apps/web/lib/app-mode/platform-capacitor.ts`).
   databases may hold it up to 15s, an 8s safety cap otherwise); on a first
   launch the language choice shows at once while the core database copies.
   Search indexes are then built in idle time so the first search answers at
-  once. Returning from the background never shows the splash.
+  once. The verse durations of the last-read page's surahs, for the user's
+  reciter, are asked for alongside (`features/recitation/verse-durations.ts`)
+  without holding the splash, so the player opens on exact surah times.
+  Returning from the background never shows the splash.
 - **Icons and splash:** `python apps/mobile/scripts/make_icons.py` (Pillow +
   fontTools) draws the logo — the ۞ star whose centre dot is the dot of a ب
   drawn from the repository's Amiri Quran font — in gold on the app's dark

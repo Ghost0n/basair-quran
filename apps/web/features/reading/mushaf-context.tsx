@@ -77,11 +77,12 @@ export function lastReadPage(): number {
   }
 }
 
-/** Load a page's payload into the reader's cache and wait for it (the app's start-up warm-up). */
-export function warmQuranPage(mushafId: number, page: number): Promise<void> {
+/** Load a page's payload into the reader's cache and wait for it (the app's
+ *  start-up warm-up); null when it couldn't be loaded. */
+export function warmQuranPage(mushafId: number, page: number): Promise<QuranPageResponse | null> {
   return fetchPage(mushafId, page).then(
-    () => undefined,
-    () => undefined,
+    (data) => (data.found ? data : null),
+    () => null,
   );
 }
 

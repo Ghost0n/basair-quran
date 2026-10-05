@@ -18,7 +18,9 @@ import { APP_MODE } from "@/lib/app-mode/config";
 import { API_BASE_URL } from "@/lib/config";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { usePreferences } from "@/lib/preferences-context";
-import { ayahCount, divisionRange, inRange, nextVerse, previousVerse, sameVerse, type VerseRange } from "@/lib/quran-ranges";
+import { divisionRange, inRange, nextVerse, previousVerse, sameVerse, type VerseRange } from "@/lib/quran-ranges";
+
+import { knownDurations, mergeDurations, rememberDurations } from "./verse-durations";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -372,6 +374,8 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   // browser caches it too). While it is still measuring, the answer is partial
   // and we ask again shortly. Only when the server can't be reached (offline,
   // the standalone app) does the player read the missing durations itself.
+  // The list starts from what is already known (warmed during the app's
+  // splash, or kept on the device from an earlier recitation).
   const reciterKey = reciter?.id ?? null;
   const currentSurah = current?.surah ?? null;
   useEffect(() => {
@@ -379,7 +383,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     const key = `${reciter.id}:${currentSurah}`;
     let list = durationsRef.current.get(key);
     if (!list) {
-      list = Array.from({ length: ayahCount(currentSurah) }, () => Number.NaN);
+      list = knownDurations(reciter.id, currentSurah);
       durationsRef.current.set(key, list);
       setDurationsVersion((version) => version + 1);
     }
@@ -389,6 +393,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     let attempts = 0;
 
     const fill = (values: (number | null)[]) => {
+      mergeDurations(reciter.id, currentSurah, values);
       let changed = false;
       values.forEach((value, index) => {
         if (typeof value === "number" && value > 0 && Number.isNaN(target[index])) {
@@ -454,6 +459,13 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reciterKey, currentSurah]);
+
+  // A surah whose every verse is now known stays on the device for next time.
+  useEffect(() => {
+    if (!reciter || currentSurah == null) return;
+    const list = durationsRef.current.get(`${reciter.id}:${currentSurah}`);
+    if (list) rememberDurations(reciter.id, currentSurah, list);
+  }, [reciter, currentSurah, durationsVersion]);
 
   const surahTiming = useMemo<SurahTiming | null>(() => {
     if (!current || !reciter) return null;
