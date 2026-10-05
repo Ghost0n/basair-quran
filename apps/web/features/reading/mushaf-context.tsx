@@ -67,6 +67,24 @@ function fetchPage(mushafId: number, page: number): Promise<QuranPageResponse> {
   return promise;
 }
 
+/** The page the reader opens on (the last one read; 1 the first time). */
+export function lastReadPage(): number {
+  try {
+    const stored = Number(window.localStorage.getItem(LAST_PAGE_KEY) ?? "1");
+    return Number.isFinite(stored) && stored >= 1 ? stored : 1;
+  } catch {
+    return 1;
+  }
+}
+
+/** Load a page's payload into the reader's cache and wait for it (the app's start-up warm-up). */
+export function warmQuranPage(mushafId: number, page: number): Promise<void> {
+  return fetchPage(mushafId, page).then(
+    () => undefined,
+    () => undefined,
+  );
+}
+
 /** Warm a page's payload so turning to it is instant. Best-effort. */
 export function prefetchQuranPage(mushafId: number | null | undefined, page: number, totalPages = 604): void {
   if (!mushafId || page < 1 || page > totalPages) return;

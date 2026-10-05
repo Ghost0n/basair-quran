@@ -155,7 +155,10 @@ export function useGlyphFit(ref: RefObject<HTMLElement | null>, fontSize: number
       rafRef.current = requestAnimationFrame(measure);
     };
 
-    schedule();
+    // The first fit runs now, before the browser paints (this is a layout
+    // effect): the page never shows at its natural size and then shrinks.
+    // Later fits (resize, fonts) follow on the next frame.
+    measure();
     if (typeof document !== "undefined" && document.fonts?.ready) {
       document.fonts.ready
         .then(() => {

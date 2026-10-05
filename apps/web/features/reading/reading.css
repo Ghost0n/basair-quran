@@ -541,6 +541,37 @@
   box-shadow: 0 3px 12px rgba(90, 70, 20, 0.08);
 }
 
+/* The empty sheet shown while the first authentic page loads: the page's
+   proportions with fifteen faint lines. Still (no shimmer: an endless
+   animation would keep the GPU busy for nothing). */
+.qb-glyph-skeleton {
+  width: min(100%, 26rem);
+  aspect-ratio: 0.66;
+  max-height: 100%;
+  margin-inline: auto;
+  justify-content: space-evenly;
+  padding: 26px 22px;
+  animation: qbSkeletonIn 400ms ease-out both;
+}
+
+.qb-glyph-skeleton .line {
+  display: block;
+  height: 7px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--fg-3) 14%, transparent);
+}
+
+.qb-glyph-skeleton .line:nth-child(15) {
+  width: 46%;
+  margin-inline: auto;
+}
+
+@keyframes qbSkeletonIn {
+  from {
+    opacity: 0;
+  }
+}
+
 /* Framed opening pages (1, 2) and the final page have <15 lines; a narrower
    centered column keeps their few large words from spreading edge-to-edge. */
 .qb-glyph-page.is-opening {

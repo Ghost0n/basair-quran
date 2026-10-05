@@ -44,9 +44,27 @@ export function prefetchMushafLayout(mushafId: number | null | undefined, page: 
   });
 }
 
+/**
+ * Make a page ready to draw: its layout and its glyph font, awaited (the app's
+ * start-up warm-up), then the neighbouring pages in the background.
+ */
+export async function warmMushafPage(mushafId: number, page: number, totalPages = 604): Promise<void> {
+  const data = await fetchLayout(mushafId, page);
+  if (!data) return;
+  await loadPageFonts(data.font_base_path ?? "", page);
+  prefetchMushafLayout(mushafId, page + 1, totalPages);
+  prefetchMushafLayout(mushafId, page - 1, totalPages);
+}
+
 type MushafLayoutState = {
   /** The usable authentic layout — non-null only when found AND the page font is ready. */
   layout: MushafPageLayoutResponse | null;
+  /**
+   * The first authentic page is still on its way (layout + glyph font). The
+   * reader shows an empty page frame meanwhile, never the Unicode text: the
+   * text stands in only when the authentic page really is unavailable.
+   */
+  pending: boolean;
 };
 
 /**
@@ -73,14 +91,19 @@ export function useMushafLayout({
   page: number | null | undefined;
 }): MushafLayoutState {
   const [layout, setLayout] = useState<MushafPageLayoutResponse | null>(null);
+  const [pending, setPending] = useState(false);
   const requestRef = useRef(0);
 
   useEffect(() => {
     if (!enabled || !mushafId || !page) {
       setLayout(null);
+      setPending(false);
       return;
     }
     const request = ++requestRef.current;
+    // While a later page loads, the current one stays on screen (no frame);
+    // only a reader with nothing to show yet waits on the empty frame.
+    setPending(true);
     let cancelled = false;
     const isCurrent = () => !cancelled && request === requestRef.current;
 
@@ -91,6 +114,7 @@ export function useMushafLayout({
         // Not Hafs / no layout tables / empty page → stay on the Unicode reader.
         if (!data) {
           setLayout(null);
+          setPending(false);
           return;
         }
         const base = data.font_base_path ?? "";
@@ -98,14 +122,19 @@ export function useMushafLayout({
         if (!isCurrent()) return;
         if (!fontsReady) {
           setLayout(null);
+          setPending(false);
           return;
         }
         setLayout(data);
+        setPending(false);
         // Warm the neighbouring page fonts so navigation is instant.
         prefetchPageFont(base, page + 1);
         prefetchPageFont(base, page - 1);
       } catch {
-        if (isCurrent()) setLayout(null);
+        if (isCurrent()) {
+          setLayout(null);
+          setPending(false);
+        }
       }
     })();
 
@@ -114,5 +143,5 @@ export function useMushafLayout({
     };
   }, [enabled, mushafId, page]);
 
-  return { layout };
+  return { layout, pending };
 }

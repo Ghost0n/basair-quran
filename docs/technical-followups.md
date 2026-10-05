@@ -18,7 +18,7 @@ This document captures recommended improvements that were found during the clean
 ## Security And Deployment
 
 - Keep CORS origin configuration environment-driven for public deployments. `QBASAIR_CORS_ORIGINS` should be set explicitly outside local development.
-- Consider self-hosting fonts and isolating external transliteration dependencies before publishing publicly. This reduces privacy exposure and improves offline/mobile readiness.
+- Self-hosting fonts: done for the interface faces (Cairo, Amiri: `apps/web/public/fonts/ui/`); the Noto faces for non-Latin scripts (`lib/script-fonts.ts`) still come from Google Fonts on first use. Still to do: isolate external transliteration dependencies before publishing publicly. This reduces privacy exposure and improves offline/mobile readiness.
 - Add a basic Content Security Policy once external dependencies are finalized.
 - Treat `data/quran.db` as a generated artifact in the long term. Either rebuild it during release or distribute it outside source control to avoid accidental binary diffs.
 

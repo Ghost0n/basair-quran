@@ -23,6 +23,8 @@ type PagedReaderProps = {
   authentic: boolean;
   /** The primary page's QCF layout (null → render the Unicode reader). */
   layout: MushafPageLayoutResponse | null;
+  /** The first authentic page is still loading: show an empty page frame, not the Unicode text. */
+  layoutPending: boolean;
   /** Two facing pages side by side (authentic wide spread). */
   showSpread: boolean;
   rightLayout: MushafPageLayoutResponse | null;
@@ -53,6 +55,7 @@ export function PagedReader({
   isLoading,
   authentic,
   layout,
+  layoutPending,
   showSpread,
   rightLayout,
   leftLayout,
@@ -112,6 +115,16 @@ export function PagedReader({
               onWordKey={onWordKey}
             />
           )}
+        </div>
+      ) : authentic && layoutPending ? (
+        // The authentic page is on its way: a quiet empty sheet, so the reader
+        // never flashes the Unicode text before the printed page.
+        <div className="qb-glyph-spread">
+          <div className="qb-glyph-page qb-glyph-skeleton" aria-busy="true" aria-label={t("جارٍ تحميل الصفحة")}>
+            {Array.from({ length: 15 }, (_, index) => (
+              <span key={index} className="line" aria-hidden="true" />
+            ))}
+          </div>
         </div>
       ) : (
         // Whole-page turn: the key remounts the content on page change so the

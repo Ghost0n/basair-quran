@@ -260,7 +260,7 @@ export function MushafStage() {
   // The stage-level layout fetch serves the PAGED reader only. In scroll mode
   // each windowed section fetches its own page layout (fit-to-width); the ayah
   // list stays Unicode by design.
-  const { layout } = useMushafLayout({
+  const { layout, pending: layoutPending } = useMushafLayout({
     enabled: authentic && !continuousMode,
     mushafId: pageData?.mushaf_id,
     page: pageData?.page,
@@ -791,6 +791,7 @@ export function MushafStage() {
           isLoading={isLoading}
           authentic={authentic}
           layout={layout}
+          layoutPending={layoutPending}
           showSpread={showSpread}
           rightLayout={rightLayout}
           leftLayout={leftLayout}

@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { APP_MODE } from "@/lib/app-mode/config";
 import { installFetchRouter } from "@/lib/app-mode/fetch-router";
+import { bootApp } from "@/lib/app-mode/boot";
 import { startAccountSync } from "@/lib/app-mode/sync";
 
 import { Onboarding } from "./onboarding";
@@ -27,11 +28,15 @@ function AppModeGate({ children }: { children: ReactNode }) {
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
 
   useEffect(() => {
+    let known = false;
     try {
-      setOnboarded(window.localStorage.getItem(ONBOARDED_KEY) === "1");
+      known = window.localStorage.getItem(ONBOARDED_KEY) === "1";
     } catch {
-      setOnboarded(false);
+      /* storage unavailable: treat as a first launch */
     }
+    setOnboarded(known);
+    // The cold start, behind the native splash (lib/app-mode/boot.ts).
+    bootApp({ onboarded: known });
   }, []);
 
   useEffect(() => {

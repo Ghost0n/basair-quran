@@ -49,6 +49,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           type="font/ttf"
           crossOrigin="anonymous"
         />
+        {/* The interface faces every screen draws first (self-hosted, app/tokens.css). */}
+        <link rel="preload" href="/fonts/ui/cairo-300-800-arabic.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/ui/amiri-400-arabic.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <meta name="theme-color" content="#131210" />
         <script dangerouslySetInnerHTML={{ __html: LOCALE_INIT_SCRIPT }} />
       </head>

@@ -22,6 +22,14 @@ const config: CapacitorConfig = {
     androidScheme: "https",
   },
   plugins: {
+    // Held over the cold start until the first screen is ready to draw
+    // (apps/web/lib/app-mode/boot.ts lifts it, at most ~3s on a normal start).
+    SplashScreen: {
+      launchAutoHide: false,
+      backgroundColor: "#131210",
+      showSpinner: false,
+      launchFadeOutDuration: 300,
+    },
     CapacitorSQLite: {
       androidIsEncryption: false,
       iosIsEncryption: false,

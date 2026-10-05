@@ -149,7 +149,18 @@ same code (`apps/web/lib/app-mode/platform-capacitor.ts`).
   - Recitations keep playing with the screen locked (`UIBackgroundModes:
     audio`); the app declares no non-exempt encryption (HTTPS only).
 - **Fonts:** the mushaf fonts ship in the bundle; the interface fonts
-  (Amiri, Cairo) are downloaded into it at build time.
+  (Amiri, Cairo) are committed under `apps/web/public/fonts/ui/` and
+  self-hosted by the web too (`app/tokens.css`), so no launch ever fetches a
+  font.
+- **Cold start:** the native splash (`@capacitor/splash-screen`,
+  `launchAutoHide: false`) stays up while `lib/app-mode/boot.ts` warms what
+  the first screens need: interface fonts, the device databases, the
+  last-read page (payload, authentic layout, glyph font, neighbours) and the
+  local notebook and sessions. It lifts when that is done, or after ~3s (the
+  databases may hold it up to 15s, an 8s safety cap otherwise); on a first
+  launch the language choice shows at once while the core database copies.
+  Search indexes are then built in idle time so the first search answers at
+  once. Returning from the background never shows the splash.
 - **Icons and splash:** `python apps/mobile/scripts/make_icons.py` draws them
   (the ۞ mark in gold on the app's dark background) into
   `android/app/src/main/res` and `ios/App/App/Assets.xcassets`.
