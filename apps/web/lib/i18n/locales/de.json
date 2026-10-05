@@ -1016,5 +1016,9 @@
   "one": "Letzter Besuch vor {0} Tag",
   "other": "Letzter Besuch vor {0} Tagen"
  },
- "جارٍ تحميل الصفحة": "Seite wird geladen"
+ "جارٍ تحميل الصفحة": "Seite wird geladen",
+ "البسملة": "Basmala",
+ "التنقل بين الصفحات": "Seitennavigation",
+ "رقم الصفحة": "Seitenzahl",
+ "نموذج تجريبي: مصحف مطابق للطبعة": "Prototyp: druckgetreuer Mushaf"
 }

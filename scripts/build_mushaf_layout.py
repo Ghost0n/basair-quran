@@ -44,6 +44,10 @@ SOURCE = "github.com/zonetecde/mushaf-layout"
 PINNED_REF = "72116ce4d405d67823804f0eed795c1e6409b4af"  # reproducible source pin
 PAGE_COUNT = 604
 
+# Upstream basmala line glyphs (QPC V2 page font / QCF_BSML ligature codes).
+BASMALA_V2 = "ﭑﭒﭓ"
+BASMALA_V1 = '#"!'
+
 # zonetecde line `type` -> our normalized line_type
 LINE_TYPE_MAP = {"surah-header": "surah_name", "basmala": "basmalah", "text": "ayah"}
 
@@ -203,6 +207,127 @@ def align_layout_to_db(layout_texts, db_words):
     return out, None
 
 
+def _first_word_location(line):
+    words = line.get("words") or []
+    return parse_location(words[0].get("location")) if words else None
+
+
+def repair_layout_pages(pages: dict[int, list[dict]]) -> dict:
+    """Correct the upstream dataset's structural lines in place, before ingest.
+
+    The upstream generator infers surah-title and basmala lines heuristically and
+    gets three cases wrong (verified against the printed Madani page):
+      * a page that ENDS with the next surah's title carries the CURRENT surah's
+        number on that title line (18 pages, e.g. page 76 shows آل عمران for النساء);
+      * a title that announces the next surah sits at the top of the page instead
+        of its foot (page 207, before يونس);
+      * a page that starts a surah and also ends with the next surah's title
+        (586 التكوير, 590 البروج) loses all three structural lines (12 lines).
+    Text lines and word glyphs are never touched — only title/basmala lines and
+    the line numbers around them. Returns counts for the build log.
+    """
+    rebuilt_pages = []
+    page_numbers = sorted(pages)
+    for index, page in enumerate(page_numbers):
+        lines = pages[page]
+        if len(lines) != 12 or any(line.get("type") != "text" for line in lines):
+            continue
+        first = _first_word_location(lines[0])
+        if first is None or first[1] != 1:
+            continue
+        surah = first[0]
+        next_lines = pages.get(page_numbers[index + 1], []) if index + 1 < len(page_numbers) else []
+        repaired = [{"type": "surah-header", "surah": f"{surah:03d}"}]
+        if surah != 9:
+            repaired.append({"type": "basmala", "qpcV2": BASMALA_V2, "qpcV1": BASMALA_V1})
+        repaired.extend(lines)
+        if next_lines and next_lines[0].get("type") == "basmala":
+            repaired.append({"type": "surah-header", "surah": f"{surah + 1:03d}"})
+        for number, line in enumerate(repaired, start=1):
+            line["line"] = number
+        pages[page] = repaired
+        rebuilt_pages.append(page)
+
+    # A title at the top of a page whose text continues a running surah belongs
+    # at the bottom (it announces the next surah: e.g. page 207, before يونس).
+    moved_titles = []
+    for page in page_numbers:
+        lines = pages[page]
+        if len(lines) < 2 or lines[0].get("type") != "surah-header" or lines[1].get("type") != "text":
+            continue
+        first = _first_word_location(lines[1])
+        if first is None or (first[1], first[2]) == (1, 1):
+            continue
+        lines.append(lines.pop(0))
+        for number, line in enumerate(lines, start=1):
+            line["line"] = number
+        moved_titles.append(page)
+
+    # A title line names the surah of the first ayah word that follows it in
+    # reading order (on the same page or the next one).
+    retitled = 0
+    pending: list[dict] = []
+    for page in page_numbers:
+        for line in pages[page]:
+            if line.get("type") == "surah-header":
+                pending.append(line)
+            elif line.get("type") == "text" and pending:
+                location = _first_word_location(line)
+                if location is None:
+                    continue
+                for header in pending:
+                    code = f"{location[0]:03d}"
+                    if header.get("surah") != code:
+                        header["surah"] = code
+                        header.pop("text", None)  # the upstream display name was wrong too
+                        retitled += 1
+                pending = []
+    return {"rebuilt_pages": rebuilt_pages, "moved_titles": moved_titles, "retitled": retitled}
+
+
+def is_centered_line(page: int, line_type: str) -> bool:
+    """Lines the printed mushaf centers at their natural width instead of
+    justifying edge to edge: titles, basmalas, and every line of the two framed
+    opening pages. (Short closing lines elsewhere are detected by the renderer
+    from their measured glyph width.)"""
+    return line_type in ("surah_name", "basmalah") or page in (1, 2)
+
+
+def validate_layout_structure(pages: dict[int, list[dict]]) -> list[str]:
+    """Structural invariants of the 15-line Madani mushaf. Empty list = valid."""
+    errors: list[str] = []
+    sequence: list[dict] = []
+    for page in sorted(pages):
+        lines = pages[page]
+        expected = 8 if page in (1, 2) else 15
+        if len(lines) != expected:
+            errors.append(f"page {page}: {len(lines)} lines (expected {expected})")
+        if [line.get("line") for line in lines] != list(range(1, len(lines) + 1)):
+            errors.append(f"page {page}: line numbers are not 1..{len(lines)}")
+        sequence.extend(lines)
+
+    titles = [int(line["surah"]) for line in sequence if line.get("type") == "surah-header"]
+    if titles != list(range(1, 115)):
+        missing = sorted(set(range(1, 115)) - set(titles))
+        duplicated = sorted({s for s in titles if titles.count(s) > 1})
+        errors.append(f"surah titles: {len(titles)} (missing {missing}, duplicated {duplicated})")
+
+    basmalas = 0
+    for index, line in enumerate(sequence):
+        if line.get("type") == "basmala":
+            basmalas += 1
+            previous = sequence[index - 1] if index else {}
+            if previous.get("type") != "surah-header" or int(previous["surah"]) in (1, 9):
+                errors.append(f"basmala #{basmalas} does not follow a title of a surah that has one")
+        elif line.get("type") == "surah-header" and int(line["surah"]) not in (1, 9):
+            following = sequence[index + 1] if index + 1 < len(sequence) else {}
+            if following.get("type") != "basmala":
+                errors.append(f"surah {int(line['surah'])}: title not followed by a basmala")
+    if basmalas != 112:
+        errors.append(f"basmala lines: {basmalas} (expected 112)")
+    return errors
+
+
 def build_mushaf_layout() -> int:
     print("=" * 60)
     print("Authentic Madani (QCF) page-layout builder — Hafs only")
@@ -242,9 +367,19 @@ def build_mushaf_layout() -> int:
         # ---- Pass 1: parse all pages into memory; collect per-ayah word order ----
         parsed_lines: list[dict] = []
         ayah_layout_words: dict[tuple[int, int], list[dict]] = {}
-        for page in range(1, PAGE_COUNT + 1):
-            data = read_json_file(pdir / f"page-{page:03d}.json", f"layout page {page}")
-            for line in data.get("lines", []):
+        raw_pages = {
+            page: read_json_file(pdir / f"page-{page:03d}.json", f"layout page {page}").get("lines", [])
+            for page in range(1, PAGE_COUNT + 1)
+        }
+        repairs = repair_layout_pages(raw_pages)
+        structure_errors = validate_layout_structure(raw_pages)
+        if structure_errors:
+            print(f"ERROR: layout structure invalid after repair ({len(structure_errors)} problems):")
+            for problem in structure_errors[:20]:
+                print(f"       {problem}")
+            return 1
+        for page, page_lines in raw_pages.items():
+            for line in page_lines:
                 line_type = LINE_TYPE_MAP.get(line.get("type"))
                 if line_type is None:
                     print(f"ERROR: unknown line type {line.get('type')!r} on page {page}")
@@ -272,7 +407,7 @@ def build_mushaf_layout() -> int:
                     "page": page,
                     "line_number": line["line"],
                     "line_type": line_type,
-                    "is_centered": 1 if line_type in ("surah_name", "basmalah") else 0,
+                    "is_centered": 1 if is_centered_line(page, line_type) else 0,
                     "surah_number": int(line["surah"]) if line_type == "surah_name" and line.get("surah") else None,
                     "surah_name_text": line.get("text") if line_type == "surah_name" else None,
                     "line_glyph_v2": line.get("qpcV2") if line_type == "basmalah" else None,
@@ -354,6 +489,9 @@ def build_mushaf_layout() -> int:
         print(f"  ayat           : {len(ayah_layout_words)}/{len(db_words_of)} (all Hafs ayat present)")
         print(f"  lines ingested : {len(parsed_lines)}")
         print(f"  glyph words    : {word_rows}")
+        print(f"  rebuilt pages  : {repairs['rebuilt_pages']} (missing title/basmala lines restored)")
+        print(f"  moved titles   : {repairs['moved_titles']} (title moved to the page foot)")
+        print(f"  retitled lines : {repairs['retitled']} (title line named the wrong surah upstream)")
         print(f"  disconnected   : {split_glyphs} (2 glyphs = 1 morph word)")
         print(f"  joined         : {joined_glyphs} (1 glyph = 2 morph words)")
         print(f"  source         : {SOURCE} @ {source_ref()}")

@@ -1016,5 +1016,9 @@
   "one": "Oxirgi tashrif {0} kun oldin",
   "other": "Oxirgi tashrif {0} kun oldin"
  },
- "جارٍ تحميل الصفحة": "Sahifa yuklanmoqda"
+ "جارٍ تحميل الصفحة": "Sahifa yuklanmoqda",
+ "البسملة": "Basmala",
+ "التنقل بين الصفحات": "Sahifalar boʻylab harakat",
+ "رقم الصفحة": "Sahifa raqami",
+ "نموذج تجريبي: مصحف مطابق للطبعة": "Prototip: bosma nusxaga sodiq mushaf"
 }

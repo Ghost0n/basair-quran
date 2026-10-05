@@ -171,3 +171,73 @@ def test_layout_continuation_page_has_no_header(layout_client):
     assert body["found"] is True
     assert [line["line_type"] for line in body["lines"]] == ["ayah"]
     assert body["has_next"] is False
+
+
+# ---- Structural repair of the upstream title/basmala lines ----
+
+from scripts.build_mushaf_layout import is_centered_line, repair_layout_pages, validate_layout_structure  # noqa: E402
+
+
+def _text(surah, ayah, word=1):
+    return {"type": "text", "words": [{"location": f"{surah}:{ayah}:{word}"}]}
+
+
+def _number(lines):
+    for index, line in enumerate(lines, start=1):
+        line["line"] = index
+    return lines
+
+
+def test_repair_retitles_a_foot_title_with_the_next_surah():
+    pages = {
+        76: _number([_text(3, 190 + i) for i in range(14)] + [{"type": "surah-header", "surah": "003", "text": "سورة آل عمران"}]),
+        77: _number([{"type": "basmala"}, _text(4, 1)]),
+    }
+    stats = repair_layout_pages(pages)
+    title = pages[76][-1]
+    assert title["surah"] == "004" and "text" not in title
+    assert stats["retitled"] == 1
+
+
+def test_repair_restores_the_structural_lines_of_a_twelve_line_surah_page():
+    pages = {
+        586: _number([_text(81, 1)] + [_text(81, 2 + i) for i in range(11)]),
+        587: _number([{"type": "basmala"}, _text(82, 1)]),
+    }
+    stats = repair_layout_pages(pages)
+    lines = pages[586]
+    assert stats["rebuilt_pages"] == [586]
+    assert [line["type"] for line in lines[:2]] == ["surah-header", "basmala"]
+    assert lines[0]["surah"] == "081" and lines[-1] == {"type": "surah-header", "surah": "082", "line": 15}
+    assert [line["line"] for line in lines] == list(range(1, 16))
+
+
+def test_repair_moves_a_top_title_above_running_text_to_the_page_foot():
+    pages = {
+        207: _number([{"type": "surah-header", "surah": "009"}] + [_text(9, 122 + i) for i in range(14)]),
+        208: _number([{"type": "basmala"}, _text(10, 1)]),
+    }
+    stats = repair_layout_pages(pages)
+    assert stats["moved_titles"] == [207]
+    assert pages[207][0]["type"] == "text"
+    assert pages[207][-1]["type"] == "surah-header" and pages[207][-1]["surah"] == "010"
+
+
+def test_repair_leaves_a_genuine_surah_opening_title_in_place():
+    pages = {187: _number([{"type": "surah-header", "surah": "009"}, _text(9, 1)] + [_text(9, 2 + i) for i in range(13)])}
+    stats = repair_layout_pages(pages)
+    assert stats == {"rebuilt_pages": [], "moved_titles": [], "retitled": 0}
+    assert pages[187][0]["surah"] == "009"
+
+
+def test_validate_reports_line_counts_and_missing_titles():
+    errors = validate_layout_structure({3: _number([_text(2, 6)] * 14)})
+    assert any("14 lines (expected 15)" in error for error in errors)
+    assert any(error.startswith("surah titles: 0") for error in errors)
+    assert any("basmala lines: 0" in error for error in errors)
+
+
+def test_centering_follows_the_printed_page():
+    assert is_centered_line(1, "ayah") and is_centered_line(2, "ayah")
+    assert not is_centered_line(50, "ayah") and not is_centered_line(604, "ayah")
+    assert is_centered_line(50, "surah_name") and is_centered_line(50, "basmalah")

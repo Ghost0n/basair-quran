@@ -995,5 +995,9 @@
  "آخر زيارة قبل {0} يوم": {
   "other": "Kunjungan terakhir {0} hari lalu"
  },
- "جارٍ تحميل الصفحة": "Memuat halaman"
+ "جارٍ تحميل الصفحة": "Memuat halaman",
+ "البسملة": "Basmalah",
+ "التنقل بين الصفحات": "Navigasi halaman",
+ "رقم الصفحة": "Nomor halaman",
+ "نموذج تجريبي: مصحف مطابق للطبعة": "Prototipe: mushaf sesuai edisi cetak"
 }

@@ -1016,5 +1016,9 @@
   "one": "Laatste bezoek {0} dag geleden",
   "other": "Laatste bezoek {0} dagen geleden"
  },
- "جارٍ تحميل الصفحة": "Pagina wordt geladen"
+ "جارٍ تحميل الصفحة": "Pagina wordt geladen",
+ "البسملة": "Basmala",
+ "التنقل بين الصفحات": "Paginanavigatie",
+ "رقم الصفحة": "Paginanummer",
+ "نموذج تجريبي: مصحف مطابق للطبعة": "Prototype: drukgetrouwe mushaf"
 }

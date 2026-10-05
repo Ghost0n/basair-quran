@@ -74,6 +74,38 @@ Hafs is `mushaf_id = 2`. Everything here is **parallel** to the existing
   its source JSON on `main` carry **`[rebuild-db]`**, and the script is chained after
   `build_db.py` in `.github/workflows/deploy.yml`.
 
+### Structural repair of the upstream layout
+
+`zonetecde/mushaf-layout` infers surah-title and basmala lines heuristically and
+gets a few pages wrong. `build_mushaf_layout.py` repairs them before ingest
+(`repair_layout_pages`) and refuses to build unless the result has the printed
+structure (`validate_layout_structure`: 15 lines per page, 8 on pages 1–2, the
+114 titles in order, 112 basmalas each right after its title):
+
+- a title at the foot of a page named the current surah instead of the next one
+  (18 pages, e.g. 76 showed آل عمران for النساء); every title is now named from
+  the first ayah that follows it;
+- page 207 carried the title of يونس at its top instead of its foot;
+- pages 586 (التكوير) and 590 (البروج) had lost their title, basmala and the next
+  surah's title (12 lines instead of 15).
+
+Only title/basmala lines, their line numbers and `is_centered` change; text lines
+and glyphs are untouched. `is_centered` is now also set on every line of the
+framed opening pages (1–2).
+
+### Print-faithful prototype (`/prototype/mushaf`)
+
+A read-only prototype page (`apps/web/features/reading/prototype/`) renders the
+same layout as close to the printed page as the data allows, to compare against
+the reader before anything moves into it: a fixed 15-line grid, the type size
+set per page from the widest line's measured glyph width, word-to-word
+justification with a surah's short closing line centered, the QCF_BSML
+ornamental title frame (U+FC20) with the calligraphic surah-name glyphs
+(U+FB8D + n − 1 for 1–37, U+FBD3 + n − 38 for 38–114) and the calligraphic
+basmala (U+FC21), the running head (juz, surah), the folio, the medallion of
+pages 1–2, and two-page spreads (odd page on the right) on wide screens. All
+glyphs come from fonts the reader already ships.
+
 ## Frontend (augment, with fallback)
 
 - **Optional glyph payload** on the page response (`glyph_layout` + `lines`); absent →

@@ -1016,5 +1016,9 @@
   "one": "Vizita e fundit para {0} dite",
   "other": "Vizita e fundit para {0} ditësh"
  },
- "جارٍ تحميل الصفحة": "Faqja po ngarkohet"
+ "جارٍ تحميل الصفحة": "Faqja po ngarkohet",
+ "البسملة": "Besmele",
+ "التنقل بين الصفحات": "Lundrimi ndërmjet faqeve",
+ "رقم الصفحة": "Numri i faqes",
+ "نموذج تجريبي: مصحف مطابق للطبعة": "Prototip: mus’haf besnik ndaj botimit të shtypur"
 }

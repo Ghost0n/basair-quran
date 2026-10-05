@@ -1037,5 +1037,9 @@
   "few": "Posljednja posjeta prije {0} dana",
   "other": "Posljednja posjeta prije {0} dana"
  },
- "جارٍ تحميل الصفحة": "Stranica se učitava"
+ "جارٍ تحميل الصفحة": "Stranica se učitava",
+ "البسملة": "Bismila",
+ "التنقل بين الصفحات": "Navigacija kroz stranice",
+ "رقم الصفحة": "Broj stranice",
+ "نموذج تجريبي: مصحف مطابق للطبعة": "Prototip: mushaf vjeran štampanom izdanju"
 }

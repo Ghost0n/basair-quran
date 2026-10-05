@@ -1016,5 +1016,9 @@
   "one": "Son ziyaret {0} gün önce",
   "other": "Son ziyaret {0} gün önce"
  },
- "جارٍ تحميل الصفحة": "Sayfa yükleniyor"
+ "جارٍ تحميل الصفحة": "Sayfa yükleniyor",
+ "البسملة": "Besmele",
+ "التنقل بين الصفحات": "Sayfa gezintisi",
+ "رقم الصفحة": "Sayfa numarası",
+ "نموذج تجريبي: مصحف مطابق للطبعة": "Prototip: basılı nüshaya sadık mushaf"
 }

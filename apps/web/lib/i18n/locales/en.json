@@ -1016,5 +1016,9 @@
   "one": "Last visit {0} day ago",
   "other": "Last visit {0} days ago"
  },
- "جارٍ تحميل الصفحة": "Loading the page"
+ "جارٍ تحميل الصفحة": "Loading the page",
+ "البسملة": "Basmala",
+ "التنقل بين الصفحات": "Page navigation",
+ "رقم الصفحة": "Page number",
+ "نموذج تجريبي: مصحف مطابق للطبعة": "Prototype: print-faithful mushaf"
 }

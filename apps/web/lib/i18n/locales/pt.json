@@ -1016,5 +1016,9 @@
   "one": "Última visita há {0} dia",
   "other": "Última visita há {0} dias"
  },
- "جارٍ تحميل الصفحة": "A carregar a página"
+ "جارٍ تحميل الصفحة": "A carregar a página",
+ "البسملة": "Basmala",
+ "التنقل بين الصفحات": "Navegação entre páginas",
+ "رقم الصفحة": "Número da página",
+ "نموذج تجريبي: مصحف مطابق للطبعة": "Protótipo: mushaf fiel à edição impressa"
 }
