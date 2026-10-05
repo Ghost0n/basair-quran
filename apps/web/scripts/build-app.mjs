@@ -6,7 +6,10 @@
  *   2. the bundled core database → out/assets/databases/coreSQLite.db
  *      (where the native SQLite plugin looks for bundled databases), with its
  *      version in core.version;
- *   3. with --with-packs, the downloadable packs → out/offline/ (a local
+ *   3. the Noto fonts of lib/script-fonts.ts → out/fonts/noto/
+ *      (scripts/fetch-script-fonts.mjs), for translations and interface
+ *      languages in other scripts, offline too;
+ *   4. with --with-packs, the downloadable packs → out/offline/ (a local
  *      preview: the phone downloads them from NEXT_PUBLIC_PACKS_URL).
  *
  * Needs build/offline/ from `python scripts/build_offline_packs.py`.
@@ -15,6 +18,8 @@ import { spawnSync } from "node:child_process";
 import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { bundleScriptFonts } from "./fetch-script-fonts.mjs";
 
 const web = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const offline = path.resolve(process.env.QBASAIR_OFFLINE_DIR ?? path.join(web, "../../build/offline"));
@@ -38,6 +43,7 @@ cpSync(path.join(offline, "core.db"), path.join(out, "assets/databases/coreSQLit
 // The phone replaces its copy of the core only when this changes (an app update with new data).
 const manifest = JSON.parse(readFileSync(path.join(offline, "manifest.json"), "utf-8"));
 writeFileSync(path.join(out, "assets/databases/core.version"), `${manifest.core.version}\n`);
+await bundleScriptFonts(out);
 rmSync(path.join(out, "offline"), { recursive: true, force: true });
 if (withPacks) cpSync(offline, path.join(out, "offline"), { recursive: true });
 console.log(`app bundle → ${out}${withPacks ? " (with packs under /offline)" : ""}`);

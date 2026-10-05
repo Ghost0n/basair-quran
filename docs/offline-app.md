@@ -151,7 +151,9 @@ same code (`apps/web/lib/app-mode/platform-capacitor.ts`).
 - **Fonts:** the mushaf fonts ship in the bundle; the interface fonts
   (Amiri, Cairo) are committed under `apps/web/public/fonts/ui/` and
   self-hosted by the web too (`app/tokens.css`), so no launch ever fetches a
-  font.
+  font. The Noto fonts for translations and languages in other scripts are
+  downloaded into the bundle at build time (`out/fonts/noto/`, see
+  `docs/i18n.md`).
 - **Cold start:** the native splash (`@capacitor/splash-screen`,
   `launchAutoHide: false`) stays up while `lib/app-mode/boot.ts` warms what
   the first screens need: interface fonts, the device databases, the

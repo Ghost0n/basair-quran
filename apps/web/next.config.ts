@@ -21,6 +21,13 @@ const webConfig: NextConfig = {
         source: "/fonts/:path*",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
+      // Except the Noto stylesheets (/fonts/noto/<script>.css): their names stay
+      // the same when a rebuild picks up a new font version (the font files
+      // themselves sit under versioned paths). The later rule wins.
+      {
+        source: "/fonts/noto/:file([^/]+\\.css)",
+        headers: [{ key: "Cache-Control", value: "public, max-age=86400" }],
+      },
     ];
   },
   async rewrites() {

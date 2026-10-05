@@ -1,7 +1,10 @@
 /**
  * Fonts for non-Arabic-script text (translations of meanings, and the
  * interface in other languages). Cairo covers Arabic + Latin; other scripts
- * get a Noto face from Google Fonts, loaded once, on first use.
+ * get a Noto face, loaded once, on first use. The faces are self-hosted under
+ * /fonts/noto/ (scripts/fetch-script-fonts.mjs, run by the web and app
+ * builds, reads the NOTO table below); Google Fonts is the fallback when a
+ * script's stylesheet is missing there.
  *
  * `fontStackFor(lang)` is the CSS font-family to use for text in `lang`.
  */
@@ -40,14 +43,19 @@ const SCRIPT_OF: Record<string, string> = {
 
 const loaded = new Set<string>();
 
-/** Inject the Google Fonts stylesheet for `lang`'s script once (no-op for Arabic/Latin). */
+/** Inject the stylesheet for `lang`'s script once (no-op for Arabic/Latin): the
+ *  self-hosted one, or Google Fonts' when that one fails to load. */
 export function ensureScriptFont(lang: string): void {
   const script = SCRIPT_OF[lang];
   if (!script || loaded.has(script) || typeof document === "undefined") return;
   loaded.add(script);
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.href = `https://fonts.googleapis.com/css2?family=${NOTO[script].css}&display=swap`;
+  link.href = `/fonts/noto/${script}.css`;
+  link.onerror = () => {
+    link.onerror = null;
+    link.href = `https://fonts.googleapis.com/css2?family=${NOTO[script].css}&display=swap`;
+  };
   link.dataset.scriptFont = script;
   document.head.appendChild(link);
 }
