@@ -170,6 +170,44 @@
   flex: 1;
 }
 
+/* Every destination sits on the rail (shell/worlds.ts RAIL_GROUPS): on a
+   shorter window the buttons tighten, and on a very short one the rail
+   scrolls rather than clipping Settings and the account. */
+@media (max-height: 900px) {
+  .qb-rail {
+    padding-block: 10px;
+    gap: 2px;
+  }
+
+  .qb-rail-brand-btn {
+    margin-bottom: 4px;
+  }
+
+  .qb-rail-btn {
+    min-height: 48px;
+    padding-block: 4px;
+  }
+
+  .qb-rail-divider {
+    margin: 4px 0;
+  }
+}
+
+@media (max-height: 760px) {
+  .qb-rail {
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .qb-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .qb-rail > * {
+    flex-shrink: 0;
+  }
+}
+
 /* Always-visible rail labels (replaces the old hover tooltip) so the
    icon-only chrome is discoverable without hover — matches the mobile tab bar. */
 .qb-rail-label {

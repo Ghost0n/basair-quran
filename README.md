@@ -4,11 +4,12 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 
 ## Current Capabilities
 
-- A Home landing for first visits: a rotating āyah as the centerpiece, a
-  natural-language "اسأل/ابحث" bar (questions → Studio, terms → search), a desk row
-  (continue-reading at the saved verse + library stats), and the latest research
-  sessions. Returning readers with a saved position land directly in the reader
-  (once per browser session).
+- A Home landing: on wide screens a rotating āyah (a random one on arrival, then the
+  next every few seconds) holds the centre above a «continue reading» card (gold
+  button, listen from where you stopped), four shortcuts (index, saved pages, the last
+  study session, community) and the search field. Phones show the same actions
+  stacked at the bottom, within the thumb's reach, without the verse. Returning
+  readers with a saved position land directly in the reader (once per browser session).
 - One command bar (`⌘K` / `/`) that searches and navigates, and routes a
   natural-language question to the Studio (prefilled and submitted).
 - Smart exact-word search with safe handling for Arabic prefixes and Quranic orthography.
@@ -27,7 +28,7 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   reader bar's «العرض» opens a strip under the bar (mode, text size, highlights) so
   the page stays in view while it changes (see
   [docs/api-contract.md](docs/api-contract.md) → Reader layout notes).
-- The Madani mushaf (Hafs, authentic line-faithful QCF pages) as the reader's single edition in this first version, chosen from Settings → «المصحف». The database also holds Qaloun, Warsh, Shuba, Douri, and Sousi for future standard editions; they are not exposed in the UI.
+- The Madani mushaf (Hafs, authentic line-faithful QCF pages) as the reader's single edition in this first version, chosen from Settings → «المصحف». Each page is laid out like the printed King Fahd mushaf (its drawn borders aside): a paper sheet with a fixed 15-line grid, the type size set per page so the widest line fills the measure, justified lines with a surah's short closing line centred, surah titles in the ornamental QCF frame with the calligraphic name, the calligraphic basmala, the running head (juz, surah) and the page number; two facing pages on wide screens. The database also holds Qaloun, Warsh, Shuba, Douri, and Sousi for future standard editions; they are not exposed in the UI.
 - A reader toolbox (open registry, keys 1–2) that sets what a tap on the text does: «تحديد» (the
   default — a tapped word shows its analysis: root, lemma, part of speech, iʿrāb; tap a second word
   for a run, or the verse-number ornament for the whole verse; then exact / root search, ask the
@@ -39,11 +40,11 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   scroll further. A tap on the empty page toggles focus mode. Saving a page: on desktop every page
   wears a ribbon at its upper-left corner (outline; red once saved — a click toggles it); on phones a
   floating bookmark button beside the reader bar (red when saved). Phones have no page arrows.
-- Home (phones first): a greeting, the rotating verse, the ask / search bar with suggestions (words,
-  roots, phrases — and a last «“…” — ask the researcher» line that opens a new Studio session), the
-  saved pages, then «continue» cards ordered by most recent activity (session, reading, board). On phones the reader bar sits on top and folds
-  (with the tab bar) into a one-line strip; the top search bar shows in Search only (`⌘K` / `/` open it
-  from anywhere).
+- Phones (`docs/mobile-ergonomics.md`): controls sit where the thumb reaches — the reader's bar under
+  the page with labelled 48px actions (the surah name opens «انتقل»), the search field just above the
+  tab bar (it rides on the keyboard; suggestions open upward), and a 44px minimum touch target. A
+  swiped page turn hides the chrome; a tap brings it back. The top search bar shows in Search only on
+  desktop (`⌘K` / `/` open it from anywhere).
 - Small interface choices (notebook grouping and filters, the folded reader bar, the picker source)
   are remembered per device without a setting; account preferences are cached on the device so the
   reader opens as it was left.
@@ -96,14 +97,13 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   (floating rail and tab dock, capsule bars, glass sheets and panes), glossy gold for actions, a
   shared selected state, spring micro-interactions and view-transition page changes — with the
   mushaf itself kept opaque and reduced-motion respected.
-- Navigation by world: reading (المصحف · المحفوظة · الفهرس), research (البحث · الدراسة ·
-  الدفتر) and community (الموجز · منشوراتي · المحفوظة), each with its colour (gold, teal,
-  copper). On phones the tab bar shows Home and the current world's pages around a coin
-  that switches worlds (tap: the worlds fan out; swipe the bar: next / previous world);
-  the desktop rail shows Home, a three-world switch and the world's pages. Home is a deck
-  of the three worlds (one thing to continue in each), under a greeting that follows the
-  moment (morning / evening, Ramadan, Eid, a return after a while) and today's Hijri
-  date; account and settings open from Home's corner button.
+- Fixed navigation: on phones a five-tab bar (Home · المصحف · البحث · الدراسة · الدفتر), always in
+  the same place with labels (a second tap scrolls back to the top); the index, saved pages and
+  community are one tap away from Home. The desktop rail opens Home from its brand mark and lists every destination, grouped by world —
+  reading (المصحف · الفهرس · المحفوظة), research (البحث · الدراسة · الدفتر) and community — each lit
+  in its world's colour (gold, teal, copper). Home's greeting follows the moment (morning / evening,
+  Ramadan, Eid, a return after a while) with today's Hijri date; on phones account and settings
+  open from Home's corner button.
 - A persistent floating media bar (transport · reciter chip · seekable progress ·
   repeat/speed) shown across every screen on larger screens. On phones a recitation is a
   session, from play until the player is closed: the reader opens on a clear view (page +

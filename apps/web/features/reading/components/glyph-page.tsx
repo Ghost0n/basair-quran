@@ -1,25 +1,115 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, useMemo, type CSSProperties } from "react";
 
-import type { MushafLayoutLine, MushafLayoutGlyph } from "@q-basair/shared";
+import type { MushafLayoutGlyph, MushafLayoutLine, MushafPageLayoutResponse } from "@q-basair/shared";
 
 import { useAyahMarks, highlightProps, type AyahMark } from "@/features/themes/ayah-marks";
 import { usePageRibbons } from "@/features/reading/use-saved-pages";
 import { VerseOutlines } from "@/features/reading/components/verse-outlines";
 import { usePickedWords, useVerseFocus, verseFocusClass, wordKey, type VerseFocus } from "@/features/reading/tools/word-selection";
+import { isGlyphFontReady } from "@/features/reading/qcf-font-loader";
+import { JUZ_STARTS } from "@/lib/quran-divisions.generated";
+import { toArabicDigits } from "@/lib/numerals";
 
 import { t } from "@/lib/i18n";
 
-// The basmala is rendered as compact, unambiguous Unicode text (in the display
-// font) rather than the QCF "line-filling" ligature, which spreads its segments
-// across the whole line and reads as disconnected.
+// The basmala when the QCF_BSML font is unavailable: compact Unicode text in
+// the display font.
 const BASMALA_UNICODE = "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ";
 
-// A normal Madani page is 15 lines; the framed opening pages (1, 2) and the
-// final page have fewer. On those, a narrower column keeps the few words from
-// spreading edge-to-edge.
+// QCF_BSML codepoints (King Fahd Complex QCF V1 ligature font, shipped with
+// the page fonts as bsml.woff2).
+const BSML_SURAH_WORD = "\uFB8C"; // سُورَةُ
+const BSML_FRAME = "\uFC20"; // the surah title's ornamental frame (≈8em wide)
+const BSML_BASMALA = "\uFC21"; // the calligraphic basmala (≈6.4em wide)
+
+/** Calligraphic surah-name glyph (QCF_BSML): 1–37 from U+FB8D, 38–114 from U+FBD3. */
+export function surahNameGlyph(surah: number): string {
+  if (!Number.isInteger(surah) || surah < 1 || surah > 114) return "";
+  return String.fromCharCode(surah <= 37 ? 0xfb8d + surah - 1 : 0xfbd3 + surah - 38);
+}
+
+// The running head names the juz the way the printed page does.
+// i18n-ignore — the printed page's own furniture stays Arabic in every language.
+const JUZ_ORDINALS = [
+  "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن", "التاسع", "العاشر",
+  "الحادي عشر", "الثاني عشر", "الثالث عشر", "الرابع عشر", "الخامس عشر", "السادس عشر", "السابع عشر",
+  "الثامن عشر", "التاسع عشر", "العشرون", "الحادي والعشرون", "الثاني والعشرون", "الثالث والعشرون",
+  "الرابع والعشرون", "الخامس والعشرون", "السادس والعشرون", "السابع والعشرون", "الثامن والعشرون",
+  "التاسع والعشرون", "الثلاثون",
+];
+
+/** The running head's juz line, e.g. «الجزء الأول». */
+export function juzHeading(juz: number): string {
+  // i18n-ignore — printed furniture (see JUZ_ORDINALS).
+  return juz >= 1 && juz <= 30 ? `الجزء ${JUZ_ORDINALS[juz - 1]}` : "";
+}
+
+/** The running head's surah line, e.g. «سورة البقرة». */
+export function surahHeading(name: string | null | undefined): string {
+  // i18n-ignore — printed furniture (see JUZ_ORDINALS).
+  return name ? `سورة ${name}` : "";
+}
+
+/** The juz an ayah falls in (from the generated juz starts). */
+export function juzOf(surah: number, ayah: number): number {
+  let juz = 1;
+  JUZ_STARTS.forEach(([s, a], index) => {
+    if (surah > s || (surah === s && ayah >= a)) juz = index + 1;
+  });
+  return juz;
+}
+
+/** The last page of the mushaf (its final line closes a surah with no title after it). */
+const LAST_PAGE = 604;
+
+/** A printed Madani page has 15 lines (the opening pages 1–2 fewer). */
 const FULL_PAGE_LINES = 15;
+
+/**
+ * A line that closes a surah is centred at its natural width when it is
+ * narrower than this share of the page's widest line (e.g. pages 603–604);
+ * every other line justifies, however loosely the print spaces it.
+ */
+export const SHORT_LINE_RATIO = 0.88;
+
+let measureContext: CanvasRenderingContext2D | null = null;
+
+/** Natural width of a glyph run, in ems of its page font (the font must be loaded). */
+function measureEm(text: string, family: string): number {
+  if (typeof document === "undefined" || !family) return 0;
+  measureContext ??= document.createElement("canvas").getContext("2d");
+  if (!measureContext) return 0;
+  measureContext.font = `100px "${family}"`;
+  return measureContext.measureText(text).width / 100;
+}
+
+const lineGlyphs = (line: MushafLayoutLine) => (line.words ?? []).map((word) => word.glyph ?? "").join(" ");
+
+/**
+ * Each ayah line's natural width (in ems) and the page's widest: the type size
+ * is set so that the widest line fills the measure exactly, as in the print.
+ */
+export function measurePage(lines: MushafLayoutLine[], measure = measureEm): { widths: number[]; maxEm: number } {
+  const widths = lines.map((line) => (line.line_type === "ayah" ? measure(lineGlyphs(line), line.font_family ?? "") : 0));
+  return { widths, maxEm: Math.max(1, ...widths) };
+}
+
+/** Whether an ayah line is a surah's short closing line, centred rather than justified. */
+export function isCenteredLine(
+  lines: MushafLayoutLine[],
+  index: number,
+  widths: number[],
+  maxEm: number,
+  page: number,
+): boolean {
+  const line = lines[index];
+  if (line.is_centered) return true;
+  const next = lines[index + 1];
+  const closesSurah = next ? next.line_type === "surah_name" : page === LAST_PAGE;
+  return closesSurah && widths[index] > 0 && widths[index] < maxEm * SHORT_LINE_RATIO;
+}
 
 type WordClick = (
   surah: number,
@@ -62,30 +152,34 @@ export type GlyphSaveTarget = {
 };
 
 /**
- * GlyphPage — the authentic line-faithful Madani (QCF) renderer.
+ * GlyphPage — the authentic Madani page, laid out like the printed King Fahd
+ * mushaf (its drawn borders aside):
+ *   - a fixed grid of 15 lines (pages 1–2: their few lines, centred in an
+ *     inset column like the printed opening);
+ *   - the type size set per page from the widest line's measured glyph width,
+ *     so that line fills the measure exactly; the other lines justify word to
+ *     word, and a surah's short closing line is centred at its natural width;
+ *   - surah titles in the QCF_BSML ornamental frame with the calligraphic
+ *     surah name, and the calligraphic basmala;
+ *   - the running head (juz, surah) and the page number in the margins.
+ * The page's size comes from the reading area (CSS container units, see
+ * reading.css «Printed page»); everything inside scales with it.
  *
- * Each printed line is one row. Surah-name lines reuse the banner; the basmala
- * is compact Unicode; ayah lines are justified with `text-align-last: justify`
- * (native justification, like the simple reader) so the printed line-filling is
- * reproduced while a selected ayah can be highlighted as one continuous block
- * (consecutive selected words on a line are wrapped in a single background).
+ * Interaction is unchanged: consecutive selected / highlighted / lit words of
+ * a line are wrapped in one span so a marked ayah reads as one block; words
+ * open morphology; the verse-number ornament acts on the whole ayah.
  *
  * Glyph strings are trusted, server-generated private-use codepoints (never user
- * input), so `dangerouslySetInnerHTML` is safe. Word interactions reuse the same
- * handlers as the simple reader with `word_position`, keeping morphology + ayah
- * selection coherent across both renderers.
+ * input), so `dangerouslySetInnerHTML` is safe.
  */
 export function GlyphPage({
-  page,
-  lines,
+  layout,
   selectedAyahId,
   onToggleSave,
   onWordClick,
   onWordKey,
 }: {
-  /** The printed page number (tools read it from `data-page` for page-scoped counts). */
-  page?: number;
-  lines: MushafLayoutLine[];
+  layout: MushafPageLayoutResponse;
   selectedAyahId: number | null;
   isSaved?: (ayahId: number) => boolean;
   /** The verse-number ornament was tapped: act on the whole ayah. */
@@ -93,12 +187,20 @@ export function GlyphPage({
   onWordClick: WordClick;
   onWordKey: WordKey;
 }) {
-  const isOpeningPage = lines.length < FULL_PAGE_LINES;
+  const lines = useMemo(() => layout.lines ?? [], [layout]);
+  const page = layout.page ?? 0;
+  const isOpeningPage = page >= 1 && page <= 2;
   const markOf = useAyahMarks();
   const isPicked = usePickedWords();
   const focusOf = useVerseFocus();
   const ribbons = usePageRibbons();
-  const pageSurah = lines.find((line) => line.words?.length)?.words?.[0]?.surah ?? null;
+  // The layout only arrives once its page font is loaded, so it can be measured now.
+  const measured = useMemo(() => measurePage(lines), [lines]);
+  const calligraphy = isGlyphFontReady(layout.font_base_path ?? "", "qcf-bsml");
+  const firstWord = lines.find((line) => line.words?.length)?.words?.[0];
+  const pageSurah = firstWord?.surah ?? null;
+  const juz = firstWord ? juzOf(firstWord.surah, firstWord.ayah) : null;
+  const headSurah = layout.surahs?.[0]?.name ?? null;
 
   // Per-ayah text (joined from the page's words) so the morphology lookup can
   // match the verse by skeleton — robust even where word tokenisation might
@@ -179,87 +281,129 @@ export function GlyphPage({
   };
 
   return (
-    <div className={`qb-glyph-page${isOpeningPage ? " is-opening" : ""}${ribbons.enabled ? " has-ribbon" : ""}`} data-page={page}>
+    <div
+      className={`qb-glyph-page qb-print-page${isOpeningPage ? " is-opening" : ""}${ribbons.enabled ? " has-ribbon" : ""}`}
+      data-page={page}
+      style={{ "--rows": isOpeningPage ? lines.length : FULL_PAGE_LINES, "--fit": measured.maxEm } as CSSProperties}
+    >
       <PageRibbon page={page} surahId={pageSurah} />
       <VerseOutlines />
-      {lines.map((line) => {
-        if (line.line_type === "surah_name") {
+      {!isOpeningPage ? (
+        <div className="qb-print-head" aria-hidden="true">
+          <span>{juz ? juzHeading(juz) : null}</span>
+          <span>{surahHeading(headSurah)}</span>
+        </div>
+      ) : null}
+      <div className="qb-print-block">
+        {lines.map((line, index) => {
+          if (line.line_type === "surah_name") {
+            return <SurahTitle key={line.line_number} surah={line.surah_number} name={line.surah_name} calligraphy={calligraphy} />;
+          }
+
+          if (line.line_type === "basmalah") {
+            return calligraphy ? (
+              <div key={line.line_number} className="qb-print-row qb-print-basmala" role="img" aria-label={BASMALA_UNICODE}>
+                <span aria-hidden="true">{BSML_BASMALA}</span>
+              </div>
+            ) : (
+              <div key={line.line_number} className="qb-print-row qb-print-basmala is-text">
+                {BASMALA_UNICODE}
+              </div>
+            );
+          }
+
+          const words = line.words ?? [];
+          const centered = isCenteredLine(lines, index, measured.widths, measured.maxEm, page);
+
+          // Group consecutive words by selection / theme highlight so a marked ayah
+          // renders as one continuous block (covering the justified gaps), not
+          // per-word. Selection wins over a theme colour.
+          // A «تظليل» focus/hover wins over both (it is what the reader acts on).
+          const segments: { selected: boolean; focus: VerseFocus; mark: AyahMark; key: string; words: MushafLayoutGlyph[] }[] = [];
+          for (const word of words) {
+            const focus = focusOf(word.ayah_id);
+            const selected = !focus && (Boolean(word.is_selected) || word.ayah_id === selectedAyahId);
+            const mark = selected || focus ? null : markOf(word.ayah_id);
+            const key = focus ? `vf:${focus}:${word.ayah_id}` : selected ? "sel" : mark?.color ? `hl:${word.ayah_id}` : "";
+            const last = segments[segments.length - 1];
+            if (last && last.key === key) last.words.push(word);
+            else segments.push({ selected, focus, mark, key, words: [word] });
+          }
+
           return (
-            <div key={line.line_number} className="qb-surah-banner qb-glyph-banner">
-              <span className="rule" aria-hidden />
-              <span className="name">{t("سورة")} {line.surah_name}</span>
-              <span className="rule" aria-hidden />
+            <div
+              key={line.line_number}
+              className={`qb-print-row qb-glyph-line qb-glyph-ayah${centered ? " is-centered" : ""}`}
+              style={{ fontFamily: line.font_family ?? undefined }}
+            >
+              {segments.map((segment, segmentIndex) => {
+                const inner = segment.words.map((word, wordIndex) => (
+                  <Fragment key={word.word_key}>
+                    {renderWord(word)}
+                    {wordIndex < segment.words.length - 1 ? " " : null}
+                  </Fragment>
+                ));
+                const highlight = highlightProps(segment.mark);
+                const node = segment.focus ? (
+                  <span className={`qb-glyph-vf${verseFocusClass(segment.focus)}`} data-aid={segment.words[0]?.ayah_id} data-vf={segment.words[0]?.ayah_id}>
+                    {inner}
+                  </span>
+                ) : segment.selected ? (
+                  <span className="qb-glyph-sel" data-ayah-id={segment.words[0]?.ayah_id}>
+                    {inner}
+                  </span>
+                ) : highlight.className ? (
+                  <span className={`qb-glyph-hl${highlight.className}`} data-hl={highlight["data-hl"]}>
+                    {inner}
+                  </span>
+                ) : (
+                  inner
+                );
+                return (
+                  <Fragment key={segmentIndex}>
+                    {node}
+                    {segmentIndex < segments.length - 1 ? " " : null}
+                  </Fragment>
+                );
+              })}
             </div>
           );
-        }
+        })}
+      </div>
+      <div className="qb-print-folio" aria-hidden="true">
+        {page ? toArabicDigits(page) : null}
+      </div>
+    </div>
+  );
+}
 
-        if (line.line_type === "basmalah") {
-          return (
-            <div key={line.line_number} className="qb-glyph-line qb-glyph-basmala">
-              {BASMALA_UNICODE}
-            </div>
-          );
-        }
-
-        const words = line.words ?? [];
-        // Full Madani lines justify edge-to-edge; a genuinely partial trailing
-        // line (1–3 words) flows naturally rather than stretching.
-        const isFull = words.length >= 4;
-
-        // Group consecutive words by selection / theme highlight so a marked ayah
-        // renders as one continuous block (covering the justified gaps), not
-        // per-word. Selection wins over a theme colour.
-        // A «تظليل» focus/hover wins over both (it is what the reader acts on).
-        const segments: { selected: boolean; focus: VerseFocus; mark: AyahMark; key: string; words: MushafLayoutGlyph[] }[] = [];
-        for (const word of words) {
-          const focus = focusOf(word.ayah_id);
-          const selected = !focus && (Boolean(word.is_selected) || word.ayah_id === selectedAyahId);
-          const mark = selected || focus ? null : markOf(word.ayah_id);
-          const key = focus ? `vf:${focus}:${word.ayah_id}` : selected ? "sel" : mark?.color ? `hl:${word.ayah_id}` : "";
-          const last = segments[segments.length - 1];
-          if (last && last.key === key) last.words.push(word);
-          else segments.push({ selected, focus, mark, key, words: [word] });
-        }
-
-        return (
-          <div
-            key={line.line_number}
-            className={`qb-glyph-line qb-glyph-ayah${isFull ? "" : " short"}`}
-            style={{ fontFamily: line.font_family ?? undefined }}
-          >
-            {segments.map((segment, segmentIndex) => {
-              const inner = segment.words.map((word, wordIndex) => (
-                <Fragment key={word.word_key}>
-                  {renderWord(word)}
-                  {wordIndex < segment.words.length - 1 ? " " : null}
-                </Fragment>
-              ));
-              const highlight = highlightProps(segment.mark);
-              const node = segment.focus ? (
-                <span className={`qb-glyph-vf${verseFocusClass(segment.focus)}`} data-aid={segment.words[0]?.ayah_id} data-vf={segment.words[0]?.ayah_id}>
-                  {inner}
-                </span>
-              ) : segment.selected ? (
-                <span className="qb-glyph-sel" data-ayah-id={segment.words[0]?.ayah_id}>
-                  {inner}
-                </span>
-              ) : highlight.className ? (
-                <span className={`qb-glyph-hl${highlight.className}`} data-hl={highlight["data-hl"]}>
-                  {inner}
-                </span>
-              ) : (
-                inner
-              );
-              return (
-                <Fragment key={segmentIndex}>
-                  {node}
-                  {segmentIndex < segments.length - 1 ? " " : null}
-                </Fragment>
-              );
-            })}
-          </div>
-        );
-      })}
+/** A surah title: the QCF_BSML ornamental frame with the calligraphic name inside. */
+function SurahTitle({
+  surah,
+  name,
+  calligraphy,
+}: {
+  surah: number | null | undefined;
+  name: string | null | undefined;
+  calligraphy: boolean;
+}) {
+  const label = `${t("سورة")} ${name ?? surah ?? ""}`;
+  if (!calligraphy) {
+    return (
+      <div className="qb-print-row qb-print-title is-text" role="heading" aria-level={2}>
+        <span className="name">{label}</span>
+      </div>
+    );
+  }
+  return (
+    <div className="qb-print-row qb-print-title" role="heading" aria-level={2} aria-label={label}>
+      <span className="frame" aria-hidden="true">
+        {BSML_FRAME}
+      </span>
+      <span className="name" aria-hidden="true">
+        <span>{BSML_SURAH_WORD}</span>
+        <span>{surahNameGlyph(surah ?? 0)}</span>
+      </span>
     </div>
   );
 }

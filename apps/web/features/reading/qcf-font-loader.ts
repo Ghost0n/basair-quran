@@ -9,6 +9,8 @@
 
 // Memoize per (basePath, family) so a page font is fetched at most once.
 const loaded = new Map<string, Promise<boolean>>();
+// The fonts already usable, for a synchronous check at render time.
+const ready = new Set<string>();
 
 function fileFor(family: string): string | null {
   if (family === "qcf-bsml") return "bsml.woff2";
@@ -38,6 +40,7 @@ export function loadGlyphFont(basePath: string, family: string): Promise<boolean
     .load()
     .then((resolved) => {
       document.fonts.add(resolved);
+      ready.add(key);
       return true;
     })
     .catch(() => {
@@ -48,12 +51,20 @@ export function loadGlyphFont(basePath: string, family: string): Promise<boolean
   return promise;
 }
 
+/** Whether a glyph font is already loaded (render-time check, no fetch). */
+export function isGlyphFontReady(basePath: string, family: string): boolean {
+  return ready.has(`${basePath}|${family}`);
+}
+
 /**
- * Load the per-page ayah glyph font. Resolves `true` only when it is usable;
- * the basmala is rendered as Unicode text, so no basmala font is needed.
+ * Load what a page needs to draw: its ayah glyph font, and the shared
+ * QCF_BSML font that draws the surah-title frames, calligraphic surah names
+ * and the basmala. Resolves `true` only when the page font is usable; the
+ * BSML font is awaited too but may fail (the page then draws plain titles
+ * and a Unicode basmala instead).
  */
 export function loadPageFonts(basePath: string, page: number): Promise<boolean> {
-  return loadGlyphFont(basePath, `qcf-p${page}`);
+  return Promise.all([loadGlyphFont(basePath, `qcf-p${page}`), loadGlyphFont(basePath, "qcf-bsml")]).then(([pageFont]) => pageFont);
 }
 
 /** Best-effort warm of a neighbouring page font; failures are ignored. */

@@ -207,13 +207,13 @@ button:not(:disabled):active {
    made literal. They never coexist (the top bar is hidden on Home), so the name
    is never duplicated. Progressive enhancement: a no-op where the View
    Transitions API is unsupported (see mode-context setMode). */
-.qb-home-ask,
+.qb-home-search,
 .qb-cmd {
   view-transition-name: qb-omnibar;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .qb-home-ask,
+  .qb-home-search,
   .qb-cmd {
     view-transition-name: none;
   }

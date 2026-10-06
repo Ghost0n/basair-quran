@@ -610,10 +610,6 @@ html[dir="ltr"] :is(.qb-reader-bar, .qb-mushaf-stage, .qb-nav-sheet, .qb-media-t
   padding: var(--page-top) var(--page-x) var(--page-bottom);
 }
 
-.qb-canvas .qb-home-deck {
-  padding: var(--page-top) var(--page-x) var(--page-bottom);
-}
-
 /* Cards inside pages: tighter on phones so the verses get the width. */
 @media (max-width: 768px) {
   .qb-canvas .qb-aux-h {

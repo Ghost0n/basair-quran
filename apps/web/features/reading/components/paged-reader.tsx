@@ -1,6 +1,6 @@
 "use client";
 
-import type { RefObject } from "react";
+import type { CSSProperties } from "react";
 
 import type { MushafPageLayoutResponse, QuranPageAyah } from "@q-basair/shared";
 
@@ -30,8 +30,8 @@ type PagedReaderProps = {
   showSpread: boolean;
   rightLayout: MushafPageLayoutResponse | null;
   leftLayout: MushafPageLayoutResponse | null;
-  /** Drives the uniform fit scale (attached to `.qb-glyph-spread`). */
-  spreadRef: RefObject<HTMLDivElement | null>;
+  /** The font-size preference (px): below the default it shrinks the printed page. */
+  fontSize: number;
   selectedAyahId: number | null;
   isSaved: (ayahId: number) => boolean;
   onToggleSave: (ayah: QuranPageAyah) => void;
@@ -43,11 +43,12 @@ type PagedReaderProps = {
 };
 
 /**
- * PagedReader — the paged reading surface: one fit-to-height page (Unicode or
- * authentic glyph) or a two-page facing spread. Extracted from MushafStage so
+ * PagedReader — the paged reading surface: one page (Unicode or the authentic
+ * printed page) or a two-page facing spread. Extracted from MushafStage so
  * the stage can dispatch between paged / scroll / ayah layouts. It owns the
  * `.qb-mushaf-page` scroll viewport (bound to the shared `bodyRef`) and the
- * morphology popover slot; MushafStage keeps the tuned spread/fit computation.
+ * morphology popover slot; MushafStage decides when a spread fits. The
+ * printed page sizes itself to the viewport in CSS (reading.css «Printed page»).
  */
 export function PagedReader({
   pageData,
@@ -60,7 +61,7 @@ export function PagedReader({
   showSpread,
   rightLayout,
   leftLayout,
-  spreadRef,
+  fontSize,
   selectedAyahId,
   isSaved,
   onToggleSave,
@@ -83,12 +84,11 @@ export function PagedReader({
       tabIndex={0}
     >
       {authentic && layout?.lines ? (
-        <div className="qb-glyph-spread" ref={spreadRef}>
+        <div className={`qb-glyph-spread${showSpread ? " is-pair" : ""}`} style={{ "--page-zoom": pageZoom(fontSize) } as CSSProperties}>
           {showSpread && rightLayout?.lines && leftLayout?.lines ? (
             <>
               <GlyphPage
-                page={rightLayout.page}
-                lines={rightLayout.lines}
+                layout={rightLayout}
                 selectedAyahId={selectedAyahId}
                 isSaved={isSaved}
                 onToggleSave={onGlyphSave}
@@ -96,8 +96,7 @@ export function PagedReader({
                 onWordKey={onWordKey}
               />
               <GlyphPage
-                page={leftLayout.page}
-                lines={leftLayout.lines}
+                layout={leftLayout}
                 selectedAyahId={selectedAyahId}
                 isSaved={isSaved}
                 onToggleSave={onGlyphSave}
@@ -107,8 +106,7 @@ export function PagedReader({
             </>
           ) : (
             <GlyphPage
-              page={layout.page}
-              lines={layout.lines}
+              layout={layout}
               selectedAyahId={selectedAyahId}
               isSaved={isSaved}
               onToggleSave={onGlyphSave}
@@ -120,8 +118,8 @@ export function PagedReader({
       ) : authentic && layoutPending ? (
         // The authentic page is on its way: a quiet empty sheet, so the reader
         // never flashes the Unicode text before the printed page.
-        <div className="qb-glyph-spread">
-          <div className="qb-glyph-page qb-glyph-skeleton" aria-busy="true" aria-label={t("جارٍ تحميل الصفحة")}>
+        <div className="qb-glyph-spread" style={{ "--page-zoom": pageZoom(fontSize) } as CSSProperties}>
+          <div className="qb-glyph-page qb-print-page qb-glyph-skeleton" aria-busy="true" aria-label={t("جارٍ تحميل الصفحة")}>
             {Array.from({ length: 15 }, (_, index) => (
               <span key={index} className="line" aria-hidden="true" />
             ))}
@@ -148,4 +146,13 @@ export function PagedReader({
       {morphTarget ? <MorphPopover target={morphTarget} onClose={onClearMorph} /> : null}
     </div>
   );
+}
+
+// Font-size preference (px) at which the printed page fills the reading area.
+// Below it the page shrinks (never under 60%); above it the page already
+// fills all the room it has, so it stays as it is.
+const DEFAULT_FONT_PX = 28;
+
+function pageZoom(fontSize: number): number {
+  return Math.min(1, Math.max(0.6, fontSize / DEFAULT_FONT_PX));
 }

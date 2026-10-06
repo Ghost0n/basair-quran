@@ -159,7 +159,7 @@ export function ReaderBar({
           title={playingHere ? t("إيقاف التلاوة") : t("تلاوة الصفحة")}
         >
           <Icon name={playingHere ? "pause" : "play"} size={17} />
-          {/* Shown by the phone prototype only (its bar labels every action). */}
+          {/* Shown on phones only (their bar labels every action). */}
           <span className="lbl m2">{playingHere ? t("إيقاف") : t("تلاوة")}</span>
         </button>
         {!compact && ayahMode ? (

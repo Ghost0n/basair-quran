@@ -10,7 +10,6 @@ import { useWorkspace } from "@/features/shell/workspace-context";
 import { useAuthSession } from "@/lib/auth-session-context";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
 import { useDialog } from "@/lib/use-dialog";
-import { setUxPrototype, useUxPrototype } from "@/lib/ux-prototype";
 
 import { t } from "@/lib/i18n";
 
@@ -27,7 +26,6 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
   const { user } = useAuthSession();
   const panelRef = useDialog<HTMLDivElement>(onClose);
   const dark = state.theme !== "light";
-  const prototype = useUxPrototype();
 
   function settings() {
     onClose();
@@ -68,26 +66,24 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
             </span>
             <Icon name="chevLeft" size={16} />
           </button>
-          {/* Phone prototype: the community left the tab bar, so it is listed here (and on Home). */}
-          {prototype ? (
-            <button
-              type="button"
-              className="menu-item"
-              onClick={() => {
-                onClose();
-                setMode("community", { params: { tab: null } });
-              }}
-            >
-              <span className="ico">
-                <Icon name="users" size={18} />
-              </span>
-              <span className="txt">
-                {t("المجتمع")}
-                <small>{t("ما يشاركه الباحثون")}</small>
-              </span>
-              <Icon name="chevLeft" size={16} />
-            </button>
-          ) : null}
+          {/* The community is not in the phone's tab bar: it is listed here (and on Home). */}
+          <button
+            type="button"
+            className="menu-item"
+            onClick={() => {
+              onClose();
+              setMode("community", { params: { tab: null } });
+            }}
+          >
+            <span className="ico">
+              <Icon name="users" size={18} />
+            </span>
+            <span className="txt">
+              {t("المجتمع")}
+              <small>{t("ما يشاركه الباحثون")}</small>
+            </span>
+            <Icon name="chevLeft" size={16} />
+          </button>
           <button type="button" className="menu-item" onClick={actions.toggleTheme} aria-pressed={!dark}>
             <span className="ico">
               <Icon name={dark ? "sun" : "moon"} size={18} />
@@ -97,24 +93,6 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
               <small>{t("السمة")}</small>
             </span>
           </button>
-          {prototype ? (
-            <button
-              type="button"
-              className="menu-item quiet"
-              onClick={() => {
-                setUxPrototype(false);
-                onClose();
-              }}
-            >
-              <span className="ico">
-                <Icon name="smartphone" size={18} />
-              </span>
-              <span className="txt">
-                {t("الواجهة التجريبية للهاتف")}
-                <small>{t("مفعّلة على هذا الجهاز — اضغط لإيقافها")}</small>
-              </span>
-            </button>
-          ) : null}
           {AUTH_ENABLED ? (
             user ? (
               <>

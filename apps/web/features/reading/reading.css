@@ -513,44 +513,214 @@
 
 /* ---------- Authentic Madani (QCF) glyph page — Hafs, opt-in ---------- */
 
-.qb-glyph-page {
-  /* --qcf-fit: uniform scale set by useGlyphFit so the whole page fits its
-     viewport (width + height) and each printed line stays on one visual line.
-     Defaults to 1 (no scaling). The page width is pinned to the content width
-     by the hook, so it centres here. */
-  --qcf-fit: 1;
-  display: flex;
-  flex-direction: column;
-  /* Width is pinned by useGlyphFit; the .qb-glyph-spread parent centres us. */
-  margin: 0;
-  /* Tight inter-line gap (like the printed page): less wasted height means the
-     one-page fit can render the whole page larger. */
-  gap: calc(var(--fs-ayah) * 0.28 * var(--qcf-fit));
-  padding: 12px 14px 14px;
-  /* A physical "sheet": faint page panel + hairline frame so, in a spread, the
-     two pages read as two leaves of the mushaf. */
-  background: linear-gradient(180deg, rgba(255, 253, 246, 0.035), rgba(255, 253, 246, 0.015));
-  border: 1px solid var(--border-accent);
-  border-radius: 6px;
-  /* Softened from a heavy floating-leaf shadow toward the flat panel (decision C). */
-  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.20);
+/* ---------- Printed page (components/glyph-page.tsx) ----------
+
+   The authentic page laid out like the printed King Fahd mushaf, without its
+   drawn borders. Its size comes from the reading area: `.qb-mushaf-page` is a
+   size container, and a page takes the largest 1 : 1.52 sheet that fits it
+   (two side by side in a spread), scaled down by the font-size preference
+   (`--page-zoom`, paged-reader.tsx). Inside, everything is sized in units of
+   the page's own width, so the whole page scales as one. */
+
+.qb-mushaf-page:has(> .qb-glyph-spread) {
+  container-type: size;
 }
 
-.light .qb-glyph-page {
-  background: linear-gradient(180deg, rgba(255, 253, 246, 0.7), rgba(250, 244, 230, 0.55));
-  box-shadow: 0 3px 12px rgba(90, 70, 20, 0.08);
+.qb-glyph-spread {
+  --print-ratio: 1.52;
+}
+
+/* The two leaves of a spread meet at the fold. */
+.qb-glyph-spread.is-pair {
+  gap: 0;
+}
+
+.qb-glyph-page.qb-print-page {
+  --print-paper: #1b1915;
+  --print-paper-edge: #2a2620;
+  --print-ornament: #c9a54c;
+  --print-margin-ink: rgba(236, 228, 208, 0.62);
+  position: relative;
+  width: calc(min(100cqw, 100cqh / var(--print-ratio)) * var(--page-zoom, 1));
+  aspect-ratio: 1 / var(--print-ratio);
+  flex-shrink: 0;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 3.2% 5.5% 2.6%;
+  border: 0;
+  border-radius: 3px;
+  background: var(--print-paper);
+  box-shadow: 0 1px 0 var(--print-paper-edge) inset, 0 8px 30px rgba(0, 0, 0, 0.25);
+  color: var(--verse-fg);
+}
+
+.light .qb-glyph-page.qb-print-page,
+.light-mode .qb-glyph-page.qb-print-page {
+  --print-paper: #fbf6e8;
+  --print-paper-edge: #e8dcc0;
+  --print-ornament: #9c7a2c;
+  --print-margin-ink: rgba(29, 26, 20, 0.6);
+  box-shadow: 0 1px 0 var(--print-paper-edge) inset, 0 6px 22px rgba(90, 70, 20, 0.12);
+}
+
+.qb-glyph-spread.is-pair .qb-glyph-page.qb-print-page {
+  width: calc(min(50cqw, 100cqh / var(--print-ratio)) * var(--page-zoom, 1));
+}
+
+/* The fold between a spread's two pages (RTL: the first page is on the right). */
+.qb-glyph-spread.is-pair .qb-glyph-page.qb-print-page:first-child {
+  border-radius: 0 3px 3px 0;
+  box-shadow: inset 14px 0 18px -14px rgba(0, 0, 0, 0.35), 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+.qb-glyph-spread.is-pair .qb-glyph-page.qb-print-page:last-child {
+  border-radius: 3px 0 0 3px;
+  box-shadow: inset -14px 0 18px -14px rgba(0, 0, 0, 0.35), 0 8px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* The running head (juz · surah) and the folio, in the margins. */
+.qb-print-head,
+.qb-print-folio {
+  flex-shrink: 0;
+  font-family: var(--font-arabic-heading);
+  font-size: max(10px, 3.1cqi);
+  line-height: 1.5;
+  color: var(--print-margin-ink);
+  user-select: none;
+}
+
+.qb-print-head {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 1% 1.2%;
+}
+
+.qb-print-folio {
+  padding-top: 1.2%;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The text block: a fixed grid of the page's lines (15). */
+.qb-print-block {
+  flex: 1;
+  min-height: 0;
+  container-type: inline-size;
+  display: grid;
+  grid-template-rows: repeat(var(--rows, 15), minmax(0, 1fr));
+  padding: 1.6% 1%;
+}
+
+.qb-print-row {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  direction: rtl;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* An ayah line: the page's widest line fills the measure exactly (its type
+   size comes from its measured glyph width, `--fit` in ems); the others
+   justify word to word. A hair of slack keeps rounding from overflowing. */
+.qb-print-row.qb-glyph-ayah {
+  display: block;
+  align-self: center;
+  font-size: calc(99cqi / var(--fit, 20));
+  line-height: 1.3;
+  text-align: justify;
+  text-align-last: justify;
+  color: var(--verse-fg);
+}
+
+/* A surah's short closing line sits centred at its natural width. */
+.qb-print-row.qb-glyph-ayah.is-centered {
+  text-align: center;
+  text-align-last: center;
+  word-spacing: 0.22em;
+}
+
+/* A surah title: the QCF ornamental frame with the calligraphic name inside. */
+.qb-print-title {
+  position: relative;
+  justify-content: center;
+  font-family: "qcf-bsml";
+}
+
+.qb-print-title .frame {
+  font-size: calc(100cqi / 8.4);
+  color: var(--print-ornament);
+}
+
+.qb-print-title .name {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4em;
+  font-size: calc(100cqi / 8.4 * 0.5);
+  color: var(--verse-fg);
+}
+
+/* Without the calligraphy font: the surah's name in the heading face. */
+.qb-print-title.is-text .name {
+  position: static;
+  font-family: var(--font-arabic-heading);
+  font-size: calc(100cqi / 22);
+  color: var(--print-ornament);
+}
+
+.qb-print-basmala {
+  justify-content: center;
+  font-family: "qcf-bsml";
+  font-size: calc(100cqi * 0.56 / 6.41);
+  color: var(--verse-fg);
+}
+
+.qb-print-basmala.is-text {
+  font-family: var(--font-arabic-display);
+  font-size: calc(100cqi / 20);
+  line-height: 1.6;
+  color: var(--gold-text);
+}
+
+/* Opening pages (1–2): their few lines sit in an inset column, centred on
+   the page as in the print (the printed medallion's border is left out). */
+.qb-glyph-page.qb-print-page.is-opening {
+  justify-content: center;
+}
+
+.qb-print-page.is-opening .qb-print-block {
+  flex: 0 0 auto;
+  aspect-ratio: 1 / 1.3;
+  margin: 0 9%;
+  padding: 9% 7%;
+}
+
+.qb-print-page.is-opening .qb-print-title .frame {
+  font-size: calc(100cqi / 8.1);
+}
+
+/* Inside the inset column the lines keep clear of its edges. */
+.qb-print-page.is-opening .qb-print-row.qb-glyph-ayah {
+  font-size: calc(84cqi / var(--fit, 20));
+}
+
+.qb-print-page.is-opening .qb-print-basmala {
+  font-size: calc(100cqi * 0.64 / 6.41);
 }
 
 /* The empty sheet shown while the first authentic page loads: the page's
    proportions with fifteen faint lines. Still (no shimmer: an endless
    animation would keep the GPU busy for nothing). */
-.qb-glyph-skeleton {
-  width: min(100%, 26rem);
-  aspect-ratio: 0.66;
-  max-height: 100%;
-  margin-inline: auto;
+.qb-glyph-page.qb-print-page.qb-glyph-skeleton {
   justify-content: space-evenly;
-  padding: 26px 22px;
+  padding: 9% 8%;
   animation: qbSkeletonIn 400ms ease-out both;
 }
 
@@ -570,46 +740,6 @@
   from {
     opacity: 0;
   }
-}
-
-/* Framed opening pages (1, 2) and the final page have <15 lines; a narrower
-   centered column keeps their few large words from spreading edge-to-edge. */
-.qb-glyph-page.is-opening {
-  max-width: 30rem;
-  margin-inline: auto;
-}
-
-.qb-glyph-line {
-  color: var(--verse-fg);
-  font-size: calc(var(--fs-ayah) * 1.15 * var(--qcf-fit, 1));
-  line-height: 1.45;
-}
-
-/* Ayah line: native justification fills the line edge-to-edge like the printed
-   page (text-align-last forces the single line to justify). */
-.qb-glyph-ayah {
-  text-align: justify;
-  text-align-last: justify;
-}
-
-/* A genuinely partial trailing line flows from the start rather than stretching. */
-.qb-glyph-ayah.short {
-  text-align-last: right;
-}
-
-/* Basmala: compact Unicode text in the display font, centered, in gold. */
-.qb-glyph-basmala {
-  text-align: center;
-  font-family: var(--font-arabic-display);
-  direction: rtl;
-  font-size: max(15px, calc(var(--fs-ayah) * 0.92 * var(--qcf-fit, 1)));
-  line-height: 2;
-  color: var(--gold-text);
-}
-
-/* Surah-name banner spacing inside the glyph page. */
-.qb-glyph-banner {
-  margin: 6px 0 2px;
 }
 
 .qb-glyph-word {
@@ -637,6 +767,10 @@
   border-radius: 6px;
   padding: 0 3px;
   animation: qbBloom var(--motion-dur-hero) var(--motion-ease-settle);
+}
+
+.qb-print-page .qb-glyph-sel {
+  margin: 0 -3px;
 }
 
 /* Authentic ayah-by-ayah: the verse's QCF glyph words flow + wrap in the row.
@@ -1858,14 +1992,6 @@
   padding: 18px 28px 24px;
 }
 
-.qb-glyph-page,
-.light .qb-glyph-page {
-  background: none;
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
 /* Phones: minimal gutters too. */
 @media (max-width: 600px) {
   .qb-mushaf-stage {
@@ -1882,17 +2008,6 @@
 
   .light .qb-mushaf-page {
     background: none;
-  }
-
-  /* No sheet frame either: on a phone the text itself is the page — every
-     pixel of width goes to the calligraphy. */
-  .qb-glyph-page,
-  .light .qb-glyph-page {
-    padding: 4px 2px 8px;
-    background: none;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
   }
 
   .qb-mushaf-page.is-glyph {
@@ -1932,12 +2047,6 @@
 .light .qb-mushaf-page.is-glyph,
 .light-mode .qb-mushaf-page.is-glyph {
   background: none;
-}
-
-/* In a spread both leaves share the tallest leaf's height; the short framed
-   opening pages (1–2) centre their text vertically, like the printed mushaf. */
-.qb-glyph-spread .qb-glyph-page.is-opening {
-  justify-content: center;
 }
 
 /* Short screens (landscape phones): a slimmer reader bar. */
@@ -2084,11 +2193,6 @@
   border-radius: 4px;
 }
 
-/* Room above the first line for the ribbon (the page fit measures it). */
-.qb-glyph-page.has-ribbon {
-  padding-top: 18px;
-}
-
 /* Phones: the bookmark floats on its own beside the reader bar — same glass,
    same height — red once the page is saved. */
 .qb-reader-row {
@@ -2135,7 +2239,7 @@
   display: none;
 }
 
-/* A label only the phone prototype shows (features/shell/ux-prototype.css). */
+/* A label only phones show (features/shell/phone-ergonomics.css). */
 .qb-reader-bar .lbl.m2 {
   display: none;
 }

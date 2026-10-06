@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { RefObject } from "react";
 import { createPortal } from "react-dom";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
@@ -13,7 +12,6 @@ import { useWorkspace } from "@/features/shell/workspace-context";
 import { useRecitation } from "@/features/recitation/recitation-context";
 import { toggleRevealed } from "@/features/recitation/session-view";
 import { usePhoneLayout } from "@/lib/use-phone-layout";
-import { readUxPrototype } from "@/lib/ux-prototype";
 import { divisionOf, divisionRange } from "@/lib/quran-ranges";
 import { Icon } from "@/components/icon";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
@@ -35,7 +33,6 @@ import { prefetchQuranPage, useMushaf } from "./mushaf-context";
 import { prefetchMushafLayout, useMushafLayout } from "./use-mushaf-layout";
 import { useReaderGestures } from "./use-reader-gestures";
 import { nextReaderLayout, resolveReaderMode, spreadFits } from "./reader-modes";
-import { useGlyphFit } from "./use-glyph-fit";
 import { useCompactReader, useElementSize } from "./use-wide-screen";
 import type { SavableAyah } from "./use-saved-ayat";
 import { PageRibbonsProvider, useSavedPages, type PageRibbons } from "./use-saved-pages";
@@ -395,10 +392,6 @@ export function MushafStage() {
   const rightLayout = pair && currentPage === pair.right ? layout : facing.layout;
   const leftLayout = pair && currentPage === pair.right ? facing.layout : layout;
 
-  // The spread container drives the fit (one uniform scale for both pages).
-  const spreadRef = useRef<HTMLDivElement | null>(null);
-  useGlyphFit(spreadRef as RefObject<HTMLElement | null>, preferences.font_size, [layout, facing.layout, showSpread]);
-
   const totalPages = pageData?.total_pages ?? pageData?.max_page ?? 604;
 
   // Warm the neighbouring pages (payload + layout + glyph font) so a page turn
@@ -491,10 +484,10 @@ export function MushafStage() {
 
   // Swipe turns the page in every mode (the continuous ones scroll a page);
   // a tap on the empty page toggles focus mode (on phones, a click too).
-  // Phone prototype: a swiped page turn also hides the chrome, as an e-reader
-  // does — reading resumes full screen and a tap brings the bars back.
+  // On phones a swiped page turn also hides the chrome, as an e-reader does —
+  // reading resumes full screen and a tap brings the bars back.
   const settleIntoPage = () => {
-    if (phone && !sessionActive && readUxPrototype()) setImmersive(true);
+    if (phone && !sessionActive) setImmersive(true);
   };
   const gestures = useReaderGestures({
     swipeEnabled: true,
@@ -834,7 +827,7 @@ export function MushafStage() {
           showSpread={showSpread}
           rightLayout={rightLayout}
           leftLayout={leftLayout}
-          spreadRef={spreadRef}
+          fontSize={preferences.font_size}
           selectedAyahId={mushaf.selectedAyahId}
           isSaved={saved.isSaved}
           onToggleSave={handleAyahSave}

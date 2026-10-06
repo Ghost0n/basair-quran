@@ -597,7 +597,7 @@ body::before {
    the cross-fade between modes; this is the content's own soft arrival). */
 .qb-aux,
 .qb-settings,
-.qb-home-inner,
+.qb-home,
 .qb-board,
 .qb-doc,
 .qb-community,
@@ -607,16 +607,14 @@ body::before {
 
 /* Cards lift toward the pointer, consistently. */
 @media (hover: hover) {
-  .qb-home-gridcard,
-  .qb-home-card,
+  .qb-home-tile,
   .qb-collection-card,
   .qb-setting-card {
     transition: transform var(--motion-dur-base) var(--spring-soft), box-shadow var(--motion-dur-base),
       border-color var(--motion-dur-base);
   }
 
-  .qb-home-gridcard:hover,
-  .qb-home-card:hover,
+  .qb-home-tile:hover,
   .qb-collection-card:hover {
     transform: translateY(-2px);
     border-color: var(--glass-rim-strong);
@@ -627,7 +625,7 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   .qb-aux,
   .qb-settings,
-  .qb-home-inner,
+  .qb-home,
   .qb-board,
   .qb-doc,
   .qb-community,
@@ -635,8 +633,7 @@ body::before {
     animation: none;
   }
 
-  .qb-home-gridcard:hover,
-  .qb-home-card:hover,
+  .qb-home-tile:hover,
   .qb-collection-card:hover {
     transform: none;
   }

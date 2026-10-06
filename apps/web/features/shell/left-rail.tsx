@@ -4,30 +4,29 @@ import { BrandMark } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
 import { AccountMenu } from "@/features/identity/account-menu";
 
-import { useSearchParams } from "next/navigation";
+import { Fragment } from "react";
 
 import "./worlds.css";
 
 import { useShellMode } from "./mode-context";
 import { useWorkspace } from "./workspace-context";
-import { activeTabId, useWorldNavigation, useWorldSync, WORLD_ORDER, WORLDS } from "./worlds";
+import { RAIL_GROUPS, useOpenDestination, useWorldSync, type WorldId } from "./worlds";
 
 import { t } from "@/lib/i18n";
 
 /**
- * The desktop rail follows the phone's worlds (shell/worlds.ts): the brand mark
- * (which is the Home button), a three-world switch (gold · teal · copper), then
- * the current world's pages.
+ * The desktop rail: the brand mark (which is the Home button), then every
+ * destination grouped by world (reading · research · community), each always
+ * in the same place — a wide screen has room for all of them, so nothing hides
+ * behind a world switch. The active destination is lit in its world's colour
+ * (shell/worlds.ts).
  */
 export function LeftRail() {
-  const { mode } = useShellMode();
-  const params = useSearchParams();
-  const communityTab = params.get("tab");
-  const world = useWorldSync(communityTab);
-  const { openTab, changeWorld } = useWorldNavigation();
-  const { setMode } = useShellMode();
+  const { mode, setMode } = useShellMode();
+  // The rail is mounted on every screen size: it keeps the page's tint in step.
+  useWorldSync();
+  const open = useOpenDestination();
   const { actions } = useWorkspace();
-  const active = activeTabId(mode, communityTab);
 
   const handleBrandClick = () => {
     // One clean navigation to the root (resetSearch handles the route); with the
@@ -44,40 +43,26 @@ export function LeftRail() {
         onClick={handleBrandClick}
         title={t("بصائر القرآن — الصفحة الرئيسية")}
         aria-label={t("بصائر القرآن — الصفحة الرئيسية")}
-        aria-current={active === "home" ? "page" : undefined}
+        aria-current={mode === "home" ? "page" : undefined}
       >
         <BrandMark size={40} themed />
       </button>
 
-      <div className="qb-rail-worlds" role="group" aria-label={t("العوالم")}>
-        {WORLD_ORDER.map((id) => (
-          <button
-            key={id}
-            type="button"
-            className="qb-rail-world"
-            data-w={id}
-            aria-pressed={id === world}
-            onClick={() => changeWorld(id, mode === "home")}
-            title={`${WORLDS[id].label} — ${WORLDS[id].desc}`}
-            aria-label={WORLDS[id].label}
-          >
-            <Icon name={WORLDS[id].icon} size={16} />
-          </button>
-        ))}
-      </div>
-
-      <div className="qb-rail-divider" role="separator" />
-
-      {WORLDS[world].tabs.map((tab) => (
-        <RailButton
-          key={tab.id}
-          icon={tab.icon}
-          label={tab.label}
-          active={active === tab.id}
-          world
-          notebook={tab.id === "notebook"}
-          onSelect={() => openTab(world, tab.id)}
-        />
+      {RAIL_GROUPS.map((group, index) => (
+        <Fragment key={index}>
+          <div className="qb-rail-divider" role="separator" />
+          {group.map((item) => (
+            <RailButton
+              key={item.id}
+              icon={item.icon}
+              label={item.label}
+              active={item.owns.includes(mode)}
+              world={item.world}
+              notebook={item.id === "notebook"}
+              onSelect={() => open(item)}
+            />
+          ))}
+        </Fragment>
       ))}
 
       <div className="qb-rail-spacer" />
@@ -114,15 +99,15 @@ function RailButton({
   label,
   active,
   onSelect,
-  world = false,
+  world = null,
   notebook = false,
 }: {
   icon: IconName;
   label: string;
   active: boolean;
   onSelect: () => void;
-  /** A page of the current world: lit in the world's colour. */
-  world?: boolean;
+  /** The destination's world: lit in that world's colour. */
+  world?: WorldId | null;
   /** The notebook icon is the flight target for the pin-to-notebook ghost. */
   notebook?: boolean;
 }) {
@@ -130,6 +115,7 @@ function RailButton({
     <button
       type="button"
       className={`qb-rail-btn${active ? " active" : ""}${world ? " is-world" : ""}`}
+      data-w={world ?? undefined}
       onClick={onSelect}
       title={label}
       aria-label={label}

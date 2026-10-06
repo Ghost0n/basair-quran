@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
- * Phone ergonomics audit (docs/mobile-ergonomics-prototype.md): for each main
- * screen, with the phone prototype off and on, counts the visible touch
- * targets, those under 44 and 24 CSS px, where they sit on the screen (bottom
+ * Phone ergonomics audit (docs/mobile-ergonomics.md): for each main screen,
+ * counts the visible touch targets, those under 44 and 24 CSS px, where they sit on the screen (bottom
  * half / top quarter) and the reader's share of the height.
  *
  *   BASE_URL=http://localhost:3000 node scripts/ergonomics-audit.mjs > audit.json
@@ -26,15 +25,15 @@ const SCREENS = [
 const device = devices[process.env.DEVICE || 'iPhone 13'];
 const out = {};
 const browser = await chromium.launch();
-for (const variant of ['current', 'prototype']) {
+{
   const ctx = await browser.newContext({ ...device, colorScheme: 'dark' });
-  await ctx.addInitScript(`try{sessionStorage.setItem('qb.landed','1'); ${variant==='prototype' ? "localStorage.setItem('qb.ux','m2')" : "localStorage.removeItem('qb.ux')"}}catch(e){}`);
+  // Stay on Home (a returning reader is otherwise forwarded to the reader once).
+  await ctx.addInitScript(`try{sessionStorage.setItem('qb.landed','1')}catch(e){}`);
   const page = await ctx.newPage();
-  out[variant] = {};
   for (const [name, url] of SCREENS) {
     await page.goto(BASE_URL + url, { waitUntil: 'networkidle' });
     await page.waitForTimeout(1800);
-    out[variant][name] = await page.evaluate(() => {
+    out[name] = await page.evaluate(() => {
       const W = innerWidth, H = innerHeight;
       const sel = 'button, a[href], input:not([type=hidden]), select, textarea, [role=button], [role=tab], [role=radio], [role=menuitem], [role=option]';
       const els = [...document.querySelectorAll(sel)].filter((el) => {

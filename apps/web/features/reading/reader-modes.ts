@@ -46,8 +46,8 @@ export function nextReaderLayout(layout: ReaderLayout | null | undefined): Reade
   return READER_MODES[(index + 1) % READER_MODES.length].layout;
 }
 
-// A Madani page (frame included) is ~0.62 as wide as it is tall.
-const PAGE_ASPECT = 0.62;
+// The printed page is 1 : 1.52 (keep in step with reading.css «Printed page»).
+const PAGE_ASPECT = 1 / 1.52;
 // A spread may cost at most this much page size versus a single page.
 const SPREAD_MIN_RATIO = 0.9;
 

@@ -1,16 +1,19 @@
-# Phone ergonomics prototype (`m2`)
+# Phone ergonomics
 
-A research-grounded variant of the phone interface, shipped behind a
-per-device switch so the current app keeps working unchanged.
+The phone interface, grounded in the research below. It started as an opt-in
+prototype (`m2`, Q-Basair-mobile-ux-prototype) and was adopted as the only
+phone interface in Q-Basair-51: the per-device switch, the `/prototype/mobile`
+page and the worlds coin are gone.
 
-- Try it: open `/prototype/mobile` on a phone (or a ≤768px window) and tap
-  **جرّب الواجهة التجريبية**. The choice is stored in `localStorage["qb.ux"] = "m2"`
-  and applied as `<html data-ux="m2">` before first paint (`app/layout.tsx`).
-- Turn it off: the same page, or the account sheet row
-  **الواجهة التجريبية للهاتف**.
-- Scope: phones only. Every style rule lives under
-  `@media (max-width: 768px)` and `html[data-ux="m2"]`
-  (`features/shell/ux-prototype.css`). Desktop and tablets are untouched.
+- Scope: phones. The rules live in `features/shell/phone-ergonomics.css`
+  under `@media (max-width: 768px)`; the tab bar is
+  `features/shell/mobile-tab-bar.tsx`; Home is one tree for every size
+  (`features/home/home-screen.tsx`, arranged by `home.css`).
+- Wide screens keep their layout (reader toolbar on top, recitation bar,
+  command bar). Their rail lists every destination, grouped by world, with no
+  world switch (there is room for all of them), and Home keeps the rotating
+  verse as its centrepiece above the same continue card, shortcuts and search
+  as the phone.
 
 ## What the research says
 
@@ -28,29 +31,29 @@ per-device switch so the current app keeps working unchanged.
 | R10 | Error rates fall sharply up to ~9.2 mm (single taps) and ~9.6 mm (serial taps); smaller targets cost accuracy and time. | Parhi, Karlson & Bederson, *Target Size Study for One-Handed Thumb Use on Small Touchscreen Devices*, MobileHCI 2006 — https://doi.org/10.1145/1152215.1152260 ; Park & Han 2010 (target location effects) — https://doi.org/10.1016/j.ergon.2009.08.004 |
 | R11 | Minimum target sizes: 24×24 CSS px (WCAG 2.2 AA, 2.5.8), 44×44 (AAA, 2.5.5); 44pt (Apple), 48dp (Material). | https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum ; https://www.w3.org/WAI/WCAG22/Understanding/target-size-enhanced |
 | R12 | Time to hit a target grows with distance and shrinks with size (Fitts); choice time grows with the number of options (Hick–Hyman). | Fitts 1954; Hick 1952; Hyman 1953 — summarised at https://lawsofux.com/fittss-law/ and https://lawsofux.com/hicks-law/ |
-| R13 | Dark text on a light background reads better for detail; the reader keeps its themes, and the prototype does not change them. | Piepenbrock, Mayr, Mund & Buchner, *Positive display polarity is advantageous for both younger and older adults*, Ergonomics 2013 — https://doi.org/10.1080/00140139.2013.790485 |
+| R13 | Dark text on a light background reads better for detail; the reader keeps its themes, and this layout does not change them. | Piepenbrock, Mayr, Mund & Buchner, *Positive display polarity is advantageous for both younger and older adults*, Ergonomics 2013 — https://doi.org/10.1080/00140139.2013.790485 |
 
 ## What changed, and why
 
 | Change | Before | After | Grounded in |
 |---|---|---|---|
-| **Stable five-tab bar** (`features/shell/stable-tab-bar.tsx`) | The worlds coin: one button that fans out and changes the tabs under the thumb per world; six of nine pages behind a tap. | Home · المصحف · البحث · الدراسة · الدفتر, always in the same place, icon + label, active pill in the world tint. A second tap on the current tab scrolls back to the top. The bar steps aside while the keyboard is open. | R6, R7, R8, R9, R12 |
-| **Home in the thumb zone** (`features/home/home-m2.tsx`) | Greeting and cards from the top down; actions spread across the screen. | The upper part is for looking (greeting). The actions stack from the bottom up: continue reading (one primary gold button), four labelled shortcuts (index, saved pages, study, community), and the search field last, closest to the thumb. | R1, R2, R4, R12 |
-| **Reader controls at the bottom** (`ux-prototype.css`, reader section) | The reader's bar sat at the top; its icons were unlabelled and some were under 44px. | The page fills the top; the bar sits under it at 56px with 48×48 labelled actions (تلاوة, عرض…). The surah name opens the index (with a chevron). The display strip opens upward. | R2, R3, R4, R8, R10 |
+| **Stable five-tab bar** (`features/shell/mobile-tab-bar.tsx`) | The worlds coin: one button that fans out and changes the tabs under the thumb per world; six of nine pages behind a tap. | Home · المصحف · البحث · الدراسة · الدفتر, always in the same place, icon + label, active pill in the world tint. A second tap on the current tab scrolls back to the top. The bar steps aside while the keyboard is open. | R6, R7, R8, R9, R12 |
+| **Home in the thumb zone** (`features/home/home-screen.tsx`) | Greeting and cards from the top down; actions spread across the screen. | The upper part is for looking (greeting). The actions stack from the bottom up: continue reading (one primary gold button), four labelled shortcuts (index, saved pages, study, community), and the search field last, closest to the thumb. | R1, R2, R4, R12 |
+| **Reader controls at the bottom** (`phone-ergonomics.css`, reader section) | The reader's bar sat at the top; its icons were unlabelled and some were under 44px. | The page fills the top; the bar sits under it at 56px with 48×48 labelled actions (تلاوة, عرض…). The surah name opens the index (with a chevron). The display strip opens upward. | R2, R3, R4, R8, R10 |
 | **Swipe settles into the page** (`mushaf-stage.tsx`) | After swiping, the chrome stayed. | A page swipe on a phone enters the immersive view (the page alone, with a small "صفحة ٣" pill); a tap brings the chrome back. | R3, R4 |
 | **Search field at the bottom** | The field was at the top of the search screen; suggestions opened downward. | The field floats just above the tab bar and rides on the keyboard when typing (`visualViewport`); suggestions open upward with 48px rows. Results summary keeps two 44px actions and drops the decorative header. | R2, R5, R10 |
 | **44px floor** | 33 visible targets under 44px across seven screens (2 under 24px). | 0. Close buttons, icon buttons, tabs, chips, pins and the study composer all get 44×44 hit areas. | R10, R11 |
 | **Community still one step away** | In the coin fan. | Home tile, and a row in the account sheet. | R6 |
 
-Also fixed while building it (applies to both modes):
+Also fixed while building it:
 `.qb-companion-canvas > .qb-world-page` now fills the canvas
 (`features/concordance/concordance.css`), which removed a narrow-column glitch.
 
 ## Measured result
 
 `apps/web/scripts/ergonomics-audit.mjs` (Playwright, iPhone 13 profile,
-390×844) counts the visible touch targets on each screen with the prototype
-off → on:
+390×844) counts the visible touch targets on each screen. Measured when the
+prototype was introduced, before (the worlds coin) → after:
 
 | Screen | targets | under 44px | under 24px | in bottom half | in top quarter |
 |---|---|---|---|---|---|
@@ -80,11 +83,10 @@ are two taps (Home tile, or the surah name for the index).
 - The study screen keeps its header at the top; only its targets were enlarged.
 - In landscape the Home tab bar overlays content, as it does today (content scrolls).
 - In `next dev`, the reader occasionally logs "Maximum update depth exceeded"
-  from `useElementSize` (`features/reading/use-wide-screen.ts`), with or
-  without the prototype. It never reproduced in the production build.
+  from `useElementSize` (`features/reading/use-wide-screen.ts`); it predates
+  this layout and never reproduced in the production build.
 
 ## Follow-ups
 
 1. Hallway test with one-handed tasks (open a surah, search a root, resume a study).
 2. Move the study screen's tabs and composer actions down if the test confirms.
-3. If adopted, make `m2` the default on phones and remove the coin and the switch.

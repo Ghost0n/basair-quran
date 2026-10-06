@@ -93,18 +93,34 @@ Only title/basmala lines, their line numbers and `is_centered` change; text line
 and glyphs are untouched. `is_centered` is now also set on every line of the
 framed opening pages (1–2).
 
-### Print-faithful prototype (`/prototype/mushaf`)
+### The printed page (reader)
 
-A read-only prototype page (`apps/web/features/reading/prototype/`) renders the
-same layout as close to the printed page as the data allows, to compare against
-the reader before anything moves into it: a fixed 15-line grid, the type size
-set per page from the widest line's measured glyph width, word-to-word
-justification with a surah's short closing line centered, the QCF_BSML
-ornamental title frame (U+FC20) with the calligraphic surah-name glyphs
-(U+FB8D + n − 1 for 1–37, U+FBD3 + n − 38 for 38–114) and the calligraphic
-basmala (U+FC21), the running head (juz, surah), the folio, the medallion of
-pages 1–2, and two-page spreads (odd page on the right) on wide screens. All
-glyphs come from fonts the reader already ships.
+The reader lays the layout out as close to the printed King Fahd page as the
+data allows (`apps/web/features/reading/components/glyph-page.tsx`, CSS in
+`reading.css` «Printed page»). It began as the `/prototype/mushaf` page and
+replaced the reader's fitted page in Q-Basair-51; the prototype route is gone.
+
+- A paper sheet of ratio 1 : 1.52, the largest that fits the reading area
+  (`.qb-mushaf-page` is a CSS size container; two sheets side by side in a
+  spread, odd page on the right). The font-size preference only shrinks it
+  (`--page-zoom`, never under 60%). Everything inside is sized in units of the
+  sheet's width, so the page scales as one — no JS fit pass.
+- A fixed 15-line grid (pages 1–2: their lines in an inset column, centred).
+- The type size per page from the widest line's measured glyph width (canvas
+  `measureText` on the page font, which is loaded before the layout is used),
+  so that line fills the measure; the other lines justify word to word, and a
+  surah's short closing line (under 88% of the widest, or the last line of
+  page 604, or `is_centered`) is centred at its natural width.
+- Surah titles in the QCF_BSML ornamental frame (U+FC20) with the calligraphic
+  surah-name glyphs (U+FB8D + n − 1 for 1–37, U+FBD3 + n − 38 for 38–114), and
+  the calligraphic basmala (U+FC21). `bsml.woff2` loads with every page font;
+  without it the page falls back to a plain title and a Unicode basmala.
+- The running head (juz in words, surah) and the folio in Arabic-Indic digits:
+  the printed page's own furniture, Arabic in every interface language.
+- Not drawn: the printed page's ornamental borders (the frame rule and the
+  medallion of pages 1–2).
+- Interaction is unchanged: word picks, verse selection, theme highlights,
+  «تظليل» outlines, recitation following, morphology and page ribbons.
 
 ## Frontend (augment, with fallback)
 
