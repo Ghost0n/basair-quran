@@ -89,6 +89,14 @@
   border-color: rgba(212, 175, 55, 0.20);
 }
 
+/* On Home the brand mark is the current page: lit like an active rail button. */
+.qb-rail-brand-btn[aria-current="page"] {
+  background-color: var(--gold-a12);
+  background-image: var(--glass-sheen);
+  border-color: var(--border-accent);
+  box-shadow: var(--glass-edge), 0 6px 18px rgba(212, 175, 55, 0.14);
+}
+
 .qb-rail-btn {
   width: 64px;
   min-height: 54px;

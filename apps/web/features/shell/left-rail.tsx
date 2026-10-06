@@ -15,8 +15,9 @@ import { activeTabId, useWorldNavigation, useWorldSync, WORLD_ORDER, WORLDS } fr
 import { t } from "@/lib/i18n";
 
 /**
- * The desktop rail follows the phone's worlds (shell/worlds.ts): Home, a
- * three-world switch (gold · teal · copper), then the current world's pages.
+ * The desktop rail follows the phone's worlds (shell/worlds.ts): the brand mark
+ * (which is the Home button), a three-world switch (gold · teal · copper), then
+ * the current world's pages.
  */
 export function LeftRail() {
   const { mode } = useShellMode();
@@ -43,11 +44,10 @@ export function LeftRail() {
         onClick={handleBrandClick}
         title={t("بصائر القرآن — الصفحة الرئيسية")}
         aria-label={t("بصائر القرآن — الصفحة الرئيسية")}
+        aria-current={active === "home" ? "page" : undefined}
       >
         <BrandMark size={40} themed />
       </button>
-
-      <RailButton icon="home" label={t("الرئيسية")} active={active === "home"} onSelect={() => openTab(world, "home")} />
 
       <div className="qb-rail-worlds" role="group" aria-label={t("العوالم")}>
         {WORLD_ORDER.map((id) => (
