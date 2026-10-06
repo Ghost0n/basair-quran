@@ -2134,3 +2134,8 @@
 .qb-mushaf-stage.is-immersive .qb-reader-row {
   display: none;
 }
+
+/* A label only the phone prototype shows (features/shell/ux-prototype.css). */
+.qb-reader-bar .lbl.m2 {
+  display: none;
+}

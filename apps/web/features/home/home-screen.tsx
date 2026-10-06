@@ -23,6 +23,9 @@ import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { queueStudioOpenSession } from "@/lib/studio-prefill";
 
 import { AccountSheet } from "./account-sheet";
+import { HomeM2 } from "./home-m2";
+import { useUxPrototype } from "@/lib/ux-prototype";
+import { usePhoneLayout } from "@/lib/use-phone-layout";
 import { greetingFor, readLastVisit, rememberVisit } from "./greeting";
 
 import { t, tn } from "@/lib/i18n";
@@ -74,6 +77,8 @@ export function HomeScreen() {
   const [lastVisit] = useState(readLastVisit);
   const [swap, setSwap] = useState(false);
   const deckSwipe = useRef<{ x: number; y: number } | null>(null);
+  const prototype = useUxPrototype();
+  const phone = usePhoneLayout();
 
   // Returning readers land in the reader: the first Home of a browser session
   // with a saved position forwards to «القراءة» (which resumes there). Home is
@@ -224,6 +229,37 @@ export function HomeScreen() {
     if (Math.abs(dx) > 44 && Math.abs(dy) < 40) changeWorld(stepWorld(world, dx < 0 ? 1 : -1), true);
   }
 
+  const accountSheet =
+    accountOpen && typeof document !== "undefined"
+      ? createPortal(
+          <AccountSheet
+            onClose={() => {
+              setAccountOpen(false);
+              accountBtn.current?.focus({ preventScroll: true });
+            }}
+          />,
+          document.body,
+        )
+      : null;
+
+  // Phone prototype (lib/ux-prototype.ts): no deck — the next step and labelled shortcuts within reach.
+  if (prototype && phone) {
+    return (
+      <>
+        <HomeM2
+          greeting={greeting}
+          reading={cards.reading}
+          research={cards.research}
+          hasSession={Boolean(session)}
+          newPosts={newPosts}
+          accountButton={accountBtn}
+          onOpenAccount={() => setAccountOpen(true)}
+        />
+        {accountSheet}
+      </>
+    );
+  }
+
   return (
     <div className="qb-home-deck">
       <div className="qb-home-inner">
@@ -324,17 +360,7 @@ export function HomeScreen() {
         <div className="spacer" />
       </div>
 
-      {accountOpen && typeof document !== "undefined"
-        ? createPortal(
-            <AccountSheet
-              onClose={() => {
-                setAccountOpen(false);
-                accountBtn.current?.focus({ preventScroll: true });
-              }}
-            />,
-            document.body,
-          )
-        : null}
+      {accountSheet}
     </div>
   );
 }

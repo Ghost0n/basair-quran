@@ -1,0 +1,248 @@
+/* =====================================================================
+   Phone ergonomics prototype — `html[data-ux="m2"]` (lib/ux-prototype.ts,
+   docs/mobile-ergonomics-prototype.md). Every rule here is scoped to the
+   prototype and to phones, so the current interface is untouched.
+
+   Three ideas, each from the research cited in the doc:
+   1. Act at the bottom, look at the top: controls move into the thumb's
+      comfortable arc (Hoober 2013; Bergstrom-Lehtovirta & Oulasvirta 2014).
+   2. Targets of at least 44px with labels (Parhi et al. 2006; WCAG 2.5.5;
+      Apple HIG / Material 48dp).
+   3. Less chrome on screen at once, shown again on demand.
+   ===================================================================== */
+
+@media (max-width: 768px) {
+  /* ---------- 1. The reader's bar sits at the bottom, above the tabs ---------- */
+
+  html[data-ux="m2"] .qb-mushaf-stage {
+    padding-top: max(6px, env(safe-area-inset-top, 0px));
+  }
+
+  html[data-ux="m2"] .qb-mushaf-stage > .qb-reader-surface {
+    order: 1;
+  }
+
+  html[data-ux="m2"] .qb-mushaf-stage > .qb-reader-head {
+    order: 2;
+    padding-bottom: 4px;
+  }
+
+  /* «العرض» opens upward from the bar, towards the page it changes. */
+  html[data-ux="m2"] .qb-reader-head .qb-display-strip {
+    top: auto;
+    bottom: calc(100% - 2px);
+    animation-name: qbStripUp;
+  }
+
+  /* Every action keeps its label (icons alone are ambiguous) and a 44px target. */
+  html[data-ux="m2"] .qb-reader-bar {
+    min-height: 56px;
+    padding: 4px 4px 4px 8px;
+  }
+
+  html[data-ux="m2"] .qb-reader-bar .actions {
+    gap: 0;
+  }
+
+  html[data-ux="m2"] .qb-reader-bar .act,
+  html[data-ux="m2"] .qb-reader-bar .act.labelled {
+    flex-direction: column;
+    gap: 2px;
+    min-width: 48px;
+    height: 48px;
+    padding: 0 4px;
+    border-radius: 12px;
+  }
+
+  html[data-ux="m2"] .qb-reader-bar .act .lbl,
+  html[data-ux="m2"] .qb-reader-bar .act.labelled .lbl,
+  html[data-ux="m2"] .qb-reader-bar:is([data-fit]) :is(.qb-toolbox .tool, .on-tool) .lbl,
+  html[data-ux="m2"] .qb-reader-bar:is([data-fit]) .display-btn .lbl,
+  html[data-ux="m2"] .qb-reader-bar:is([data-fit]) .go-btn .lbl {
+    display: block;
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  /* The surah name is itself the «انتقل» button: the separate one would only
+     repeat it, and its room goes to the name. */
+  html[data-ux="m2"] .qb-reader-bar .go-btn {
+    display: none;
+  }
+
+  html[data-ux="m2"] .qb-reader-bar .identity {
+    min-height: 48px;
+    justify-content: center;
+  }
+
+  html[data-ux="m2"] .qb-reader-bar .identity .name::after {
+    content: "";
+    display: inline-block;
+    width: 0.38em;
+    height: 0.38em;
+    margin-inline-start: 0.4em;
+    /* A down chevron: the name opens the «انتقل» sheet. */
+    border-right: 1.6px solid currentColor;
+    border-bottom: 1.6px solid currentColor;
+    transform: translateY(-0.22em) rotate(45deg);
+    opacity: 0.7;
+  }
+
+  html[data-ux="m2"] .qb-reader-bookmark {
+    width: 48px;
+    margin: 4px 0;
+  }
+
+  /* The progress hairline belongs on the bar's top edge once it is at the bottom. */
+  html[data-ux="m2"] .qb-reader-bar .progress {
+    top: 0;
+    bottom: auto;
+  }
+
+  /* ---------- 2. Search: the field sits by the thumb and the keyboard ---------- */
+
+  html[data-ux="m2"][data-shell-mode="search"] .qb-topbar {
+    position: fixed;
+    inset-inline: calc(10px + env(safe-area-inset-left, 0px));
+    bottom: calc(8px + 66px + 8px + env(safe-area-inset-bottom, 0px));
+    top: auto;
+    z-index: 46;
+    height: 56px;
+    padding: 0;
+    transition: bottom var(--motion-dur-base, 200ms) var(--motion-ease-settle, ease-out);
+  }
+
+  /* With the keyboard up the tab bar steps aside and the field rides on the keyboard. */
+  html[data-ux="m2"][data-shell-mode="search"][data-kb="open"] .qb-topbar {
+    bottom: calc(var(--qb-kb, 0px) + 8px);
+  }
+
+  html[data-ux="m2"] .qb-cmd {
+    min-height: 52px;
+    max-width: none;
+  }
+
+  html[data-ux="m2"] .qb-cmd input {
+    font-size: 16px; /* also stops iOS zooming into the field */
+  }
+
+  /* Suggestions open upward, above the field. */
+  html[data-ux="m2"] .qb-cmd-suggestions {
+    top: auto;
+    bottom: calc(100% + 8px);
+    transform-origin: bottom center;
+    max-height: min(360px, 45dvh);
+  }
+
+  html[data-ux="m2"] .qb-cmd-suggestion {
+    min-height: 48px;
+  }
+
+  /* The results scroll above the field: clear its height. */
+  html[data-ux="m2"][data-shell-mode="search"] .qb-main {
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: calc(8px + 66px + 8px + 56px + 10px + env(safe-area-inset-bottom, 0px));
+  }
+
+  html[data-ux="m2"][data-shell-mode="search"][data-kb="open"] .qb-main {
+    padding-bottom: calc(var(--qb-kb, 0px) + 72px);
+  }
+
+  /* Results: the header already says the word and its counts, so the summary
+     card drops its repeats and lays its two actions side by side — the first
+     verse moves up into view. */
+  html[data-ux="m2"] .qb-side-head .kicker {
+    display: none;
+  }
+
+  html[data-ux="m2"] .qb-side-head {
+    padding: 12px 16px 10px;
+  }
+
+  html[data-ux="m2"] .qb-side-head h3 {
+    margin: 0 0 2px;
+  }
+
+  html[data-ux="m2"] .qb-root-summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 10px 12px;
+    margin-bottom: 12px;
+  }
+
+  html[data-ux="m2"] .qb-root-summary .root-disp,
+  html[data-ux="m2"] .qb-root-summary .root-stats {
+    display: none;
+  }
+
+  html[data-ux="m2"] .qb-root-summary .root-gloss {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+
+  html[data-ux="m2"] .qb-root-summary .qb-follow-root {
+    margin-top: 0 !important;
+    min-height: 44px;
+    height: auto;
+    padding: 4px 8px;
+    border-radius: 12px;
+    line-height: 1.3;
+  }
+
+  /* ---------- 3. Study: the conversation gets the room ---------- */
+
+  html[data-ux="m2"][data-shell-mode="studio"] .qb-main {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  /* Focus mode's way back: a real target, not a faint 34px chip. */
+  html[data-ux="m2"] .qb-immersive-exit {
+    height: 44px;
+    padding: 0 18px;
+    font-size: 13px;
+    opacity: 0.8;
+  }
+
+  /* ---------- 4. A 44px floor for the small controls ---------- */
+
+  html[data-ux="m2"] .qb-side-head .close,
+  html[data-ux="m2"] .qb-rsheet .close,
+  html[data-ux="m2"] .qb-icon-btn,
+  html[data-ux="m2"] .qb-icon-round,
+  html[data-ux="m2"] .qb-verse-row .pin,
+  html[data-ux="m2"] .qb-studio-tab .x,
+  html[data-ux="m2"] .qb-studio-tab.add {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  html[data-ux="m2"] .qb-cmd input,
+  html[data-ux="m2"] .qb-lib-tabs button,
+  html[data-ux="m2"] .qb-nav-sheet .tabs button,
+  html[data-ux="m2"] .qb-studio-tab,
+  html[data-ux="m2"] .qb-studio-tab .label,
+  html[data-ux="m2"] .qb-mode-tab,
+  html[data-ux="m2"] .qb-studio .tool-chip,
+  html[data-ux="m2"] .qb-studio .send {
+    min-height: 44px;
+  }
+}
+
+@keyframes qbStripUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

@@ -1,0 +1,257 @@
+/* =====================================================================
+   Home — phone prototype (home-m2.tsx). The upper half is for looking,
+   the lower half for acting: the actions stack from the bottom up, just
+   above the tab bar, where the thumb rests.
+   ===================================================================== */
+
+.qb-home2 {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 480px;
+  margin-inline: auto;
+  /* Clears the floating tab bar (app/globals.css). */
+  padding: 6px 16px var(--page-bottom, 96px);
+  font-family: var(--font-arabic-ui);
+  color: var(--fg-1);
+}
+
+.qb-home2-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+}
+
+.qb-home2-account {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--glass-tint);
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+.qb-home2-greeting {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.qb-home2-greeting h1 {
+  margin: 0;
+  font-family: var(--font-arabic-heading);
+  font-size: 24px;
+  line-height: var(--lh-heading, 1.6);
+  font-weight: 700;
+}
+
+.qb-home2-greeting p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fg-3);
+}
+
+/* Pushed to the bottom of the screen; on a short screen it simply scrolls. */
+.qb-home2-reach {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+/* ---------- Continue: the one primary action ---------- */
+
+.qb-home2-continue {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 24px;
+  border: 1px solid color-mix(in srgb, var(--world-reading) 28%, transparent);
+  background-color: var(--glass-tint-overlay, var(--glass-tint-strong));
+  background-image: linear-gradient(160deg, var(--world-reading-a), transparent 60%), var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+}
+
+.qb-home2-continue .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--world-reading-text);
+}
+
+.qb-home2-continue .row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qb-home2-continue .txt {
+  flex: 1;
+  min-width: 0;
+}
+
+.qb-home2-continue h2 {
+  margin: 0;
+  font-family: var(--font-arabic-heading);
+  font-size: 28px;
+  line-height: var(--lh-heading, 1.6);
+  font-weight: 700;
+  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qb-home2-continue h2.sm {
+  font-size: 20px;
+}
+
+.qb-home2-continue p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fg-3);
+}
+
+.qb-home2-continue .listen {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--world-reading) 30%, transparent);
+  background: var(--world-reading-a);
+  color: var(--world-reading-text);
+  cursor: pointer;
+}
+
+.qb-home2-continue .go {
+  min-height: 52px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--gold-gel, var(--gold-400));
+  box-shadow: var(--gold-gel-shadow, none);
+  color: #140f00;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-home2-continue .go:active,
+.qb-home2-tile:active,
+.qb-home2-search:active {
+  transform: scale(var(--press-scale, 0.97));
+}
+
+/* ---------- Four labelled shortcuts ---------- */
+
+.qb-home2-grid {
+  display: grid;
+  /* minmax(0, …): a long subtitle must ellipsize, not widen the column. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.qb-home2-tile {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge);
+  color: var(--fg-1);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.qb-home2-tile .ico {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--gold-a12);
+  color: var(--gold-text);
+}
+
+.qb-home2-tile .ico .dot {
+  position: absolute;
+  top: 4px;
+  inset-inline-end: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--world-community);
+}
+
+.qb-home2-tile .txt {
+  display: grid;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.qb-home2-tile b {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.qb-home2-tile small {
+  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
+  font-size: 12px;
+  color: var(--fg-3);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ---------- The search field, last: closest to the thumb ---------- */
+
+.qb-home2-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background-color: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge);
+  color: var(--fg-3);
+  font: inherit;
+  font-size: 15px;
+  text-align: start;
+  cursor: text;
+}
+
+.qb-home2-search span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.qb-home2-search .qb-icon {
+  color: var(--gold-text);
+  flex-shrink: 0;
+}

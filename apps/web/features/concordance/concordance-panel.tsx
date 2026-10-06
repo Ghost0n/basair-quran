@@ -11,6 +11,7 @@ import { Icon } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
 import { useNotebookSync } from "@/lib/notebook-sync";
 import { useIsMobile } from "@/lib/use-is-mobile";
+import { useUxPrototype } from "@/lib/ux-prototype";
 import { useNumerals } from "@/lib/preferences-context";
 import { getVerseSelectionKey, kwicWindow, renderHighlightedVerseText } from "@/lib/quran-ui";
 import { useShellMode } from "@/features/shell/mode-context";
@@ -55,6 +56,8 @@ export function ConcordancePanel() {
   // switch the shell to the reader surface (Back returns to the results). At wide
   // widths the reader is already visible beside the panel — no mode switch needed.
   const isCompact = useIsMobile(1000);
+  const phone = useIsMobile();
+  const prototype = useUxPrototype();
 
   function openVerse(verse: SearchVerse, resultKey: string) {
     void actions.selectVerse(verse, resultKey);
@@ -255,7 +258,10 @@ export function ConcordancePanel() {
               <Icon name="search" size={26} />
             </div>
             <p className="qb-conc-empty-lead">
-              {t("اكتب جذراً أو كلمة قرآنية في شريط الأوامر بالأعلى ↑ لتبدأ البحث.")}
+              {/* The phone prototype puts the search field at the bottom, by the thumb. */}
+              {prototype && phone
+                ? t("اكتب جذراً أو كلمة قرآنية في الشريط بالأسفل ↓ لتبدأ البحث.")
+                : t("اكتب جذراً أو كلمة قرآنية في شريط الأوامر بالأعلى ↑ لتبدأ البحث.")}
             </p>
             {state.quickExamples.length ? (
               <div className="qb-conc-examples">

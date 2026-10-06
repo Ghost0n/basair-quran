@@ -1020,5 +1020,13 @@
  "البسملة": "Basmala",
  "التنقل بين الصفحات": "Paginanavigatie",
  "رقم الصفحة": "Paginanummer",
- "نموذج تجريبي: مصحف مطابق للطبعة": "Prototype: drukgetrouwe mushaf"
+ "نموذج تجريبي: مصحف مطابق للطبعة": "Prototype: drukgetrouwe mushaf",
+ "اكتب جذراً أو كلمة قرآنية في الشريط بالأسفل ↓ لتبدأ البحث.": "Typ een koranische wortel of een woord in de balk hieronder ↓ om te zoeken.",
+ "الواجهة التجريبية للهاتف": "Experimentele telefooninterface",
+ "الواجهة التجريبية مفعّلة على هذا الجهاز.": "De experimentele interface staat aan op dit apparaat.",
+ "تجربة واجهة الهاتف": "Prototype van de telefooninterface",
+ "جرّب الواجهة التجريبية": "Probeer het prototype",
+ "عُد إلى الواجهة الحالية": "Terug naar de huidige interface",
+ "مفعّلة على هذا الجهاز — اضغط لإيقافها": "Aan op dit apparaat — tik om uit te zetten",
+ "نسخة تجريبية من واجهة الهاتف: شريط تنقّل ثابت بخمسة أقسام، وأدوات القراءة وحقل البحث في متناول الإبهام، وأهداف لمس أكبر. تُحفظ على هذا الجهاز فقط ويمكن إيقافها في أي وقت.": "Een prototype van de telefooninterface: een vaste balk met vijf tabbladen, leeshulpmiddelen en het zoekveld binnen bereik van de duim, en grotere aanraakvlakken. Alleen op dit apparaat bewaard; je kunt het altijd uitzetten."
 }

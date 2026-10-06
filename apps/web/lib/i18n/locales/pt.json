@@ -1020,5 +1020,13 @@
  "البسملة": "Basmala",
  "التنقل بين الصفحات": "Navegação entre páginas",
  "رقم الصفحة": "Número da página",
- "نموذج تجريبي: مصحف مطابق للطبعة": "Protótipo: mushaf fiel à edição impressa"
+ "نموذج تجريبي: مصحف مطابق للطبعة": "Protótipo: mushaf fiel à edição impressa",
+ "اكتب جذراً أو كلمة قرآنية في الشريط بالأسفل ↓ لتبدأ البحث.": "Escreva uma raiz ou palavra corânica na barra abaixo ↓ para começar a pesquisa.",
+ "الواجهة التجريبية للهاتف": "Interface experimental do telemóvel",
+ "الواجهة التجريبية مفعّلة على هذا الجهاز.": "A interface experimental está ativada neste dispositivo.",
+ "تجربة واجهة الهاتف": "Protótipo da interface do telemóvel",
+ "جرّب الواجهة التجريبية": "Experimentar o protótipo",
+ "عُد إلى الواجهة الحالية": "Voltar à interface atual",
+ "مفعّلة على هذا الجهاز — اضغط لإيقافها": "Ativada neste dispositivo — toque para desativar",
+ "نسخة تجريبية من واجهة الهاتف: شريط تنقّل ثابت بخمسة أقسام، وأدوات القراءة وحقل البحث في متناول الإبهام، وأهداف لمس أكبر. تُحفظ على هذا الجهاز فقط ويمكن إيقافها في أي وقت.": "Um protótipo da interface do telemóvel: uma barra fixa de cinco separadores, as ferramentas de leitura e o campo de pesquisa ao alcance do polegar, e áreas de toque maiores. Guardado apenas neste dispositivo; pode desativá-lo a qualquer momento."
 }

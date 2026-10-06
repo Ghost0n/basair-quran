@@ -638,3 +638,10 @@
   color: var(--gold-text);
   background: var(--gold-a12);
 }
+
+/* A world page in the single-column canvas (the index, saved pages) takes the
+   whole width: as a flex item it otherwise shrinks to its content. */
+.qb-companion-canvas > .qb-world-page {
+  flex: 1 1 auto;
+  min-width: 0;
+}

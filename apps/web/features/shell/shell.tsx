@@ -4,6 +4,7 @@ import { LocaleAccountSync } from "./locale-account-sync";
 import { useEffect, type ReactNode } from "react";
 
 import "./shell.css";
+import "./ux-prototype.css";
 
 import { installGlobalErrorHooks } from "@/lib/error-report";
 
@@ -17,11 +18,13 @@ import { RecitationSessionAttributes } from "@/features/recitation/session-view"
 import { AuthSessionProvider } from "@/lib/auth-session-context";
 import { PreferencesProvider } from "@/lib/preferences-context";
 import { usePhoneLayout } from "@/lib/use-phone-layout";
+import { useUxPrototype } from "@/lib/ux-prototype";
 
 import { LeftRail } from "./left-rail";
 import { MobileTabBar } from "./mobile-tab-bar";
 import { useShellMode } from "./mode-context";
 import { ShortcutsModal } from "./shortcuts-modal";
+import { StableTabBar } from "./stable-tab-bar";
 import { ThemeSweep } from "./theme-sweep";
 import { TopBar } from "./top-bar";
 import { WorkspaceProvider } from "./workspace-context";
@@ -47,6 +50,8 @@ function ShellModeAttribute() {
 export function Shell({ children }: { children: ReactNode }) {
   // Phones, upright or on their side, get the session player (player / capsule); larger screens the media bar.
   const phone = usePhoneLayout();
+  // The phone ergonomics prototype (lib/ux-prototype.ts) swaps the worlds coin for a fixed tab bar.
+  const prototype = useUxPrototype();
   // Install the Sentry-shaped global error capture (no-op unless the env flag is on).
   useEffect(() => {
     installGlobalErrorHooks();
@@ -66,7 +71,7 @@ export function Shell({ children }: { children: ReactNode }) {
                 <div className="qb-canvas">{children}</div>
                 {phone ? null : <RecitationBar />}
               </div>
-              <MobileTabBar />
+              {prototype ? <StableTabBar /> : <MobileTabBar />}
               {phone ? <PhonePlayer /> : null}
             </div>
             <RecitationSessionAttributes />

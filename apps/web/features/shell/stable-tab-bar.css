@@ -1,0 +1,93 @@
+/* =====================================================================
+   Phone prototype — the fixed five-tab bar (stable-tab-bar.tsx).
+   The dock itself (glass, position, safe area) comes from .qb-tabbar in
+   shell.css; this file only lays out its five equal destinations.
+   ===================================================================== */
+
+@media (max-width: 768px) {
+  .qb-tabbar.qb-stable-tabbar {
+    align-items: stretch;
+    gap: 0;
+    padding: 0 4px;
+    height: 66px;
+    touch-action: manipulation;
+  }
+}
+
+.qb-stab {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg-3);
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The selected destination: a pill behind the icon (Material 3's active
+   indicator), in the page's world tint. */
+.qb-stab .pill {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  max-width: 100%;
+  height: 32px;
+  border-radius: var(--r-pill, 999px);
+  transition: background-color var(--motion-dur-base, 200ms) var(--spring-soft, ease-out),
+    transform var(--motion-dur-instant, 90ms);
+}
+
+.qb-stab:active .pill {
+  transform: scale(var(--press-scale, 0.94));
+}
+
+.qb-stab .label {
+  max-width: 100%;
+  overflow: hidden;
+  overflow-y: visible;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.qb-stab.active {
+  color: var(--world-text, var(--gold-text));
+}
+
+.qb-stab.active .pill {
+  background-color: var(--world-a, var(--gold-a12));
+  box-shadow: var(--glass-edge);
+}
+
+.qb-stab.active .label {
+  font-weight: 800;
+}
+
+.qb-stab:focus-visible {
+  outline: none;
+}
+
+.qb-stab:focus-visible .pill {
+  box-shadow: 0 0 0 2px var(--border-focus, var(--gold-400));
+}
+
+/* Typing: the keyboard covers the bottom of the screen, so the bar steps aside
+   (the field being typed into sits above the keyboard instead). */
+html[data-kb="open"] .qb-stable-tabbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-stab .pill {
+    transition: none;
+  }
+}

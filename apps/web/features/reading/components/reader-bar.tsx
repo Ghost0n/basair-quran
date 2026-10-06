@@ -152,13 +152,15 @@ export function ReaderBar({
         </button>
         <button
           type="button"
-          className={`act${playingHere ? " on" : ""}`}
+          className={`act play-btn${playingHere ? " on" : ""}`}
           onClick={togglePlay}
           disabled={!playable}
           aria-label={playingHere ? t("إيقاف التلاوة") : t("تلاوة الصفحة")}
           title={playingHere ? t("إيقاف التلاوة") : t("تلاوة الصفحة")}
         >
           <Icon name={playingHere ? "pause" : "play"} size={17} />
+          {/* Shown by the phone prototype only (its bar labels every action). */}
+          <span className="lbl m2">{playingHere ? t("إيقاف") : t("تلاوة")}</span>
         </button>
         {!compact && ayahMode ? (
           <button

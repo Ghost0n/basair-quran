@@ -13,6 +13,7 @@ import { useWorkspace } from "@/features/shell/workspace-context";
 import { useRecitation } from "@/features/recitation/recitation-context";
 import { toggleRevealed } from "@/features/recitation/session-view";
 import { usePhoneLayout } from "@/lib/use-phone-layout";
+import { readUxPrototype } from "@/lib/ux-prototype";
 import { divisionOf, divisionRange } from "@/lib/quran-ranges";
 import { Icon } from "@/components/icon";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
@@ -490,10 +491,21 @@ export function MushafStage() {
 
   // Swipe turns the page in every mode (the continuous ones scroll a page);
   // a tap on the empty page toggles focus mode (on phones, a click too).
+  // Phone prototype: a swiped page turn also hides the chrome, as an e-reader
+  // does — reading resumes full screen and a tap brings the bars back.
+  const settleIntoPage = () => {
+    if (phone && !sessionActive && readUxPrototype()) setImmersive(true);
+  };
   const gestures = useReaderGestures({
     swipeEnabled: true,
-    onNext: () => goNextRef.current(),
-    onPrev: () => goPrevRef.current(),
+    onNext: () => {
+      goNextRef.current();
+      settleIntoPage();
+    },
+    onPrev: () => {
+      goPrevRef.current();
+      settleIntoPage();
+    },
     onTap: () => (sessionActive && phone ? toggleRevealed() : setImmersive((value) => !value)),
     mouseTaps: compact,
   });
