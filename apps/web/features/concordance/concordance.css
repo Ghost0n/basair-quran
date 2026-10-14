@@ -597,48 +597,6 @@
   }
 }
 
-/* ---------- Compact results (KWIC) ---------- */
-
-.qb-verse-row.compact {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 6px 12px;
-  margin-bottom: 4px;
-  border-radius: 10px;
-}
-
-.qb-verse-row.compact .vmeta {
-  flex: 0 0 auto;
-  margin: 0;
-  gap: 6px;
-  flex-wrap: nowrap;
-}
-
-.qb-verse-row.compact .vmeta .surah {
-  display: none; /* the reference carries it; the surah shows on hover/title */
-}
-
-.qb-verse-row.compact .vmeta .pin {
-  order: 2;
-}
-
-.qb-verse-row.compact .vtext.kwic {
-  flex: 1;
-  min-width: 0;
-  font-size: 18px;
-  line-height: 1.75;
-}
-
-.qb-verse-row .vtext .ell {
-  color: var(--fg-mute);
-}
-
-.qb-side-head-actions .close.on {
-  color: var(--gold-text);
-  background: var(--gold-a12);
-}
-
 /* A world page in the single-column canvas (the index, saved pages) takes the
    whole width: as a flex item it otherwise shrinks to its content. */
 .qb-companion-canvas > .qb-world-page {
