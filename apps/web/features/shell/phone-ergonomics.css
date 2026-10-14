@@ -180,6 +180,132 @@
     display: none;
   }
 
+  /* ---------- 1c. In the reader the tab bar becomes the reader's dock ---------- */
+
+  /* The toolbox and a back arrow take the tab bar's place (same glass, same
+     spot); the bookmark floats in the top corner; focus mode hides all of it. */
+  html:root[data-shell-mode="reading"] .qb-tabbar {
+    display: none;
+  }
+
+  html:root .qb-mushaf-stage > .qb-reader-head.is-dock {
+    position: fixed;
+    left: calc(10px + env(safe-area-inset-left, 0px));
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    z-index: 45;
+    margin: 0;
+    padding: 0;
+  }
+
+  html:root .qb-reader-head.is-dock .qb-display-strip {
+    bottom: calc(100% + 8px);
+  }
+
+  html:root .qb-reader-bar.qb-reader-dock {
+    height: 66px;
+    margin: 0;
+    padding: 0 6px;
+    border-radius: 24px;
+    background-color: var(--glass-tint-soft);
+    box-shadow: var(--glass-edge), var(--glass-shadow-lift);
+  }
+
+  html:root .qb-reader-dock .actions {
+    flex: 1;
+    justify-content: space-around;
+  }
+
+  html:root .qb-reader-dock .act {
+    min-width: 56px;
+  }
+
+  /* The back arrow sits at the dock's far left, set off by a hairline. */
+  html:root .qb-reader-dock .act.back-btn {
+    flex-shrink: 0;
+    min-width: 52px;
+    margin-inline-start: 4px;
+    border-inline-start: 1px solid var(--glass-rim);
+    border-radius: 0 12px 12px 0;
+  }
+
+  /* Reciting: previous · play · next, the reciter, close. */
+  html:root .qb-reader-dock.is-reciting .qb-ptransport {
+    flex: 1;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  html:root .qb-reader-dock.is-reciting .qb-ptransport .nav {
+    width: 44px;
+    height: 44px;
+  }
+
+  html:root .qb-reader-dock.is-reciting .qb-ptransport .play {
+    width: 50px;
+    height: 50px;
+  }
+
+  /* The recitation's own player and capsule give way to the dock in the reader
+     (they stay on the other screens). */
+  html:root[data-shell-mode="reading"] :is(.qb-pplayer, .qb-capsule, .qb-recite-hint) {
+    display: none;
+  }
+
+  html:root.qb-reciting .qb-mushaf-stage > .qb-reader-head.is-dock {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+
+  html:root.qb-immersive .qb-mushaf-stage > .qb-reader-head.is-dock {
+    display: none;
+  }
+
+  /* The bookmark floats in the top-left corner, over the page's margin. */
+  html:root .qb-reader-bookmark {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 2px);
+    left: calc(6px + env(safe-area-inset-left, 0px));
+    z-index: 44;
+    width: 40px;
+    height: 40px;
+    margin: 0;
+    border-radius: var(--r-pill);
+  }
+
+  html:root.qb-immersive .qb-reader-bookmark {
+    display: none;
+  }
+
+  /* …and the surah's name beside it opens «انتقل». */
+  html:root .qb-mushaf-stage:not(.is-ayah) .qb-glyph-page.qb-print-page {
+    padding-top: 6px;
+  }
+
+  html:root .qb-mushaf-stage:not(.is-ayah) .qb-print-head {
+    min-height: 40px;
+    align-items: center;
+    padding: 0;
+    padding-inline-end: 44px;
+  }
+
+  html:root .qb-print-head .surah {
+    cursor: pointer;
+  }
+
+  /* Verse by verse scrolls under the dock and the bookmark: room for its
+     first and last verses. */
+  html:root[data-shell-mode="reading"] .qb-main {
+    padding-bottom: 0;
+  }
+
+  html:root .qb-mushaf-stage.is-ayah .qb-mushaf-page {
+    padding-top: 48px;
+    padding-bottom: calc(8px + 66px + 8px + 28px + env(safe-area-inset-bottom, 0px));
+  }
+
   /* ---------- 2. Search: the field sits by the thumb and the keyboard ---------- */
 
   html:root[data-shell-mode="search"] .qb-topbar {

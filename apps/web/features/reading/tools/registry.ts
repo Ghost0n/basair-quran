@@ -8,7 +8,7 @@ import { t } from "@/lib/i18n";
  * a branch in the stage's word handler; the toolbar, the phone chooser, the
  * shortcuts and the hint line all read from this list.
  */
-export type ReaderToolId = "select" | "highlight";
+export type ReaderToolId = "read" | "select" | "highlight";
 
 export type ReaderTool = {
   id: ReaderToolId;
@@ -20,9 +20,16 @@ export type ReaderTool = {
   key: string;
 };
 
+// «قراءة» is no tool at all, and the default: the text doesn't react, so a
+// tap anywhere on the page shows or hides the bars (focus mode on phones).
 // «تحديد» absorbed the former «تحليل» tool (a single picked word shows its
 // analysis); the «تفسير» tool was retired (Tafssir stays in the Studio).
 export const READER_TOOLS: ReaderTool[] = [
+  { id: "read", get label() {
+    return t("قراءة");
+  }, icon: "book", get hint() {
+    return t("اضغط الصفحة لإظهار الأدوات أو إخفائها");
+  }, key: "0" },
   { id: "select", get label() {
     return t("تحديد");
   }, icon: "select", get hint() {
@@ -35,7 +42,7 @@ export const READER_TOOLS: ReaderTool[] = [
   }, key: "2" },
 ];
 
-export const DEFAULT_READER_TOOL: ReaderToolId = "select";
+export const DEFAULT_READER_TOOL: ReaderToolId = "read";
 
 export function isReaderToolId(value: unknown): value is ReaderToolId {
   return READER_TOOLS.some((tool) => tool.id === value);

@@ -1,14 +1,19 @@
 "use client";
 
-import { useRef } from "react";
+import { useRouter } from "next/navigation";
+import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import type { QuranPageResponse, SurahListItem } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { Transport } from "@/features/recitation/phone-player";
 import { useRecitation } from "@/features/recitation/recitation-context";
-import { useShellMode } from "@/features/shell/mode-context";
+import { RecitationSheet } from "@/features/recitation/recitation-sheet";
+import { lastScreenBeforeReader, useShellMode } from "@/features/shell/mode-context";
 import { modKey } from "@/lib/platform";
 import { useNumerals } from "@/lib/preferences-context";
+import { useIsMobile } from "@/lib/use-is-mobile";
 import { TOTAL_PAGES } from "@/lib/quran-nav";
 
 import { DisplayStrip } from "./display-strip";
@@ -74,6 +79,9 @@ export function ReaderBar({
   const formatNumber = useNumerals();
   const recitation = useRecitation();
   const compact = useCompactReader();
+  const dock = useIsMobile();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const router = useRouter();
   const { setMode } = useShellMode();
   const savedPages = useSavedPages();
 
@@ -104,6 +112,12 @@ export function ReaderBar({
     if (!playable || !firstAyah) return;
     if (isThisAyah) recitation.toggle();
     else recitation.playAyah(firstAyah.surah_id, firstAyah.ayah);
+  }
+
+  // The dock's back arrow: the screen the reader was opened from (Home when none).
+  function goBack() {
+    const query = lastScreenBeforeReader();
+    router.push(query ? `/?${query}` : "/", { scroll: false });
   }
 
   const progress = Math.min(100, Math.max(0, (displayPage / totalPages) * 100));
@@ -227,22 +241,98 @@ export function ReaderBar({
       </div>
     );
   }
-  // Phones: the bookmark floats on its own beside the bar (same glass, same
-  // height), red once the page is saved.
+  const bookmark = (
+    <button
+      type="button"
+      className={`qb-reader-bookmark${pageSaved ? " on" : ""}`}
+      onClick={toggleSavePage}
+      aria-pressed={pageSaved}
+      aria-label={pageSaved ? t("إزالة الصفحة من المحفوظات") : t("احفظ هذه الصفحة")}
+      title={pageSaved ? t("إزالة الصفحة من المحفوظات") : t("احفظ هذه الصفحة")}
+    >
+      <Icon name={pageSaved ? "bookmarkFilled" : "bookmark"} size={18} />
+    </button>
+  );
+
+  // Phones upright: the reader's bar is the dock that takes the tab bar's
+  // place — the toolbox, then a back arrow at the far left. While a
+  // recitation is open the toolbox gives way to its controls (previous ·
+  // play · next · reciter · end). The page names its surah (a tap on it
+  // opens «انتقل»), and the bookmark floats in the top corner. Focus mode
+  // hides all of it.
+  if (dock) {
+    return (
+      <div className="qb-reader-head is-dock" ref={headRef}>
+        <div className={`qb-reader-bar qb-reader-dock${recitation.active ? " is-reciting" : ""}`}>
+          {recitation.active ? (
+            <>
+              <Transport />
+              <button
+                type="button"
+                className="act labelled reciter-btn"
+                onClick={() => setSheetOpen(true)}
+                aria-haspopup="dialog"
+                aria-label={t("إعدادات التلاوة")}
+              >
+                <Icon name="user" size={18} />
+                <span className="lbl">{t("القارئ")}</span>
+              </button>
+              <button type="button" className="act labelled stop-btn" onClick={recitation.stop} aria-label={t("إنهاء التلاوة")}>
+                <Icon name="close" size={18} />
+                <span className="lbl">{t("إغلاق")}</span>
+              </button>
+            </>
+          ) : (
+            <div className="actions">
+              <ToolPicker compact />
+              {ayahMode ? (
+                <button type="button" className="act labelled" onClick={onOpenNavigate} aria-label={t("انتقل")}>
+                  <Icon name="compass" size={18} />
+                  <span className="lbl">{t("انتقل")}</span>
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className={`act labelled display-btn${displayOpen ? " on" : ""}`}
+                onClick={onToggleDisplay}
+                aria-expanded={displayOpen}
+                aria-label={t("العرض")}
+              >
+                <Icon name="textSize" size={18} />
+                <span className="lbl">{t("العرض")}</span>
+              </button>
+              <button
+                type="button"
+                className="act labelled play-btn"
+                onClick={togglePlay}
+                disabled={!playable}
+                aria-label={t("تلاوة الصفحة")}
+              >
+                <Icon name="play" size={18} />
+                <span className="lbl">{t("تلاوة")}</span>
+              </button>
+            </div>
+          )}
+          <button type="button" className="act back-btn" onClick={goBack} aria-label={t("رجوع")}>
+            <Icon name="arrowLeft" size={20} />
+          </button>
+        </div>
+        {strip}
+        {typeof document !== "undefined" ? createPortal(bookmark, document.body) : null}
+        {sheetOpen && typeof document !== "undefined"
+          ? createPortal(<RecitationSheet onClose={() => setSheetOpen(false)} />, document.body)
+          : null}
+      </div>
+    );
+  }
+
+  // Phones on their side: the bookmark floats on its own beside the bar
+  // (same glass, same height), red once the page is saved.
   return (
     <div className="qb-reader-head" ref={headRef}>
     <div className="qb-reader-row">
       {bar}
-      <button
-        type="button"
-        className={`qb-reader-bookmark${pageSaved ? " on" : ""}`}
-        onClick={toggleSavePage}
-        aria-pressed={pageSaved}
-        aria-label={pageSaved ? t("إزالة الصفحة من المحفوظات") : t("احفظ هذه الصفحة")}
-        title={pageSaved ? t("إزالة الصفحة من المحفوظات") : t("احفظ هذه الصفحة")}
-      >
-        <Icon name={pageSaved ? "bookmarkFilled" : "bookmark"} size={18} />
-      </button>
+      {bookmark}
     </div>
     {strip}
     </div>

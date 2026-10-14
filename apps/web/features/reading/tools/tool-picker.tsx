@@ -96,7 +96,7 @@ export function ToolPicker({ compact }: { compact: boolean }) {
     <div className="qb-toolbox-compact" ref={rootRef}>
       <button
         type="button"
-        className="act labelled on-tool"
+        className={`act labelled on-tool${active === "read" ? " is-idle" : ""}`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t("الأداة: {0}", { 0: current.label })}

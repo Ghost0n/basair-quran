@@ -61,6 +61,12 @@
   background: var(--gold-a08);
 }
 
+/* «قراءة» is no tool: the chooser reads as off. */
+.qb-reader-bar .qb-toolbox-compact .act.on-tool.is-idle {
+  color: var(--fg-2);
+  background: none;
+}
+
 .qb-toolbox-menu {
   position: fixed;
   z-index: calc(var(--elev-toast) + 6);
