@@ -841,6 +841,16 @@ export function MushafStage() {
 
       </div>
 
+      {/* Phones: the page number, under the tab bar in every mode. */}
+      {phone && displayPage && typeof document !== "undefined"
+        ? createPortal(
+            <span className="qb-page-number" aria-hidden="true">
+              {tt("صفحة")} {formatNumber(displayPage)}
+            </span>,
+            document.body,
+          )
+        : null}
+
       {/* Portaled to <body>: an ancestor's transform would otherwise trap this
           fixed pill inside the (clipped) stage. */}
       {immersive && typeof document !== "undefined"

@@ -108,6 +108,78 @@
     bottom: auto;
   }
 
+  /* ---------- 1b. The printed page is the screen ---------- */
+
+  /* Pages mode: the page is pinned to the screen, from the top safe area to
+     the tab bar, with no sheet or frame and the full width. The bars float
+     over it and focus mode only hides them, so the page never moves. Its
+     text size is fixed too (no font-size zoom here; «العرض» shows the size
+     control inactive in this mode). */
+  html:root .qb-mushaf-stage:not(.is-ayah) .qb-mushaf-page:has(> .qb-glyph-spread) {
+    position: fixed;
+    inset: env(safe-area-inset-top, 0px) 0 calc(8px + 66px + 8px + env(safe-area-inset-bottom, 0px));
+    z-index: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  html:root .qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+  }
+
+  html:root .qb-mushaf-stage:not(.is-ayah) .qb-glyph-page.qb-print-page {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    padding: 0 12px 4px;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+
+  /* The running head (juz · surah) sits in the screen's top corners. */
+  html:root .qb-mushaf-stage:not(.is-ayah) .qb-print-head {
+    padding: 4px 0 0;
+  }
+
+  /* The page number lives under the tab bar instead (.qb-page-number). */
+  html:root .qb-mushaf-stage .qb-print-folio {
+    display: none;
+  }
+
+  /* The bars stay above the pinned page. */
+  html:root .qb-mushaf-stage > .qb-reader-head {
+    position: relative;
+    z-index: 2;
+    margin-top: auto;
+  }
+
+  /* The page number, centred under the tab bar in every mode (focus mode
+     too, where the tab bar is gone). */
+  html:root .qb-page-number {
+    display: block;
+    position: fixed;
+    left: 50%;
+    bottom: max(2px, calc(env(safe-area-inset-bottom, 0px) - 22px));
+    transform: translateX(-50%);
+    z-index: 40;
+    font-family: var(--font-arabic-ui);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--fg-3);
+    pointer-events: none;
+    user-select: none;
+    white-space: nowrap;
+  }
+
+  /* A tap on the page leaves focus mode: no pill over the page. */
+  html:root .qb-immersive-exit {
+    display: none;
+  }
+
   /* ---------- 2. Search: the field sits by the thumb and the keyboard ---------- */
 
   html:root[data-shell-mode="search"] .qb-topbar {
@@ -203,14 +275,6 @@
 
   html:root[data-shell-mode="studio"] .qb-main {
     padding-top: env(safe-area-inset-top, 0px);
-  }
-
-  /* Focus mode's way back: a real target, not a faint 34px chip. */
-  html:root .qb-immersive-exit {
-    height: 44px;
-    padding: 0 18px;
-    font-size: 13px;
-    opacity: 0.8;
   }
 
   /* ---------- 4. A 44px floor for the small controls ---------- */
