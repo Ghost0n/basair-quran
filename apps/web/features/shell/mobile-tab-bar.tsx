@@ -4,6 +4,7 @@ import "./mobile-tab-bar.css";
 
 import { useEffect } from "react";
 
+import { BrandMark } from "@/components/brand-mark";
 import { Icon } from "@/components/icon";
 
 import { useShellMode } from "./mode-context";
@@ -18,9 +19,9 @@ import { t } from "@/lib/i18n";
  * current tab scrolls back to the top. Hidden on desktop (the rail lists
  * every destination there).
  *
- * The index and saved pages are one tap from Home and the reader's surah
- * name; community from Home. The active pill takes the page's world tint
- * (the rail, mounted on every screen size, runs useWorldSync).
+ * Home is the app's logo, without a label. The index and saved pages are
+ * one tap from Home and the reader's surah name; community from Home. The
+ * active pill is always gold.
  *
  * It also tracks the on-screen keyboard (`html[data-kb]`, `--qb-kb`): the bar
  * steps aside while a field is typed into, and the bottom search bar rides on
@@ -35,12 +36,14 @@ export function MobileTabBar() {
     <nav className="qb-tabbar qb-stable-tabbar" aria-label={t("التنقل")}>
       {PHONE_TABS.map((item) => {
         const current = item.owns.includes(mode);
+        const brand = item.id === "home";
         return (
           <button
             key={item.id}
             type="button"
-            className={`qb-stab${current ? " active" : ""}`}
+            className={`qb-stab${brand ? " brand" : ""}${current ? " active" : ""}`}
             aria-current={current ? "page" : undefined}
+            aria-label={brand ? item.label : undefined}
             onClick={() => {
               if (current && item.mode === mode) {
                 // A second tap on the current tab: back to its top.
@@ -51,9 +54,9 @@ export function MobileTabBar() {
             }}
           >
             <span className="pill" aria-hidden="true">
-              <Icon name={item.icon} size={22} stroke={current ? 2.1 : 1.7} />
+              {brand ? <BrandMark size={34} themed /> : <Icon name={item.icon} size={22} stroke={current ? 2.1 : 1.7} />}
             </span>
-            <span className="label">{item.label}</span>
+            {brand ? null : <span className="label">{item.label}</span>}
           </button>
         );
       })}

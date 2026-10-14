@@ -1,7 +1,7 @@
 /* =====================================================================
    Home (home-screen.tsx) — one tree, two arrangements.
 
-   Phones: the upper part is for looking (brand, greeting), the lower part
+   Phones: the upper part is for looking (the greeting), the lower part
    for acting — the actions stack from the bottom up, just above the tab
    bar, where the thumb rests (docs/mobile-ergonomics.md).
 
@@ -27,8 +27,9 @@
 
 .qb-home-top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
+  gap: 12px;
   min-height: 48px;
 }
 
@@ -47,7 +48,7 @@
 .qb-home-greeting {
   display: grid;
   gap: 2px;
-  margin-top: 8px;
+  min-width: 0;
 }
 
 .qb-home-greeting h1 {
@@ -261,32 +262,6 @@
   flex-shrink: 0;
 }
 
-/* ---------- Brand ---------- */
-
-.qb-brandmini {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.qb-brandmini .bname {
-  padding: 0 2px 4px;
-  margin-bottom: -4px;
-  font-family: var(--font-arabic-heading);
-  font-size: 19px;
-  line-height: 1.8;
-  font-weight: 700;
-  background: linear-gradient(180deg, #f6dc86 10%, #c99a22 90%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.light .qb-brandmini .bname,
-.light-mode .qb-brandmini .bname {
-  background-image: linear-gradient(180deg, #c49a2a 10%, #6e5208 90%);
-}
-
 /* ---------- The verse (wide screens) ---------- */
 
 .qb-home-verse {
@@ -300,8 +275,12 @@
     padding: 28px 32px 40px;
   }
 
-  /* The rail carries the account menu and the brand. */
+  /* The rail carries the account menu; the greeting stays, centred. */
   .qb-home-top {
+    display: contents;
+  }
+
+  .qb-home-account {
     display: none;
   }
 
