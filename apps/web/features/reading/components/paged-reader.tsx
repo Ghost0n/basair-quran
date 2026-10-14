@@ -1,6 +1,6 @@
 "use client";
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, RefObject } from "react";
 
 import type { MushafPageLayoutResponse, QuranPageAyah } from "@q-basair/shared";
 
@@ -12,6 +12,8 @@ import { useMushaf } from "../mushaf-context";
 import { useWordNav } from "../use-word-nav";
 
 import { t } from "@/lib/i18n";
+
+const noop = () => {};
 
 type PagedReaderProps = {
   pageData: { ayahs: QuranPageAyah[] };
@@ -32,6 +34,10 @@ type PagedReaderProps = {
   leftLayout: MushafPageLayoutResponse | null;
   /** The font-size preference (px): below the default it shrinks the printed page. */
   fontSize: number;
+  /** Phones: the pages on either side, drawn beside the page for the drag (photo-style turn). */
+  neighbours?: { prev: MushafPageLayoutResponse | null; next: MushafPageLayoutResponse | null };
+  /** The element the drag moves (mushaf-stage.tsx). */
+  trackRef?: RefObject<HTMLDivElement | null>;
   selectedAyahId: number | null;
   isSaved: (ayahId: number) => boolean;
   onToggleSave: (ayah: QuranPageAyah) => void;
@@ -62,6 +68,8 @@ export function PagedReader({
   rightLayout,
   leftLayout,
   fontSize,
+  neighbours,
+  trackRef,
   selectedAyahId,
   isSaved,
   onToggleSave,
@@ -104,6 +112,28 @@ export function PagedReader({
                 onWordKey={onWordKey}
               />
             </>
+          ) : neighbours ? (
+            <div className="qb-swipe-track" ref={trackRef}>
+              <GlyphPage
+                layout={layout}
+                selectedAyahId={selectedAyahId}
+                isSaved={isSaved}
+                onToggleSave={onGlyphSave}
+                onWordClick={onWordClick}
+                onWordKey={onWordKey}
+              />
+              {/* RTL book: the next page waits on the left, the previous on the right. */}
+              {neighbours.next?.lines && neighbours.next.page === (layout.page ?? 0) + 1 ? (
+                <div className="qb-swipe-slot next" aria-hidden="true" inert>
+                  <GlyphPage layout={neighbours.next} selectedAyahId={null} onToggleSave={noop} onWordClick={noop} onWordKey={noop} />
+                </div>
+              ) : null}
+              {neighbours.prev?.lines && neighbours.prev.page === (layout.page ?? 0) - 1 ? (
+                <div className="qb-swipe-slot prev" aria-hidden="true" inert>
+                  <GlyphPage layout={neighbours.prev} selectedAyahId={null} onToggleSave={noop} onWordClick={noop} onWordKey={noop} />
+                </div>
+              ) : null}
+            </div>
           ) : (
             <GlyphPage
               layout={layout}
