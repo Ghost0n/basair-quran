@@ -8,12 +8,13 @@ describe("reader tool registry", () => {
     expect(new Set(READER_TOOLS.map((tool) => tool.key)).size).toBe(READER_TOOLS.length);
   });
 
-  it("defaults to the select tool (which carries the word analysis)", () => {
-    expect(DEFAULT_READER_TOOL).toBe("select");
-    expect(READER_TOOLS[0].id).toBe("select");
+  it("defaults to reading, with no tool on", () => {
+    expect(DEFAULT_READER_TOOL).toBe("read");
+    expect(READER_TOOLS[0].id).toBe("read");
   });
 
   it("resolves keys and validates ids; retired tools are no longer valid", () => {
+    expect(toolForKey("0")).toBe("read");
     expect(toolForKey("1")).toBe("select");
     expect(toolForKey("2")).toBe("highlight");
     expect(toolForKey("9")).toBeNull();

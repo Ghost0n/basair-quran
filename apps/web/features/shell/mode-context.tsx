@@ -57,6 +57,25 @@ function lastNotebookPlace(): string | null {
   }
 }
 
+const LAST_SCREEN_KEY = "qb.lastScreen";
+
+function rememberScreen(search: string): void {
+  try {
+    window.sessionStorage.setItem(LAST_SCREEN_KEY, search);
+  } catch {
+    /* storage unavailable: the reader's back arrow goes Home */
+  }
+}
+
+/** The query of the last screen opened before the reader (Home when none). */
+export function lastScreenBeforeReader(): string {
+  try {
+    return window.sessionStorage.getItem(LAST_SCREEN_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
 /**
  * Reads the active mode from the `?mode=` query param. Defaults to
  * "reading" when missing or invalid.
@@ -117,6 +136,11 @@ export function useShellMode(): {
   const search = params.toString();
   useEffect(() => {
     if (NOTEBOOK_MODES.includes(mode)) rememberNotebookPlace(search);
+  }, [mode, search]);
+
+  // The last screen before the reader: where its back arrow returns.
+  useEffect(() => {
+    if (mode !== "reading") rememberScreen(search);
   }, [mode, search]);
 
   return { mode, setMode };

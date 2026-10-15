@@ -291,7 +291,7 @@ export function GlyphPage({
       {!isOpeningPage ? (
         <div className="qb-print-head" aria-hidden="true">
           <span>{juz ? juzHeading(juz) : null}</span>
-          <span>{surahHeading(headSurah)}</span>
+          <span className="surah">{surahHeading(headSurah)}</span>
         </div>
       ) : null}
       <div className="qb-print-block">

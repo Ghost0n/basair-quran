@@ -624,13 +624,15 @@
   line-height: 1;
 }
 
-/* An ayah line: the page's widest line fills the measure exactly (its type
-   size comes from its measured glyph width, `--fit` in ems); the others
-   justify word to word. A hair of slack keeps rounding from overflowing. */
+/* An ayah line: one type size for every page, so the weight of the text
+   never changes from page to page. It is set so a line of 16.3 ems (wider
+   than 95% of pages' widest line) fills the measure; a page whose widest line
+   is wider (`--fit`, measured in ems) steps down just enough to fit, and the
+   lines justify word to word. A hair of slack keeps rounding from overflowing. */
 .qb-print-row.qb-glyph-ayah {
   display: block;
   align-self: center;
-  font-size: calc(99cqi / var(--fit, 20));
+  font-size: calc(99cqi / max(var(--fit, 20), 16.3));
   line-height: 1.3;
   text-align: justify;
   text-align-last: justify;
@@ -1406,6 +1408,11 @@
   opacity: 1;
 }
 
+/* The page number under the phone's tab bar (phone-ergonomics.css). */
+.qb-page-number {
+  display: none;
+}
+
 /* =====================================================================
    Reader sheets («انتقل», «العرض») — bottom sheet on phones, centred
    panel on larger screens.
@@ -1893,6 +1900,15 @@
 .qb-display-strip .step:disabled {
   opacity: 0.35;
   cursor: default;
+}
+
+/* The size control shown inactive (phones, pages mode: the page has one size). */
+.qb-display-strip .size.locked {
+  opacity: 0.4;
+}
+
+.qb-display-strip .size.locked .step:disabled {
+  opacity: 1;
 }
 
 .qb-display-strip .value {

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { Icon } from "@/components/icon";
 import { setShowHighlights, useShowHighlights } from "@/features/themes/ayah-marks";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 import { READER_MODES, resolveReaderMode } from "../reader-modes";
 
@@ -18,7 +19,7 @@ const FONT_MAX = 48;
  * change, once per frame); the preference — which re-renders the app and
  * re-fits the page — is committed when the drag settles.
  */
-function FontSizeSlider({ value, onCommit }: { value: number; onCommit: (size: number) => void }) {
+function FontSizeSlider({ value, disabled, onCommit }: { value: number; disabled?: boolean; onCommit: (size: number) => void }) {
   const [draft, setDraft] = useState(value);
   const frame = useRef(0);
   const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -49,6 +50,7 @@ function FontSizeSlider({ value, onCommit }: { value: number; onCommit: (size: n
       max={FONT_MAX}
       step={1}
       value={draft}
+      disabled={disabled}
       aria-label={t("حجم خطّ الآيات")}
       onChange={(event) => change(Number(event.target.value))}
     />
@@ -67,6 +69,9 @@ export function DisplayStrip({ onClose, headRef }: { onClose: () => void; headRe
   const formatNumber = useNumerals();
   const mode = resolveReaderMode(preferences.reader_layout);
   const showHighlights = useShowHighlights();
+  // Phones pin the printed page to the screen at one fixed size: the size
+  // control shows, inactive, until verse-by-verse mode.
+  const sizeLocked = useIsMobile() && mode === "pages";
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -101,22 +106,22 @@ export function DisplayStrip({ onClose, headRef }: { onClose: () => void; headRe
         ))}
       </div>
 
-      <div className="size" aria-label={t("حجم الخطّ")} role="group">
+      <div className={`size${sizeLocked ? " locked" : ""}`} aria-label={t("حجم الخطّ")} role="group">
         <button
           type="button"
           className="step"
           aria-label={t("تصغير الخطّ")}
-          disabled={preferences.font_size <= FONT_MIN}
+          disabled={sizeLocked || preferences.font_size <= FONT_MIN}
           onClick={() => updateAccountDebounced({ font_size: Math.max(FONT_MIN, preferences.font_size - 2) })}
         >
           ا
         </button>
-        <FontSizeSlider value={preferences.font_size} onCommit={(size) => updateAccountDebounced({ font_size: size })} />
+        <FontSizeSlider value={preferences.font_size} disabled={sizeLocked} onCommit={(size) => updateAccountDebounced({ font_size: size })} />
         <button
           type="button"
           className="step big"
           aria-label={t("تكبير الخطّ")}
-          disabled={preferences.font_size >= FONT_MAX}
+          disabled={sizeLocked || preferences.font_size >= FONT_MAX}
           onClick={() => updateAccountDebounced({ font_size: Math.min(FONT_MAX, preferences.font_size + 2) })}
         >
           ا

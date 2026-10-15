@@ -12,6 +12,7 @@ import { useWorkspace } from "@/features/shell/workspace-context";
 import { useRecitation } from "@/features/recitation/recitation-context";
 import { toggleRevealed } from "@/features/recitation/session-view";
 import { usePhoneLayout } from "@/lib/use-phone-layout";
+import { useIsMobile } from "@/lib/use-is-mobile";
 import { divisionOf, divisionRange } from "@/lib/quran-ranges";
 import { Icon } from "@/components/icon";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
@@ -104,6 +105,7 @@ export function MushafStage() {
   // the page only switches the view (the clear page ↔ the bars).
   const sessionActive = useRecitation().active;
   const phone = usePhoneLayout();
+  const portrait = useIsMobile();
   useEffect(() => {
     if (!sessionActive) return;
     setSelection(null);
@@ -111,7 +113,7 @@ export function MushafStage() {
     setFocusAyahId(null);
     setHoverAyahId(null);
     setDisplayOpen(false);
-    if (phone) setImmersive(false);
+    if (phone && !portrait) setImmersive(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionActive]);
 
@@ -354,6 +356,10 @@ export function MushafStage() {
   // A tap on a verse (its number ornament, or any word with «تظليل»): select
   // the whole verse; with «تظليل» also open its save/theme sheet.
   function activateVerse(target: SavableAyah) {
+    if (tool === "read") {
+      if (compact) onPageTap();
+      return;
+    }
     setMorphTarget(null);
     if (tool === "highlight") {
       // Verse, not words: the whole ayah lights as one block.
@@ -523,6 +529,14 @@ export function MushafStage() {
   const settleIntoPage = () => {
     if (phone && !sessionActive) setImmersive(true);
   };
+  // A tap on the page: focus mode. A phone on its side keeps the recitation's
+  // own clear view (its player and capsule, phone-player.css); upright, the
+  // recitation's controls are the reader's dock, so the tap is focus mode too.
+  function onPageTap() {
+    if (sessionActive && phone && !portrait) toggleRevealed();
+    else setImmersive((value) => !value);
+  }
+
   const gestures = useReaderGestures({
     swipeEnabled: true,
     onNext: () => {
@@ -533,7 +547,7 @@ export function MushafStage() {
       goPrevRef.current();
       settleIntoPage();
     },
-    onTap: () => (sessionActive && phone ? toggleRevealed() : setImmersive((value) => !value)),
+    onTap: () => onPageTap(),
     mouseTaps: compact,
   });
   function goPrev() {
@@ -680,10 +694,11 @@ export function MushafStage() {
 
   // One entry point for pointer + keyboard word activation, routed by tool.
   function activateWord(surah: number, ayah: number, element: HTMLElement, ayahText?: string) {
-    if (sessionActive) {
-      // The verse doesn't react (no focus ring left on the tapped word).
+    if (sessionActive || tool === "read") {
+      // The verse doesn't react (no focus ring left on the tapped word): on
+      // phones the tap shows or hides the bars, as on the page around it.
       element.blur();
-      if (phone) toggleRevealed();
+      if (compact) onPageTap();
       return;
     }
     if (tool === "highlight") {
@@ -806,7 +821,14 @@ export function MushafStage() {
         onPointerDown={gestures.onPointerDown}
         onPointerUp={gestures.onPointerUp}
         onPointerCancel={gestures.onPointerCancel}
-        onClick={gestures.onClick}
+        onClick={(event) => {
+          // Phones: the surah named at the top of the page opens «انتقل».
+          if (compact && (event.target as Element).closest?.(".qb-print-head .surah")) {
+            setSheet("navigate");
+            return;
+          }
+          gestures.onClick(event);
+        }}
         onWheel={onSurfaceWheel}
         onPointerOver={onSurfaceHover}
         onPointerLeave={() => setHoverAyahId(null)}
@@ -874,6 +896,16 @@ export function MushafStage() {
       )}
 
       </div>
+
+      {/* Phones: the page number, under the tab bar in every mode. */}
+      {phone && displayPage && typeof document !== "undefined"
+        ? createPortal(
+            <span className="qb-page-number" aria-hidden="true">
+              {tt("صفحة")} {formatNumber(displayPage)}
+            </span>,
+            document.body,
+          )
+        : null}
 
       {/* Portaled to <body>: an ancestor's transform would otherwise trap this
           fixed pill inside the (clipped) stage. */}
