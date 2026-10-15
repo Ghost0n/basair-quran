@@ -373,7 +373,7 @@ export function ShareStudio({
                         className={format === value ? "on" : ""}
                         onClick={() => setFormat(value)}
                       >
-                        {SHARE_FORMATS[value].label}
+                        {formatNumber(SHARE_FORMATS[value].label)}
                       </button>
                     ))}
                   </div>

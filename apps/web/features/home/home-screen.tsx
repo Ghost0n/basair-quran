@@ -12,7 +12,7 @@ import type { ResearchSessionSummary } from "@q-basair/shared";
 import { Icon, type IconName } from "@/components/icon";
 import { relativeAge } from "@/features/companions/use-companions";
 import { useMushaf } from "@/features/reading/mushaf-context";
-import { requestReaderResume } from "@/features/reading/reader-entry";
+import { requestReaderResume, requestReaderSheet } from "@/features/reading/reader-entry";
 import { useRecitation } from "@/features/recitation/recitation-context";
 import { useShellMode } from "@/features/shell/mode-context";
 import { API_BASE_URL } from "@/lib/config";
@@ -173,9 +173,15 @@ export function HomeScreen() {
         },
       };
 
+  function openReaderSheet(tab: "surah" | "saved") {
+    requestReaderSheet(tab);
+    setMode("reading");
+  }
+
   const shortcuts: Shortcut[] = [
-    { id: "index", icon: "menu", label: t("الفهرس"), sub: t("كل السور"), onClick: () => setMode("index") },
-    { id: "saved", icon: "bookmark", label: t("المحفوظة"), sub: t("الصفحات المحفوظة"), onClick: () => setMode("saved") },
+    // Shortcuts into the reader's own «انتقل» sheet (not pages of their own).
+    { id: "index", icon: "menu", label: t("الفهرس"), sub: t("كل السور"), onClick: () => openReaderSheet("surah") },
+    { id: "saved", icon: "bookmark", label: t("المحفوظة"), sub: t("الصفحات المحفوظة"), onClick: () => openReaderSheet("saved") },
     // The last study session to resume, or a new one.
     session
       ? {

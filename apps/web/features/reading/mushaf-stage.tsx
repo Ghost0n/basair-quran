@@ -25,7 +25,7 @@ import { useThemes } from "@/features/themes/themes-store";
 import "./reading.css";
 
 import { ReaderBar } from "./components/reader-bar";
-import { NavigateSheet, type NavigateTarget } from "./components/navigate-sheet";
+import { NavigateSheet, type NavigateTab, type NavigateTarget } from "./components/navigate-sheet";
 import { TravelOverlay } from "./components/travel-overlay";
 import { type MorphTarget } from "./components/morph-popover";
 import { type GlyphSaveTarget } from "./components/glyph-page";
@@ -36,7 +36,7 @@ import { prefetchQuranPage, useMushaf } from "./mushaf-context";
 import { prefetchMushafLayout, useMushafLayout } from "./use-mushaf-layout";
 import { useReaderGestures } from "./use-reader-gestures";
 import { nextReaderLayout, resolveReaderMode, spreadFits } from "./reader-modes";
-import { takeReaderEntry } from "./reader-entry";
+import { takeReaderEntry, takeReaderSheet } from "./reader-entry";
 import { readerOpenPlan, readerRetryDelay } from "./reader-resume";
 import { useCompactReader, useElementSize } from "./use-wide-screen";
 import type { SavableAyah } from "./use-saved-ayat";
@@ -78,6 +78,8 @@ export function MushafStage() {
   const [navDir, setNavDir] = useState<"fwd" | "back">("fwd");
   // Reader sheets («انتقل», «العرض») and focus mode (all chrome hidden).
   const [sheet, setSheet] = useState<"navigate" | null>(null);
+  // The tab «انتقل» opens on (unset: its own default).
+  const [navTab, setNavTab] = useState<NavigateTab | undefined>(undefined);
   // «العرض» drops a strip under the bar (no modal: the page stays in view).
   const [displayOpen, setDisplayOpen] = useState(false);
   // «حفظ وتظليل»: the ayah whose save/theme sheet is open.
@@ -208,6 +210,12 @@ export function MushafStage() {
     if (!ready || enteredRef.current) return;
     enteredRef.current = true;
     const entry = takeReaderEntry();
+    // Home's «الفهرس» / «المحفوظة» open the reader on its «انتقل» sheet.
+    const sheetTab = takeReaderSheet();
+    if (sheetTab) {
+      setNavTab(sheetTab);
+      setSheet("navigate");
+    }
     resumeRef.current = entry === "resume";
     openAttemptRef.current = 0;
     freshPageRef.current = null;
@@ -1029,8 +1037,9 @@ export function MushafStage() {
 
       </div>
 
-      {/* Phones: the page number, under the tab bar in every mode. */}
-      {phone && displayPage && typeof document !== "undefined"
+      {/* Phones: the page number under the dock, in pages mode (verse by
+          verse marks its pages in the list itself). */}
+      {phone && !ayahMode && displayPage && typeof document !== "undefined"
         ? createPortal(
             <span className="qb-page-number" aria-hidden="true">
               {tt("صفحة")} {formatNumber(displayPage)}
@@ -1074,7 +1083,11 @@ export function MushafStage() {
               currentJuz={pageData.juz}
               currentHizb={pageData.ayahs[0] ? divisionOf("hizb", { surah: pageData.ayahs[0].surah_id, ayah: pageData.ayahs[0].ayah }) : null}
               onNavigate={navigateTo}
-              onClose={() => setSheet(null)}
+              initialTab={navTab}
+              onClose={() => {
+                setSheet(null);
+                setNavTab(undefined);
+              }}
             />,
             document.body,
           )

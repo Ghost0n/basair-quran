@@ -2,20 +2,25 @@
 
 import { useMemo, useState } from "react";
 
-import type { SurahListItem } from "@q-basair/shared";
+import type { SavedPageEntry, SurahListItem } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { canHover } from "@/lib/can-hover";
-import { useNumerals } from "@/lib/preferences-context";
+import { relativeAge } from "@/features/companions/use-companions";
+import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { parseNavCommand, surahMatches, toAsciiDigits, TOTAL_PAGES } from "@/lib/quran-nav";
 import { divisionRange, DIVISION_COUNT } from "@/lib/quran-ranges";
 import { useDialog } from "@/lib/use-dialog";
 
 import { t, tn } from "@/lib/i18n";
 
-type Tab = "surah" | "juz" | "hizb" | "page";
+export type NavigateTab = "saved" | "surah" | "juz" | "hizb" | "page";
+type Tab = NavigateTab;
 
 const TABS: { value: Tab; label: string }[] = [
+  { value: "saved", get label() {
+    return t("المحفوظة");
+  } },
   { value: "surah", get label() {
     return t("السور");
   } },
@@ -53,6 +58,7 @@ export function NavigateSheet({
   onNavigate,
   onClose,
   inline = false,
+  initialTab,
 }: {
   surahs: SurahListItem[];
   currentSurahId?: number;
@@ -64,11 +70,15 @@ export function NavigateSheet({
   onClose: () => void;
   /** A page of its own (the reading world's «الفهرس»), not a dialog over the reader. */
   inline?: boolean;
+  /** The tab to open on; by default the saved pages when there are some, else the surahs. */
+  initialTab?: NavigateTab;
 }) {
   const formatNumber = useNumerals();
   const panelRef = useDialog<HTMLDivElement>(onClose, { enabled: !inline });
   const [hover] = useState(canHover);
-  const [tab, setTab] = useState<Tab>("surah");
+  const { preferences } = usePreferences();
+  const savedPages: SavedPageEntry[] = [...(preferences.saved_pages ?? [])].sort((a, b) => (b.saved_at ?? 0) - (a.saved_at ?? 0));
+  const [tab, setTab] = useState<Tab>(() => initialTab ?? (savedPages.length ? "saved" : "surah"));
   const [query, setQuery] = useState("");
   const [pageDraft, setPageDraft] = useState(currentPage ? String(currentPage) : "");
 
@@ -143,7 +153,7 @@ export function NavigateSheet({
                 runCommand();
               }
             }}
-            placeholder={t("اسم السورة أو رقمها · ٢:٢٥٥ · صفحة ٥٠")}
+            placeholder={formatNumber(t("اسم السورة أو رقمها · ٢:٢٥٥ · صفحة ٥٠"))}
             // Type-to-filter on desktop; on touch screens don't pop the keyboard
             // over the list — the user may just scroll and tap.
             autoFocus={hover}
@@ -175,6 +185,35 @@ export function NavigateSheet({
         </div>
 
         <div className="body">
+          {/* «المحفوظة»: the pages bookmarked in the reader, latest first. */}
+          {tab === "saved" ? (
+            savedPages.length ? (
+              <ul className="qb-saved-pages">
+                {savedPages.map((entry) => (
+                  <li key={`${entry.mushaf_id}-${entry.page}`}>
+                    <button type="button" onClick={() => go({ type: "page", page: entry.page })}>
+                      <span className="ribbon" aria-hidden>
+                        <svg viewBox="0 0 16 24" width="12" height="18">
+                          <path d="M1 0h14v22l-7-5-7 5z" />
+                        </svg>
+                      </span>
+                      <span className="txt">
+                        <b>{entry.surah ?? t("المصحف")}</b>
+                        <small>
+                          {t("صفحة {0}", { 0: formatNumber(entry.page) })}
+                          {entry.saved_at ? ` · ${relativeAge(entry.saved_at, formatNumber)}` : ""}
+                        </small>
+                      </span>
+                      <Icon name="chevLeft" size={16} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="empty">{t("احفظ صفحة من القراءة (علامة الحفظ في شريط القارئ) لتجدها هنا.")}</div>
+            )
+          ) : null}
+
           {tab === "surah" ? (
             filtered.length ? (
               <ul className="surahs">
@@ -251,7 +290,7 @@ export function NavigateSheet({
                 if (pageValid) go({ type: "page", page: pageNumber });
               }}
             >
-              <label htmlFor="qbNavPage">{t("رقم الصفحة (١–")}{formatNumber(TOTAL_PAGES)})</label>
+              <label htmlFor="qbNavPage">{formatNumber(t("رقم الصفحة (١–"))}{formatNumber(TOTAL_PAGES)})</label>
               <div className="row">
                 <input
                   id="qbNavPage"

@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect } from "react";
 
-import { canGoBackInApp, markReplace, notifyNavigationSettled, recordScreen, transition } from "./navigation";
+import { canGoBackInApp, markReplace, notifyNavigationSettled, previousScreen, recordScreen, transition } from "./navigation";
 
 export const SHELL_MODES = [
   "home",
@@ -110,6 +110,23 @@ export function useGoBack(): { canGoBack: boolean; goBack: (options?: { beforeUp
     [mode, router],
   );
   return { canGoBack: mode !== DEFAULT_MODE, goBack };
+}
+
+/**
+ * The back arrow of a page opened from the notebook (a research, a board):
+ * back to the notebook on the tab it was opened from — the browser's back
+ * when the notebook is the previous screen, else that tab directly.
+ */
+export function useBackToNotebook(tab: string): () => void {
+  const router = useRouter();
+  return useCallback(() => {
+    const previous = previousScreen();
+    if (previous != null && new URLSearchParams(previous).get("mode") === "notebook") {
+      transition(() => router.back(), "back");
+      return;
+    }
+    transition(() => router.push(`/?mode=notebook&tab=${tab}`, { scroll: false }), "back");
+  }, [router, tab]);
 }
 
 /**

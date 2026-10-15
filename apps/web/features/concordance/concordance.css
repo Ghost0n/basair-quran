@@ -608,3 +608,16 @@
   flex: 1 1 auto;
   min-width: 0;
 }
+
+/* The root's insights page: a back arrow before its title. */
+.qb-aux-h.has-back {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.qb-aux-h.has-back .qb-aux-back {
+  flex-shrink: 0;
+}

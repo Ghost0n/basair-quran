@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 
-import { useGoBack } from "./mode-context";
+import { useGoBack, useShellMode, type ShellMode } from "./mode-context";
 
 /** How close to the screen's edge a back swipe must start (px). */
 export const BACK_EDGE_PX = 22;
@@ -14,7 +14,10 @@ export function isBackEdgeTouch(clientX: number): boolean {
   return rtl ? clientX >= window.innerWidth - BACK_EDGE_PX : clientX <= BACK_EDGE_PX;
 }
 
-const COMMIT_RATIO = 0.35;
+const COMMIT_RATIO = 0.3;
+
+/** Screens without the back swipe (their own back arrow stays). */
+const NO_EDGE_SWIPE: readonly ShellMode[] = ["reading", "board", "document"];
 const FLICK_PX_PER_MS = 0.5;
 
 /**
@@ -23,10 +26,15 @@ const FLICK_PX_PER_MS = 0.5;
  * left-to-right ones. The screen follows the finger over a dimmed backdrop;
  * let go past a third of the width (or flick) and it slides away and the
  * previous screen comes back (useGoBack), else it springs back. Touch only,
- * phones only, never over an open dialog, never on Home.
+ * phones only, never over an open dialog, never on Home, the reader, a board
+ * or a research being edited.
  */
 export function EdgeSwipeBack() {
-  const { canGoBack, goBack } = useGoBack();
+  const { canGoBack: anywhere, goBack } = useGoBack();
+  const { mode } = useShellMode();
+  // Not where a sideways drag already means something: the reader turns its
+  // pages, the board pans, the research editor reorders and edits.
+  const canGoBack = anywhere && !NO_EDGE_SWIPE.includes(mode);
   const stateRef = useRef({ canGoBack, goBack });
   stateRef.current = { canGoBack, goBack };
 
@@ -110,14 +118,14 @@ export function EdgeSwipeBack() {
       claimed = false;
       const commit = dx > width() * COMMIT_RATIO || (last.v > FLICK_PX_PER_MS && dx > 30);
       if (!commit) {
-        paint(0, "transform 320ms cubic-bezier(0.22, 1.2, 0.36, 1)");
-        window.setTimeout(cleanup, 330);
+        paint(0, "transform 260ms cubic-bezier(0.22, 1.2, 0.36, 1)");
+        window.setTimeout(cleanup, 270);
         return;
       }
-      paint(width() * direction(), "transform 200ms cubic-bezier(0.4, 0, 1, 1)");
+      paint(width() * direction(), "transform 150ms cubic-bezier(0.4, 0, 1, 1)");
       // The frame is put back inside the navigation's own update, after the
       // view transition has captured the screen already slid away.
-      window.setTimeout(() => stateRef.current.goBack({ beforeUpdate: cleanup }), 200);
+      window.setTimeout(() => stateRef.current.goBack({ beforeUpdate: cleanup }), 150);
     }
 
     document.addEventListener("touchstart", onStart, { passive: true, capture: true });

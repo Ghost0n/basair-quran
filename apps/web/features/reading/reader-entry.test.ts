@@ -32,3 +32,15 @@ describe("reader entry", () => {
     expect(takeReaderEntry()).toBe("fresh");
   });
 });
+
+describe("reader sheet request", () => {
+  beforeEach(() => resetReaderEntryForTests());
+
+  it("is taken once", async () => {
+    const { requestReaderSheet, takeReaderSheet } = await import("./reader-entry");
+    expect(takeReaderSheet()).toBeNull();
+    requestReaderSheet("saved");
+    expect(takeReaderSheet()).toBe("saved");
+    expect(takeReaderSheet()).toBeNull();
+  });
+});

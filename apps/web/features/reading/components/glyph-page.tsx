@@ -349,7 +349,7 @@ export function GlyphPage({
                     {inner}
                   </span>
                 ) : segment.selected ? (
-                  <span className="qb-glyph-sel" data-ayah-id={segment.words[0]?.ayah_id}>
+                  <span className="qb-glyph-sel" data-ayah-id={segment.words[0]?.ayah_id} data-vf={segment.words[0]?.ayah_id}>
                     {inner}
                   </span>
                 ) : highlight.className ? (
@@ -544,7 +544,7 @@ export function GlyphAyah({
       className={`qb-glyph-ayah-row${isSelected && !focus ? " qb-glyph-sel" : ""}${highlight.className}${verseFocusClass(focus)}`}
       data-hl={highlight["data-hl"]}
       data-ayah-id={save.ayahId}
-      data-vf={focus || highlight["data-hl"] ? save.ayahId : undefined}
+      data-vf={focus || isSelected || highlight["data-hl"] ? save.ayahId : undefined}
       style={{ fontFamily: fontFamily ?? undefined }}
     >
       {words.map((word) => {

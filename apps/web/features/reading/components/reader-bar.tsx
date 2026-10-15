@@ -263,24 +263,26 @@ export function ReaderBar({
   // reads from. A recitation turns the capsule into its controls (previous ·
   // play · next · reciter); the back button folds them away into «تلاوة»,
   // which keeps a live mark and brings them back, while the audio plays on
-  // (it ends from the recitation sheet). The bookmark floats in the top
-  // corner with the surah named under it. Focus mode hides all of it.
+  // (paused, back ends the recitation; it also ends from the sheet). The
+  // bookmark floats in the top corner (over the printed page's running head,
+  // whose surah shows in focus mode). Focus mode hides all of it.
   if (dock) {
     const reciteView = recitation.active && reciteOpen;
     const live = recitation.active && !reciteView;
-    const corner = (
-      <div className="qb-reader-corner">
-        {bookmark}
-        <span className="qb-reader-surah" aria-hidden="true">
-          {t("سورة {0}", { 0: surahName })}
-        </span>
-      </div>
-    );
+    const corner = <div className="qb-reader-corner">{bookmark}</div>;
     const back = (
       <button
         type="button"
         className="qb-reader-back"
-        onClick={() => (reciteView ? setReciteOpen(false) : goBack())}
+        onClick={() => {
+          if (!reciteView) {
+            goBack();
+            return;
+          }
+          // Paused: back ends the recitation; playing: it only folds the controls.
+          if (!recitation.isPlaying) recitation.stop();
+          setReciteOpen(false);
+        }}
         aria-label={t("رجوع")}
       >
         <Icon name="arrowRight" size={20} />
@@ -299,8 +301,8 @@ export function ReaderBar({
                 aria-haspopup="dialog"
                 aria-label={t("إعدادات التلاوة")}
               >
-                <Icon name="user" size={18} />
-                <span className="lbl">{t("القارئ")}</span>
+                <Icon name="sliders" size={18} />
+                <span className="lbl">{t("الإعدادات")}</span>
               </button>
             </div>
           ) : (
