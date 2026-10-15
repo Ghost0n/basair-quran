@@ -1,8 +1,10 @@
 "use client";
 
+import "@/features/reading/reading.css";
 import "./studio.css";
 
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
 import type { ResearchAgentResponse, TafssirDepth } from "@q-basair/shared";
@@ -13,6 +15,7 @@ import { useNumerals } from "@/lib/preferences-context";
 import { renderHighlightedVerseText } from "@/lib/quran-ui";
 import { STUDIO_ASK_EVENT, drainStudioAsk, drainStudioOpenSession, type StudioAsk } from "@/lib/studio-prefill";
 import { useMushaf } from "@/features/reading/mushaf-context";
+import { useDialog } from "@/lib/use-dialog";
 import { saveClientResearchSettings } from "@/features/research/lib/research-client-settings";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
@@ -74,6 +77,10 @@ export function StudioPanel() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [converting, setConverting] = useState(false);
+  // «حوّل إلى بحث» asks first (a banner under the header): the tap creates a
+  // document, so a stray touch shouldn't. A failure says so in the banner.
+  const [convertAsk, setConvertAsk] = useState<"closed" | "ask" | "failed">("closed");
+  const [sessionsOpen, setSessionsOpen] = useState(false);
 
   // «حوّل إلى بحث»: the session becomes an editable research document.
   async function convertToDocument() {
@@ -81,8 +88,10 @@ export function StudioPanel() {
     setConverting(true);
     try {
       router.push(await createDocumentUrl(documentFromSession(active)));
+      setConvertAsk("closed");
     } catch {
-      /* the button simply stays; the session is untouched */
+      // The session is untouched; the banner offers another try.
+      setConvertAsk("failed");
     } finally {
       setConverting(false);
     }
@@ -92,6 +101,10 @@ export function StudioPanel() {
 
   const active = studio.active;
   const isTafssir = active?.mode === "tafssir";
+  const hasMessages = Boolean(active && active.messages.length > 0);
+
+  // A question asked about one session never carries over to another.
+  useEffect(() => setConvertAsk("closed"), [active?.id]);
 
   // Keep the newest message (and the "analyzing…" pending row) in view as the
   // thread grows, on send, and when switching tabs.
@@ -186,28 +199,43 @@ export function StudioPanel() {
           </button>
         </div>
 
-        <div className="qb-side-head" style={{ borderBottom: "none", padding: "14px 20px 4px" }}>
-          <div>
+        <div className="qb-side-head qb-studio-head" style={{ borderBottom: "none", padding: "14px 20px 4px" }}>
+          <div className="qb-studio-head-main">
             <div className="kicker">{t("جلسة الدراسة")}</div>
-            <h3 style={{ fontSize: 20 }}>{active?.title ?? t("جلسة جديدة")}</h3>
+            {/* The title opens the open sessions (phones have no tab strip). */}
+            <h3 style={{ fontSize: 20 }}>
+              <button
+                type="button"
+                className="qb-studio-title"
+                onClick={() => setSessionsOpen(true)}
+                aria-haspopup="dialog"
+                aria-label={`${active?.title ?? t("جلسة جديدة")} · ${t("الجلسات")}`}
+              >
+                <span className="txt">{active?.title ?? t("جلسة جديدة")}</span>
+                <Icon name="chevDown" size={16} />
+              </button>
+            </h3>
             <div className="meta">
               {tn("{0} رسالة", active?.messages.length ?? 0, { 0: formatNumber(active?.messages.length ?? 0) })} ·{" "}
               {isTafssir ? t("قراءة تفسيرية") : t("القرآن وحدَه")}
             </div>
           </div>
+          {hasMessages ? (
+            <button
+              type="button"
+              className={`close${convertAsk !== "closed" ? " on" : ""}`}
+              title={t("حوّل إلى بحث قابل للتحرير والمشاركة")}
+              aria-label={t("حوّل إلى بحث")}
+              aria-expanded={convertAsk !== "closed"}
+              disabled={converting}
+              onClick={() => setConvertAsk((value) => (value === "closed" ? "ask" : "closed"))}
+            >
+              <Icon name="page" size={16} />
+            </button>
+          ) : null}
           <button
             type="button"
-            className="close"
-            title={t("حوّل إلى بحث قابل للتحرير والمشاركة")}
-            aria-label={t("حوّل إلى بحث")}
-            disabled={!active || active.messages.length === 0 || converting}
-            onClick={() => void convertToDocument()}
-          >
-            <Icon name="page" size={16} />
-          </button>
-          <button
-            type="button"
-            className="close"
+            className="close desk-only"
             title={t("تصدير الجلسة")}
             aria-label={t("تصدير الجلسة")}
             disabled={!active || active.messages.length === 0}
@@ -226,7 +254,7 @@ export function StudioPanel() {
           </button>
           <button
             type="button"
-            className="close"
+            className="close desk-only"
             title={t("إغلاق")}
             aria-label={t("إغلاق لوحة الدراسة")}
             onClick={() => setShellMode("reading")}
@@ -234,6 +262,24 @@ export function StudioPanel() {
             <Icon name="close" size={16} />
           </button>
         </div>
+
+        {convertAsk !== "closed" && hasMessages ? (
+          <div className="qb-studio-confirm" role={convertAsk === "failed" ? "alert" : "status"}>
+            <p>
+              {convertAsk === "failed"
+                ? t("تعذّر إنشاء البحث. حاول مرة أخرى.")
+                : t("حوّل هذه الجلسة إلى بحث قابل للتحرير؟ تبقى الجلسة كما هي.")}
+            </p>
+            <div className="actions">
+              <button type="button" className="ok" disabled={converting} onClick={() => void convertToDocument()}>
+                <Icon name="page" size={13} /> {t("حوّل إلى بحث")}
+              </button>
+              <button type="button" className="cancel" onClick={() => setConvertAsk("closed")}>
+                {t("إلغاء")}
+              </button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="qb-mode-tabs" role="group" aria-label={t("وضع البحث")}>
           <button
@@ -351,6 +397,16 @@ export function StudioPanel() {
               >
                 <Icon name="scale" size={10} /> {t("القرآن وحدَه")}
               </button>
+              {/* Phones: the mode switch lives here, by the field (the
+                  segmented control above is hidden to give the thread room). */}
+              <button
+                type="button"
+                className={`tool-chip phone-only tafssir${isTafssir ? " active" : ""}`}
+                aria-pressed={isTafssir}
+                onClick={() => studio.setMode("tafssir")}
+              >
+                <Icon name="feather" size={10} /> {t("قراءة تفسيرية")}
+              </button>
               {isTafssir
                 ? DEPTH_OPTIONS.map((option) => (
                     <button
@@ -373,8 +429,85 @@ export function StudioPanel() {
       </div>
 
       {exportOpen && active ? <ExportModal session={active} onClose={() => setExportOpen(false)} /> : null}
+      {sessionsOpen ? (
+        <SessionsSheet
+          sessions={studio.sessions}
+          activeId={studio.activeId}
+          onPick={(id) => {
+            studio.setActiveId(id);
+            setSessionsOpen(false);
+          }}
+          onCloseSession={studio.closeSession}
+          onNew={() => {
+            studio.newSession();
+            setSessionsOpen(false);
+          }}
+          onClose={() => setSessionsOpen(false)}
+        />
+      ) : null}
       {studio.authRequired ? <StudioAuthModal onClose={studio.dismissAuthRequired} /> : null}
     </aside>
+  );
+}
+
+/** The open sessions, as a bottom sheet: pick one, close one, or start one. */
+function SessionsSheet({
+  sessions,
+  activeId,
+  onPick,
+  onCloseSession,
+  onNew,
+  onClose,
+}: {
+  sessions: { id: string; title: string; messages: unknown[] }[];
+  activeId: string;
+  onPick: (id: string) => void;
+  onCloseSession: (id: string) => void;
+  onNew: () => void;
+  onClose: () => void;
+}) {
+  const panelRef = useDialog<HTMLDivElement>(onClose);
+  const formatNumber = useNumerals();
+  // In <body>: the panel's stacking context would otherwise keep the sheet
+  // under the tab bar.
+  return createPortal(
+    <div className="qb-rsheet qb-studio-sessions" role="dialog" aria-modal="true" aria-labelledby="qb-studio-sessions-title">
+      <div className="backdrop" onClick={onClose} aria-hidden />
+      <div className="panel" ref={panelRef} tabIndex={-1}>
+        <div className="grip" aria-hidden />
+        <div className="head">
+          <h2 id="qb-studio-sessions-title">{t("الجلسات")}</h2>
+          <button type="button" className="close" onClick={onClose} aria-label={t("إغلاق")}>
+            <Icon name="close" size={18} />
+          </button>
+        </div>
+        <div className="body menu-list">
+          {sessions.map((session) => (
+            <div key={session.id} className={`qb-studio-session${session.id === activeId ? " active" : ""}`}>
+              <button type="button" className="menu-item" aria-current={session.id === activeId} onClick={() => onPick(session.id)}>
+                <span className="ico">
+                  <Icon name="sparkles" size={18} />
+                </span>
+                <span className="txt">
+                  {session.title}
+                  <small>{tn("{0} رسالة", session.messages.length, { 0: formatNumber(session.messages.length) })}</small>
+                </span>
+              </button>
+              <button type="button" className="x" aria-label={t("إغلاق الجلسة")} onClick={() => onCloseSession(session.id)}>
+                <Icon name="close" size={16} />
+              </button>
+            </div>
+          ))}
+          <button type="button" className="menu-item" onClick={onNew}>
+            <span className="ico">
+              <Icon name="plus" size={18} />
+            </span>
+            <span className="txt">{t("جلسة جديدة")}</span>
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 

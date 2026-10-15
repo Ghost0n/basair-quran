@@ -41,7 +41,7 @@ page and the worlds coin are gone.
 | **Home in the thumb zone** (`features/home/home-screen.tsx`) | Greeting and cards from the top down; actions spread across the screen. | The upper part is for looking: the greeting and date open the screen, beside the account button (the brand is the Home tab). The actions stack from the bottom up: continue reading (one primary gold button), four labelled shortcuts (index, saved pages, study, community), and the search field last, closest to the thumb. | R1, R2, R4, R12 |
 | **Reader controls at the bottom** (`phone-ergonomics.css`, reader section) | The reader's bar sat at the top; its icons were unlabelled and some were under 44px. | The page fills the top; the bar sits under it at 56px with 48×48 labelled actions (تلاوة, عرض…). The surah name opens the index (with a chevron). The display strip opens upward. | R2, R3, R4, R8, R10 |
 | **Swipe settles into the page** (`mushaf-stage.tsx`) | After swiping, the chrome stayed. | A page swipe on a phone enters the immersive view (the page alone, with a small "صفحة ٣" pill); a tap brings the chrome back. | R3, R4 |
-| **Search field at the bottom** | The field was at the top of the search screen; suggestions opened downward. | The field floats just above the tab bar and rides on the keyboard when typing (`visualViewport`); suggestions open upward with 48px rows. Results summary keeps two 44px actions and drops the decorative header. | R2, R5, R10 |
+| **Search field at the top, results as the page** | The field floated at the bottom, above the tab bar; it was hard to follow what was typed there (owner's iPhone review). The results sat in a framed glass pane with a close button and a density toggle. | The field stays at the top, where typing is expected; suggestions open downward with 48px rows. The results are the page itself, like the notebook: no pane, no close button (the tabs are the way out), always full verse cards (the one-line view is gone everywhere), and rows only fade in (a rising row under glass left magenta seams on iOS). The summary keeps two 44px actions. | R5, R10 |
 | **44px floor** | 33 visible targets under 44px across seven screens (2 under 24px). | 0. Close buttons, icon buttons, tabs, chips, pins and the study composer all get 44×44 hit areas. | R10, R11 |
 | **Community still one step away** | In the coin fan. | Home tile, and a row in the account sheet. | R6 |
 
@@ -80,7 +80,7 @@ are two taps (Home tile, or the surah name for the index).
   a short hallway test (5 people, one hand, standing) is the next step.
 - The on-screen keyboard behaviour (bar hiding, field riding on the keyboard)
   could not be exercised in headless Chromium; it needs a real phone.
-- The study screen keeps its header at the top; only its targets were enlarged.
+- The study screen is a conversation: no frame, no session tabs (the session title opens a sheet of open sessions with new/close), no close or export buttons; the strict/tafssir switch sits in the composer. «حوّل إلى بحث» shows only once the session has messages and asks for confirmation in a banner before creating the document.
 - In landscape the Home tab bar overlays content, as it does today (content scrolls).
 - In `next dev`, the reader occasionally logs "Maximum update depth exceeded"
   from `useElementSize` (`features/reading/use-wide-screen.ts`); it predates

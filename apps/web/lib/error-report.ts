@@ -24,6 +24,7 @@ const TECHNICAL_PATTERNS = [
   /\b[45]\d\d\b/, // bare HTTP status codes (400–599)
   /failed to fetch/i,
   /networkerror/i,
+  /load failed|network connection was lost/i, // WebKit (iOS) fetch network errors
   /\bfetch\b/i,
   /\btimeout\b/i,
   /ECONN|ETIMEDOUT|ENOTFOUND/i,
