@@ -1,8 +1,8 @@
 /**
  * Where the reader opens when it is entered.
  *
- * The reader always opens on Al-Fatiha — after a launch, and every time it
- * is entered from another screen — except when:
+ * After a launch the reader opens on Al-Fatiha; afterwards it keeps its
+ * place («keep») each time it is entered again. Either way it moves when:
  *  - the way in named a place: a saved page, a verse from search, the
  *    library, a board… (those load their page *before* switching to the
  *    reader, which this module counts as an explicit load);
@@ -12,11 +12,13 @@
  * Module state, not React state: it has to outlive the reader screen, which
  * unmounts on phones as soon as another screen opens.
  */
-export type ReaderEntry = "resume" | "explicit" | "fresh";
+export type ReaderEntry = "resume" | "explicit" | "fresh" | "keep";
 
 let loads = 0;
 let loadsAtLastEntry = 0;
 let resumeRequested = false;
+// The reader was already entered since the app started: it keeps its place.
+let enteredOnce = false;
 
 /** A page was loaded on purpose (every MushafController load counts). */
 export function noteReaderLoad(): void {
@@ -30,7 +32,9 @@ export function requestReaderResume(): void {
 
 /** The reader is (re)entered: how it should open. Consumes the request. */
 export function takeReaderEntry(): ReaderEntry {
-  const entry: ReaderEntry = resumeRequested ? "resume" : loads !== loadsAtLastEntry ? "explicit" : "fresh";
+  const named: ReaderEntry = resumeRequested ? "resume" : loads !== loadsAtLastEntry ? "explicit" : "fresh";
+  const entry: ReaderEntry = named === "fresh" && enteredOnce ? "keep" : named;
+  enteredOnce = true;
   resumeRequested = false;
   loadsAtLastEntry = loads;
   return entry;
@@ -62,4 +66,5 @@ export function resetReaderEntryForTests(): void {
   loadsAtLastEntry = 0;
   resumeRequested = false;
   sheetRequest = null;
+  enteredOnce = false;
 }

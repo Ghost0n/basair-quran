@@ -5,23 +5,23 @@ import { noteReaderLoad, requestReaderResume, resetReaderEntryForTests, settleRe
 describe("reader entry", () => {
   beforeEach(() => resetReaderEntryForTests());
 
-  it("opens fresh (Al-Fatiha) when nothing named a place", () => {
+  it("opens fresh (Al-Fatiha) after a launch, then keeps its place", () => {
     expect(takeReaderEntry()).toBe("fresh");
-    expect(takeReaderEntry()).toBe("fresh");
+    expect(takeReaderEntry()).toBe("keep");
   });
 
   it("keeps a page loaded on the way in (saved page, search result…)", () => {
     noteReaderLoad();
     expect(takeReaderEntry()).toBe("explicit");
-    // Entering again without a new load: fresh again.
-    expect(takeReaderEntry()).toBe("fresh");
+    // Entering again without a new load: where it was.
+    expect(takeReaderEntry()).toBe("keep");
   });
 
   it("resumes when Home asked for it, once", () => {
     requestReaderResume();
     noteReaderLoad();
     expect(takeReaderEntry()).toBe("resume");
-    expect(takeReaderEntry()).toBe("fresh");
+    expect(takeReaderEntry()).toBe("keep");
   });
 
   it("does not count the reader's own page turns as a way in", () => {
@@ -29,7 +29,7 @@ describe("reader entry", () => {
     noteReaderLoad();
     noteReaderLoad();
     settleReaderLoads();
-    expect(takeReaderEntry()).toBe("fresh");
+    expect(takeReaderEntry()).toBe("keep");
   });
 });
 

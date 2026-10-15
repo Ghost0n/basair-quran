@@ -18,6 +18,7 @@ import { APP_MODE } from "@/lib/app-mode/config";
 import { API_BASE_URL } from "@/lib/config";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { usePreferences } from "@/lib/preferences-context";
+import { loadUntilReady } from "@/lib/retry";
 import { divisionRange, inRange, nextVerse, previousVerse, sameVerse, type VerseRange } from "@/lib/quran-ranges";
 
 import { knownDurations, mergeDurations, rememberDurations } from "./verse-durations";
@@ -179,23 +180,19 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     [reciters, reciterId],
   );
 
+  // The catalogues, each loaded on its own until it arrives (lib/retry.ts): one
+  // failing at a cold start no longer leaves the player without reciters.
+  // Audio files follow Ḥafṣ (Kūfī) ayah numbering, so auto-advance uses Ḥafṣ counts.
   useEffect(() => {
-    let cancelled = false;
-    // Audio files follow Ḥafṣ (Kūfī) ayah numbering, so auto-advance uses Ḥafṣ counts.
-    Promise.all([api.getReciters(), api.getSurahs(DEFAULT_MUSHAF_ID), api.getMushafs()])
-      .then(([reciterList, surahList, mushafList]) => {
-        if (cancelled) return;
+    const stops = [
+      loadUntilReady(() => api.getReciters(), (reciterList) => {
         setReciters(reciterList);
-        setSurahs(surahList);
-        setMushafs(mushafList);
         if (reciterList[0]) setReciterId((current) => (reciterList.some((r) => r.id === current) ? current : reciterList[0].id));
-      })
-      .catch(() => {
-        /* recitation just stays unavailable if the catalogue fails */
-      });
-    return () => {
-      cancelled = true;
-    };
+      }),
+      loadUntilReady(() => api.getSurahs(DEFAULT_MUSHAF_ID), setSurahs),
+      loadUntilReady(() => api.getMushafs(), setMushafs),
+    ];
+    return () => stops.forEach((stop) => stop());
   }, []);
 
   // Honor the saved reciter preference: apply it once the catalogue has loaded

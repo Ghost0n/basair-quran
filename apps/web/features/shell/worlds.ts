@@ -156,5 +156,5 @@ export function useWorldSync(): WorldId {
 /** Open a destination. */
 export function useOpenDestination() {
   const { setMode } = useShellMode();
-  return (item: Destination) => setMode(item.mode, { resume: item.resume, params: { tab: null, ...item.params } });
+  return (item: Destination) => setMode(item.mode, { resume: item.resume, viaTab: true, params: { tab: null, ...item.params } });
 }

@@ -16,6 +16,7 @@ import type { UserPreferences, UserPreferencesUpdate } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
 import { DEFAULT_EDITION, DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
+import { loadUntilReady } from "./retry";
 import { formatNumber } from "@/lib/numerals";
 // Side-effect: registers the guest-id header provider on the api-client.
 import "@/lib/guest-id";
@@ -108,11 +109,25 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
         .finally(() => {
           if (!cancelled) setReady(true);
         });
-    void load();
+    // The first load is tried until it answers (a cold start can ask before
+    // the store is reachable); `ready` comes at the first answer either way.
+    const stopFirst = loadUntilReady(
+      () =>
+        api.getPreferences().catch((error: unknown) => {
+          if (!cancelled) setReady(true);
+          throw error;
+        }),
+      (loaded) => {
+        if (cancelled) return;
+        setAccount(loaded);
+        setReady(true);
+      },
+    );
     // The standalone app: preferences synced from the account (lib/app-mode/sync.ts).
     window.addEventListener("qb:data-synced", load);
     return () => {
       cancelled = true;
+      stopFirst();
       window.removeEventListener("qb:data-synced", load);
     };
   }, []);

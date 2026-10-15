@@ -17,6 +17,7 @@ import { useIsMobile } from "@/lib/use-is-mobile";
 import { divisionOf, divisionRange } from "@/lib/quran-ranges";
 import { Icon } from "@/components/icon";
 import { useExclusiveOverlay } from "@/lib/exclusive-overlay";
+import { loadUntilReady } from "@/lib/retry";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { AyahMarksProvider, useShowHighlights, type AyahMark } from "@/features/themes/ayah-marks";
 import { useSaveAyah } from "@/features/themes/save-ayah-context";
@@ -150,19 +151,14 @@ export function MushafStage() {
       setSurahs(cached);
       return;
     }
-    let cancelled = false;
-    api
-      .getSurahs(selectedMushaf)
-      .then((list) => {
+    // Until it arrives (a cold start can ask before the data is reachable).
+    return loadUntilReady(
+      () => api.getSurahs(selectedMushaf),
+      (list) => {
         surahCache.set(selectedMushaf, list);
-        if (!cancelled) setSurahs(list);
-      })
-      .catch(() => {
-        /* dropdowns just stay empty if the catalog fails to load */
-      });
-    return () => {
-      cancelled = true;
-    };
+        setSurahs(list);
+      },
+    );
   }, [selectedMushaf]);
 
   // Opening the reader: resume at the exact last-read verse (last_position),
@@ -226,6 +222,8 @@ export function MushafStage() {
       return;
     }
     if (entry === "explicit") return;
+    // Back in the reader: where it was left (a page on screen already).
+    if (entry === "keep" && mushaf.pageData) return;
     if (entry === "fresh") {
       freshPageRef.current = 1;
       // Already there: nothing to load.

@@ -5,12 +5,15 @@ import { useMemo, useState } from "react";
 import type { SavedPageEntry, SurahListItem } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { SwipeRow } from "@/components/swipe-row";
 import { canHover } from "@/lib/can-hover";
 import { relativeAge } from "@/features/companions/use-companions";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { parseNavCommand, surahMatches, toAsciiDigits, TOTAL_PAGES } from "@/lib/quran-nav";
 import { divisionRange, DIVISION_COUNT } from "@/lib/quran-ranges";
 import { useDialog } from "@/lib/use-dialog";
+
+import { useSavedPages } from "../use-saved-pages";
 
 import { t, tn } from "@/lib/i18n";
 
@@ -77,6 +80,7 @@ export function NavigateSheet({
   const panelRef = useDialog<HTMLDivElement>(onClose, { enabled: !inline });
   const [hover] = useState(canHover);
   const { preferences } = usePreferences();
+  const { remove: removeSaved } = useSavedPages();
   const savedPages: SavedPageEntry[] = [...(preferences.saved_pages ?? [])].sort((a, b) => (b.saved_at ?? 0) - (a.saved_at ?? 0));
   const [tab, setTab] = useState<Tab>(() => initialTab ?? (savedPages.length ? "saved" : "surah"));
   const [query, setQuery] = useState("");
@@ -191,6 +195,7 @@ export function NavigateSheet({
               <ul className="qb-saved-pages">
                 {savedPages.map((entry) => (
                   <li key={`${entry.mushaf_id}-${entry.page}`}>
+                <SwipeRow onDelete={() => removeSaved(entry)}>
                     <button type="button" onClick={() => go({ type: "page", page: entry.page })}>
                       <span className="ribbon" aria-hidden>
                         <svg viewBox="0 0 16 24" width="12" height="18">
@@ -206,6 +211,7 @@ export function NavigateSheet({
                       </span>
                       <Icon name="chevLeft" size={16} />
                     </button>
+                </SwipeRow>
                   </li>
                 ))}
               </ul>
