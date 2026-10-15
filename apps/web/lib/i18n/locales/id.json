@@ -1009,5 +1009,7 @@
  "مفعّلة على هذا الجهاز — اضغط لإيقافها": "Aktif di perangkat ini — ketuk untuk menonaktifkan",
  "نسخة تجريبية من واجهة الهاتف: شريط تنقّل ثابت بخمسة أقسام، وأدوات القراءة وحقل البحث في متناول الإبهام، وأهداف لمس أكبر. تُحفظ على هذا الجهاز فقط ويمكن إيقافها في أي وقت.": "Prototipe antarmuka ponsel: bilah tetap dengan lima tab, alat baca dan kolom pencarian dalam jangkauan ibu jari, serta area sentuh yang lebih besar. Hanya disimpan di perangkat ini; dapat dinonaktifkan kapan saja.",
  "قراءة": "Baca",
- "اضغط الصفحة لإظهار الأدوات أو إخفائها": "Ketuk halaman untuk menampilkan atau menyembunyikan alat"
+ "اضغط الصفحة لإظهار الأدوات أو إخفائها": "Ketuk halaman untuk menampilkan atau menyembunyikan alat",
+ "تعذّر إنشاء البحث. حاول مرة أخرى.": "Riset tidak dapat dibuat. Coba lagi.",
+ "حوّل هذه الجلسة إلى بحث قابل للتحرير؟ تبقى الجلسة كما هي.": "Ubah sesi ini menjadi riset yang dapat diedit? Sesi tetap seperti semula."
 }

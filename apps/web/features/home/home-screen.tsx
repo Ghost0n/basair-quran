@@ -9,7 +9,6 @@ import { createPortal } from "react-dom";
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type { ResearchSessionSummary } from "@q-basair/shared";
 
-import { BrandMark } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
 import { relativeAge } from "@/features/companions/use-companions";
 import { useMushaf } from "@/features/reading/mushaf-context";
@@ -212,13 +211,13 @@ export function HomeScreen() {
 
   return (
     <div className="qb-home">
+      {/* Phones: the greeting opens the screen, beside the account button
+          (the brand is the Home tab itself). */}
       <header className="qb-home-top">
-        <span className="qb-brandmini" role="img" aria-label={t("بصائر")}>
-          <BrandMark size={30} themed />
-          <span className="bname" aria-hidden="true">
-            {t("بَصَائِر")}
-          </span>
-        </span>
+        <div className="qb-home-greeting">
+          <h1>{greeting.line}</h1>
+          {greeting.sub ? <p>{greeting.sub}</p> : null}
+        </div>
         {/* Phones only: the desktop rail carries the account menu. */}
         <button
           ref={accountBtn}
@@ -231,11 +230,6 @@ export function HomeScreen() {
           <Icon name="user" size={20} />
         </button>
       </header>
-
-      <div className="qb-home-greeting">
-        <h1>{greeting.line}</h1>
-        {greeting.sub ? <p>{greeting.sub}</p> : null}
-      </div>
 
       {/* Wide screens: the verse holds the seat of honour. No aria-live — a
           forever-rotating announcement is screen-reader noise; the verse stays

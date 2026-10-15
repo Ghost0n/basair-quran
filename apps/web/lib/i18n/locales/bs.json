@@ -1051,5 +1051,7 @@
  "مفعّلة على هذا الجهاز — اضغط لإيقافها": "Uključen na ovom uređaju — dodirnite da isključite",
  "نسخة تجريبية من واجهة الهاتف: شريط تنقّل ثابت بخمسة أقسام، وأدوات القراءة وحقل البحث في متناول الإبهام، وأهداف لمس أكبر. تُحفظ على هذا الجهاز فقط ويمكن إيقافها في أي وقت.": "Prototip interfejsa za telefon: stalna traka s pet kartica, alati za čitanje i polje za pretragu nadohvat palca te veće površine za dodir. Sačuvano samo na ovom uređaju; možete ga isključiti u bilo kojem trenutku.",
  "قراءة": "Čitanje",
- "اضغط الصفحة لإظهار الأدوات أو إخفائها": "Dodirnite stranicu da prikažete ili sakrijete alate"
+ "اضغط الصفحة لإظهار الأدوات أو إخفائها": "Dodirnite stranicu da prikažete ili sakrijete alate",
+ "تعذّر إنشاء البحث. حاول مرة أخرى.": "Istraživanje nije moguće kreirati. Pokušajte ponovo.",
+ "حوّل هذه الجلسة إلى بحث قابل للتحرير؟ تبقى الجلسة كما هي.": "Pretvoriti ovu sesiju u istraživanje koje se može uređivati? Sesija ostaje kakva jeste."
 }

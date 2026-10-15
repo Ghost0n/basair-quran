@@ -306,23 +306,7 @@
     padding-bottom: calc(8px + 66px + 8px + 28px + env(safe-area-inset-bottom, 0px));
   }
 
-  /* ---------- 2. Search: the field sits by the thumb and the keyboard ---------- */
-
-  html:root[data-shell-mode="search"] .qb-topbar {
-    position: fixed;
-    inset-inline: calc(10px + env(safe-area-inset-left, 0px));
-    bottom: calc(8px + 66px + 8px + env(safe-area-inset-bottom, 0px));
-    top: auto;
-    z-index: 46;
-    height: 56px;
-    padding: 0;
-    transition: bottom var(--motion-dur-base, 200ms) var(--motion-ease-settle, ease-out);
-  }
-
-  /* With the keyboard up the tab bar steps aside and the field rides on the keyboard. */
-  html:root[data-shell-mode="search"][data-kb="open"] .qb-topbar {
-    bottom: calc(var(--qb-kb, 0px) + 8px);
-  }
+  /* ---------- 2. Search: the field stays at the top, where typing is expected ---------- */
 
   html:root .qb-cmd {
     min-height: 52px;
@@ -333,26 +317,36 @@
     font-size: 16px; /* also stops iOS zooming into the field */
   }
 
-  /* Suggestions open upward, above the field. */
-  html:root .qb-cmd-suggestions {
-    top: auto;
-    bottom: calc(100% + 8px);
-    transform-origin: bottom center;
-    max-height: min(360px, 45dvh);
-  }
-
   html:root .qb-cmd-suggestion {
     min-height: 48px;
   }
 
-  /* The results scroll above the field: clear its height. */
   html:root[data-shell-mode="search"] .qb-main {
     padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: calc(8px + 66px + 8px + 56px + 10px + env(safe-area-inset-bottom, 0px));
   }
 
-  html:root[data-shell-mode="search"][data-kb="open"] .qb-main {
-    padding-bottom: calc(var(--qb-kb, 0px) + 72px);
+  /* The results are the page itself, like the notebook: no floating pane
+     around them (its rim, glass and margins cost room and read as a dialog),
+     no close button (another tab is the way out), and no glide-in. The rows
+     only fade in: a rising row under a glass layer left magenta seams on iOS
+     while it moved. */
+  html:root .qb-side-panel:not(.qb-side-panel-wide) {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    animation: none;
+  }
+
+  html:root .qb-side-panel .close.dismiss {
+    display: none;
+  }
+
+  html:root .qb-side-panel .qb-verse-row {
+    animation-name: qbFade;
   }
 
   /* Results: the header already says the word and its counts, so the summary
@@ -362,12 +356,14 @@
     display: none;
   }
 
-  html:root .qb-side-head {
-    padding: 12px 16px 10px;
+  html:root .qb-side-panel:not(.qb-side-panel-wide) .qb-side-head {
+    padding: 14px 20px 10px;
+    border-bottom: 0;
   }
 
-  html:root .qb-side-head h3 {
+  html:root .qb-side-panel:not(.qb-side-panel-wide) .qb-side-head h3 {
     margin: 0 0 2px;
+    font-size: 28px;
   }
 
   html:root .qb-root-summary {

@@ -1030,5 +1030,7 @@
  "مفعّلة على هذا الجهاز — اضغط لإيقافها": "Activée sur cet appareil — touchez pour la désactiver",
  "نسخة تجريبية من واجهة الهاتف: شريط تنقّل ثابت بخمسة أقسام، وأدوات القراءة وحقل البحث في متناول الإبهام، وأهداف لمس أكبر. تُحفظ على هذا الجهاز فقط ويمكن إيقافها في أي وقت.": "Un prototype de l'interface téléphone : une barre fixe à cinq onglets, les outils de lecture et le champ de recherche à portée du pouce, et des zones tactiles plus grandes. Enregistré sur cet appareil uniquement ; vous pouvez le désactiver à tout moment.",
  "قراءة": "Lecture",
- "اضغط الصفحة لإظهار الأدوات أو إخفائها": "Touchez la page pour afficher ou masquer les outils"
+ "اضغط الصفحة لإظهار الأدوات أو إخفائها": "Touchez la page pour afficher ou masquer les outils",
+ "تعذّر إنشاء البحث. حاول مرة أخرى.": "Impossible de créer la recherche. Réessayez.",
+ "حوّل هذه الجلسة إلى بحث قابل للتحرير؟ تبقى الجلسة كما هي.": "Transformer cette session en recherche modifiable ? La session reste telle quelle."
 }
