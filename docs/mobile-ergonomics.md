@@ -80,7 +80,7 @@ are two taps (Home tile, or the surah name for the index).
   a short hallway test (5 people, one hand, standing) is the next step.
 - The on-screen keyboard behaviour (bar hiding, field riding on the keyboard)
   could not be exercised in headless Chromium; it needs a real phone.
-- The study screen keeps its header at the top; only its targets were enlarged.
+- The study screen is a conversation: no frame, no session tabs (the session title opens a sheet of open sessions with new/close), no close or export buttons; the strict/tafssir switch sits in the composer. «حوّل إلى بحث» shows only once the session has messages and asks for confirmation in a banner before creating the document.
 - In landscape the Home tab bar overlays content, as it does today (content scrolls).
 - In `next dev`, the reader occasionally logs "Maximum update depth exceeded"
   from `useElementSize` (`features/reading/use-wide-screen.ts`); it predates
