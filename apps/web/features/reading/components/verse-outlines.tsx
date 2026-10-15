@@ -5,21 +5,23 @@ import { useLayoutEffect, useRef } from "react";
 import { blocks, outlinePath, rowsFromRects, separate } from "../verse-outline";
 
 const SVG = "http://www.w3.org/2000/svg";
-/** Drawing order: hover under focus under the recited verse. */
-const KINDS = ["hover", "focus", "recite"] as const;
+/** Drawing order: theme highlights under hover under focus under the recited verse. */
+const KINDS = ["mark", "hover", "focus", "recite"] as const;
 type Kind = (typeof KINDS)[number];
 
 type Box = { left: number; right: number; top: number; bottom: number };
-type Verse = { kind: Kind; rects: Box[]; bands: Map<number, { top: number; bottom: number }> };
+type Verse = { kind: Kind; color: string | null; rects: Box[]; bands: Map<number, { top: number; bottom: number }> };
 
 function kindOf(element: Element): Kind {
   if (element.classList.contains("is-recite")) return "recite";
   if (element.classList.contains("is-hover")) return "hover";
-  return "focus";
+  if (element.classList.contains("qb-verse-focus")) return "focus";
+  return "mark";
 }
 
 /**
- * The lit verses of one page (recited, «تظليل» focus, hover), drawn as one
+ * The lit verses of one page (recited, «تظليل» focus, hover, and the themes'
+ * highlights), drawn as one
  * outline each (features/reading/verse-outline.ts) on a layer behind the text.
  *
  * Place it as a child of the page: it reads the verse pieces the page marks
@@ -44,8 +46,9 @@ export function VerseOutlines() {
       const verses = new Map<string, Verse>();
       for (const piece of pieces) {
         const kind = kindOf(piece);
-        const id = `${kind}:${piece.dataset.vf}`;
-        const verse: Verse = verses.get(id) ?? { kind, rects: [], bands: new Map() };
+        const color = kind === "mark" ? piece.dataset.hl ?? null : null;
+        const id = `${kind}:${color ?? ""}:${piece.dataset.vf}`;
+        const verse: Verse = verses.get(id) ?? { kind, color, rects: [], bands: new Map() };
         // The line's own band (glyph pages have one element per printed line).
         const line = piece.closest<HTMLElement>(".qb-glyph-line")?.getBoundingClientRect();
         for (const box of Array.from(piece.getClientRects())) {
@@ -58,14 +61,16 @@ export function VerseOutlines() {
       const width = host.clientWidth;
       const drawn = Array.from(verses.values()).map((verse) => ({
         kind: verse.kind,
+        color: verse.color,
         rows: rowsFromRects(verse.rects, width, (rect) => verse.bands.get(verse.rects.indexOf(rect)) ?? rect),
       }));
       for (let i = 0; i < drawn.length; i++) for (let j = i + 1; j < drawn.length; j++) separate(drawn[i].rows, drawn[j].rows);
       const paths = drawn.map((verse) => ({
         kind: verse.kind,
+        color: verse.color,
         d: blocks(verse.rows).map(outlinePath).join(""),
       }));
-      const key = `${width}|${paths.map((item) => `${item.kind}${item.d}`).join("|")}`;
+      const key = `${width}|${paths.map((item) => `${item.kind}${item.color ?? ""}${item.d}`).join("|")}`;
       if (key === lastKey) return;
       lastKey = key;
       svg.replaceChildren();
@@ -74,6 +79,8 @@ export function VerseOutlines() {
           if (item.kind !== kind || !item.d) continue;
           const group = document.createElementNS(SVG, "g");
           group.setAttribute("class", `is-${kind}`);
+          // A theme highlight takes its colour from themes.css ([data-hl] → --hl).
+          if (item.color) group.setAttribute("data-hl", item.color);
           const path = document.createElementNS(SVG, "path");
           path.setAttribute("d", item.d);
           group.appendChild(path);
@@ -87,7 +94,7 @@ export function VerseOutlines() {
 
     draw();
     const mutations = new MutationObserver(schedule);
-    mutations.observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-vf", "class", "style"] });
+    mutations.observe(host, { subtree: true, childList: true, attributes: true, attributeFilter: ["data-vf", "data-hl", "class", "style"] });
     const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
     resize?.observe(host);
     void document.fonts?.ready.then(schedule);

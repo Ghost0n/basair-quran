@@ -18,6 +18,7 @@ import { API_BASE_URL } from "@/lib/config";
 import { reportError } from "@/lib/error-report";
 
 import { t } from "@/lib/i18n";
+import { noteReaderLoad } from "./reader-entry";
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const LAST_PAGE_KEY = "qbasair.mushaf.lastPage";
 // The surah at the top of the last-read page — display sugar for the Home
@@ -211,6 +212,7 @@ function useMushafController(): MushafController {
 
   const loadPage = useCallback(
     async (mushafId: number, page: number, options: LoadOptions = {}) => {
+      noteReaderLoad();
       setIsLoading(true);
       setError(null);
       if (options.highlights !== undefined) setSelectedHighlights(options.highlights);
@@ -245,6 +247,7 @@ function useMushafController(): MushafController {
 
   const loadByAyah = useCallback(
     async (mushafId: number, ayahId: number, highlights: number[] = [], options: { transient?: boolean } = {}) => {
+      noteReaderLoad();
       setIsLoading(true);
       setError(null);
       setSelectedAyahId(ayahId);
@@ -266,6 +269,7 @@ function useMushafController(): MushafController {
 
   const loadBySurah = useCallback(
     async (mushafId: number, surah: number, ayah?: number) => {
+      noteReaderLoad();
       setIsLoading(true);
       setError(null);
       setSelectedHighlights([]);
@@ -287,6 +291,7 @@ function useMushafController(): MushafController {
 
   const showAyahPage = useCallback(
     async (mushafId: number, surah: number, ayah: number) => {
+      noteReaderLoad();
       try {
         const data = await api.getQuranPageForSurah(mushafId, surah, ayah);
         if (data.found) applyResult(data, true);
@@ -299,6 +304,7 @@ function useMushafController(): MushafController {
 
   const loadByJuz = useCallback(
     async (mushafId: number, juz: number) => {
+      noteReaderLoad();
       setIsLoading(true);
       setError(null);
       setSelectedHighlights([]);

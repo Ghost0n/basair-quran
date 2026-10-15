@@ -210,6 +210,18 @@
   stroke: none;
 }
 
+/* A theme's highlight: the same single block, in the theme's colour (--hl
+   comes from themes.css through the group's data-hl), with a faint rim of
+   its ink so neighbouring highlighted verses stay apart. */
+.qb-verse-outlines .is-mark path {
+  fill: var(--hl);
+  stroke: color-mix(in srgb, var(--hl-ink) 30%, transparent);
+}
+
+.qb-verse-outlines .is-mark {
+  animation: qbOutlineIn 160ms var(--motion-ease-settle, ease-out);
+}
+
 .light .qb-verse-outlines .is-recite path,
 .light-mode .qb-verse-outlines .is-recite path {
   fill: rgba(24, 120, 100, 0.1);
@@ -615,8 +627,22 @@
 /* Under an outline layer the lit pieces lose their own boxes (the layer draws
    the verse). Specific enough to win over every .qb-verse-focus state above,
    the light theme's included. */
-:where(.qb-glyph-page, .qb-page-turn, .qb-scroll-page):has(> .qb-verse-outlines) .qb-verse-focus.qb-verse-focus[class] {
+:where(.qb-glyph-page, .qb-page-turn, .qb-scroll-page):has(> .qb-verse-outlines) :is(.qb-verse-focus.qb-verse-focus, .qb-hl.qb-hl)[class] {
   background: transparent;
   box-shadow: none;
   animation: none;
+}
+
+/* While reciting, the recited verse is the only lit block: the opened /
+   resumed verse's selection steps back (mushaf-stage.tsx clears it too). */
+html.qb-reciting :is(.qb-glyph-sel, .qb-ayah-tok.selected) {
+  background: transparent;
+  box-shadow: none;
+  animation: none;
+}
+
+html.qb-reciting .qb-ayah-row.is-selected {
+  background: none;
+  box-shadow: none;
+  border-inline-start-color: transparent;
 }

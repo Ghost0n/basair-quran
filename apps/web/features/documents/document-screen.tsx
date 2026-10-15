@@ -26,11 +26,9 @@ import { useShellMode } from "@/features/shell/mode-context";
 import { TafssirDisclaimer } from "@/features/studio/tafssir-disclaimer";
 
 import { AyahPicker } from "./ayah-picker";
-import { documentToMarkdown } from "./convert";
 import { DocumentBoard } from "./document-board";
 import { parseBoardSource } from "@/features/board/board-model";
 import { PublishSheet } from "./publish-sheet";
-import { downloadBlob } from "./share-card";
 import { ShareStudio, type ShareArtifact } from "./share-studio";
 
 import { t, tn } from "@/lib/i18n";
@@ -253,18 +251,6 @@ export function DocumentScreen() {
     }
   }
 
-  function exportMarkdown() {
-    if (!doc) return;
-    const blob = new Blob([documentToMarkdown(doc, surahName)], { type: "text/markdown;charset=utf-8" });
-    downloadBlob(blob, `${doc.title.slice(0, 60) || "research"}.md`);
-  }
-
-  function exportJson() {
-    if (!doc) return;
-    const payload = { v: 1, ...doc, id: documentId, version: meta?.version };
-    downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), `${documentId}.json`);
-  }
-
   const ayahTotal = doc?.sections.reduce((sum, section) => sum + section.ayahs.length, 0) ?? 0;
 
   async function removeDocument() {
@@ -317,12 +303,6 @@ export function DocumentScreen() {
         <div className="acts">
           <button type="button" onClick={() => setSharing({ artifact: "research" })}>
             <Icon name="share" size={15} /> <span className="lbl">{t("مشاركة")}</span>
-          </button>
-          <button type="button" onClick={exportMarkdown}>
-            <Icon name="download" size={15} /> <span className="lbl">Markdown</span>
-          </button>
-          <button type="button" onClick={exportJson}>
-            <Icon name="download" size={15} /> <span className="lbl">JSON</span>
           </button>
           <button type="button" onClick={() => void runAudit()}>
             <Icon name="shieldCheck" size={15} /> <span className="lbl">{t("جاهزية النشر")}</span>

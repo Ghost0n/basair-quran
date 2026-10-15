@@ -568,6 +568,35 @@ code, .mono {
   }
 }
 
+/* Touch screens behave like an app, not a page: no grey tap flash, no text
+   selection or callout (copy / translate / look up) on the interface or the
+   Quran text — the reader's «تحديد» tool and the copy actions do that. Fields
+   and editors stay selectable. Hover states are touch-proof at build time
+   (postcss-touch-hover.cjs). */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  :is(input, textarea, select, [contenteditable]:not([contenteditable="false"]), .qb-selectable),
+  :is([contenteditable]:not([contenteditable="false"]), .qb-selectable) * {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+
+  img,
+  svg {
+    -webkit-user-drag: none;
+  }
+}
+
 /* Interface language loading (a non-Arabic choice): hide until the dictionary is in. */
 html[data-i18n-pending] body {
   visibility: hidden;

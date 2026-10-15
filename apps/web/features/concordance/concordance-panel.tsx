@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -13,6 +13,7 @@ import { useNotebookSync } from "@/lib/notebook-sync";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { useNumerals } from "@/lib/preferences-context";
 import { getVerseSelectionKey, renderHighlightedVerseText } from "@/lib/quran-ui";
+import { useRecitation } from "@/features/recitation/recitation-context";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { useSaveAyah } from "@/features/themes/save-ayah-context";
@@ -20,6 +21,25 @@ import { useSaveAyah } from "@/features/themes/save-ayah-context";
 import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
+
+/**
+ * Where the results were scrolled when a verse opened the reader: coming back
+ * lands on the same verse card (the panel remounts on phones). Keyed by the
+ * results shown (query and page), so a new search starts at the top.
+ */
+let savedScroll: { key: string; top: number } | null = null;
+
+/** The element that scrolls the results: the panel on phones, its body on wider screens. */
+function resultsScroller(panel: HTMLElement | null): HTMLElement | null {
+  if (!panel) return null;
+  const body = panel.querySelector<HTMLElement>(":scope > .qb-side-body");
+  for (const element of [panel, body]) {
+    if (!element) continue;
+    const overflow = getComputedStyle(element).overflowY;
+    if (overflow === "auto" || overflow === "scroll") return element;
+  }
+  return body;
+}
 
 /**
  * Concordance panel — search results as a side panel that overlays the
@@ -38,9 +58,46 @@ export function ConcordancePanel() {
   // widths the reader is already visible beside the panel — no mode switch needed.
   const isCompact = useIsMobile(1000);
 
+  const panelRef = useRef<HTMLElement | null>(null);
+  const recitation = useRecitation();
+  const resultsKey = state.results.map((result) => `${result.result_key}@${result.page}`).join("|");
+
   function openVerse(verse: SearchVerse, resultKey: string) {
+    const scroller = resultsScroller(panelRef.current);
+    savedScroll = scroller ? { key: resultsKey, top: scroller.scrollTop } : null;
     void actions.selectVerse(verse, resultKey);
     if (isCompact) setMode("reading");
+  }
+
+  // Back from the reader: the results exactly where they were left.
+  useLayoutEffect(() => {
+    const saved = savedScroll;
+    if (!saved || !resultsKey) return;
+    if (saved.key !== resultsKey) {
+      savedScroll = null;
+      return;
+    }
+    const scroller = resultsScroller(panelRef.current);
+    if (scroller) scroller.scrollTop = saved.top;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resultsKey]);
+
+  // Another page of results starts at its top, like a new page.
+  async function goToPage(resultKey: string, page: number) {
+    await actions.loadResultPage(resultKey, page);
+    savedScroll = null;
+    resultsScroller(panelRef.current)?.scrollTo({ top: 0 });
+  }
+
+  // ▶ on a result: that verse alone, then the recitation ends (the capsule
+  // at the top of the screen shows it while it plays).
+  function playVerse(verse: SearchVerse) {
+    const current = recitation.current;
+    if (current && current.surah === verse.surah_id && current.ayah === verse.ayah) {
+      recitation.toggle();
+      return;
+    }
+    recitation.playVerseOnce(verse.surah_id, verse.ayah);
   }
 
   const [pinnedAyahIds, setPinnedAyahIds] = useState<Set<number>>(new Set());
@@ -139,7 +196,7 @@ export function ConcordancePanel() {
   }
 
   return (
-    <aside className="qb-side-panel" aria-label={t("لوحة المطابقة")}>
+    <aside className={`qb-side-panel${primary ? "" : " is-empty"}`} ref={panelRef} aria-label={t("لوحة المطابقة")}>
       <div className="qb-side-head">
         <div>
           <div className="kicker">{t("المطابقة")}</div>
@@ -273,6 +330,8 @@ export function ConcordancePanel() {
               const selectionKey = getVerseSelectionKey(result.result_key, verse);
               const isSelected = selectionKey === state.selectedVerseKey;
               const isPinned = pinnedAyahIds.has(verse.ayah_id);
+              const isReciting = recitation.current?.surah === verse.surah_id && recitation.current?.ayah === verse.ayah;
+              const isPlaying = isReciting && recitation.isPlaying;
               return (
                 // Card is the primary action (select the verse); the pin is a
                 // nested but real <button>. The row uses role="button" rather
@@ -301,6 +360,19 @@ export function ConcordancePanel() {
                     </span>
                     <button
                       type="button"
+                      className={`pin listen${isReciting ? " on" : ""}`}
+                      aria-label={isPlaying ? t("إيقاف") : t("تلاوة الآية")}
+                      aria-pressed={isPlaying}
+                      title={t("تلاوة الآية")}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        playVerse(verse);
+                      }}
+                    >
+                      <Icon name={isPlaying ? "pause" : "play"} size={12} />
+                    </button>
+                    <button
+                      type="button"
                       className={`pin${isPinned ? " on" : ""}`}
                       aria-label={isPinned ? t("مثبّت في الدفتر") : t("ثبّت في الدفتر")}
                       aria-pressed={isPinned}
@@ -324,7 +396,7 @@ export function ConcordancePanel() {
                 <button
                   type="button"
                   disabled={result.page <= 1}
-                  onClick={() => void actions.loadResultPage(result.result_key, result.page - 1)}
+                  onClick={() => void goToPage(result.result_key, result.page - 1)}
                 >
                   {t("السابق")}
                 </button>
@@ -334,7 +406,7 @@ export function ConcordancePanel() {
                 <button
                   type="button"
                   disabled={result.page >= result.total_pages}
-                  onClick={() => void actions.loadResultPage(result.result_key, result.page + 1)}
+                  onClick={() => void goToPage(result.result_key, result.page + 1)}
                 >
                   {t("التالي")}
                 </button>

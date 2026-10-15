@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { Icon } from "@/components/icon";
+import { canHover } from "@/lib/can-hover";
 import { modKey } from "@/lib/platform";
 import { looksLikeQuestion, queueStudioAsk } from "@/lib/studio-prefill";
 import { useMushaf } from "@/features/reading/mushaf-context";
@@ -122,7 +123,11 @@ export function CommandBar() {
     actions.handleInputKeyDown(event);
   }
 
-  const placeholder = t("ابحث · انتقل · اسأل  —  /");
+  // The "/" shortcut is a keyboard's: touch screens get the plain invitation
+  // (known after mount, so the server's render matches the first client one).
+  const [pointer, setPointer] = useState(false);
+  useEffect(() => setPointer(canHover()), []);
+  const placeholder = pointer ? t("ابحث · انتقل · اسأل  —  /") : t("ابحث بكلمة أو جذر، أو اطرح سؤالاً");
   const listboxOpen = state.suggestionsOpen && state.suggestions.length > 0;
   const activeOptionId =
     listboxOpen && state.activeSuggestionIndex >= 0

@@ -83,7 +83,8 @@ function surahSeconds(list: number[]): { seconds: number[]; exact: boolean } {
 }
 
 /** A span to recite (inclusive); `repeat` loops it instead of stopping at its end. */
-export type RecitationRange = VerseRange & { repeat: boolean };
+/** `once`: one verse heard on its own (a search result's ▶) — the session ends with it. */
+export type RecitationRange = VerseRange & { repeat: boolean; once?: boolean };
 
 type RecitationValue = {
   reciters: ReciterItem[];
@@ -126,6 +127,8 @@ type RecitationValue = {
   range: RecitationRange | null;
   /** Recite `range` from its first verse. */
   playRange: (range: VerseRange, options?: { repeat?: boolean }) => void;
+  /** Recite one verse and stop (the session closes at its end). */
+  playVerseOnce: (surah: number, ayah: number) => void;
   clearRange: () => void;
   setRangeRepeat: (repeat: boolean) => void;
   /** What repeats: nothing, the verse, or the chosen range (the surah when none was chosen). */
@@ -250,6 +253,15 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     [playPosition],
   );
 
+  const playVerseOnce = useCallback(
+    (surah: number, ayah: number) => {
+      const position = { surah, ayah };
+      setRange({ start: position, end: position, repeat: false, once: true });
+      playPosition(position);
+    },
+    [playPosition],
+  );
+
   const clearRange = useCallback(() => setRange(null), []);
   const setRangeRepeat = useCallback(
     (repeat: boolean) => setRange((current) => (current ? { ...current, repeat } : current)),
@@ -298,6 +310,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     if (!current) return;
     if (range && sameVerse(current, range.end)) {
       if (range.repeat) playPosition(range.start);
+      else if (range.once) stop();
       else finishRange(range.start);
       return;
     }
@@ -555,6 +568,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       startPending,
       range,
       playRange,
+      playVerseOnce,
       clearRange,
       setRangeRepeat,
       repeatMode,
@@ -565,6 +579,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       surahs,
       range,
       playRange,
+      playVerseOnce,
       clearRange,
       setRangeRepeat,
       repeatMode,

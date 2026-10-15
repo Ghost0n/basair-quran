@@ -2,6 +2,8 @@
 
 import { useRef, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 
+import { isBackEdgeTouch } from "@/features/shell/edge-swipe-back";
+
 // A swipe must travel this far horizontally, clearly more than vertically, and
 // quickly — so a vertical scroll or a slow drag never turns the page.
 const SWIPE_MIN_PX = 56;
@@ -58,6 +60,11 @@ export function useReaderGestures({ swipeEnabled, onNext, onPrev, onTap, mouseTa
 
   function onPointerDown(event: ReactPointerEvent<HTMLElement>) {
     if (event.pointerType === "mouse" || !event.isPrimary) return;
+    // A touch on the screen's back edge belongs to the back swipe (edge-swipe-back.tsx).
+    if (isBackEdgeTouch(event.clientX)) {
+      start.current = null;
+      return;
+    }
     start.current = { x: event.clientX, y: event.clientY, t: performance.now(), id: event.pointerId };
     axis.current = null;
   }

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { canHover } from "./can-hover";
+import { attachSheetSwipe } from "./sheet-swipe";
 
 const FOCUSABLE_SELECTOR =
   'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -66,8 +67,13 @@ export function useDialog<T extends HTMLElement>(onClose: () => void, { enabled 
     }
 
     document.addEventListener("keydown", handleKeyDown, true);
+    // Bottom sheets (.qb-rsheet) close with a downward drag too.
+    const detachSwipe = node?.parentElement?.classList.contains("qb-rsheet")
+      ? attachSheetSwipe(node, () => onCloseRef.current())
+      : null;
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
+      detachSwipe?.();
       previouslyFocused?.focus?.();
     };
   }, [enabled]);

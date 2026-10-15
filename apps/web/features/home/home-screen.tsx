@@ -12,6 +12,7 @@ import type { ResearchSessionSummary } from "@q-basair/shared";
 import { Icon, type IconName } from "@/components/icon";
 import { relativeAge } from "@/features/companions/use-companions";
 import { useMushaf } from "@/features/reading/mushaf-context";
+import { requestReaderResume } from "@/features/reading/reader-entry";
 import { useRecitation } from "@/features/recitation/recitation-context";
 import { useShellMode } from "@/features/shell/mode-context";
 import { API_BASE_URL } from "@/lib/config";
@@ -27,7 +28,6 @@ import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
-const LANDED_KEY = "qb.landed";
 const LAST_PAGE_KEY = "qbasair.mushaf.lastPage";
 const LAST_SURAH_KEY = "qbasair.mushaf.lastSurah";
 export const COMMUNITY_SEEN_KEY = "qb.community.seen";
@@ -89,22 +89,9 @@ export function HomeScreen() {
   const [lastVisit] = useState(readLastVisit);
   const [ayahIndex, setAyahIndex] = useState(0);
 
-  // Returning readers land in the reader: the first Home of a browser session
-  // with a saved position forwards to «القراءة» (which resumes there). Home is
-  // still one tap away and never redirects twice.
+  // The app always opens on Home (never straight into the reader): «تابع»
+  // resumes the last reading from here.
   const position = preferences.last_position;
-  const hasPosition = Boolean(position?.ayah_id || position?.page);
-  useEffect(() => {
-    if (!ready) return;
-    try {
-      if (window.sessionStorage.getItem(LANDED_KEY)) return;
-      window.sessionStorage.setItem(LANDED_KEY, "1");
-    } catch {
-      return; // no sessionStorage: never redirect (can't guarantee "only once")
-    }
-    if (hasPosition) setMode("reading", { replace: true });
-  }, [ready, hasPosition, setMode]);
-
   useEffect(() => {
     rememberVisit();
     try {
@@ -162,10 +149,14 @@ export function HomeScreen() {
           .filter(Boolean)
           .join(" · "),
         action: t("تابع"),
-        onAction: () => setMode("reading"),
+        onAction: () => {
+          requestReaderResume();
+          setMode("reading");
+        },
         onListen:
           position?.surah && position?.ayah
             ? () => {
+                requestReaderResume();
                 recitation.playAyah(position.surah as number, position.ayah as number);
                 setMode("reading");
               }

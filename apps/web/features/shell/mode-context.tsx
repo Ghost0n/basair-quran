@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect } from "react";
 
+import { canGoBackInApp, markReplace, notifyNavigationSettled, recordScreen, transition } from "./navigation";
+
 export const SHELL_MODES = [
   "home",
   "reading",
@@ -77,6 +79,40 @@ export function lastScreenBeforeReader(): string {
 }
 
 /**
+ * «Back», as the reader's arrow and the screen-edge swipe mean it: the
+ * previous screen of this session (the browser's own back, so the URL stays
+ * true), else — opened from a link or after a relaunch — the screen the
+ * reader was opened from, else Home. Home itself has nowhere to go back to.
+ */
+export function useGoBack(): { canGoBack: boolean; goBack: (options?: { beforeUpdate?: () => void }) => void } {
+  const router = useRouter();
+  const params = useSearchParams();
+  const raw = params.get("mode");
+  const mode: ShellMode = isShellMode(raw) ? raw : DEFAULT_MODE;
+  const goBack = useCallback(
+    (options?: { beforeUpdate?: () => void }) => {
+      if (mode === DEFAULT_MODE) return;
+      const motion = mode === "reading" ? "reader-out" : "back";
+      if (canGoBackInApp()) {
+        transition(() => {
+          options?.beforeUpdate?.();
+          router.back();
+        }, motion);
+        return;
+      }
+      const query = mode === "reading" ? lastScreenBeforeReader() : "";
+      transition(() => {
+        options?.beforeUpdate?.();
+        markReplace();
+        router.replace(query ? `/?${query}` : "/", { scroll: false });
+      }, motion);
+    },
+    [mode, router],
+  );
+  return { canGoBack: mode !== DEFAULT_MODE, goBack };
+}
+
+/**
  * Reads the active mode from the `?mode=` query param. Defaults to
  * "reading" when missing or invalid.
  *
@@ -115,22 +151,27 @@ export function useShellMode(): {
       // Search) so Back isn't clogged with entries the user didn't choose.
       const navigate = () => {
         if (options?.replace) {
+          markReplace();
           router.replace(href, { scroll: false });
         } else {
           router.push(href, { scroll: false });
         }
       };
-      // Morph the shared omnibar (Home centre ↔ top command bar) when the View
-      // Transitions API is available; a plain navigation everywhere else.
-      const doc = document as Document & { startViewTransition?: (cb: () => void) => void };
-      if (typeof document !== "undefined" && typeof doc.startViewTransition === "function") {
-        doc.startViewTransition(navigate);
-      } else {
-        navigate();
-      }
+      // A view transition carries the change (navigation.ts): entering the
+      // reader splits the tab bar into its back button and dock.
+      const motion = next === "reading" && mode !== "reading" ? "reader-in" : mode === "reading" && next !== "reading" ? "reader-out" : "fade";
+      transition(navigate, motion);
     },
-    [params, router],
+    [params, router, mode],
   );
+
+  // The back stack follows every screen shown, and a navigation waiting on
+  // its view transition learns the new screen is in.
+  const current = params.toString();
+  useEffect(() => {
+    recordScreen(current);
+    notifyNavigationSettled();
+  }, [current]);
 
   // Every library page records itself as «where I was».
   const search = params.toString();

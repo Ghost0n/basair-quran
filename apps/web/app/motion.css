@@ -219,6 +219,85 @@ button:not(:disabled):active {
   }
 }
 
+/* ---------- Entering and leaving the reader (phones) ---------- */
+/* The tab bar and the reader's controls share two names (mobile-tab-bar.css,
+   phone-ergonomics.css): the bar's capsule is `qb-nav-dock`, its Home mark
+   `qb-nav-lead`; in the reader the dock and the round back button carry them.
+   Entering the reader the bar visibly splits — the Home mark slides off into
+   the back button and the capsule draws in to become the toolbox — and the
+   page arrives from the reading direction; leaving reverses it. Plain screen
+   changes only cross-fade (glass.css). Names are set by navigation.ts via
+   html[data-nav]; browsers without view transitions just switch. */
+::view-transition-group(qb-nav-dock),
+::view-transition-group(qb-nav-lead) {
+  animation-duration: 460ms;
+  animation-timing-function: cubic-bezier(0.3, 1.25, 0.4, 1);
+}
+
+::view-transition-old(qb-nav-dock),
+::view-transition-new(qb-nav-dock),
+::view-transition-old(qb-nav-lead),
+::view-transition-new(qb-nav-lead) {
+  /* The contents cross-fade while the glass changes shape (no stretched text). */
+  height: 100%;
+  object-fit: none;
+  animation-duration: 300ms;
+}
+
+html[data-nav="reader-in"]::view-transition-new(root) {
+  animation: qbReaderIn 420ms var(--motion-ease-settle, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
+}
+
+html[data-nav="reader-in"]::view-transition-old(root) {
+  animation: qbScreenAway 320ms var(--motion-ease-exit, ease-in) both;
+}
+
+html[data-nav="reader-out"]::view-transition-old(root),
+html[data-nav="back"]::view-transition-old(root) {
+  animation: qbReaderOut 320ms var(--motion-ease-exit, ease-in) both;
+}
+
+html[data-nav="reader-out"]::view-transition-new(root),
+html[data-nav="back"]::view-transition-new(root) {
+  animation: qbScreenBack 420ms var(--motion-ease-settle, ease-out) both;
+}
+
+/* The reader comes in from the side the reading goes towards (the left in
+   Arabic, the right in left-to-right languages). */
+@keyframes qbReaderIn {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--qb-forward, -1) * 18%));
+  }
+}
+
+@keyframes qbScreenAway {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+    filter: blur(2px);
+  }
+}
+
+@keyframes qbReaderOut {
+  to {
+    opacity: 0;
+    transform: translateX(calc(var(--qb-forward, -1) * 18%));
+  }
+}
+
+@keyframes qbScreenBack {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+    filter: blur(2px);
+  }
+}
+
+html[dir="ltr"] {
+  --qb-forward: 1;
+}
+
 /* =====================================================================
    Reduced motion — the designed variant.
    tokens-motion.css already neutralizes the position/turn/depth vars and

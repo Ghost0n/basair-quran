@@ -759,3 +759,140 @@ body::before {
 .qb-fit-choice.qb-fit-choice.is-grid {
   display: flex;
 }
+
+/* =====================================================================
+   Liquid Glass — the floating chrome on phones (tab bar, the reader's back
+   button and dock, bookmark, search bar, menus, capsule).
+   Apple's material is native-only (iOS 26); this is its web rendition: a
+   clear tint over a light blur with boosted saturation (the page shows
+   through, bent and brightened, rather than frosted), a rim that catches
+   the light on two corners, an inner depth, and a press that swells like a
+   drop. Reduced transparency (above) still turns it opaque.
+   ===================================================================== */
+
+:root {
+  --lg-tint: rgba(34, 30, 22, 0.46);
+  --lg-tint-strong: rgba(30, 27, 20, 0.58);
+  --lg-blur: 18px;
+  --lg-saturate: 190%;
+  --lg-rim: linear-gradient(
+    135deg,
+    rgba(255, 248, 228, 0.55) 0%,
+    rgba(255, 248, 228, 0.1) 26%,
+    rgba(255, 248, 228, 0) 50%,
+    rgba(255, 248, 228, 0.08) 74%,
+    rgba(255, 248, 228, 0.32) 100%
+  );
+  --lg-depth: inset 0 1px 1px rgba(255, 250, 235, 0.22), inset 0 -1px 1px rgba(0, 0, 0, 0.18),
+    inset 0 0 18px rgba(255, 244, 214, 0.05);
+  --lg-shadow: 0 10px 30px rgba(0, 0, 0, 0.34), 0 1px 3px rgba(0, 0, 0, 0.22);
+  --lg-sheen: radial-gradient(120% 90% at 30% 0%, rgba(255, 250, 235, 0.12), transparent 55%);
+}
+
+.light,
+.light-mode,
+[data-theme="light"] {
+  --lg-tint: rgba(255, 253, 246, 0.55);
+  --lg-tint-strong: rgba(255, 252, 244, 0.7);
+  --lg-rim: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(255, 255, 255, 0.35) 30%,
+    rgba(255, 255, 255, 0) 52%,
+    rgba(255, 255, 255, 0.2) 76%,
+    rgba(255, 255, 255, 0.8) 100%
+  );
+  --lg-depth: inset 0 1px 1px rgba(255, 255, 255, 0.9), inset 0 -1px 1px rgba(120, 90, 30, 0.08),
+    inset 0 0 18px rgba(255, 255, 255, 0.3);
+  --lg-shadow: 0 10px 30px rgba(120, 90, 30, 0.16), 0 1px 3px rgba(120, 90, 30, 0.1);
+  --lg-sheen: radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, 0.55), transparent 55%);
+}
+
+@media (max-width: 768px) {
+  /* :where keeps one low specificity for the whole list (each element's own
+     stylesheet still places it). */
+  html:root :where(.qb-tabbar, .qb-reader-bar.qb-reader-dock, .qb-reader-back, .qb-reader-bookmark, .qb-reader-surah, .qb-capsule) {
+    isolation: isolate;
+    border: 0;
+    background-color: var(--lg-tint);
+    background-image: var(--lg-sheen);
+    box-shadow: var(--lg-depth), var(--lg-shadow);
+    -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(1.06);
+    backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(1.06);
+  }
+
+  html:root :where(.qb-reader-bookmark, .qb-reader-surah) {
+    background-color: var(--lg-tint-strong);
+  }
+
+  /* The rim: a 1px gradient border that catches the light. */
+  html:root :where(.qb-tabbar, .qb-reader-bar.qb-reader-dock, .qb-reader-back, .qb-reader-bookmark, .qb-capsule)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--lg-rim);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    pointer-events: none;
+  }
+
+  /* A press swells the glass a little and lights it, then springs back. */
+  html:root :is(.qb-reader-back, .qb-reader-bookmark) {
+    transition: transform 380ms var(--spring, cubic-bezier(0.34, 1.5, 0.64, 1)), filter 200ms ease;
+  }
+
+  html:root :is(.qb-reader-back, .qb-reader-bookmark):active {
+    transform: scale(1.1);
+    filter: brightness(1.18);
+    transition-duration: 120ms;
+  }
+}
+
+/* Menus and panels that open from the glass chrome (the tool menu, «العرض»):
+   the same rim and depth, on the denser overlay tint so their text stays
+   crisp over the page. */
+@media (max-width: 768px) {
+  html:root :where(.qb-toolbox-menu, .qb-display-strip) {
+    isolation: isolate;
+    border-color: transparent;
+    box-shadow: var(--lg-depth), var(--lg-shadow);
+  }
+
+  html:root :where(.qb-toolbox-menu, .qb-display-strip)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--lg-rim);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+    pointer-events: none;
+  }
+
+  /* They grow out of the button that opened them, like a drop. */
+  html:root .qb-toolbox-menu {
+    transform-origin: bottom center;
+    animation: qbLgOpen 300ms var(--spring, cubic-bezier(0.34, 1.5, 0.64, 1)) both;
+  }
+}
+
+@keyframes qbLgOpen {
+  from {
+    opacity: 0;
+    transform: scale(0.86) translateY(8px);
+    filter: blur(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:root .qb-toolbox-menu {
+    animation: none;
+  }
+}

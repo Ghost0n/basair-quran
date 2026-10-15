@@ -28,6 +28,9 @@ function AppModeGate({ children }: { children: ReactNode }) {
   const [onboarded, setOnboarded] = useState<boolean | null>(null);
 
   useEffect(() => {
+    // A launch always opens on Home, never on the screen left last (a webview
+    // restored by the system would otherwise reload its last URL).
+    if (window.location.search) window.history.replaceState(null, "", "/");
     let known = false;
     try {
       known = window.localStorage.getItem(ONBOARDED_KEY) === "1";

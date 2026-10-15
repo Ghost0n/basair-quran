@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import { Icon } from "@/components/icon";
 import { setShowHighlights, useShowHighlights } from "@/features/themes/ayah-marks";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
+import { swallowNextClick, useExclusiveOverlay } from "@/lib/exclusive-overlay";
 import { useIsMobile } from "@/lib/use-is-mobile";
 
 import { READER_MODES, resolveReaderMode } from "../reader-modes";
@@ -72,13 +73,18 @@ export function DisplayStrip({ onClose, headRef }: { onClose: () => void; headRe
   // Phones pin the printed page to the screen at one fixed size: the size
   // control shows, inactive, until verse-by-verse mode.
   const sizeLocked = useIsMobile() && mode === "pages";
+  useExclusiveOverlay(true, onClose);
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
     }
     function onPointer(event: PointerEvent) {
-      if (!headRef.current?.contains(event.target as Node)) onClose();
+      if (headRef.current?.contains(event.target as Node)) return;
+      onClose();
+      // Touch: the tap only closes the strip; the page under it doesn't react.
+      const target = event.target as Element | null;
+      if (event.pointerType !== "mouse" && !target?.closest?.(".qb-reader-back")) swallowNextClick();
     }
     document.addEventListener("keydown", onKey);
     document.addEventListener("pointerdown", onPointer, true);

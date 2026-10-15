@@ -7,6 +7,9 @@ import "./shell.css";
 import "./phone-ergonomics.css";
 
 import { installGlobalErrorHooks } from "@/lib/error-report";
+import { closeExclusiveOverlay } from "@/lib/exclusive-overlay";
+import { settleReaderLoads } from "@/features/reading/reader-entry";
+import { resetReaderTool } from "@/features/reading/tools/use-reader-tool";
 
 import { MergeToast } from "@/features/identity/merge-toast";
 import { MushafProvider } from "@/features/reading/mushaf-context";
@@ -19,6 +22,7 @@ import { AuthSessionProvider } from "@/lib/auth-session-context";
 import { PreferencesProvider } from "@/lib/preferences-context";
 import { usePhoneLayout } from "@/lib/use-phone-layout";
 
+import { EdgeSwipeBack } from "./edge-swipe-back";
 import { LeftRail } from "./left-rail";
 import { MobileTabBar } from "./mobile-tab-bar";
 import { useShellMode } from "./mode-context";
@@ -41,6 +45,13 @@ function ShellModeAttribute() {
   const { mode } = useShellMode();
   useEffect(() => {
     document.documentElement.dataset.shellMode = mode;
+    // Leaving the reader: it reopens in «قراءة», and no menu or sheet is left open.
+    if (mode !== "reading") {
+      resetReaderTool();
+      // Pages loaded from here on are a way into the reader (reader-entry.ts).
+      settleReaderLoads();
+    }
+    closeExclusiveOverlay();
   }, [mode]);
   return null;
 }
@@ -71,6 +82,7 @@ export function Shell({ children }: { children: ReactNode }) {
               {phone ? <PhonePlayer /> : null}
             </div>
             <RecitationSessionAttributes />
+            <EdgeSwipeBack />
             <ShellModeAttribute />
             <ShortcutsModal />
             <LocaleAccountSync />

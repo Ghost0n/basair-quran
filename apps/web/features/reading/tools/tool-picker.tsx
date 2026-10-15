@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
 import { Icon } from "@/components/icon";
+import { swallowNextClick, useExclusiveOverlay } from "@/lib/exclusive-overlay";
 
 import "./tools.css";
 
@@ -23,6 +24,8 @@ export function ToolPicker({ compact }: { compact: boolean }) {
   const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
   const rootRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  // One menu at a time: opening this closes «العرض» (and vice versa).
+  useExclusiveOverlay(open, () => setOpen(false));
 
   // The menu is portaled (the bar sits in transformed/clipped ancestors) and
   // placed from the button: upward when the bar is at the bottom (phones),
@@ -50,11 +53,10 @@ export function ToolPicker({ compact }: { compact: boolean }) {
     if (!open) return;
     function onDown(event: PointerEvent) {
       const target = event.target as Node;
-      if (
-        !rootRef.current?.contains(target) &&
-        !menuRef.current?.contains(target)
-      )
-        setOpen(false);
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
+      // Touch: the tap only closes the menu (the dock's own buttons still act).
+      if (event.pointerType !== "mouse" && !(target instanceof Element && target.closest(".qb-reader-dock, .qb-reader-back"))) swallowNextClick();
     }
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") setOpen(false);

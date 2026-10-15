@@ -784,6 +784,13 @@
   outline-offset: 1px;
 }
 
+/* A finger's tap focuses the word too: no ring left on it (keyboards keep theirs). */
+@media (hover: none) and (pointer: coarse) {
+  :is(.qb-glyph-word, .qb-word, .qb-verse-mark):focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
 /* A selected ayah's consecutive words on a line render as one solid block,
    covering the justified gaps between them. */
 .qb-glyph-sel {
