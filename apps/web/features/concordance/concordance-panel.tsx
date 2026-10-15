@@ -12,7 +12,7 @@ import { API_BASE_URL } from "@/lib/config";
 import { useNotebookSync } from "@/lib/notebook-sync";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { useNumerals } from "@/lib/preferences-context";
-import { getVerseSelectionKey, kwicWindow, renderHighlightedVerseText } from "@/lib/quran-ui";
+import { getVerseSelectionKey, renderHighlightedVerseText } from "@/lib/quran-ui";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { useSaveAyah } from "@/features/themes/save-ayah-context";
@@ -24,27 +24,9 @@ const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 /**
  * Concordance panel — search results as a side panel that overlays the
  * live Mushaf. Clicking a verse jumps the Mushaf (via selectVerse →
- * useMushaf.loadByAyah). Consumes the shared search hook.
+ * useMushaf.loadByAyah). Consumes the shared search hook. Results are always
+ * full verse cards.
  */
-const DENSITY_KEY = "qb.concordanceDensity";
-
-/** One-line key-word-in-context rendering of a result verse. */
-function CompactVerse({ text, highlights }: { text: string; highlights?: number[] }) {
-  const { words, before, after } = kwicWindow(text, highlights ?? []);
-  return (
-    <>
-      {before ? <span className="ell">… </span> : null}
-      {words.map((item, index) => (
-        <span key={item.position}>
-          {item.hit ? <span className="highlight">{item.word}</span> : item.word}
-          {index < words.length - 1 ? " " : null}
-        </span>
-      ))}
-      {after ? <span className="ell"> …</span> : null}
-    </>
-  );
-}
-
 export function ConcordancePanel() {
   const { state, actions } = useWorkspace();
   const { openSave } = useSaveAyah();
@@ -55,7 +37,6 @@ export function ConcordancePanel() {
   // switch the shell to the reader surface (Back returns to the results). At wide
   // widths the reader is already visible beside the panel — no mode switch needed.
   const isCompact = useIsMobile(1000);
-  const phone = useIsMobile();
 
   function openVerse(verse: SearchVerse, resultKey: string) {
     void actions.selectVerse(verse, resultKey);
@@ -64,28 +45,6 @@ export function ConcordancePanel() {
 
   const [pinnedAyahIds, setPinnedAyahIds] = useState<Set<number>>(new Set());
   const [rootFollowed, setRootFollowed] = useState(false);
-  // Result density: full verse cards, or one KWIC line per result (scan many
-  // hits fast, open the verse in the mushaf for context). Remembered per device.
-  const [compact, setCompact] = useState(false);
-  useEffect(() => {
-    try {
-      setCompact(window.localStorage.getItem(DENSITY_KEY) === "compact");
-    } catch {
-      /* default: full cards */
-    }
-  }, []);
-  function toggleDensity() {
-    setCompact((value) => {
-      const next = !value;
-      try {
-        window.localStorage.setItem(DENSITY_KEY, next ? "compact" : "full");
-      } catch {
-        /* per-device convenience only */
-      }
-      return next;
-    });
-  }
-
   const results = state.results;
   const primary = results[0];
   const totalOccurrences = results.reduce((sum, r) => sum + r.total_occurrences, 0);
@@ -195,18 +154,6 @@ export function ConcordancePanel() {
           {primary ? (
             <button
               type="button"
-              className={`close${compact ? " on" : ""}`}
-              title={compact ? t("عرض الآيات كاملة") : t("عرض مختصر (سطر لكل موضع)")}
-              aria-label={compact ? t("عرض الآيات كاملة") : t("عرض مختصر")}
-              aria-pressed={compact}
-              onClick={toggleDensity}
-            >
-              <Icon name={compact ? "cards" : "menu"} size={15} />
-            </button>
-          ) : null}
-          {primary ? (
-            <button
-              type="button"
               className="close"
               title={t("بحث جديد")}
               aria-label={t("مسح البحث وبدء بحث جديد")}
@@ -215,7 +162,7 @@ export function ConcordancePanel() {
               <Icon name="history" size={15} />
             </button>
           ) : null}
-          <button type="button" className="close" title={t("إغلاق")} aria-label={t("إغلاق لوحة المطابقة")} onClick={() => setMode("reading")}>
+          <button type="button" className="close dismiss" title={t("إغلاق")} aria-label={t("إغلاق لوحة المطابقة")} onClick={() => setMode("reading")}>
             <Icon name="close" size={16} />
           </button>
         </div>
@@ -256,10 +203,7 @@ export function ConcordancePanel() {
               <Icon name="search" size={26} />
             </div>
             <p className="qb-conc-empty-lead">
-              {/* On phones the search field sits at the bottom, by the thumb. */}
-              {phone
-                ? t("اكتب جذراً أو كلمة قرآنية في الشريط بالأسفل ↓ لتبدأ البحث.")
-                : t("اكتب جذراً أو كلمة قرآنية في شريط الأوامر بالأعلى ↑ لتبدأ البحث.")}
+              {t("اكتب جذراً أو كلمة قرآنية في شريط الأوامر بالأعلى ↑ لتبدأ البحث.")}
             </p>
             {state.quickExamples.length ? (
               <div className="qb-conc-examples">
@@ -337,8 +281,7 @@ export function ConcordancePanel() {
                 // bubble up from the pin.
                 <div
                   key={selectionKey}
-                  className={`qb-verse-row${isSelected ? " selected" : ""}${compact ? " compact" : ""}`}
-                  title={compact ? t("سورة {0}", { 0: verse.surah }) : undefined}
+                  className={`qb-verse-row${isSelected ? " selected" : ""}`}
                   style={{ "--i": Math.min(verseIndex, 8) } as CSSProperties}
                   role="button"
                   tabIndex={0}
@@ -372,13 +315,7 @@ export function ConcordancePanel() {
                       <Icon name={isPinned ? "pinFilled" : "pin"} size={12} />
                     </button>
                   </div>
-                  {compact ? (
-                    <div className="vtext kwic">
-                      <CompactVerse text={verse.text} highlights={verse.highlights} />
-                    </div>
-                  ) : (
-                    <div className="vtext">{renderHighlightedVerseText(verse.text.trim(), verse.highlights)}</div>
-                  )}
+                  <div className="vtext">{renderHighlightedVerseText(verse.text.trim(), verse.highlights)}</div>
                 </div>
               );
             })}
