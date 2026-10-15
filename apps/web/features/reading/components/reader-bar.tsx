@@ -5,11 +5,13 @@ import { createPortal } from "react-dom";
 
 import type { QuranPageResponse, SurahListItem } from "@q-basair/shared";
 
+import { BrandMark } from "@/components/brand-mark";
 import { Icon } from "@/components/icon";
 import { Transport } from "@/features/recitation/phone-player";
 import { useRecitation } from "@/features/recitation/recitation-context";
 import { RecitationSheet } from "@/features/recitation/recitation-sheet";
 import { useGoBack, useShellMode } from "@/features/shell/mode-context";
+import { readerBackLeadsHome } from "@/features/shell/navigation";
 import { useExclusiveOverlay } from "@/lib/exclusive-overlay";
 import { modKey } from "@/lib/platform";
 import { useNumerals } from "@/lib/preferences-context";
@@ -91,6 +93,13 @@ export function ReaderBar({
     wasActive.current = recitation.active;
   }, [recitation.active]);
   const { goBack } = useGoBack();
+  // Where back leads, as its face: the app's logo when it returns Home (the
+  // reader opened from the tab bar, or from Home), an arrow when it returns to
+  // another page. Read after the back stack has recorded this screen.
+  const [backHome, setBackHome] = useState(false);
+  useEffect(() => {
+    setBackHome(readerBackLeadsHome());
+  }, []);
   const { setMode } = useShellMode();
   const savedPages = useSavedPages();
 
@@ -283,9 +292,9 @@ export function ReaderBar({
           if (!recitation.isPlaying) recitation.stop();
           setReciteOpen(false);
         }}
-        aria-label={t("رجوع")}
+        aria-label={!reciteView && backHome ? t("الرئيسية") : t("رجوع")}
       >
-        <Icon name="arrowRight" size={20} />
+        {!reciteView && backHome ? <BrandMark size={34} themed /> : <Icon name="arrowRight" size={20} />}
       </button>
     );
     return (

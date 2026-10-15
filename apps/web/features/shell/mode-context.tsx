@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect } from "react";
 
-import { canGoBackInApp, markReplace, notifyNavigationSettled, previousScreen, recordScreen, transition } from "./navigation";
+import { canGoBackInApp, markReplace, noteReaderOpening, notifyNavigationSettled, previousScreen, readerBackLeadsHome, recordScreen, transition } from "./navigation";
 
 export const SHELL_MODES = [
   "home",
@@ -93,6 +93,15 @@ export function useGoBack(): { canGoBack: boolean; goBack: (options?: { beforeUp
     (options?: { beforeUpdate?: () => void }) => {
       if (mode === DEFAULT_MODE) return;
       const motion = mode === "reading" ? "reader-out" : "back";
+      // The reader opened from the tab bar goes back Home (not to the page
+      // the tab was tapped on).
+      if (mode === "reading" && readerBackLeadsHome() && previousScreen() !== "") {
+        transition(() => {
+          options?.beforeUpdate?.();
+          router.push("/", { scroll: false });
+        }, motion);
+        return;
+      }
       if (canGoBackInApp()) {
         transition(() => {
           options?.beforeUpdate?.();
@@ -142,7 +151,7 @@ export function useShellMode(): {
    * «الدفتر» returns to the last library page — a board, a research — rather
    * than the list.
    */
-  setMode: (next: ShellMode, options?: { replace?: boolean; resume?: boolean; params?: Record<string, string | null> }) => void;
+  setMode: (next: ShellMode, options?: { replace?: boolean; resume?: boolean; viaTab?: boolean; params?: Record<string, string | null> }) => void;
 } {
   const router = useRouter();
   const params = useSearchParams();
@@ -150,7 +159,8 @@ export function useShellMode(): {
   const mode: ShellMode = isShellMode(raw) ? raw : DEFAULT_MODE;
 
   const setMode = useCallback(
-    (next: ShellMode, options?: { replace?: boolean; resume?: boolean; params?: Record<string, string | null> }) => {
+    (next: ShellMode, options?: { replace?: boolean; resume?: boolean; viaTab?: boolean; params?: Record<string, string | null> }) => {
+      if (next === "reading" && mode !== "reading") noteReaderOpening(Boolean(options?.viaTab));
       const sp = new URLSearchParams(params.toString());
       for (const [key, value] of Object.entries(options?.params ?? {})) {
         if (value === null) sp.delete(key);

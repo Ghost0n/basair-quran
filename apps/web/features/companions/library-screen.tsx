@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { NotebookItem, ThemeColor, ThemeSummary } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { SwipeRow } from "@/components/swipe-row";
 import { useNumerals } from "@/lib/preferences-context";
 import { queueStudioOpenSession } from "@/lib/studio-prefill";
 import { boardUrl } from "@/features/board/last-board";
@@ -176,7 +177,8 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
             {verseView === "recent" ? (
               <div className="qb-aux-list">
                 {companions.notebook.map((item) => (
-                  <div key={item.id} className="qb-aux-row">
+                  <SwipeRow key={item.id} onDelete={() => void companions.deleteNotebookItem(item.id)}>
+                  <div className="qb-aux-row">
                     <span className="icon-tile"><Icon name="book" size={16} /></span>
                     <button type="button" className="grow qb-row-open" onClick={() => openVerse(item)}>
                       <div className="title">
@@ -189,10 +191,11 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                         {relativeAge(item.created_at, formatNumber)}
                       </div>
                     </button>
-                    <button type="button" className="row-action" aria-label={tt("حذف")} onClick={() => void companions.deleteNotebookItem(item.id)}>
+                    <button type="button" className="row-action delete" aria-label={tt("حذف")} onClick={() => void companions.deleteNotebookItem(item.id)}>
                       <Icon name="trash" size={15} />
                     </button>
                   </div>
+                  </SwipeRow>
                 ))}
               </div>
             ) : (
@@ -267,7 +270,8 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
           ) : (
             <div className="qb-aux-list">
               {companions.documents.map((document) => (
-                <div key={document.id} className="qb-aux-row">
+                <SwipeRow key={document.id} onDelete={() => void companions.deleteDocument(document.id)}>
+                <div className="qb-aux-row">
                   <span className={`icon-tile${document.mode === "tafssir" ? " copper" : ""}`}>
                     <Icon name="page" size={17} />
                   </span>
@@ -288,13 +292,14 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                   </button>
                   <button
                     type="button"
-                    className="row-action"
+                    className="row-action delete"
                     aria-label={tt("حذف البحث")}
                     onClick={() => void companions.deleteDocument(document.id)}
                   >
                     <Icon name="trash" size={15} />
                   </button>
                 </div>
+                </SwipeRow>
               ))}
             </div>
           )}
@@ -316,7 +321,8 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
           ) : (
             <div className="qb-aux-list">
               {visibleSessions.map((session) => (
-                <div key={session.id} className="qb-aux-row">
+                <SwipeRow key={session.id} onDelete={() => void companions.deleteSession(session.id)}>
+                <div className="qb-aux-row">
                   <span className={`icon-tile${session.mode === "tafssir" ? " copper" : ""}`}>
                     <Icon name={session.mode === "tafssir" ? "feather" : "scale"} size={18} />
                   </span>
@@ -336,10 +342,11 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                       {session.mode === "tafssir" ? tt("قراءة تفسيرية") : tt("القرآن وحدَه")}
                     </div>
                   </button>
-                  <button type="button" className="row-action" aria-label={tt("حذف الجلسة")} onClick={() => void companions.deleteSession(session.id)}>
+                  <button type="button" className="row-action delete" aria-label={tt("حذف الجلسة")} onClick={() => void companions.deleteSession(session.id)}>
                     <Icon name="trash" size={15} />
                   </button>
                 </div>
+                </SwipeRow>
               ))}
             </div>
           )}
@@ -355,8 +362,8 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
             {companions.roots.map((root) => (
               // The whole row opens the root's insights (its spread over the
               // mushaf); the row is role=button so the unfollow stays a real button.
+              <SwipeRow key={root.id} label={tt("إلغاء المتابعة")} onDelete={() => void companions.unfollowRoot(root.id)}>
               <div
-                key={root.id}
                 className="qb-aux-row is-link"
                 role="button"
                 tabIndex={0}
@@ -379,7 +386,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                 </div>
                 <button
                   type="button"
-                  className="row-action"
+                  className="row-action delete"
                   aria-label={tt("إلغاء المتابعة")}
                   onClick={(event) => {
                     event.stopPropagation();
@@ -389,6 +396,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                   <Icon name="trash" size={15} />
                 </button>
               </div>
+              </SwipeRow>
             ))}
           </div>
         )

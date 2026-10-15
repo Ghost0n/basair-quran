@@ -8,6 +8,7 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type { SavedPageEntry, SurahListItem } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { SwipeRow } from "@/components/swipe-row";
 import { relativeAge } from "@/features/companions/use-companions";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
@@ -18,6 +19,7 @@ import { divisionOf, divisionRange } from "@/lib/quran-ranges";
 
 import { NavigateSheet, type NavigateTarget } from "./components/navigate-sheet";
 import { useMushaf } from "./mushaf-context";
+import { useSavedPages } from "./use-saved-pages";
 
 import { t } from "@/lib/i18n";
 
@@ -29,6 +31,7 @@ export function SavedPagesScreen() {
   const mushaf = useMushaf();
   const { setMode } = useShellMode();
   const formatNumber = useNumerals();
+  const { remove: removeSaved } = useSavedPages();
   const pages: SavedPageEntry[] = [...(preferences.saved_pages ?? [])].sort((a, b) => (b.saved_at ?? 0) - (a.saved_at ?? 0));
 
   function open(entry: SavedPageEntry) {
@@ -49,6 +52,7 @@ export function SavedPagesScreen() {
         <ul className="qb-saved-pages">
           {pages.map((entry) => (
             <li key={`${entry.mushaf_id}-${entry.page}`}>
+                <SwipeRow onDelete={() => removeSaved(entry)}>
               <button type="button" onClick={() => open(entry)}>
                 <span className="ribbon" aria-hidden>
                   <svg viewBox="0 0 16 24" width="12" height="18">
@@ -64,6 +68,7 @@ export function SavedPagesScreen() {
                 </span>
                 <Icon name="chevLeft" size={16} />
               </button>
+                </SwipeRow>
             </li>
           ))}
         </ul>

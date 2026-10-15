@@ -608,7 +608,7 @@ html[dir="ltr"] .qb-icon.dir-flip svg {
   transform: scaleX(-1);
 }
 
-html[dir="ltr"] :is(.qb-reader-bar, .qb-mushaf-stage, .qb-nav-sheet, .qb-media-transport) .qb-icon.dir-flip svg {
+html[dir="ltr"] :is(.qb-reader-bar, .qb-mushaf-stage, .qb-nav-sheet, .qb-media-transport, .qb-ptransport) .qb-icon.dir-flip svg {
   transform: none;
 }
 

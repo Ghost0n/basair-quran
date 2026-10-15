@@ -104,8 +104,26 @@ export function previousScreen(): string | null {
   return stack.length >= 2 ? stack[stack.length - 2] : null;
 }
 
+// ---------- Where the reader's back button leads ----------
+
+// Opened from the tab bar (or the rail) the reader is a destination of its
+// own: its back button leads Home. Opened from a page (a search result, the
+// library…) it leads back to that page.
+let readerFromTab = false;
+
+/** Record how the reader is being opened (setMode calls this). */
+export function noteReaderOpening(viaTab: boolean): void {
+  readerFromTab = viaTab;
+}
+
+/** Does the reader's back button lead Home (rather than to another page)? */
+export function readerBackLeadsHome(): boolean {
+  return readerFromTab || previousScreen() === "";
+}
+
 /** Tests only. */
 export function resetBackStackForTests(): void {
   stack.length = 0;
   replacing = false;
+  readerFromTab = false;
 }

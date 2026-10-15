@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { useRouter } from "next/navigation";
 
@@ -69,16 +69,34 @@ export function ConcordancePanel() {
     if (isCompact) setMode("reading");
   }
 
-  // Back from the reader: the results exactly where they were left.
-  useLayoutEffect(() => {
+  // Back from the reader: the results exactly where they were left. The
+  // scroll is tried until it holds (about a second at most): the screen's
+  // layout settles a moment after it mounts (the search page's own CSS, the
+  // rows' fonts, a view transition), and a scroll set too early is lost.
+  useEffect(() => {
     const saved = savedScroll;
     if (!saved || !resultsKey) return;
     if (saved.key !== resultsKey) {
       savedScroll = null;
       return;
     }
-    const scroller = resultsScroller(panelRef.current);
-    if (scroller) scroller.scrollTop = saved.top;
+    let frame = 0;
+    const started = performance.now();
+    const apply = () => {
+      const scroller = resultsScroller(panelRef.current);
+      const searchLaidOut = document.documentElement.dataset.shellMode === "search";
+      if (scroller && searchLaidOut) {
+        scroller.scrollTop = saved.top;
+        if (Math.abs(scroller.scrollTop - saved.top) < 2) {
+          savedScroll = null;
+          return;
+        }
+      }
+      if (performance.now() - started < 1200) frame = requestAnimationFrame(apply);
+      else savedScroll = null;
+    };
+    apply();
+    return () => cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resultsKey]);
 

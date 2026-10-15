@@ -1,7 +1,7 @@
 "use client";
 
 import { LocaleAccountSync } from "./locale-account-sync";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, type ReactNode } from "react";
 
 import "./shell.css";
 import "./phone-ergonomics.css";
@@ -43,8 +43,12 @@ import { WorkspaceProvider } from "./workspace-context";
  *  pages scroll under the floating tab bar). */
 function ShellModeAttribute() {
   const { mode } = useShellMode();
-  useEffect(() => {
+  // Before paint: a screen's own layout (which element scrolls, what floats)
+  // is in place as soon as it shows.
+  useLayoutEffect(() => {
     document.documentElement.dataset.shellMode = mode;
+  }, [mode]);
+  useEffect(() => {
     // Leaving the reader: it reopens in «قراءة», and no menu or sheet is left open.
     if (mode !== "reading") {
       resetReaderTool();

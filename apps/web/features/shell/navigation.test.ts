@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { canGoBackInApp, markReplace, previousScreen, recordScreen, resetBackStackForTests } from "./navigation";
+import { canGoBackInApp, markReplace, noteReaderOpening, previousScreen, readerBackLeadsHome, recordScreen, resetBackStackForTests } from "./navigation";
 
 describe("the in-app back stack", () => {
   beforeEach(() => resetBackStackForTests());
@@ -34,5 +34,33 @@ describe("the in-app back stack", () => {
     recordScreen("mode=search");
     recordScreen("mode=search");
     expect(previousScreen()).toBe("");
+  });
+});
+
+describe("where the reader's back arrow leads", () => {
+  beforeEach(() => resetBackStackForTests());
+
+  it("goes Home when the reader was opened from the tab bar, whatever the page", () => {
+    recordScreen("");
+    recordScreen("mode=notebook");
+    noteReaderOpening(true);
+    recordScreen("mode=reading");
+    expect(readerBackLeadsHome()).toBe(true);
+  });
+
+  it("goes back to the page that opened it otherwise", () => {
+    recordScreen("");
+    recordScreen("mode=search&q=x");
+    noteReaderOpening(false);
+    recordScreen("mode=reading");
+    expect(readerBackLeadsHome()).toBe(false);
+    expect(previousScreen()).toBe("mode=search&q=x");
+  });
+
+  it("shows Home when Home is the screen before it", () => {
+    recordScreen("");
+    noteReaderOpening(false);
+    recordScreen("mode=reading");
+    expect(readerBackLeadsHome()).toBe(true);
   });
 });
