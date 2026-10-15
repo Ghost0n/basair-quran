@@ -34,6 +34,7 @@ import { prefetchQuranPage, useMushaf } from "./mushaf-context";
 import { prefetchMushafLayout, useMushafLayout } from "./use-mushaf-layout";
 import { useReaderGestures } from "./use-reader-gestures";
 import { nextReaderLayout, resolveReaderMode, spreadFits } from "./reader-modes";
+import { readerOpenPlan, readerRetryDelay } from "./reader-resume";
 import { useCompactReader, useElementSize } from "./use-wide-screen";
 import type { SavableAyah } from "./use-saved-ayat";
 import { PageRibbonsProvider, useSavedPages, type PageRibbons } from "./use-saved-pages";
@@ -151,25 +152,58 @@ export function MushafStage() {
     };
   }, [selectedMushaf]);
 
+  // Opening the reader: resume at the exact last-read verse (last_position),
+  // else the last page read on this device (see reader-resume.ts). Attempts
+  // after a failed one open the plain page, so a saved verse that can't be
+  // answered never keeps the reader on the error screen.
+  const openAttemptRef = useRef(0);
+  const openReader = () => {
+    const plan = readerOpenPlan({
+      position: preferences.last_position,
+      mushafId: selectedMushaf,
+      lastPage: mushaf.readLastPage(),
+      attempt: openAttemptRef.current,
+    });
+    openAttemptRef.current += 1;
+    if (plan.kind === "ayah") void mushaf.loadByAyah(selectedMushaf, plan.ayahId, [], { transient: true });
+    else if (plan.kind === "surah") void mushaf.loadBySurah(selectedMushaf, plan.surah, plan.ayah);
+    else void mushaf.loadPage(selectedMushaf, plan.page, { persist: true });
+  };
+  const openReaderRef = useRef(openReader);
+  openReaderRef.current = openReader;
+
+  // A page on screen: the next opening (a self-heal after a reset) resumes again.
+  useEffect(() => {
+    if (mushaf.pageData) openAttemptRef.current = 0;
+  }, [mushaf.pageData]);
+
   // Initial page load — and a self-heal: if the page ever ends up empty while
-  // reading (e.g. after a navigation reset), reload the last page rather than
-  // leaving the skeleton stuck. Guarded by `error` so a failed load can't loop.
+  // reading (e.g. after a navigation reset), reload rather than leaving the
+  // skeleton stuck. A failed load is retried by the effect below, not here.
   useEffect(() => {
     if (mushaf.pageData || mushaf.isLoading || mushaf.error || !ready) return;
-    // Resume to the exact last-read verse (last_position) instead of the top of
-    // the last page. Fall back to the localStorage last page when there is no
-    // saved verse. A verse saved in another riwāyah (ayah ids are per-mushaf)
-    // resumes by its surah:ayah reference in the current edition.
-    const pos = preferences.last_position;
-    if (pos?.ayah_id && pos.mushaf_id === selectedMushaf) {
-      void mushaf.loadByAyah(selectedMushaf, pos.ayah_id, [], { transient: true });
-    } else if (pos?.surah && pos.ayah) {
-      void mushaf.loadBySurah(selectedMushaf, pos.surah, pos.ayah);
-    } else {
-      void mushaf.loadPage(selectedMushaf, mushaf.readLastPage(), { persist: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    openReaderRef.current();
   }, [mushaf.pageData, mushaf.isLoading, mushaf.error, ready]);
+
+  // A failed first load is not a dead end: it is tried again a few times on
+  // its own, and whenever the connection comes back or the app returns to the
+  // foreground (a cold start on a phone can fire before the network is up).
+  useEffect(() => {
+    if (!mushaf.error || mushaf.pageData || mushaf.isLoading || !ready) return;
+    const retry = () => openReaderRef.current();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") retry();
+    };
+    const delay = readerRetryDelay(openAttemptRef.current);
+    const timer = delay === null ? null : window.setTimeout(retry, delay);
+    window.addEventListener("online", retry);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      if (timer !== null) window.clearTimeout(timer);
+      window.removeEventListener("online", retry);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [mushaf.error, mushaf.pageData, mushaf.isLoading, ready]);
 
   // Persist the current reading position (the selected verse, else the page's
   // first ayah) so the next visit resumes exactly here. Debounced so rapid page
@@ -799,7 +833,7 @@ export function MushafStage() {
         <ErrorState
           message={error}
           reportScope="reader"
-          onRetry={() => void mushaf.loadPage(selectedMushaf, mushaf.readLastPage(), { persist: true })}
+          onRetry={() => openReaderRef.current()}
         />
       </div>
     );

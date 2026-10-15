@@ -1030,5 +1030,7 @@
  "مفعّلة على هذا الجهاز — اضغط لإيقافها": "Kimewashwa kwenye kifaa hiki — gusa ili kuzima",
  "نسخة تجريبية من واجهة الهاتف: شريط تنقّل ثابت بخمسة أقسام، وأدوات القراءة وحقل البحث في متناول الإبهام، وأهداف لمس أكبر. تُحفظ على هذا الجهاز فقط ويمكن إيقافها في أي وقت.": "Mfano wa majaribio wa kiolesura cha simu: upau wa kudumu wenye vichupo vitano, zana za kusoma na sehemu ya kutafuta karibu na kidole gumba, na maeneo makubwa zaidi ya kugusa. Huhifadhiwa kwenye kifaa hiki pekee; unaweza kukizima wakati wowote.",
  "قراءة": "Soma",
- "اضغط الصفحة لإظهار الأدوات أو إخفائها": "Gusa ukurasa kuonyesha au kuficha zana"
+ "اضغط الصفحة لإظهار الأدوات أو إخفائها": "Gusa ukurasa kuonyesha au kuficha zana",
+ "تعذّر إنشاء البحث. حاول مرة أخرى.": "Imeshindikana kuunda utafiti. Jaribu tena.",
+ "حوّل هذه الجلسة إلى بحث قابل للتحرير؟ تبقى الجلسة كما هي.": "Geuza kikao hiki kuwa utafiti unaoweza kuhaririwa? Kikao kinabaki kama kilivyo."
 }

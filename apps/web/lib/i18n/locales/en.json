@@ -1030,5 +1030,7 @@
  "مفعّلة على هذا الجهاز — اضغط لإيقافها": "On for this device — tap to turn off",
  "نسخة تجريبية من واجهة الهاتف: شريط تنقّل ثابت بخمسة أقسام، وأدوات القراءة وحقل البحث في متناول الإبهام، وأهداف لمس أكبر. تُحفظ على هذا الجهاز فقط ويمكن إيقافها في أي وقت.": "A prototype of the phone interface: a fixed five-tab bar, reading tools and the search field within thumb reach, and larger touch targets. Saved on this device only; you can turn it off at any time.",
  "قراءة": "Read",
- "اضغط الصفحة لإظهار الأدوات أو إخفائها": "Tap the page to show or hide the tools"
+ "اضغط الصفحة لإظهار الأدوات أو إخفائها": "Tap the page to show or hide the tools",
+ "تعذّر إنشاء البحث. حاول مرة أخرى.": "Couldn't create the research. Please try again.",
+ "حوّل هذه الجلسة إلى بحث قابل للتحرير؟ تبقى الجلسة كما هي.": "Turn this session into an editable research? The session stays as it is."
 }
