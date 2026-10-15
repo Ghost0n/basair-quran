@@ -32,7 +32,8 @@
 }
 
 /* The selected destination: a pill behind the icon (Material 3's active
-   indicator), in the page's world tint. */
+   indicator), always in the app's gold — the bar is one constant control,
+   it doesn't take the page's world tint. */
 .qb-stab .pill {
   display: grid;
   place-items: center;
@@ -62,16 +63,25 @@
 }
 
 .qb-stab.active {
-  color: var(--world-text, var(--gold-text));
+  color: var(--gold-text);
 }
 
 .qb-stab.active .pill {
-  background-color: var(--world-a, var(--gold-a12));
+  background-color: var(--gold-a12);
   box-shadow: var(--glass-edge);
 }
 
 .qb-stab.active .label {
   font-weight: 800;
+}
+
+/* Home is the app's own mark, without a label. */
+.qb-stab.brand .pill {
+  height: 40px;
+}
+
+.qb-stab.brand:not(.active) .pill {
+  opacity: 0.78;
 }
 
 .qb-stab:focus-visible {

@@ -45,6 +45,12 @@ SQUARE_R, SQUARE_W = 41, 3.4
 GLYPH = "ٮ"  # ٮ — the dotless ب; the star's centre dot is its nuqta
 GLYPH_X, GLYPH_BASELINE, GLYPH_SIZE = 50, 55, 40
 NUQTA_X, NUQTA_Y, NUQTA_R = 50, 67, 4
+# How much of a launcher icon the logo fills: close to the edge, so it reads at
+# home-screen size (the ring is a circle, so the platform masks never clip it).
+ICON_MARK = 0.86
+# Adaptive/maskable icons are cropped to a circle of ~80% (66 of 108dp on Android).
+MASKABLE_MARK = 0.72
+ADAPTIVE_MARK = 0.61
 
 
 def square(turn: float, cx: float, cy: float, radius: float) -> list[tuple[float, float]]:
@@ -85,7 +91,7 @@ def draw_logo(image: Image.Image, x: float, y: float, side: float) -> None:
     draw.ellipse((nx - nr, ny - nr, nx + nr, ny + nr), fill=GOLD_BRIGHT)
 
 
-def render(size: int, *, background: bool, rounded: bool = False, circle: bool = False, mark: float = 0.7) -> Image.Image:
+def render(size: int, *, background: bool, rounded: bool = False, circle: bool = False, mark: float = ICON_MARK) -> Image.Image:
     """An icon: the logo filling `mark` of the square, on the dark background or transparent."""
     big = size * SCALE
     image = Image.new("RGBA", (big, big), (0, 0, 0, 0))
@@ -122,7 +128,7 @@ def icon_svg(path: str) -> str:
     return (
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">'
         '<rect width="100" height="100" rx="22" fill="#131210"/>'
-        '<g transform="translate(15 15) scale(0.7)">'
+        f'<g transform="translate({50 - 50 * ICON_MARK:g} {50 - 50 * ICON_MARK:g}) scale({ICON_MARK:g})">'
         f'<g fill="none" stroke="#d4af37"><circle cx="50" cy="50" r="{RING_R}" stroke-width="{RING_W}"/>'
         f'<g stroke-width="{SQUARE_W}" stroke-linejoin="miter">{squares}</g></g>'
         f'<path d="{path}" fill="#e9cf73"/><circle cx="{NUQTA_X}" cy="{NUQTA_Y}" r="{NUQTA_R}" fill="#e9cf73"/>'
@@ -148,7 +154,7 @@ def main() -> None:
     render(180, background=True).convert("RGB").save(public / "apple-touch-icon-precomposed.png")
     render(192, background=True, rounded=True).save(public / "icon-192.png")
     render(512, background=True, rounded=True).save(public / "icon-512.png")
-    render(512, background=True, mark=0.56).convert("RGB").save(public / "icon-maskable-512.png")
+    render(512, background=True, mark=MASKABLE_MARK).convert("RGB").save(public / "icon-maskable-512.png")
     favicon = render(256, background=True, rounded=True, mark=0.82)
     favicon.save(public / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48), (64, 64)])
     (public / "icon.svg").write_text(icon_svg(path), encoding="utf-8")
@@ -162,7 +168,7 @@ def main() -> None:
             render(legacy, background=True, rounded=True).save(folder / "ic_launcher.png")
             render(legacy, background=True, circle=True).save(folder / "ic_launcher_round.png")
             # Adaptive foreground: 108dp canvas, the mark inside the 66dp safe zone.
-            render(round(108 * factor), background=False, mark=0.56).save(folder / "ic_launcher_foreground.png")
+            render(round(108 * factor), background=False, mark=ADAPTIVE_MARK).save(folder / "ic_launcher_foreground.png")
 
         (RES / "values" / "ic_launcher_background.xml").write_text(
             '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#131210</color>\n</resources>\n',
