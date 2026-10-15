@@ -135,7 +135,7 @@ export function ReaderBar({
   const progress = Math.min(100, Math.max(0, (displayPage / totalPages) * 100));
 
   const bar = (
-    <div className={`qb-reader-bar${locked ? " is-locked" : ""}`} data-autofit="7">
+    <div className={`qb-reader-bar${locked ? " is-locked" : ""}`} data-autofit="7" suppressHydrationWarning>
       <button type="button" className="identity" onClick={onOpenNavigate} aria-label={t("{0} — انتقل", { 0: surahName })}>
         <span className="name" data-fit-watch>{surahName}</span>
         <span className="meta" data-fit-watch>

@@ -36,7 +36,7 @@ export function LeftRail() {
   };
 
   return (
-    <aside className="qb-rail" data-autofit="3" aria-label={t("القائمة الجانبية")}>
+    <aside className="qb-rail" data-autofit="3" suppressHydrationWarning aria-label={t("القائمة الجانبية")}>
       <button
         type="button"
         className="qb-rail-brand-btn"

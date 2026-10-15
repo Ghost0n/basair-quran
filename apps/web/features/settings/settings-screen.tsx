@@ -61,7 +61,7 @@ export function SettingsScreen() {
           <p className="card-sub">{t("اللغة والسمة وطريقة عرض الأرقام في الواجهة.")}</p>
           <div className="qb-setting-row">
             <label>{t("السمة")}</label>
-            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
+            <div className="qb-setting-seg qb-fit-choice" data-autofit="2" suppressHydrationWarning>
               <button
                 type="button"
                 className={state.theme === "dark" ? "active" : ""}
@@ -88,7 +88,7 @@ export function SettingsScreen() {
           </div>
           <div className="qb-setting-row">
             <label>{t("الأرقام")}</label>
-            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
+            <div className="qb-setting-seg qb-fit-choice" data-autofit="2" suppressHydrationWarning>
               {NUMERAL_OPTIONS.map((option) => (
                 <button
                   key={option.value}

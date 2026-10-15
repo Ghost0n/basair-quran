@@ -141,7 +141,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
         </div>
       </div>
 
-      <div className="qb-lib-tabs qb-fit-track" data-autofit="2" role="tablist">
+      <div className="qb-lib-tabs qb-fit-track" data-autofit="2" suppressHydrationWarning role="tablist">
         {TABS.map((t) => (
           <button
             key={t.value}
