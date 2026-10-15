@@ -409,6 +409,38 @@ function SurahTitle({
 }
 
 /**
+ * Verse by verse: a surah's opening drawn as on the printed page — the framed
+ * calligraphic title, then the calligraphic basmala when the surah has one.
+ */
+export function PrintSurahHead({
+  surah,
+  name,
+  basmala,
+  fontBasePath,
+}: {
+  surah: number;
+  name: string;
+  basmala: boolean;
+  fontBasePath: string;
+}) {
+  const calligraphy = isGlyphFontReady(fontBasePath, "qcf-bsml");
+  return (
+    <div className="qb-ayah-print-head">
+      <SurahTitle surah={surah} name={name} calligraphy={calligraphy} />
+      {basmala ? (
+        calligraphy ? (
+          <div className="qb-print-row qb-print-basmala" role="img" aria-label={BASMALA_UNICODE}>
+            <span aria-hidden="true">{BSML_BASMALA}</span>
+          </div>
+        ) : (
+          <div className="qb-print-row qb-print-basmala is-text">{BASMALA_UNICODE}</div>
+        )
+      ) : null}
+    </div>
+  );
+}
+
+/**
  * Desktop: the page's ribbon at its upper-left corner — an outline on an
  * unsaved page, red on a saved one; a click saves / unsaves the page. Absent
  * on phones (they bookmark from the floating button beside the reader bar).

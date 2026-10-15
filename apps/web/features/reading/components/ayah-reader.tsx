@@ -15,7 +15,7 @@ import {
   type WordClickHandler,
   type WordKeyHandler,
 } from "./ayat-flow";
-import { GlyphAyah, VerseMark, type GlyphSaveTarget } from "./glyph-page";
+import { GlyphAyah, PrintSurahHead, VerseMark, type GlyphSaveTarget } from "./glyph-page";
 import { MorphPopover, type MorphTarget } from "./morph-popover";
 import { useMushaf } from "../mushaf-context";
 import { VerseOutlines } from "./verse-outlines";
@@ -104,8 +104,16 @@ function AyahPage({
         const hasGlyph = Boolean(glyph && glyph.words.length > 0);
         return (
           <Fragment key={ayah.ayah_id}>
-            {ayah.ayah === 1 ? <SurahBanner surahName={ayah.surah} /> : null}
-            {basmalaVisibleFor(ayah) ? <BasmalaLine /> : null}
+            {/* With the printed page's fonts, a surah opens as on the page: its
+                framed title and the calligraphic basmala. */}
+            {layout && ayah.ayah === 1 ? (
+              <PrintSurahHead surah={ayah.surah_id} name={ayah.surah} basmala={basmalaVisibleFor(ayah)} fontBasePath={layout.font_base_path ?? ""} />
+            ) : (
+              <>
+                {ayah.ayah === 1 ? <SurahBanner surahName={ayah.surah} /> : null}
+                {basmalaVisibleFor(ayah) ? <BasmalaLine /> : null}
+              </>
+            )}
             <div className={`qb-ayah-row${isSelected ? " is-selected" : ""}${hasGlyph ? " is-glyph" : ""}`}>
               {/* The Madani glyph verse already ends with its own ﴿n﴾ marker —
                   the chip would number it twice; the text fallback needs it. */}

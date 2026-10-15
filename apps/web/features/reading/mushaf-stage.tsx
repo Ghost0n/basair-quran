@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
@@ -434,6 +434,20 @@ export function MushafStage() {
 
   const totalPages = pageData?.total_pages ?? pageData?.max_page ?? 604;
 
+  // Phones upright: the page follows the finger like a photo, with the pages
+  // on either side already drawn beside it (RTL: the next page on the left).
+  const swipeTrack = portrait && !continuousMode && authentic && !showSpread && currentPage != null;
+  const prevNeighbour = useMushafLayout({
+    enabled: swipeTrack && currentPage != null && currentPage > 1,
+    mushafId: pageData?.mushaf_id,
+    page: currentPage != null ? currentPage - 1 : null,
+  });
+  const nextNeighbour = useMushafLayout({
+    enabled: swipeTrack && currentPage != null && currentPage < totalPages,
+    mushafId: pageData?.mushaf_id,
+    page: currentPage != null ? currentPage + 1 : null,
+  });
+
   // Warm the neighbouring pages (payload + layout + glyph font) so a page turn
   // renders from memory instead of waiting on the network. A spread turns two
   // pages at a time, so it warms the previous and next pairs.
@@ -537,7 +551,54 @@ export function MushafStage() {
     else setImmersive((value) => !value);
   }
 
+  // The drag: the track moves with the finger, then glides a full page over
+  // and the turn loads; it snaps back to rest once the new page is drawn
+  // (the effect below), so the old page never flashes back.
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [turning, setTurning] = useState<number | null>(null);
+  const dragTo = (offset: number, animate: boolean) => {
+    const track = trackRef.current;
+    if (!track) return;
+    track.style.transition = animate ? "transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)" : "none";
+    track.style.transform = offset ? `translateX(${offset}px)` : "";
+  };
+  const drag = swipeTrack
+    ? {
+        onDrag: (dx: number) => {
+          const blocked = dx > 0 ? !pageData?.has_next : !pageData?.has_previous;
+          // No page beyond the first or the last: the page gives a little, then holds.
+          dragTo(blocked ? dx * 0.25 : dx, false);
+        },
+        onDragEnd: (turn: "next" | "prev" | null) => {
+          const possible = turn === "next" ? pageData?.has_next : turn === "prev" ? pageData?.has_previous : false;
+          const neighbour = turn === "next" ? nextNeighbour.layout : prevNeighbour.layout;
+          if (!turn || !possible || currentPage == null) {
+            dragTo(0, true);
+            return;
+          }
+          const width = trackRef.current?.offsetWidth ?? window.innerWidth;
+          // The neighbour isn't drawn yet: turn as before, without the glide.
+          if (!neighbour) {
+            dragTo(0, false);
+            if (turn === "next") goNextRef.current();
+            else goPrevRef.current();
+            settleIntoPage();
+            return;
+          }
+          dragTo(turn === "next" ? width : -width, true);
+          const target = turn === "next" ? currentPage + 1 : currentPage - 1;
+          window.setTimeout(() => {
+            setTurning(target);
+            if (turn === "next") goNextRef.current();
+            else goPrevRef.current();
+            settleIntoPage();
+          }, 240);
+        },
+      }
+    : undefined;
+
   const gestures = useReaderGestures({
+    drag,
     swipeEnabled: true,
     onNext: () => {
       goNextRef.current();
@@ -550,6 +611,17 @@ export function MushafStage() {
     onTap: () => onPageTap(),
     mouseTaps: compact,
   });
+
+  // The turned-to page is drawn: back to rest, without a glide (before paint,
+  // so no frame shows the track still offset).
+  useLayoutEffect(() => {
+    if (turning == null) return;
+    if (layout?.page === turning || !swipeTrack) {
+      dragTo(0, false);
+      setTurning(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turning, layout, swipeTrack]);
   function goPrev() {
     if (continuousMode && scrollControlsRef.current) {
       scrollControlsRef.current.scrollByPage(-1);
@@ -819,6 +891,7 @@ export function MushafStage() {
         ref={surfaceRef}
         className="qb-reader-surface"
         onPointerDown={gestures.onPointerDown}
+        onPointerMove={gestures.onPointerMove}
         onPointerUp={gestures.onPointerUp}
         onPointerCancel={gestures.onPointerCancel}
         onClick={(event) => {
@@ -884,6 +957,8 @@ export function MushafStage() {
           rightLayout={rightLayout}
           leftLayout={leftLayout}
           fontSize={preferences.font_size}
+          neighbours={swipeTrack ? { prev: prevNeighbour.layout, next: nextNeighbour.layout } : undefined}
+          trackRef={trackRef}
           selectedAyahId={mushaf.selectedAyahId}
           isSaved={saved.isSaved}
           onToggleSave={handleAyahSave}

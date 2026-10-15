@@ -691,6 +691,30 @@
   color: var(--gold-text);
 }
 
+/* Verse by verse: a surah's opening as on the printed page (PrintSurahHead),
+   sized to the column, at most a phone page wide. */
+.qb-ayah-print-head {
+  container-type: inline-size;
+  width: min(100%, 34rem);
+  margin: 18px auto 6px;
+  display: grid;
+  gap: 6px;
+  --print-ornament: #c9a54c;
+}
+
+.light .qb-ayah-print-head,
+.light-mode .qb-ayah-print-head {
+  --print-ornament: #9c7a2c;
+}
+
+.qb-ayah-print-head .qb-print-row {
+  min-height: 0;
+}
+
+.qb-ayah-print-head .qb-print-basmala {
+  line-height: 1.6;
+}
+
 /* Opening pages (1–2): their few lines sit in an inset column, centred on
    the page as in the print (the printed medallion's border is left out). */
 .qb-glyph-page.qb-print-page.is-opening {

@@ -22,7 +22,21 @@ type Handlers = {
   onTap: () => void;
   /** Phone layouts: a mouse click on the empty page toggles focus mode too. */
   mouseTaps?: boolean;
+  /**
+   * The page follows the finger (photo-style): `onDrag` gets the horizontal
+   * offset while a horizontal drag is under way, `onDragEnd` whether it
+   * turns the page ("next" / "prev") or springs back (null). Without it a
+   * swipe turns the page on release.
+   */
+  drag?: {
+    onDrag: (dx: number) => void;
+    onDragEnd: (turn: "next" | "prev" | null) => void;
+  };
 };
+
+// A drag turns the page past a quarter of the screen, or on a quick flick.
+const DRAG_START_PX = 8;
+const DRAG_COMMIT_RATIO = 0.25;
 
 /**
  * Touch gestures for the reader surface: horizontal swipe turns the page and a
@@ -32,8 +46,11 @@ type Handlers = {
  * dragging the page to the right (finger moving left → right) goes forward.
  * Mouse pointers are ignored — desktop uses the arrows, PageUp/PageDown and F.
  */
-export function useReaderGestures({ swipeEnabled, onNext, onPrev, onTap, mouseTaps = false }: Handlers) {
+export function useReaderGestures({ swipeEnabled, onNext, onPrev, onTap, mouseTaps = false, drag }: Handlers) {
   const start = useRef<{ x: number; y: number; t: number; id: number } | null>(null);
+  // "drag" once the finger has clearly moved sideways, "scroll" once it moved
+  // up or down (the drag then never starts for this touch).
+  const axis = useRef<"drag" | "scroll" | null>(null);
   // A touch tap is only *recognised* on pointerup; the toggle runs on the click
   // that follows, whose target the browser fixed before any chrome moves — so
   // a reappearing bar can never receive a ghost click.
@@ -42,6 +59,20 @@ export function useReaderGestures({ swipeEnabled, onNext, onPrev, onTap, mouseTa
   function onPointerDown(event: ReactPointerEvent<HTMLElement>) {
     if (event.pointerType === "mouse" || !event.isPrimary) return;
     start.current = { x: event.clientX, y: event.clientY, t: performance.now(), id: event.pointerId };
+    axis.current = null;
+  }
+
+  function onPointerMove(event: ReactPointerEvent<HTMLElement>) {
+    const origin = start.current;
+    if (!drag || !swipeEnabled || !origin || origin.id !== event.pointerId || axis.current === "scroll") return;
+    const dx = event.clientX - origin.x;
+    const dy = event.clientY - origin.y;
+    if (axis.current === null) {
+      if (Math.abs(dx) < DRAG_START_PX && Math.abs(dy) < DRAG_START_PX) return;
+      axis.current = Math.abs(dx) >= Math.abs(dy) * SWIPE_DOMINANCE ? "drag" : "scroll";
+      if (axis.current === "scroll") return;
+    }
+    drag.onDrag(dx);
   }
 
   function onPointerUp(event: ReactPointerEvent<HTMLElement>) {
@@ -51,6 +82,16 @@ export function useReaderGestures({ swipeEnabled, onNext, onPrev, onTap, mouseTa
     const dx = event.clientX - origin.x;
     const dy = event.clientY - origin.y;
     const dt = performance.now() - origin.t;
+
+    if (drag && axis.current === "drag") {
+      axis.current = null;
+      const width = window.innerWidth || 1;
+      const flick = dt <= SWIPE_MAX_MS && Math.abs(dx) >= SWIPE_MIN_PX;
+      const far = Math.abs(dx) >= width * DRAG_COMMIT_RATIO;
+      // RTL book: dragging the page to the right brings the next page in.
+      drag.onDragEnd(flick || far ? (dx > 0 ? "next" : "prev") : null);
+      return;
+    }
 
     if (
       swipeEnabled &&
@@ -80,7 +121,9 @@ export function useReaderGestures({ swipeEnabled, onNext, onPrev, onTap, mouseTa
 
   function onPointerCancel() {
     start.current = null;
+    if (drag && axis.current === "drag") drag.onDragEnd(null);
+    axis.current = null;
   }
 
-  return { onPointerDown, onPointerUp, onPointerCancel, onClick };
+  return { onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onClick };
 }
