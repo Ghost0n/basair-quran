@@ -56,9 +56,9 @@ const IOS_FOCUS_ZOOM_SCRIPT = `(function(){try{var n=navigator;if(!(/iPad|iPhone
 
 // Runs before first paint to apply the saved theme, so light-mode users
 // never see a flash of the dark default (FOUC). Mirrors the classes the
-// workspace hook applies at runtime (`light` + `light-mode`) and the reduced
-// transparency.
-const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.body.classList.add('light','light-mode');}if(localStorage.getItem('qb.transparency')==='reduced'){document.documentElement.dataset.transparency='reduced';}}catch(e){}})();`;
+// workspace hook applies at runtime (`light` + `light-mode`). It also drops the
+// former per-device «مُعتِمة» choice: the app is always glass now.
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.body.classList.add('light','light-mode');}localStorage.removeItem('qb.transparency');}catch(e){}})();`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (

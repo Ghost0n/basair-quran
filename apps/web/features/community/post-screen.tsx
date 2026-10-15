@@ -243,7 +243,7 @@ export function PostScreen() {
             <span className="avatar" aria-hidden>{post.author_name.trim().charAt(0) || "ب"}</span>
             <span>
               <b>{post.author_name}</b>
-              <small>{relativeAge(post.published_at ?? post.updated_at)}{post.visibility === "unlisted" ? t("، برابط فقط") : ""}</small>
+              <small>{relativeAge(post.published_at ?? post.updated_at, formatNumber)}{post.visibility === "unlisted" ? t("، برابط فقط") : ""}</small>
             </span>
           </div>
           <h1>{post.title}</h1>
@@ -308,7 +308,7 @@ export function PostScreen() {
                 <span className="avatar" aria-hidden>{comment.author_name.trim().charAt(0) || "ب"}</span>
                 <div className="bubble">
                   <div className="meta">
-                    <b>{comment.author_name}</b> <small>{relativeAge(comment.created_at)}</small>
+                    <b>{comment.author_name}</b> <small>{relativeAge(comment.created_at, formatNumber)}</small>
                   </div>
                   <p>{comment.body}</p>
                 </div>

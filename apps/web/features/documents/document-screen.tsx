@@ -22,7 +22,7 @@ import { Icon } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
 import { useNumerals } from "@/lib/preferences-context";
 import { useMushaf } from "@/features/reading/mushaf-context";
-import { useShellMode } from "@/features/shell/mode-context";
+import { useBackToNotebook, useShellMode } from "@/features/shell/mode-context";
 import { TafssirDisclaimer } from "@/features/studio/tafssir-disclaimer";
 
 import { AyahPicker } from "./ayah-picker";
@@ -94,6 +94,7 @@ export function DocumentScreen() {
   const params = useSearchParams();
   const documentId = params.get("id") ?? "";
   const { setMode } = useShellMode();
+  const backToNotebook = useBackToNotebook("documents");
   const router = useRouter();
   const mushaf = useMushaf();
   const formatNumber = useNumerals();
@@ -267,7 +268,7 @@ export function DocumentScreen() {
     return (
       <div className="qb-doc-state">
         <p>{status === "missing" ? t("لم يُعثر على هذا البحث.") : t("تعذّر تحميل البحث.")}</p>
-        <button type="button" onClick={() => setMode("notebook")}>{t("العودة إلى الدفتر")}</button>
+        <button type="button" onClick={backToNotebook}>{t("العودة إلى الدفتر")}</button>
       </div>
     );
   }
@@ -291,12 +292,23 @@ export function DocumentScreen() {
   return (
     <div className="qb-doc">
       <div className="qb-doc-bar">
-        <button type="button" className="back" onClick={() => setMode("notebook")} aria-label={t("العودة إلى الدفتر")}>
+        <button type="button" className="back" onClick={backToNotebook} aria-label={t("العودة إلى الدفتر")}>
           <Icon name="chevRight" size={18} />
         </button>
-        <span className="kicker">
-          {t("بحث")}{doc.provenance.created_from === "studio" ? t("، من الدراسة") : doc.provenance.created_from === "board" ? t("، من لوحة موضوع") : ""}
-        </span>
+        {/* The research's name, edited in place in the bar (like a board's). */}
+        <div className="title">
+          <input
+            className="doc-name"
+            value={doc.title}
+            onChange={(event) => update({ title: event.target.value.slice(0, 200) })}
+            placeholder={t("عنوان البحث")}
+            aria-label={t("عنوان البحث")}
+            dir="auto"
+          />
+          <span className="kicker">
+            {t("بحث")}{doc.provenance.created_from === "studio" ? t("، من الدراسة") : doc.provenance.created_from === "board" ? t("، من لوحة موضوع") : ""}
+          </span>
+        </div>
         <span className={`save ${saveState}`} role="status" aria-live="polite">
           {saveLabel}
         </span>
@@ -316,13 +328,6 @@ export function DocumentScreen() {
       <div className="qb-doc-body">
         {shareNote ? <div className="qb-doc-flash" role="status">{shareNote}</div> : null}
 
-        <input
-          className="title"
-          value={doc.title}
-          onChange={(event) => update({ title: event.target.value.slice(0, 200) })}
-          placeholder={t("عنوان البحث")}
-          aria-label={t("عنوان البحث")}
-        />
         <textarea
           className="summary"
           value={doc.summary ?? ""}

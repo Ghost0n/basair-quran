@@ -5,8 +5,8 @@ import { useLayoutEffect, useRef } from "react";
 import { blocks, outlinePath, rowsFromRects, separate } from "../verse-outline";
 
 const SVG = "http://www.w3.org/2000/svg";
-/** Drawing order: theme highlights under hover under focus under the recited verse. */
-const KINDS = ["mark", "hover", "focus", "recite"] as const;
+/** Drawing order: theme highlights under the opened verse under hover under focus under the recited verse. */
+const KINDS = ["mark", "select", "hover", "focus", "recite"] as const;
 type Kind = (typeof KINDS)[number];
 
 type Box = { left: number; right: number; top: number; bottom: number };
@@ -16,6 +16,8 @@ function kindOf(element: Element): Kind {
   if (element.classList.contains("is-recite")) return "recite";
   if (element.classList.contains("is-hover")) return "hover";
   if (element.classList.contains("qb-verse-focus")) return "focus";
+  // The verse opened from search, the library… (it glows, then fades: tools.css).
+  if (element.classList.contains("qb-glyph-sel") || element.classList.contains("selected")) return "select";
   return "mark";
 }
 

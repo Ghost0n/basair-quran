@@ -230,7 +230,7 @@ button:not(:disabled):active {
    html[data-nav]; browsers without view transitions just switch. */
 ::view-transition-group(qb-nav-dock),
 ::view-transition-group(qb-nav-lead) {
-  animation-duration: 460ms;
+  animation-duration: 380ms;
   animation-timing-function: cubic-bezier(0.3, 1.25, 0.4, 1);
 }
 
@@ -245,21 +245,21 @@ button:not(:disabled):active {
 }
 
 html[data-nav="reader-in"]::view-transition-new(root) {
-  animation: qbReaderIn 420ms var(--motion-ease-settle, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
+  animation: qbReaderIn 340ms var(--motion-ease-settle, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
 }
 
 html[data-nav="reader-in"]::view-transition-old(root) {
-  animation: qbScreenAway 320ms var(--motion-ease-exit, ease-in) both;
+  animation: qbScreenAway 240ms var(--motion-ease-exit, ease-in) both;
 }
 
 html[data-nav="reader-out"]::view-transition-old(root),
 html[data-nav="back"]::view-transition-old(root) {
-  animation: qbReaderOut 320ms var(--motion-ease-exit, ease-in) both;
+  animation: qbReaderOut 200ms var(--motion-ease-exit, ease-in) both;
 }
 
 html[data-nav="reader-out"]::view-transition-new(root),
 html[data-nav="back"]::view-transition-new(root) {
-  animation: qbScreenBack 420ms var(--motion-ease-settle, ease-out) both;
+  animation: qbScreenBack 260ms var(--motion-ease-settle, ease-out) both;
 }
 
 /* The reader comes in from the side the reading goes towards (the left in

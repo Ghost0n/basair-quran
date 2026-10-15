@@ -91,30 +91,8 @@
   }
 }
 
-/* «تقليل الشفافية» — the system setting (unless the device chose otherwise)
-   or the per-device choice in Settings: every blurred surface becomes an
-   opaque tint. Declared on body so it wins over the light-theme tokens. */
-:root[data-transparency="reduced"] body {
-  --glass-tint: rgb(30, 27, 20);
-  --glass-tint-strong: rgb(27, 24, 17);
-  --glass-tint-soft: rgb(36, 32, 24);
-  --glass-tint-overlay: rgb(27, 24, 17);
-}
-
-:root[data-transparency="reduced"] body.light {
-  --glass-tint: rgb(252, 248, 237);
-  --glass-tint-strong: rgb(250, 246, 234);
-  --glass-tint-soft: rgb(247, 242, 229);
-  --glass-tint-overlay: rgb(250, 246, 234);
-}
-
-:root[data-transparency="reduced"] *,
-:root[data-transparency="reduced"] *::before,
-:root[data-transparency="reduced"] *::after {
-  -webkit-backdrop-filter: none !important;
-  backdrop-filter: none !important;
-}
-
+/* The system's «reduce transparency» accessibility setting: every blurred
+   surface becomes an opaque tint. (The app itself is always glass.) */
 @media (prefers-reduced-transparency: reduce) {
   :root body {
     --glass-tint: rgb(30, 27, 20);
@@ -547,7 +525,7 @@ body::before {
 }
 
 ::view-transition-new(root) {
-  animation: qbVtIn var(--motion-dur-slow) var(--motion-ease-settle) both;
+  animation: qbVtIn var(--motion-dur-base) var(--motion-ease-settle) both;
 }
 
 @keyframes qbVtOut {
@@ -811,7 +789,7 @@ body::before {
 @media (max-width: 768px) {
   /* :where keeps one low specificity for the whole list (each element's own
      stylesheet still places it). */
-  html:root :where(.qb-tabbar, .qb-reader-bar.qb-reader-dock, .qb-reader-back, .qb-reader-bookmark, .qb-reader-surah, .qb-capsule) {
+  html:root :where(.qb-tabbar, .qb-reader-bar.qb-reader-dock, .qb-reader-back, .qb-reader-bookmark, .qb-capsule) {
     isolation: isolate;
     border: 0;
     background-color: var(--lg-tint);
@@ -821,7 +799,7 @@ body::before {
     backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(1.06);
   }
 
-  html:root :where(.qb-reader-bookmark, .qb-reader-surah) {
+  html:root :where(.qb-reader-bookmark) {
     background-color: var(--lg-tint-strong);
   }
 

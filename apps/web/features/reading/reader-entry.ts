@@ -41,9 +41,25 @@ export function settleReaderLoads(): void {
   loadsAtLastEntry = loads;
 }
 
+// Home's «الفهرس» / «المحفوظة»: the reader opens with its «انتقل» sheet on that tab.
+let sheetRequest: "surah" | "saved" | null = null;
+
+/** Open the reader's navigation sheet on `tab` the next time the reader is entered. */
+export function requestReaderSheet(tab: "surah" | "saved"): void {
+  sheetRequest = tab;
+}
+
+/** The sheet the way in asked for (consumed). */
+export function takeReaderSheet(): "surah" | "saved" | null {
+  const request = sheetRequest;
+  sheetRequest = null;
+  return request;
+}
+
 /** Tests only. */
 export function resetReaderEntryForTests(): void {
   loads = 0;
   loadsAtLastEntry = 0;
   resumeRequested = false;
+  sheetRequest = null;
 }

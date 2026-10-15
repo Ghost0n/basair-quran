@@ -34,7 +34,7 @@ import { Icon } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
 import { useNumerals } from "@/lib/preferences-context";
 import { useMushaf } from "@/features/reading/mushaf-context";
-import { useShellMode } from "@/features/shell/mode-context";
+import { useBackToNotebook, useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { useStickyState } from "@/lib/use-sticky-state";
@@ -479,6 +479,7 @@ function Board() {
   const boardNameRef = useRef(boardName);
   boardNameRef.current = boardName;
   const { setMode } = useShellMode();
+  const backToNotebook = useBackToNotebook("boards");
   const mushaf = useMushaf();
   const formatNumber = useNumerals();
   const flow = useReactFlow();
@@ -900,7 +901,7 @@ function Board() {
     return (
       <div className="qb-board-state">
         <p>{t("لم يُعثر على هذا الموضوع.")}</p>
-        <button type="button" onClick={() => setMode("notebook")}>{t("العودة إلى الدفتر")}</button>
+        <button type="button" onClick={backToNotebook}>{t("العودة إلى الدفتر")}</button>
       </div>
     );
   }
@@ -921,7 +922,7 @@ function Board() {
     <BoardContext.Provider value={context}>
       <div className="qb-board" data-hl={theme?.color ?? undefined}>
         <div className="qb-board-bar">
-          <button type="button" className="back" onClick={() => setMode("notebook")} aria-label={t("العودة إلى الدفتر")}>
+          <button type="button" className="back" onClick={backToNotebook} aria-label={t("العودة إلى الدفتر")}>
             <Icon name="chevRight" size={18} />
           </button>
           {shapeMenu && typeof document !== "undefined"

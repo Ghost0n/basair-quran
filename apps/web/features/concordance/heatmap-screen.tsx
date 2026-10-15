@@ -8,9 +8,10 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type { RootDistributionResponse, SurahListItem } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
-import { formatNumber } from "@/lib/numerals";
+import { Icon } from "@/components/icon";
+import { useNumerals } from "@/lib/preferences-context";
 import { useMushaf } from "@/features/reading/mushaf-context";
-import { useShellMode } from "@/features/shell/mode-context";
+import { useGoBack, useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
 import "./concordance.css";
@@ -30,6 +31,8 @@ export function HeatmapScreen() {
   const { state } = useWorkspace();
   const mushaf = useMushaf();
   const { setMode } = useShellMode();
+  const { goBack } = useGoBack();
+  const formatNumber = useNumerals();
 
   const [surahs, setSurahs] = useState<SurahListItem[]>([]);
   const [distribution, setDistribution] = useState<RootDistributionResponse | null>(null);
@@ -101,7 +104,11 @@ export function HeatmapScreen() {
 
   return (
     <div className="qb-aux">
-      <div className="qb-aux-h">
+      <div className="qb-aux-h has-back">
+        {/* Back to where the root was opened from (the saved roots, a search). */}
+        <button type="button" className="qb-icon-round qb-aux-back" onClick={() => goBack()} aria-label={t("رجوع")}>
+          <Icon name="chevRight" size={18} />
+        </button>
         <div>
           <div className="kicker">{t("خريطة انتشار الجذر")}</div>
           <h2>{distribution?.root ?? root}</h2>

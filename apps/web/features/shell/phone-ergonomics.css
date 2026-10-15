@@ -220,19 +220,33 @@
     --dock-side: calc(10px + env(safe-area-inset-left, 0px));
   }
 
+  /* Physical sides from the interface's direction: the stage itself is
+     right-to-left (the mushaf's), so logical insets would put the dock
+     under the back button in left-to-right languages. */
   html:root .qb-mushaf-stage > .qb-reader-head.is-dock {
     position: fixed;
-    inset-inline-start: calc(var(--dock-side) + var(--dock-h) + 8px);
-    inset-inline-end: var(--dock-side);
+    right: calc(var(--dock-side) + var(--dock-h) + 8px);
+    left: var(--dock-side);
     bottom: var(--dock-bottom);
     z-index: 45;
     margin: 0;
     padding: 0;
   }
 
+  html:root[dir="ltr"] .qb-mushaf-stage > .qb-reader-head.is-dock {
+    right: var(--dock-side);
+    left: calc(var(--dock-side) + var(--dock-h) + 8px);
+  }
+
   html:root .qb-reader-head.is-dock .qb-display-strip {
     bottom: calc(100% + 8px);
-    inset-inline-start: calc(-1 * (var(--dock-h) + 8px));
+    left: 0;
+    right: calc(-1 * (var(--dock-h) + 8px));
+  }
+
+  html:root[dir="ltr"] .qb-reader-head.is-dock .qb-display-strip {
+    left: calc(-1 * (var(--dock-h) + 8px));
+    right: 0;
   }
 
   html:root .qb-reader-bar.qb-reader-dock {
@@ -348,8 +362,7 @@
     display: none;
   }
 
-  /* The bookmark floats in the top-left corner, over the page, with the
-     surah named under it (a label, not a button: the dock's surah navigates). */
+  /* The bookmark floats in the top-left corner, over the page. */
   html:root .qb-reader-corner {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 4px);
@@ -374,36 +387,17 @@
     border-radius: 50%;
   }
 
-  html:root .qb-reader-surah {
-    max-width: 30vw;
-    padding: 2px 9px 3px;
-    border-radius: var(--r-pill);
-    font-family: var(--font-arabic-heading);
-    font-size: 12.5px;
-    line-height: 1.5;
-    color: var(--gold-text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    pointer-events: none;
-  }
-
-  /* Pages mode: the running head keeps the juz; its surah is the corner's label now. */
+  /* Pages mode: the running head names the juz (top right) and the surah
+     (top left), alike and facing each other. The bookmark floats over the
+     surah's corner; focus mode, without it, shows the head whole. */
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-glyph-page.qb-print-page {
     padding-top: 6px;
   }
 
-  /* Tall enough for the bookmark and its label in the corner (the 15 lines
-     share what is left: each gives up ~2px of its spare room). The juz
-     stays on the bookmark's line. */
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-print-head {
-    min-height: 70px;
-    align-items: flex-start;
-    padding: 12px 0 0;
-  }
-
-  html:root .qb-print-head .surah {
-    visibility: hidden;
+    min-height: 40px;
+    align-items: center;
+    padding: 0;
   }
 
   /* Verse by verse: the verses are the whole screen and scroll under the
@@ -614,8 +608,14 @@
 
   /* ---------- 3. Study: the conversation gets the room ---------- */
 
+  /* The page body already keeps the status bar clear (app/globals.css): no
+     second safe-area band above the session's title. */
   html:root[data-shell-mode="studio"] .qb-main {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: 0;
+  }
+
+  html:root .qb-studio .qb-studio-head {
+    padding-top: 4px !important;
   }
 
   /* Before the first question the guidance sits at the top, under the

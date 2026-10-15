@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 import "./settings.css";
 
 import type { NumeralScript } from "@q-basair/shared";
@@ -13,9 +11,7 @@ import { DownloadsSettings } from "@/features/app-mode/downloads-settings";
 
 import { TranslationsSettings } from "./translations-settings";
 import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
-import { READER_MODES, resolveReaderMode } from "@/features/reading/reader-modes";
-import { useNumerals, usePreferences } from "@/lib/preferences-context";
-import { setTransparency, useTransparency } from "@/lib/transparency";
+import { usePreferences } from "@/lib/preferences-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
 import { t } from "@/lib/i18n";
@@ -32,23 +28,13 @@ const NUMERAL_OPTIONS: { value: NumeralScript; label: string }[] = [
   } },
 ];
 
-const DEPTH_OPTIONS: { value: "fast" | "balanced" | "deep"; label: string }[] = [
-  { value: "fast", get label() {
-    return t("سريع");
-  } },
-  { value: "balanced", get label() {
-    return t("متوازن");
-  } },
-  { value: "deep", get label() {
-    return t("عميق");
-  } },
-];
-
 /**
  * Settings — the CANONICAL home for every preference, ordered from what a
  * reader changes most to what they set once: display (theme first — on phones
- * this screen is the theme's home), reading & muṣḥaf, translations, offline
- * downloads, guided research, then the account (sign-out last). (The UI is Arabic-only in v1;
+ * this screen is the theme's home), the muṣḥaf, translations, offline
+ * downloads, then the account (sign-out last). What only shows its effect in
+ * a screen of its own stays there: the reading mode and text size in the
+ * reader's «العرض», the study's mode and depth in the study page. (The UI is Arabic-only in v1;
  * `ui_language` stays in the API for the future i18n work.) Quick
  * Settings (the ⚙ top-bar popover) is a shortcut to the handful of these a
  * reader changes mid-session; both write the same account preferences, so they
@@ -56,31 +42,23 @@ const DEPTH_OPTIONS: { value: "fast" | "balanced" | "deep"; label: string }[] = 
  * the mushaf edition) persist via PreferencesProvider.updateAccount.
  */
 export function SettingsScreen() {
-  const { preferences, account, updateAccount, updateAccountDebounced } = usePreferences();
-  const formatNumber = useNumerals();
-  // Confirm before making the experimental tafssir mode the account default.
-  const [confirmTafssirDefault, setConfirmTafssirDefault] = useState(false);
+  const { preferences, updateAccount } = usePreferences();
   const { state, actions } = useWorkspace();
-  const transparency = useTransparency();
 
   const edition = state.edition;
-  const readerMode = resolveReaderMode(preferences.reader_layout);
 
   return (
     <div className="qb-settings">
       <div className="qb-settings-h">
         <div className="kicker">{t("الإعدادات")}</div>
         <h2>{t("التفضيلات")}</h2>
-        <div className="sub">
-          {t("كلّ الإعدادات هنا. زرّ «العرض» في شريط القراءة اختصارٌ لطريقة القراءة وحجم الخطّ أثناء القراءة، ويحفظ في المكان نفسه.")}
-        </div>
       </div>
 
       <div className="qb-settings-grid">
 
         <section className="qb-setting-card">
           <h3>{t("العرض")}</h3>
-          <p className="card-sub">{t("اللغة والسمة والشفافية وطريقة عرض الأرقام في الواجهة.")}</p>
+          <p className="card-sub">{t("اللغة والسمة وطريقة عرض الأرقام في الواجهة.")}</p>
           <div className="qb-setting-row">
             <label>{t("السمة")}</label>
             <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
@@ -109,28 +87,6 @@ export function SettingsScreen() {
             <LanguageSelect />
           </div>
           <div className="qb-setting-row">
-            <label>{t("الشفافية")}</label>
-            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
-              <button
-                type="button"
-                className={transparency === "auto" ? "active" : ""}
-                aria-pressed={transparency === "auto"}
-                onClick={() => setTransparency("auto")}
-              >
-                {t("زجاجية")}
-              </button>
-              <button
-                type="button"
-                className={transparency === "reduced" ? "active" : ""}
-                aria-pressed={transparency === "reduced"}
-                onClick={() => setTransparency("reduced")}
-              >
-                {t("مُعتِمة")}
-              </button>
-            </div>
-          </div>
-          <p className="card-sub fine">{t("«مُعتِمة» تُلغي التمويه خلف الأشرطة واللوحات: أوضح للقراءة وأخفّ على الأجهزة المتواضعة. تُحفظ لهذا الجهاز.")}</p>
-          <div className="qb-setting-row">
             <label>{t("الأرقام")}</label>
             <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
               {NUMERAL_OPTIONS.map((option) => (
@@ -150,7 +106,6 @@ export function SettingsScreen() {
 
         <section className="qb-setting-card">
           <h3>{t("القراءة والمصحف")}</h3>
-          <p className="card-sub">{t("المصحف، تخطيط الصفحة، وحجم الخطّ.")}</p>
           <div className="qb-setting-row">
             <label>{t("المصحف")}</label>
             <SelectMenu
@@ -162,108 +117,11 @@ export function SettingsScreen() {
             />
           </div>
           <p className="card-sub">{edition.description}</p>
-          <div className="qb-setting-row">
-            <label>{t("طريقة القراءة")}</label>
-            <div className="qb-setting-seg qb-fit-choice" data-autofit="2" role="group" aria-label={t("طريقة القراءة")}>
-              {READER_MODES.map((item) => (
-                <button
-                  key={item.mode}
-                  type="button"
-                  className={readerMode === item.mode ? "active" : ""}
-                  aria-pressed={readerMode === item.mode}
-                  title={item.hint}
-                  onClick={() => void updateAccount({ reader_layout: item.layout })}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="qb-setting-row">
-            <label>
-              {t("حجم خطّ الآية")} <span className="qb-setting-value">{formatNumber(preferences.font_size)}</span>
-            </label>
-            <input
-              type="range"
-              className="qb-setting-slider"
-              min={18}
-              max={48}
-              value={preferences.font_size}
-              onChange={(event) => updateAccountDebounced({ font_size: Number(event.target.value) })}
-            />
-          </div>
         </section>
 
         <TranslationsSettings />
 
         <DownloadsSettings />
-
-        <section className="qb-setting-card">
-          <h3>{t("البحث الموجَّه")}</h3>
-          <p className="card-sub">{t("الوضع الافتراضي وعُمق القراءة في الدراسة.")}</p>
-          <div className="qb-setting-row">
-            <label>{t("الوضع الافتراضي")}</label>
-            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
-              <button
-                type="button"
-                className={account.research.default_mode === "strict" ? "active" : ""}
-                aria-pressed={account.research.default_mode === "strict"}
-                onClick={() => void updateAccount({ research: { default_mode: "strict" } })}
-              >
-                {t("القرآن وحدَه")}
-              </button>
-              <button
-                type="button"
-                className={account.research.default_mode === "tafssir" ? "active copper" : ""}
-                aria-pressed={account.research.default_mode === "tafssir"}
-                onClick={() => {
-                  if (account.research.default_mode === "tafssir") return;
-                  setConfirmTafssirDefault(true);
-                }}
-              >
-                {t("تفسيرية")}
-              </button>
-            </div>
-          </div>
-          {confirmTafssirDefault ? (
-            <div className="qb-setting-confirm" role="alertdialog" aria-label={t("تأكيد الوضع الافتراضي")}>
-              <p>
-                {t("الوضع التفسيري")} <strong>{t("تجريبي")}</strong>{t(": قراءة بشرية مُولَّدة من نموذج لغوي، ليست حُجَّة شرعية. هل تجعله الوضع الافتراضي؟")}
-              </p>
-              <div className="qb-setting-confirm-actions">
-                <button
-                  type="button"
-                  className="primary"
-                  onClick={() => {
-                    void updateAccount({ research: { default_mode: "tafssir" } });
-                    setConfirmTafssirDefault(false);
-                  }}
-                >
-                  {t("تأكيد")}
-                </button>
-                <button type="button" onClick={() => setConfirmTafssirDefault(false)}>
-                  {t("إلغاء")}
-                </button>
-              </div>
-            </div>
-          ) : null}
-          <div className="qb-setting-row">
-            <label>{t("عُمق القراءة التفسيرية")}</label>
-            <div className="qb-setting-seg qb-fit-choice" data-autofit="2">
-              {DEPTH_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={account.research.depth === option.value ? "active" : ""}
-                  aria-pressed={account.research.depth === option.value}
-                  onClick={() => void updateAccount({ research: { depth: option.value } })}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
 
         <AccountSettings />
 
