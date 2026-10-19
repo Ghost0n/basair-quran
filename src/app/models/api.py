@@ -916,6 +916,10 @@ MushafEditionId = Literal["madani-hafs"]
 MUSHAF_EDITION_IDS: tuple[str, ...] = ("madani-hafs",)
 DEFAULT_MUSHAF_EDITION = "madani-hafs"
 
+# The Home screen's sections a reader can hide (account preference
+# `home_hidden`). Listed as hidden, so a section added later shows by default.
+HomeSectionId = Literal["greeting", "verse", "continue", "index", "saved", "study", "community", "search"]
+
 
 class UserPreferences(BaseModel):
     mushaf_edition: MushafEditionId = DEFAULT_MUSHAF_EDITION
@@ -941,6 +945,8 @@ class UserPreferences(BaseModel):
     saved_pages: List[SavedPageEntry] = Field(default_factory=list)
     # Translations of meanings shown under each ayah (keys from GET /api/translations, ≤3).
     translations: List[str] = Field(default_factory=list, max_length=3)
+    # Home sections the reader hid (Settings «الرئيسية»); empty = all shown.
+    home_hidden: List[HomeSectionId] = Field(default_factory=list)
 
 
 class ResearchDefaultsUpdate(BaseModel):
@@ -963,6 +969,7 @@ class UserPreferencesUpdate(BaseModel):
     last_position: Optional[ReadingPosition] = None
     saved_pages: Optional[List[SavedPageEntry]] = None
     translations: Optional[List[Annotated[str, StringConstraints(max_length=80)]]] = Field(None, max_length=3)
+    home_hidden: Optional[List[HomeSectionId]] = Field(None, max_length=8)
 
 
 # ---------------------------------------------------------------------------

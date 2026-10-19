@@ -1034,5 +1034,9 @@
  "تعذّر إنشاء البحث. حاول مرة أخرى.": "Couldn't create the research. Please try again.",
  "حوّل هذه الجلسة إلى بحث قابل للتحرير؟ تبقى الجلسة كما هي.": "Turn this session into an editable research? The session stays as it is.",
  "تلاوة الآية": "Recite the verse",
- "اللغة والسمة وطريقة عرض الأرقام في الواجهة.": "Language, theme and how numbers are shown in the interface."
+ "اللغة والسمة وطريقة عرض الأرقام في الواجهة.": "Language, theme and how numbers are shown in the interface.",
+ "اختر ما تعرضه الشاشة الرئيسية.": "Choose what the Home screen shows.",
+ "الآية المتجدّدة": "Rotating verse",
+ "التحية": "Greeting",
+ "متابعة القراءة": "Continue reading"
 }

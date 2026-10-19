@@ -245,7 +245,7 @@ export function CommunityScreen() {
         </button>
       </header>
 
-      <div className="qb-segmented qb-fit-track qb-community-tabs" data-autofit="1" role="tablist" aria-label={t("المجتمع")}>
+      <div className="qb-segmented qb-fit-track qb-community-tabs" data-autofit="1" suppressHydrationWarning role="tablist" aria-label={t("المجتمع")}>
         {tabs.map((entry) => (
           <button
             key={entry.value}
@@ -273,7 +273,7 @@ export function CommunityScreen() {
                 onChange={(event) => setFilter("q", event.target.value)}
               />
             </label>
-            <div className="qb-segmented qb-fit-track sort" data-autofit="1" role="radiogroup" aria-label={t("الترتيب")}>
+            <div className="qb-segmented qb-fit-track sort" data-autofit="1" suppressHydrationWarning role="radiogroup" aria-label={t("الترتيب")}>
               {(
                 [
                   ["latest", t("الأحدث")],
@@ -310,7 +310,7 @@ export function CommunityScreen() {
                 options={surahOptions}
                 onChange={(value) => setFilter("surah", value ? Number(value) : null)}
               />
-              <div className="qb-segmented qb-fit-track" data-autofit="1" role="radiogroup" aria-label={t("نوع البحث")}>
+              <div className="qb-segmented qb-fit-track" data-autofit="1" suppressHydrationWarning role="radiogroup" aria-label={t("نوع البحث")}>
                 {(
                   [
                     [null, t("الكل")],

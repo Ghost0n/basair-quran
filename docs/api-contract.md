@@ -313,6 +313,15 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   with the account and merges from guest on sign-up. The Home screen lists them to
   reopen the reader at that page; the reader footer toggles the current page.
 
+## Home sections
+
+- `home_hidden` is an account preference on `GET/PATCH /api/user/preferences`:
+  the Home sections the reader hid in Settings («الرئيسية»), from `greeting`,
+  `verse` (wide screens), `continue`, `index`, `saved`, `study`, `community`,
+  `search`. Defaults to `[]` (everything shown); unknown ids are rejected (422).
+  Wholesale-replace semantics like `saved_pages`. Sections are listed as
+  hidden so that a section added later shows by default.
+
 ## Morphology notes
 
 - `GET /api/morphology?surah=N&ayah=M` returns per-word morphology (root, lemma,
