@@ -9,6 +9,7 @@ import { AccountSettings } from "@/features/identity/account-settings";
 import { LanguageSelect } from "./language-select";
 import { DownloadsSettings } from "@/features/app-mode/downloads-settings";
 
+import { HomeSettings } from "./home-settings";
 import { TranslationsSettings } from "./translations-settings";
 import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
 import { usePreferences } from "@/lib/preferences-context";
@@ -103,6 +104,8 @@ export function SettingsScreen() {
             </div>
           </div>
         </section>
+
+        <HomeSettings />
 
         <section className="qb-setting-card">
           <h3>{t("القراءة والمصحف")}</h3>

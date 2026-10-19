@@ -262,6 +262,10 @@
     flex: 1;
     min-width: 0;
     justify-content: space-around;
+  }
+
+  /* Reading ⇄ recitation: the new controls settle in (reader-bar.tsx). */
+  html:root .qb-reader-dock .actions.swap {
     animation: qbDockSwap 260ms var(--spring-soft, ease-out) both;
   }
 

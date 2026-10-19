@@ -3,11 +3,11 @@
 import "./home.css";
 import "@/features/shell/worlds.css";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { ResearchSessionSummary } from "@q-basair/shared";
+import type { HomeSectionId, ResearchSessionSummary } from "@q-basair/shared";
 
 import { Icon, type IconName } from "@/components/icon";
 import { relativeAge } from "@/features/companions/use-companions";
@@ -59,7 +59,7 @@ type Card = {
   onListen?: () => void;
 };
 
-type Shortcut = { id: string; icon: IconName; label: string; sub?: string; onClick: () => void };
+type Shortcut = { id: HomeSectionId; icon: IconName; label: string; sub?: string; onClick: () => void };
 
 /**
  * Home — one screen, laid out for the hand that holds it.
@@ -205,16 +205,22 @@ export function HomeScreen() {
   ];
 
   const ayah = ROTATING_AYAHS[ayahIndex];
+  // The sections hidden in Settings («الرئيسية»).
+  const hiddenSections = preferences.home_hidden ?? [];
+  const shows = (id: HomeSectionId) => !hiddenSections.includes(id);
+  const tiles = shortcuts.filter((item) => shows(item.id));
 
   return (
     <div className="qb-home">
       {/* Phones: the greeting opens the screen, beside the account button
           (the brand is the Home tab itself). */}
       <header className="qb-home-top">
-        <div className="qb-home-greeting">
-          <h1>{greeting.line}</h1>
-          {greeting.sub ? <p>{greeting.sub}</p> : null}
-        </div>
+        {shows("greeting") ? (
+          <div className="qb-home-greeting">
+            <h1>{greeting.line}</h1>
+            {greeting.sub ? <p>{greeting.sub}</p> : null}
+          </div>
+        ) : null}
         {/* Phones only: the desktop rail carries the account menu. */}
         <button
           ref={accountBtn}
@@ -231,50 +237,58 @@ export function HomeScreen() {
       {/* Wide screens: the verse holds the seat of honour. No aria-live — a
           forever-rotating announcement is screen-reader noise; the verse stays
           ordinary readable (and selectable) text. */}
-      <figure className="qb-home-verse">
-        <p key={ayahIndex} className="ayah-text">
-          {ayah.text}
-        </p>
-        <figcaption className="ayah-ref">
-          {ayah.surah}: {formatNumber(ayah.ayah)}
-        </figcaption>
-      </figure>
+      {shows("verse") ? (
+        <figure className="qb-home-verse">
+          <p key={ayahIndex} className="ayah-text">
+            {ayah.text}
+          </p>
+          <figcaption className="ayah-ref">
+            {ayah.surah}: {formatNumber(ayah.ayah)}
+          </figcaption>
+        </figure>
+      ) : null}
 
       {/* Everything you can do from here, within reach. */}
       <div className="qb-home-reach">
-        <section className="qb-home-continue" aria-label={reading.eyebrow}>
-          <span className="eyebrow">
-            <Icon name="book" size={15} />
-            {reading.eyebrow}
-          </span>
-          <div className="row">
-            <div className="txt">
-              <h2 className={reading.small ? "sm" : undefined}>{reading.title}</h2>
-              {reading.meta ? <p>{reading.meta}</p> : null}
+        {shows("continue") ? (
+          <section className="qb-home-continue" aria-label={reading.eyebrow}>
+            <span className="eyebrow">
+              <Icon name="book" size={15} />
+              {reading.eyebrow}
+            </span>
+            <div className="row">
+              <div className="txt">
+                <h2 className={reading.small ? "sm" : undefined}>{reading.title}</h2>
+                {reading.meta ? <p>{reading.meta}</p> : null}
+              </div>
+              {reading.onListen ? (
+                <button type="button" className="listen" onClick={reading.onListen} aria-label={t("استمع من حيث توقفت")}>
+                  <Icon name="play" size={20} />
+                </button>
+              ) : null}
             </div>
-            {reading.onListen ? (
-              <button type="button" className="listen" onClick={reading.onListen} aria-label={t("استمع من حيث توقفت")}>
-                <Icon name="play" size={20} />
-              </button>
-            ) : null}
+            <button type="button" className="go" onClick={reading.onAction}>
+              {reading.action}
+            </button>
+          </section>
+        ) : null}
+
+        {tiles.length ? (
+          <div className={`qb-home-grid${tiles.length % 2 ? " is-odd" : ""}`} style={{ "--tiles": tiles.length } as CSSProperties}>
+            {tiles.map((item) => (
+              <Tile key={item.id} icon={item.icon} label={item.label} sub={item.sub} onClick={item.onClick}>
+                {item.id === "community" && newPosts > 0 ? <i className="dot" aria-hidden="true" /> : null}
+              </Tile>
+            ))}
           </div>
-          <button type="button" className="go" onClick={reading.onAction}>
-            {reading.action}
+        ) : null}
+
+        {shows("search") ? (
+          <button type="button" className="qb-home-search" onClick={() => setMode("search")}>
+            <Icon name="search" size={20} />
+            <span>{t("ابحث بكلمة أو جذر، أو اطرح سؤالاً")}</span>
           </button>
-        </section>
-
-        <div className="qb-home-grid">
-          {shortcuts.map((item) => (
-            <Tile key={item.id} icon={item.icon} label={item.label} sub={item.sub} onClick={item.onClick}>
-              {item.id === "community" && newPosts > 0 ? <i className="dot" aria-hidden="true" /> : null}
-            </Tile>
-          ))}
-        </div>
-
-        <button type="button" className="qb-home-search" onClick={() => setMode("search")}>
-          <Icon name="search" size={20} />
-          <span>{t("ابحث بكلمة أو جذر، أو اطرح سؤالاً")}</span>
-        </button>
+        ) : null}
       </div>
 
       {accountOpen && typeof document !== "undefined"

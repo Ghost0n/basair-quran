@@ -37,6 +37,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   research: { default_mode: "strict", depth: "balanced" },
   saved_pages: [],
   translations: [],
+  home_hidden: [],
 };
 
 const PREFS_CACHE_KEY = "qb.prefs.cache";

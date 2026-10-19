@@ -96,10 +96,20 @@ export function ReaderBar({
   // Where back leads, as its face: the app's logo when it returns Home (the
   // reader opened from the tab bar, or from Home), an arrow when it returns to
   // another page. Read after the back stack has recorded this screen.
-  const [backHome, setBackHome] = useState(false);
+  // (Known from the first render on the way in, so the view transition
+  // captures the right face; a page load starts from the server's arrow.)
+  const [backHome, setBackHome] = useState(() => typeof window !== "undefined" && readerBackLeadsHome());
   useEffect(() => {
     setBackHome(readerBackLeadsHome());
   }, []);
+  // The dock's contents animate only when they swap (reading ⇄ recitation),
+  // not as the reader opens: the way in belongs to the view transition, which
+  // would otherwise capture the dock empty, mid-fade.
+  const dockView = recitation.active && reciteOpen;
+  const firstDockView = useRef(dockView);
+  const dockSwapped = useRef(false);
+  if (dockView !== firstDockView.current) dockSwapped.current = true;
+  const swapClass = dockSwapped.current ? " swap" : "";
   const { setMode } = useShellMode();
   const savedPages = useSavedPages();
 
@@ -301,7 +311,7 @@ export function ReaderBar({
       <div className="qb-reader-head is-dock" ref={headRef}>
         <div className={`qb-reader-bar qb-reader-dock${reciteView ? " is-reciting" : ""}${locked ? " is-locked" : ""}`}>
           {reciteView ? (
-            <div className="actions recite" key="recite">
+            <div className={`actions recite${swapClass}`} key="recite">
               <Transport />
               <button
                 type="button"
@@ -315,7 +325,7 @@ export function ReaderBar({
               </button>
             </div>
           ) : (
-            <div className="actions" key="tools">
+            <div className={`actions${swapClass}`} key="tools">
               <button type="button" className="act labelled surah-btn" onClick={onOpenNavigate} aria-label={t("{0} — انتقل", { 0: surahName })}>
                 <Icon name="menu" size={18} />
                 <span className="lbl">{surahName}</span>

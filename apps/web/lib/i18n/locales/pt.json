@@ -1034,5 +1034,9 @@
  "تعذّر إنشاء البحث. حاول مرة أخرى.": "Não foi possível criar a pesquisa. Tente novamente.",
  "حوّل هذه الجلسة إلى بحث قابل للتحرير؟ تبقى الجلسة كما هي.": "Transformar esta sessão numa pesquisa editável? A sessão fica como está.",
  "تلاوة الآية": "Recitar o versículo",
- "اللغة والسمة وطريقة عرض الأرقام في الواجهة.": "Idioma, tema e forma de mostrar os números na interface."
+ "اللغة والسمة وطريقة عرض الأرقام في الواجهة.": "Idioma, tema e forma de mostrar os números na interface.",
+ "اختر ما تعرضه الشاشة الرئيسية.": "Escolha o que a tela inicial mostra.",
+ "الآية المتجدّدة": "Versículo rotativo",
+ "التحية": "Saudação",
+ "متابعة القراءة": "Continuar a leitura"
 }

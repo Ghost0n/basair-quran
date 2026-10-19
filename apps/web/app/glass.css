@@ -751,6 +751,8 @@ body::before {
 :root {
   --lg-tint: rgba(34, 30, 22, 0.46);
   --lg-tint-strong: rgba(30, 27, 20, 0.58);
+  /* The glass's tone over the page, opaque (view transitions on iPhone). */
+  --lg-tint-solid: rgb(29, 26, 21);
   --lg-blur: 18px;
   --lg-saturate: 190%;
   --lg-rim: linear-gradient(
@@ -772,6 +774,7 @@ body::before {
 [data-theme="light"] {
   --lg-tint: rgba(255, 253, 246, 0.55);
   --lg-tint-strong: rgba(255, 252, 244, 0.7);
+  --lg-tint-solid: rgb(250, 247, 238);
   --lg-rim: linear-gradient(
     135deg,
     rgba(255, 255, 255, 0.95) 0%,
@@ -801,6 +804,19 @@ body::before {
 
   html:root :where(.qb-reader-bookmark) {
     background-color: var(--lg-tint-strong);
+  }
+
+  /* iPhone (WebKit) draws a backdrop-filtered element captured by a view
+     transition as a square, blurred patch without its contents: while one
+     runs (html[data-nav], navigation.ts) the tab bar, dock and back button —
+     the pieces that morph into one another — trade the blur for a solid tint
+     of the same tone, and take the live glass back once it ends. */
+  @supports (-webkit-touch-callout: none) {
+    html[data-nav] :where(.qb-tabbar, .qb-reader-bar.qb-reader-dock, .qb-reader-back) {
+      background-color: var(--lg-tint-solid);
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
   }
 
   /* The rim: a 1px gradient border that catches the light. */

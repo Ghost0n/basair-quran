@@ -1034,5 +1034,9 @@
  "تعذّر إنشاء البحث. حاول مرة أخرى.": "No se pudo crear la investigación. Inténtalo de nuevo.",
  "حوّل هذه الجلسة إلى بحث قابل للتحرير؟ تبقى الجلسة كما هي.": "¿Convertir esta sesión en una investigación editable? La sesión se mantiene tal cual.",
  "تلاوة الآية": "Recitar la aleya",
- "اللغة والسمة وطريقة عرض الأرقام في الواجهة.": "Idioma, tema y cómo se muestran los números en la interfaz."
+ "اللغة والسمة وطريقة عرض الأرقام في الواجهة.": "Idioma, tema y cómo se muestran los números en la interfaz.",
+ "اختر ما تعرضه الشاشة الرئيسية.": "Elige qué muestra la pantalla de inicio.",
+ "الآية المتجدّدة": "Versículo rotativo",
+ "التحية": "Saludo",
+ "متابعة القراءة": "Continuar leyendo"
 }

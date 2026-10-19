@@ -211,6 +211,8 @@ DEFAULT_PREFERENCES: dict = {
     "saved_pages": [],
     # Translations of meanings shown under each ayah (translation keys, ≤3).
     "translations": [],
+    # Home sections the reader hid (models.api.HomeSectionId); replaced wholesale.
+    "home_hidden": [],
 }
 
 

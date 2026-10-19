@@ -484,7 +484,8 @@ export const MODELS: Record<string, ModelSpec> = {
     {"name": "research", "type": {"kind": "model", "name": "ResearchDefaults"}, "default": {"default_mode": "strict", "depth": "balanced"}},
     {"name": "last_position", "type": {"kind": "optional", "of": {"kind": "model", "name": "ReadingPosition"}}, "default": null},
     {"name": "saved_pages", "type": {"kind": "list", "of": {"kind": "model", "name": "SavedPageEntry"}}, "default": []},
-    {"name": "translations", "type": {"kind": "list", "of": {"kind": "str"}, "max_length": 3}, "default": []}
+    {"name": "translations", "type": {"kind": "list", "of": {"kind": "str"}, "max_length": 3}, "default": []},
+    {"name": "home_hidden", "type": {"kind": "list", "of": {"kind": "literal", "values": ["greeting", "verse", "continue", "index", "saved", "study", "community", "search"]}}, "default": []}
   ],
   "UserPreferencesUpdate": [
     {"name": "mushaf_edition", "type": {"kind": "optional", "of": {"kind": "literal", "values": ["madani-hafs"]}}, "default": null},
@@ -500,7 +501,8 @@ export const MODELS: Record<string, ModelSpec> = {
     {"name": "research", "type": {"kind": "optional", "of": {"kind": "model", "name": "ResearchDefaultsUpdate"}}, "default": null},
     {"name": "last_position", "type": {"kind": "optional", "of": {"kind": "model", "name": "ReadingPosition"}}, "default": null},
     {"name": "saved_pages", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "model", "name": "SavedPageEntry"}}}, "default": null},
-    {"name": "translations", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "str", "max_length": 80}}, "max_length": 3}, "default": null}
+    {"name": "translations", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "str", "max_length": 80}}, "max_length": 3}, "default": null},
+    {"name": "home_hidden", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "literal", "values": ["greeting", "verse", "continue", "index", "saved", "study", "community", "search"]}}, "max_length": 8}, "default": null}
   ]
 };
 
@@ -527,5 +529,5 @@ export const MAX_DOCUMENTS_PER_USER = 300;
 export const RESEARCH_DOCUMENT_VERSION = 1;
 export const MUSHAF_EDITION_IDS = ["madani-hafs"];
 export const DEFAULT_MUSHAF_EDITION = "madani-hafs";
-export const DEFAULT_PREFERENCES = {"mushaf_edition": "madani-hafs", "riwayah": 2, "mushaf_font": "amiri-quran", "numerals": "arabic-indic", "ui_language": "ar", "theme": "dark", "font_size": 28, "reciter": "", "mushaf_render": "authentic", "reader_layout": "auto", "research": {"default_mode": "strict", "depth": "balanced"}, "last_position": null, "saved_pages": [], "translations": []};
+export const DEFAULT_PREFERENCES = {"mushaf_edition": "madani-hafs", "riwayah": 2, "mushaf_font": "amiri-quran", "numerals": "arabic-indic", "ui_language": "ar", "theme": "dark", "font_size": 28, "reciter": "", "mushaf_render": "authentic", "reader_layout": "auto", "research": {"default_mode": "strict", "depth": "balanced"}, "last_position": null, "saved_pages": [], "translations": [], "home_hidden": []};
 export const DEFAULT_USER_ID = 0;

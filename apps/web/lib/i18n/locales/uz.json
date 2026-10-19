@@ -1034,5 +1034,9 @@
  "تعذّر إنشاء البحث. حاول مرة أخرى.": "Tadqiqotni yaratib bo‘lmadi. Qayta urinib ko‘ring.",
  "حوّل هذه الجلسة إلى بحث قابل للتحرير؟ تبقى الجلسة كما هي.": "Bu sessiya tahrirlanadigan tadqiqotga aylantirilsinmi? Sessiya o‘z holicha qoladi.",
  "تلاوة الآية": "Oyatni oʻqish",
- "اللغة والسمة وطريقة عرض الأرقام في الواجهة.": "Interfeys tili, mavzusi va raqamlarning ko‘rinishi."
+ "اللغة والسمة وطريقة عرض الأرقام في الواجهة.": "Interfeys tili, mavzusi va raqamlarning ko‘rinishi.",
+ "اختر ما تعرضه الشاشة الرئيسية.": "Bosh ekranda nima ko‘rinishini tanlang.",
+ "الآية المتجدّدة": "Almashinuvchi oyat",
+ "التحية": "Salomlashish",
+ "متابعة القراءة": "O‘qishni davom ettirish"
 }

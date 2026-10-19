@@ -24,10 +24,19 @@ export function AppModeRoot({ children }: { children: ReactNode }) {
   return <AppModeGate>{children}</AppModeGate>;
 }
 
+/**
+ * Whether this run of the app has started (and, once known, whether the
+ * reader is onboarded). Module-level: a language change remounts the whole
+ * tree under the new language (lib/i18n/provider.tsx), and that must not
+ * replay the launch — it used to send the reader back to Home from Settings.
+ */
+let launched: { onboarded: boolean } | null = null;
+
 function AppModeGate({ children }: { children: ReactNode }) {
-  const [onboarded, setOnboarded] = useState<boolean | null>(null);
+  const [onboarded, setOnboarded] = useState<boolean | null>(launched?.onboarded ?? null);
 
   useEffect(() => {
+    if (launched) return;
     // A launch always opens on Home, never on the screen left last (a webview
     // restored by the system would otherwise reload its last URL).
     if (window.location.search) window.history.replaceState(null, "", "/");
@@ -37,6 +46,7 @@ function AppModeGate({ children }: { children: ReactNode }) {
     } catch {
       /* storage unavailable: treat as a first launch */
     }
+    launched = { onboarded: known };
     setOnboarded(known);
     // The cold start, behind the native splash (lib/app-mode/boot.ts).
     bootApp({ onboarded: known });
@@ -56,6 +66,7 @@ function AppModeGate({ children }: { children: ReactNode }) {
           } catch {
             /* the choice still applies for this session */
           }
+          launched = { onboarded: true };
           setOnboarded(true);
         }}
       />
