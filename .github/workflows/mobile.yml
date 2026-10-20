@@ -45,6 +45,8 @@ jobs:
     timeout-minutes: 60
     env:
       NEXT_PUBLIC_REMOTE_ORIGIN: ${{ vars.QBASAIR_REMOTE_ORIGIN }}
+      # The public site, for the links on shared cards and posts (lib/site.ts).
+      NEXT_PUBLIC_SITE_URL: ${{ vars.QBASAIR_SITE_URL }}
       NEXT_PUBLIC_AUTH_ENABLED: "1"
     steps:
       - uses: actions/checkout@v4

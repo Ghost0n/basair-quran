@@ -10,16 +10,29 @@ import { AppModeRoot } from "@/features/app-mode/app-mode-root";
 import { APP_MODE } from "@/lib/app-mode/config";
 import { LOCALE_INIT_SCRIPT } from "@/lib/i18n/init-script";
 import { I18nProvider } from "@/lib/i18n/provider";
+import { SITE_URL } from "@/lib/site";
 
 import { t } from "@/lib/i18n";
 
 export const metadata: Metadata = {
+  // Absolute URLs for canonical links, Open Graph images and the sitemap (lib/site.ts).
+  metadataBase: new URL(SITE_URL),
   get title() {
     return t("بصائر القرآن");
   },
   get description() {
     return t("مساحة بحث قرآنية للباحث تجمع بين الاستكشاف والقراءة والسياق.");
   },
+  applicationName: "Basair",
+  // A shared link shows a card (Facebook, WhatsApp, X, Telegram…): the brand in both scripts.
+  // i18n-ignore
+  openGraph: {
+    type: "website",
+    siteName: "Basair · بصائر",
+    locale: "ar_AR",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "بصائر القرآن" }],
+  },
+  twitter: { card: "summary_large_image", images: ["/og-image.png"] },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
