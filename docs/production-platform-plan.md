@@ -164,7 +164,7 @@ native backups to R2.
 
 | Feature | Depends on the platform | Place |
 |---|---|---|
-| Community moderation: hourly agent batches on posts and comments, human gate, trust levels, posting bans | Yes (roles, PostgreSQL, worker) | **Brainstorm first** (rules and design feed the database), built after step 4 |
+| Community moderation: agent batches every 15 minutes on posts and comments, human gate, trust levels, posting bans | Yes (roles, PostgreSQL, worker) | Designed: `docs/community-moderation-design.md`; built after step 4 |
 | Admin and moderator account types + supervision panel (approvals, suspicious users, feedback) | Yes | After step 4 |
 | Feedback center: contact, bug report, help, feature idea, error reports, classed and reviewed in the panel | Yes | After step 4, with the panel |
 | Notifications for likes and comments (in-app; phone push later) | Yes; push needs the developer accounts | In-app after step 4, push at step 9 |
@@ -180,7 +180,7 @@ public address, clickable like a Facebook post.
 Order agreed: moderation brainstorm → quick wins (player, downloads, landing,
 SEO groundwork, share image) → platform steps 1–4 → moderation, panel,
 feedback center → notifications, share links, push.
-The background jobs (hourly moderation batches) run in a `worker` container
+The background jobs (moderation batches every 15 minutes) run in a `worker` container
 added to the Compose stack.
 
 ## Build order
