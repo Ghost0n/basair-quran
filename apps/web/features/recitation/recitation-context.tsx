@@ -21,6 +21,7 @@ import { usePreferences } from "@/lib/preferences-context";
 import { loadUntilReady } from "@/lib/retry";
 import { divisionRange, inRange, nextVerse, previousVerse, sameVerse, type VerseRange } from "@/lib/quran-ranges";
 
+import { SILENCE_URL, upcomingVerse } from "./upcoming";
 import { knownDurations, mergeDurations, rememberDurations } from "./verse-durations";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
@@ -145,14 +146,32 @@ const RecitationContext = createContext<RecitationValue | null>(null);
 
 const SPEEDS = [0.75, 1, 1.25, 1.5];
 
+/** Which reciter's verse an <audio> holds ("reciter:surah:ayah"). */
+const verseKey = (reciter: ReciterItem, position: RecitationPosition) => `${reciter.id}:${position.surah}:${position.ayah}`;
+
 /**
- * RecitationProvider — owns the single global <audio> element. Per-ayah
- * audio is streamed from each reciter's everyayah.com folder. Consumed by
- * the Recitation room and the Mushaf footer mini-player.
+ * RecitationProvider — owns the recitation's audio. Per-ayah audio is
+ * streamed from each reciter's everyayah.com folder (or a downloaded copy in
+ * the standalone app). Two <audio> elements take turns: while one recites a
+ * verse, the other already loads the verse that comes next (upcomingVerse),
+ * so when the verse ends the next one starts at once instead of waiting for
+ * its file to arrive. Consumed by the reader's dock, the phone player and the
+ * media bar.
  */
 export function RecitationProvider({ children }: { children: ReactNode }) {
   const { preferences } = usePreferences();
+  // The element reciting now; the other one (standby) loads the next verse.
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const elementsRef = useRef<(HTMLAudioElement | null)[]>([null, null]);
+  // What the standby element holds, once its file is set (verseKey).
+  const preloadedRef = useRef<string | null>(null);
+  // iOS lets an <audio> start without a tap once it has played under one.
+  const standbyPrimedRef = useRef(false);
+  // The latest load: a slower source lookup can't overwrite a newer verse.
+  const loadTokenRef = useRef(0);
+  // Counts switches to the standby element: a repeated verse (same position)
+  // still needs the next one loaded ahead.
+  const [swaps, setSwaps] = useState(0);
   const [reciters, setReciters] = useState<ReciterItem[]>([]);
   const [mushafs, setMushafs] = useState<MushafItem[]>([]);
   const [surahs, setSurahs] = useState<SurahListItem[]>([]);
@@ -205,12 +224,60 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     }
   }, [preferences.reciter, reciters, reciterId]);
 
+  const standby = useCallback((): HTMLAudioElement | null => {
+    const [first, second] = elementsRef.current;
+    return audioRef.current === first ? second : first;
+  }, []);
+
   const loadAndPlay = useCallback(
     (position: RecitationPosition, activeReciter: ReciterItem | null) => {
       const audio = audioRef.current;
       if (!audio || !activeReciter) return;
       setAyahTime(0);
+      const token = ++loadTokenRef.current;
+      const spare = standby();
+      // The verse is already loaded in the standby element: switch to it now.
+      if (spare && preloadedRef.current === verseKey(activeReciter, position)) {
+        preloadedRef.current = null;
+        audioRef.current = spare;
+        audio.pause();
+        spare.playbackRate = speed;
+        if (pendingSeekRef.current != null && spare.readyState >= 1) {
+          spare.currentTime = Math.min(pendingSeekRef.current, Math.max(0, spare.duration - 0.05));
+          pendingSeekRef.current = null;
+        } else if (spare.currentTime > 0) {
+          spare.currentTime = 0;
+        }
+        setProgress(0);
+        setSwaps((count) => count + 1);
+        void spare.play().then(
+          () => setIsPlaying(true),
+          () => setIsPlaying(false),
+        );
+        return;
+      }
+      // Played from a tap: let the standby element play once too (silently),
+      // so iOS later lets it start the next verse by itself.
+      if (spare && !standbyPrimedRef.current) {
+        standbyPrimedRef.current = true;
+        preloadedRef.current = null;
+        delete spare.dataset.verse;
+        spare.muted = true;
+        spare.src = SILENCE_URL;
+        void spare.play().then(
+          () => {
+            spare.pause();
+            spare.muted = false;
+          },
+          () => {
+            spare.muted = false;
+            standbyPrimedRef.current = false;
+          },
+        );
+      }
       void audioSource(activeReciter, position).then((src) => {
+        if (token !== loadTokenRef.current) return;
+        audio.dataset.verse = verseKey(activeReciter, position);
         audio.src = src;
         audio.playbackRate = speed;
         void audio.play().then(
@@ -219,7 +286,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
         );
       });
     },
-    [speed],
+    [speed, standby],
   );
 
   // Plays one verse, keeping any chosen range (advance, prev/next, repeat).
@@ -276,12 +343,26 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     }
   }, [current]);
 
+  // Forget the verse loaded ahead (the recitation stopped or went elsewhere).
+  const dropPreload = useCallback(() => {
+    preloadedRef.current = null;
+    const spare = standby();
+    if (spare && spare.dataset.verse) {
+      spare.pause();
+      delete spare.dataset.verse;
+      spare.removeAttribute("src");
+      spare.load();
+    }
+  }, [standby]);
+
   const stop = useCallback(() => {
+    loadTokenRef.current += 1;
     const audio = audioRef.current;
     if (audio) {
       audio.pause();
       audio.currentTime = 0;
     }
+    dropPreload();
     setIsPlaying(false);
     // Clear the active position AND the idle state so the media bar collapses
     // fully (it renders while `current` OR `idle`). Without this the bar was
@@ -291,7 +372,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     setIdle(false);
     setPendingStart(null);
     setRange(null);
-  }, []);
+  }, [dropPreload]);
 
   // The end of a chosen range: pause and leave the bar ready at its start.
   const finishRange = useCallback((start: RecitationPosition) => {
@@ -526,6 +607,29 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
     [surahTiming, seekSurah],
   );
 
+  // Load the verse that comes next into the standby element while this one
+  // plays, so it can start the moment this one ends.
+  useEffect(() => {
+    if (!current || !reciter) return;
+    const upcoming = upcomingVerse(current, { repeatAyah, range });
+    if (!upcoming) return;
+    const key = verseKey(reciter, upcoming);
+    if (preloadedRef.current === key) return;
+    let cancelled = false;
+    void audioSource(reciter, upcoming).then((src) => {
+      const spare = standby();
+      if (cancelled || !spare) return;
+      spare.preload = "auto";
+      spare.dataset.verse = key;
+      spare.src = src;
+      spare.load();
+      preloadedRef.current = key;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [current, reciter, repeatAyah, range, standby, swaps]);
+
   // Audio element event wiring.
   const handleEnded = useCallback(() => {
     if (repeatAyah && current) {
@@ -612,34 +716,45 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
   return (
     <RecitationContext.Provider value={value}>
       {children}
-      <audio
-        ref={audioRef}
-        onTimeUpdate={(event) => {
-          const audio = event.currentTarget;
-          setProgress(audio.duration > 0 ? audio.currentTime / audio.duration : 0);
-          setAyahTime(audio.currentTime);
-        }}
-        onLoadedMetadata={(event) => {
-          const audio = event.currentTarget;
-          // The playing verse's exact length joins the surah's durations.
-          if (reciter && current && Number.isFinite(audio.duration)) {
-            const list = durationsRef.current.get(`${reciter.id}:${current.surah}`);
-            if (list && Number.isNaN(list[current.ayah - 1])) {
-              list[current.ayah - 1] = audio.duration;
-              setDurationsVersion((version) => version + 1);
-            }
-          }
-          if (pendingSeekRef.current != null) {
-            audio.currentTime = Math.min(pendingSeekRef.current, Math.max(0, audio.duration - 0.05));
-            pendingSeekRef.current = null;
+      {[0, 1].map((slot) => (
+        <audio
+          key={slot}
+          ref={(element) => {
+            elementsRef.current[slot] = element;
+            if (slot === 0 && !audioRef.current) audioRef.current = element;
+          }}
+          onTimeUpdate={(event) => {
+            const audio = event.currentTarget;
+            if (audio !== audioRef.current) return;
+            setProgress(audio.duration > 0 ? audio.currentTime / audio.duration : 0);
             setAyahTime(audio.currentTime);
-          }
-        }}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-        onEnded={handleEnded}
-        hidden
-      />
+          }}
+          onLoadedMetadata={(event) => {
+            const audio = event.currentTarget;
+            // A verse's exact length joins its surah's durations (the one
+            // reciting, or the one loaded ahead).
+            const [reciterId, surah, ayah] = (audio.dataset.verse ?? "").split(":");
+            if (reciterId && Number.isFinite(audio.duration)) {
+              const list = durationsRef.current.get(`${reciterId}:${surah}`);
+              const index = Number(ayah) - 1;
+              if (list && Number.isNaN(list[index])) {
+                list[index] = audio.duration;
+                setDurationsVersion((version) => version + 1);
+              }
+            }
+            if (audio !== audioRef.current) return;
+            if (pendingSeekRef.current != null) {
+              audio.currentTime = Math.min(pendingSeekRef.current, Math.max(0, audio.duration - 0.05));
+              pendingSeekRef.current = null;
+              setAyahTime(audio.currentTime);
+            }
+          }}
+          onPlay={(event) => event.currentTarget === audioRef.current && setIsPlaying(true)}
+          onPause={(event) => event.currentTarget === audioRef.current && setIsPlaying(false)}
+          onEnded={(event) => event.currentTarget === audioRef.current && handleEnded()}
+          hidden
+        />
+      ))}
     </RecitationContext.Provider>
   );
 }
