@@ -16,6 +16,7 @@ grow without a redesign.
 | Hosting | **Contabo**, self-managed: Cloud VPS 30 (8 vCPU, 24 GB, 200 GB NVMe) for production, Cloud VPS 10 for staging. ≈ $17–20/month together. |
 | Edge | **Cloudflare** in front (DNS, CDN, DDoS, TLS). The origin only accepts Cloudflare's addresses. Main region Europe; users worldwide are served from Cloudflare's edge for cacheable content. |
 | Deploys | **GitHub Actions**: tests → images → staging → production, health-gated, one-command rollback. |
+| Runtime | **Docker Compose** on each server (zero-downtime switch behind Caddy after the new version's health check). Kept Kubernetes-ready; moves to **k3s + CloudNativePG** when we go multi-server. |
 | Identity | **Keycloak** (self-hosted, version pinned). Owns credentials, social links, email verification, password reset, brute-force protection, 2FA. |
 | Sign-in methods | Apple, Google, Meta (Facebook), email + password with verified email. |
 | App sign-in | **Native** Apple / Google / Meta buttons (provider SDK → token exchange with Keycloak, a preview feature: pinned and covered by tests). Email/password in our themed Keycloak page in a secure system sheet. |
@@ -59,6 +60,23 @@ Hostnames: `<domain>` (web), `auth.<domain>` (Keycloak), `staging.<domain>`,
 Growth path, in order, each without a redesign: a bigger VPS → PostgreSQL on
 its own server (or a managed database) → a second app server behind
 Cloudflare load balancing (the app keeps no state on disk) → PgBouncer.
+
+### Why Compose, not Kubernetes, at launch
+
+On one server Kubernetes adds no resilience (the node is the single point of
+failure either way) but adds memory (~0.5–1 GB even for k3s) and many moving
+parts (ingress, certificates, volumes, a PostgreSQL operator). Compose gives
+what one server needs: health-checked containers with restart policies,
+zero-downtime updates (start the new container, wait for `/ready`, switch
+Caddy's upstream, stop the old one; a failed check keeps the old one), pinned
+image tags and one-command rollback, the same file in CI, staging and locally.
+
+Rules that keep the move to k3s a small step: stateless app containers,
+configuration only through environment variables, images in GHCR,
+`/health` and `/ready` on every service, no host paths except the database
+volume. Switch when we need two or more app servers or zero downtime through
+a server failure: k3s, with CloudNativePG for PostgreSQL failover and its
+native backups to R2.
 
 ## Database (`app`)
 
