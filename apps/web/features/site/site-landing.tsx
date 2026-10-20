@@ -1,8 +1,9 @@
 "use client";
 
 import "./site.css";
+import "./landing/landing.css";
 
-import { type ReactNode } from "react";
+import { useRef, type PointerEvent, type ReactNode } from "react";
 
 import { BrandMark } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
@@ -12,20 +13,30 @@ import { useNumerals } from "@/lib/preferences-context";
 
 import { t } from "@/lib/i18n";
 
-// i18n-ignore — Quran text stays exactly as in the mushaf (data/quran.db, Ḥafṣ).
-const VERSE = { text: "هَٰذَا بَصَٰٓئِرُ لِلنَّاسِ وَهُدٗى وَرَحۡمَةٌ لِّقَوۡمٖ يُوقِنُونَ", surah: "الجاثية", ayah: 20 };
+import data from "./landing-data.json";
+import { QuranNumbers } from "./landing/numbers";
+import { GirihPattern } from "./landing/pattern";
+import { PhoneStory } from "./landing/phone-story";
+import { RootRibbon } from "./landing/root-ribbon";
+import { useInView } from "./landing/use-reveal";
+
+/** Al-Jāthiya 45:20 — «هذا بصائر للناس» — in the mushaf's text (landing-data.json). */
+const VERSE = data.basair.find((verse) => verse.surah === 45 && verse.ayah === 20)!;
 
 type Item = { icon: IconName; title: string; body: string };
 
 /**
- * The public face of «بصائر»: what it is for, what it offers, how it is built,
- * what it promises about privacy, and how its community behaves. Served at
- * /about (server-rendered, for search engines and shared links) and shown at
- * the app's door to web visitors who are neither signed in nor guests yet
- * (`onEnter` then opens the app in place).
+ * The public face of «بصائر» (docs/public-site.md), built around its name:
+ * a rosette that draws itself around the mark while the verse «هذا بصائر
+ * للناس» appears word by word; the root ب ص ر mapped over the 114 surahs
+ * (and any word the visitor types); the app told on a phone as you scroll;
+ * the Quran in numbers; a privacy pledge; the community's principles.
+ * Served at /about and shown at the app's door to web visitors (`onEnter`
+ * then opens the app in place).
  */
 export function SiteLanding({ onEnter }: { onEnter?: () => void }) {
   const formatNumber = useNumerals();
+  const heroRef = useRef<HTMLElement | null>(null);
 
   const enter = () => {
     if (onEnter) {
@@ -35,19 +46,25 @@ export function SiteLanding({ onEnter }: { onEnter?: () => void }) {
     continueAsGuest();
     window.location.assign("/");
   };
+  /** Open a screen of the app (the visitor becomes a guest on the way in). */
+  const open = (href: string) => {
+    continueAsGuest();
+    window.location.assign(href);
+  };
 
-  const goals: Item[] = [
+  // The light follows the pointer across the hero.
+  const follow = (event: PointerEvent<HTMLElement>) => {
+    const hero = heroRef.current;
+    if (!hero || event.pointerType === "touch") return;
+    const box = hero.getBoundingClientRect();
+    hero.style.setProperty("--mx", `${((event.clientX - box.left) / box.width) * 100}%`);
+    hero.style.setProperty("--my", `${((event.clientY - box.top) / box.height) * 100}%`);
+  };
+
+  const pillars: Item[] = [
     { icon: "book", title: t("القرآن أولاً"), body: t("كل جواب يُبنى على آيات تُعرض بنصّها ومرجعها، ويبقى الفهم البشري منفصلاً عن النص.") },
     { icon: "shieldCheck", title: t("دقّة يمكن التحقّق منها"), body: t("البحث في الكلمات والجذور حتميّ وقابل للتكرار: النتيجة نفسها لكل باحث، مع مواضعها في المصحف.") },
     { icon: "globe", title: t("متاح للجميع"), body: t("مجاني، بأكثر من عشرين لغة للواجهة، ويعمل على الهاتف دون اتصال.") },
-  ];
-  const features: Item[] = [
-    { icon: "page", title: t("المصحف الأصيل"), body: t("صفحات مصحف المدينة النبوية كما طُبعت، أو آيةً آية مع ترجمات المعاني.") },
-    { icon: "search", title: t("البحث في الكلمات والجذور"), body: t("ابحث بكلمة أو جذر أو عبارة، واعرف مواضعها وانتشارها في السور.") },
-    { icon: "ear", title: t("التلاوة"), body: t("قرّاء متعدّدون، وتكرار الآية أو المقطع، وصفحةٌ تتبع التلاوة.") },
-    { icon: "sparkles", title: t("الدراسة الموجَّهة"), body: t("اطرح سؤالك فيجيبك الباحث الآلي من الآيات وحدها؛ والقراءة التفسيرية تجريبية وموسومة.") },
-    { icon: "notebook", title: t("الدفتر واللوحات"), body: t("احفظ الآيات وصنّفها في مواضيع، واربط بينها في لوحات، وحوّلها إلى بحث.") },
-    { icon: "users", title: t("المجتمع"), body: t("شارك أبحاثك مع الباحثين وفق إرشادات تحفظ الأدب والأمانة العلمية.") },
   ];
   const technical: Item[] = [
     { icon: "smartphone", title: t("يعمل دون اتصال"), body: t("المصحف والبحث والتلاوات المنزَّلة تعمل على جهازك بلا إنترنت.") },
@@ -61,7 +78,7 @@ export function SiteLanding({ onEnter }: { onEnter?: () => void }) {
     t("اقرأ وابحث دون حساب"),
     t("احذف حسابك وبياناتك متى شئت"),
   ];
-  const guidelines = [
+  const principles = [
     { title: t("القرآن هو الدليل"), body: t("انقل الآيات بنصّها ومرجعها، وفرّق بين الآية وفهمك لها.") },
     { title: t("تدبّر لا فتوى"), body: t("صِف ما تقدّمه بدقّة: تأمّل شخصي أو خلاصة بحث أو نقل موثَّق.") },
     { title: t("الأدب والاحترام"), body: t("ناقش الفكرة لا الشخص، بلا سخرية ولا تجريح ولا طعن طائفي.") },
@@ -69,15 +86,15 @@ export function SiteLanding({ onEnter }: { onEnter?: () => void }) {
   ];
 
   return (
-    <div className="qb-site">
+    <div className="qb-site qb-landing">
       <header className="qb-site-bar">
         <a className="brand" href="/about" aria-label={t("بصائر القرآن")}>
           <BrandMark size={34} />
           <span>{t("بصائر")}</span>
         </a>
         <nav aria-label={t("أقسام الصفحة")}>
+          <a href="#root">{t("الجذر")}</a>
           <a href="#features">{t("المزايا")}</a>
-          <a href="#technical">{t("التقنية")}</a>
           <a href="#privacy">{t("الخصوصية")}</a>
           <a href="#guidelines">{t("الإرشادات")}</a>
         </nav>
@@ -87,70 +104,112 @@ export function SiteLanding({ onEnter }: { onEnter?: () => void }) {
       </header>
 
       <main>
-        <section className="qb-site-hero">
-          <span className="mark">
-            <BrandMark size={84} />
-          </span>
-          <p className="eyebrow">{t("بصائر القرآن")}</p>
-          <h1>{t("تدبّرٌ يقوم على الدليل")}</h1>
-          <p className="lead">{t("مصحفٌ أصيل، وبحثٌ دقيق في الكلمات والجذور، ودراسةٌ موجَّهة لا تستند إلا إلى الآيات.")}</p>
-          <div className="actions">
-            <button type="button" className="qb-site-cta" onClick={enter}>
-              {t("ابدأ القراءة")}
-            </button>
+        <section ref={heroRef} className="qb-hero" onPointerMove={follow} aria-labelledby="hero-title">
+          <div className="light" aria-hidden="true" />
+          <GirihPattern className="pattern" />
+          <div className="inner">
+            <span className="mark">
+              <BrandMark size={92} />
+            </span>
+            <p className="eyebrow">{t("بصائر القرآن")}</p>
+            <h1 id="hero-title">{t("تدبّرٌ يقوم على الدليل")}</h1>
+            <figure className="verse">
+              <blockquote lang="ar" dir="rtl">
+                {VERSE.text.split(" ").map((word, index) => (
+                  <span key={index} style={{ animationDelay: `${700 + index * 160}ms` }}>
+                    {word}{" "}
+                  </span>
+                ))}
+              </blockquote>
+              <figcaption>
+                {VERSE.surah_name}: {formatNumber(VERSE.ayah)}
+              </figcaption>
+            </figure>
+            <p className="lead">{t("مصحفٌ أصيل، وبحثٌ دقيق في الكلمات والجذور، ودراسةٌ موجَّهة لا تستند إلا إلى الآيات.")}</p>
+            <div className="actions">
+              <button type="button" className="qb-site-cta" onClick={enter}>
+                {t("ابدأ القراءة")}
+              </button>
+              {AUTH_ENABLED ? (
+                <a className="qb-site-ghost" href="/login?tab=signup">
+                  {t("أنشئ حساباً")}
+                </a>
+              ) : null}
+            </div>
             {AUTH_ENABLED ? (
-              <a className="qb-site-ghost" href="/login?tab=signup">
-                {t("أنشئ حساباً")}
-              </a>
+              <p className="signin">
+                {t("لديك حساب؟")} <a href="/login">{t("تسجيل الدخول")}</a>
+              </p>
             ) : null}
           </div>
-          {AUTH_ENABLED ? (
-            <p className="signin">
-              {t("لديك حساب؟")} <a href="/login">{t("تسجيل الدخول")}</a>
-            </p>
-          ) : null}
-          <figure className="verse">
-            <blockquote lang="ar" dir="rtl">
-              {VERSE.text}
-            </blockquote>
-            <figcaption>
-              {VERSE.surah}: {formatNumber(VERSE.ayah)}
-            </figcaption>
-          </figure>
+          <a className="scroll-cue" href="#root" aria-label={t("الجذر")}>
+            <Icon name="chevDown" size={20} />
+          </a>
         </section>
 
-        <Section id="goals" title={t("لماذا بصائر؟")}>
-          <Grid items={goals} wide />
-        </Section>
+        <Reveal className="qb-pillars">
+          {pillars.map((item) => (
+            <article key={item.title}>
+              <span className="ico">
+                <Icon name={item.icon} size={20} />
+              </span>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+            </article>
+          ))}
+        </Reveal>
 
-        <Section id="features" title={t("ما تجده في بصائر")}>
-          <Grid items={features} />
-        </Section>
+        <RootRibbon onOpen={open} />
 
-        <Section id="technical" title={t("تحت الغطاء")}>
-          <Grid items={technical} pairs />
-        </Section>
+        <PhoneStory />
 
-        <Section id="privacy" title={t("وعودنا في الخصوصية")}>
-          <ul className="qb-site-promises">
-            {promises.map((text) => (
-              <li key={text}>
-                <Icon name="check" size={18} />
-                <span>{text}</span>
-              </li>
-            ))}
-          </ul>
-        </Section>
-
-        <Section id="guidelines" title={t("إرشادات المجتمع")} lead={t("مجتمع للتدبّر الجادّ، يُقدَّم فيه الدليل على الرأي، ويُحترم فيه القرآن والناس.")}>
-          <ol className="qb-site-rules">
-            {guidelines.map((rule, index) => (
-              <li key={rule.title}>
-                <span className="num">{formatNumber(index + 1)}</span>
+        <Reveal className="qb-under" id="technical" title={t("تحت الغطاء")}>
+          <div className="rows">
+            {technical.map((item) => (
+              <article key={item.title}>
+                <Icon name={item.icon} size={20} />
                 <div>
-                  <h3>{rule.title}</h3>
-                  <p>{rule.body}</p>
+                  <h3>{item.title}</h3>
+                  <p>{item.body}</p>
                 </div>
+              </article>
+            ))}
+          </div>
+        </Reveal>
+
+        <section className="qb-numbers-band" aria-label={t("القرآن في أرقام")}>
+          <h2>{t("القرآن في أرقام")}</h2>
+          <QuranNumbers />
+        </section>
+
+        <Reveal className="qb-pledge-wrap" id="privacy">
+          <div className="qb-pledge">
+            <span className="seal" aria-hidden="true">
+              <BrandMark size={44} />
+            </span>
+            <h2>{t("عهدُ بصائر")}</h2>
+            <p className="sub">{t("وعودنا في الخصوصية")}</p>
+            <ul>
+              {promises.map((text) => (
+                <li key={text}>
+                  <Icon name="check" size={18} />
+                  <span>{text}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="signature">{t("— فريق بصائر")}</p>
+          </div>
+        </Reveal>
+
+        <Reveal className="qb-principles" id="guidelines" title={t("إرشادات المجتمع")} lead={t("مجتمع للتدبّر الجادّ، يُقدَّم فيه الدليل على الرأي، ويُحترم فيه القرآن والناس.")}>
+          <ol>
+            {principles.map((rule, index) => (
+              <li key={rule.title}>
+                <span className="num" aria-hidden="true">
+                  {formatNumber(index + 1)}
+                </span>
+                <h3>{rule.title}</h3>
+                <p>{rule.body}</p>
               </li>
             ))}
           </ol>
@@ -158,9 +217,10 @@ export function SiteLanding({ onEnter }: { onEnter?: () => void }) {
             {t("اقرأ الإرشادات كاملة")}
             <Icon name="chevLeft" size={16} />
           </a>
-        </Section>
+        </Reveal>
 
-        <section className="qb-site-final">
+        <section className="qb-final">
+          <GirihPattern className="pattern" />
           <h2>{t("ابدأ رحلتك مع القرآن")}</h2>
           <button type="button" className="qb-site-cta" onClick={enter}>
             {t("ابدأ القراءة")}
@@ -179,28 +239,26 @@ export function SiteLanding({ onEnter }: { onEnter?: () => void }) {
   );
 }
 
-function Section({ id, title, lead, children }: { id: string; title: string; lead?: string; children: ReactNode }) {
+/** A section that rises in once it scrolls into view. */
+function Reveal({
+  className,
+  id,
+  title,
+  lead,
+  children,
+}: {
+  className: string;
+  id?: string;
+  title?: string;
+  lead?: string;
+  children: ReactNode;
+}) {
+  const [ref, inView] = useInView<HTMLElement>();
   return (
-    <section id={id} className="qb-site-section" aria-labelledby={`${id}-title`}>
-      <h2 id={`${id}-title`}>{title}</h2>
+    <section ref={ref} id={id} className={`qb-reveal ${className}${inView ? " is-in" : ""}`} aria-labelledby={title && id ? `${id}-title` : undefined}>
+      {title ? <h2 id={id ? `${id}-title` : undefined}>{title}</h2> : null}
       {lead ? <p className="section-lead">{lead}</p> : null}
       {children}
     </section>
-  );
-}
-
-function Grid({ items, wide = false, pairs = false }: { items: Item[]; wide?: boolean; pairs?: boolean }) {
-  return (
-    <div className={`qb-site-grid${wide ? " wide" : ""}${pairs ? " pairs" : ""}`}>
-      {items.map((item) => (
-        <article key={item.title} className="qb-site-card">
-          <span className="ico">
-            <Icon name={item.icon} size={20} />
-          </span>
-          <h3>{item.title}</h3>
-          <p>{item.body}</p>
-        </article>
-      ))}
-    </div>
   );
 }
