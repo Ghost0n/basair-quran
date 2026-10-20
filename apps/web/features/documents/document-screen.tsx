@@ -29,6 +29,7 @@ import { AyahPicker } from "./ayah-picker";
 import { DocumentBoard } from "./document-board";
 import { parseBoardSource } from "@/features/board/board-model";
 import { PublishSheet } from "./publish-sheet";
+import { publicOrigin } from "@/lib/site";
 import { ShareStudio, type ShareArtifact } from "./share-studio";
 
 import { t, tn } from "@/lib/i18n";
@@ -513,6 +514,9 @@ export function DocumentScreen() {
               mode: doc.provenance.mode ?? null,
               sections: doc.sections,
               aiSectionIds: doc.provenance.ai_sections,
+              // Not published: the card points to the app itself.
+              url: publicOrigin(),
+              urlIsApp: true,
             }}
             references={doc.references}
             surahName={surahName}
