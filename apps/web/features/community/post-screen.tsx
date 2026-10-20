@@ -135,7 +135,9 @@ export function PostScreen() {
 
   async function copyLink() {
     try {
-      await navigator.clipboard.writeText(postUrl(postId));
+      const url = postUrl(postId);
+      if (!url) throw new Error("no public address");
+      await navigator.clipboard.writeText(url);
       say(t("نُسخ الرابط."));
     } catch {
       say(t("تعذّر النسخ."));
