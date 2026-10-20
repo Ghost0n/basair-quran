@@ -551,7 +551,18 @@ export function MushafStage() {
     let frame = 0;
     let tries = 0;
     const locate = () => {
-      const word = surfaceRef.current?.querySelector<HTMLElement>(`[data-wk^="${recitingKey}:"]`) ?? null;
+      // The verse on the page in view — not on the pages drawn beside it for
+      // the swipe (.qb-swipe-slot), which would hide that it has moved on.
+      const matches = Array.from(surfaceRef.current?.querySelectorAll<HTMLElement>(`[data-wk^="${recitingKey}:"]`) ?? []);
+      const word = matches.find((element) => !element.closest(".qb-swipe-slot")) ?? null;
+      // It has moved on to the next page, already drawn beside: turn to it at
+      // once, gliding over as a swipe does.
+      if (!word && followedRef.current !== recitingKey && matches.some((element) => element.closest(".qb-swipe-slot.next"))) {
+        followedRef.current = recitingKey;
+        setRecitingAyahId(null);
+        glideTurnRef.current("next");
+        return;
+      }
       if (word) {
         setRecitingAyahId(word.dataset.aid ? Number(word.dataset.aid) : null);
         if (ayahMode && followedRef.current !== `${recitingKey}@scroll`) {
@@ -632,6 +643,20 @@ export function MushafStage() {
     track.style.transition = animate ? "transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)" : "none";
     track.style.transform = offset ? `translateX(${offset}px)` : "";
   };
+  // Glide the track a full page over, then turn (a swipe let go, or the
+  // recitation moving on to the page drawn beside this one).
+  const glideTurn = (turn: "next" | "prev", width = trackRef.current?.offsetWidth ?? window.innerWidth) => {
+    if (currentPage == null) return;
+    dragTo(turn === "next" ? width : -width, true);
+    const target = turn === "next" ? currentPage + 1 : currentPage - 1;
+    window.setTimeout(() => {
+      setTurning(target);
+      if (turn === "next") goNextRef.current();
+      else goPrevRef.current();
+    }, 240);
+  };
+  const glideTurnRef = useRef(glideTurn);
+  glideTurnRef.current = glideTurn;
   const drag = swipeTrack
     ? {
         onDrag: (dx: number) => {
@@ -655,14 +680,8 @@ export function MushafStage() {
             settleIntoPage();
             return;
           }
-          dragTo(turn === "next" ? width : -width, true);
-          const target = turn === "next" ? currentPage + 1 : currentPage - 1;
-          window.setTimeout(() => {
-            setTurning(target);
-            if (turn === "next") goNextRef.current();
-            else goPrevRef.current();
-            settleIntoPage();
-          }, 240);
+          glideTurn(turn, width);
+          window.setTimeout(settleIntoPage, 240);
         },
       }
     : undefined;
