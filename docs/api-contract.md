@@ -103,7 +103,8 @@ This document freezes the backend contract that the future frontend migration wi
   phrase: {quran, surah?, page?}, letters: [{letter, in_selection, quran, surah?, page?}]}`.
   `surah` / `page` counts are `null` unless that scope is requested.
 - Deterministic and rasm-based: counted on the mushaf's undiacritized text with the search
-  normalization (alif forms folded to ا, lone hamza and tatweel dropped). A phrase counts as a
+  normalization (alif forms folded to ا, lone hamza and tatweel dropped, Qālūn/Warsh «ے» read as ي
+  and a yā' with a separate hamza mark as ئ). A phrase counts as a
   whole-word sequence inside one ayah (so «رب العالمين» does not count «لرب العالمين»); `page` is the
   ayah's starting page (the first page of a boundary range such as `"85-86"`).
 - `text` is 1–300 chars and at most 12 words (`422` otherwise, or when it has no letters to count).

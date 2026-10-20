@@ -13,6 +13,9 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 - One command bar (`⌘K` / `/`) that searches and navigates, and routes a
   natural-language question to the Studio (prefilled and submitted).
 - Smart exact-word search with safe handling for Arabic prefixes and Quranic orthography.
+  Every narration is searched alike: Qālūn and Warsh write a final yā' as «ے» (فِے, رَبِّے) and
+  some «ئ» as a yā' with a separate hamza mark; search reads them as ي and ئ, so «ربي» or «في» finds
+  the same verses in every narration (`fold_narration_letters`, mirrored in `packages/offline-engine`).
 - Root search with paginated result cards.
 - Compound phrase search within a single ayah.
 - High-confidence "did you mean" suggestions for close misses.
