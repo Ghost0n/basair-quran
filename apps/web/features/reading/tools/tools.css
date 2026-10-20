@@ -190,9 +190,10 @@
   stroke: rgba(96, 196, 172, 0.24);
 }
 
+/* No fade-in: the recited verse is simply lit — it used to flash each time
+   its page came back into view. */
 .qb-verse-outlines .is-recite {
   filter: drop-shadow(0 0 7px rgba(96, 196, 172, 0.2));
-  animation: qbOutlineIn 220ms var(--motion-ease-settle, ease-out);
 }
 
 .qb-verse-outlines .is-focus path {

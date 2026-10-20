@@ -12,6 +12,7 @@ import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { useRecitation } from "@/features/recitation/recitation-context";
 import { toggleRevealed } from "@/features/recitation/session-view";
+import { isFollowPaused, setFollowPaused, showRecitedPending, takeShowRecited, useShowRecitedRequests } from "@/features/recitation/follow";
 import { usePhoneLayout } from "@/lib/use-phone-layout";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { divisionOf, divisionRange } from "@/lib/quran-ranges";
@@ -216,12 +217,21 @@ export function MushafStage() {
     openAttemptRef.current = 0;
     freshPageRef.current = null;
     const recited = recitedRef.current;
+    // «الآية المتلوّة» from another screen: the effect below opens on it.
+    if (recited && showRecitedPending()) return;
+    // A place opened on purpose (a search result, a library verse…) shows
+    // as if nothing were being recited: the reader stops following the
+    // recitation until «الآية المتلوّة» brings it back (follow.ts).
+    if (entry === "explicit") {
+      if (recited) setFollowPaused(true);
+      return;
+    }
     if (recited) {
       // A recitation under way: open where the reciter is.
+      setFollowPaused(false);
       void mushaf.loadBySurah(selectedMushaf, recited.surah, recited.ayah);
       return;
     }
-    if (entry === "explicit") return;
     // Back in the reader: where it was left (a page on screen already).
     if (entry === "keep" && mushaf.pageData) return;
     if (entry === "fresh") {
@@ -542,10 +552,18 @@ export function MushafStage() {
   const recitingKey = reciting ? `${reciting.surah}:${reciting.ayah}` : null;
   const followedRef = useRef<string | null>(null);
   const showAyahPage = mushaf.showAyahPage;
+  // The recited verse isn't on screen (another page, or the reader stopped
+  // following it): the dock offers «الآية المتلوّة».
+  const [recitedAway, setRecitedAway] = useState(false);
+  // Bumped by «الآية المتلوّة»: follow again, from the verse being recited.
+  const [followNonce, setFollowNonce] = useState(0);
   useEffect(() => {
     if (!recitingKey || !reciting) {
       setRecitingAyahId(null);
+      setRecitedAway(false);
       followedRef.current = null;
+      // The recitation ended: the next one is followed again.
+      setFollowPaused(false);
       return;
     }
     let frame = 0;
@@ -555,6 +573,17 @@ export function MushafStage() {
       // the swipe (.qb-swipe-slot), which would hide that it has moved on.
       const matches = Array.from(surfaceRef.current?.querySelectorAll<HTMLElement>(`[data-wk^="${recitingKey}:"]`) ?? []);
       const word = matches.find((element) => !element.closest(".qb-swipe-slot")) ?? null;
+      // Not following (a place opened on purpose): light the verse where it
+      // shows, move nothing. On the page in view it has caught up: follow again
+      // (verse by verse the list holds the surah, so only the button resumes).
+      if (isFollowPaused()) {
+        if (word && !ayahMode) setFollowPaused(false);
+        else {
+          setRecitingAyahId(word?.dataset.aid ? Number(word.dataset.aid) : null);
+          setRecitedAway(true);
+          return;
+        }
+      }
       // It has moved on to the next page, already drawn beside: turn to it at
       // once, gliding over as a swipe does.
       if (!word && followedRef.current !== recitingKey && matches.some((element) => element.closest(".qb-swipe-slot.next"))) {
@@ -565,6 +594,7 @@ export function MushafStage() {
       }
       if (word) {
         setRecitingAyahId(word.dataset.aid ? Number(word.dataset.aid) : null);
+        setRecitedAway(false);
         if (ayahMode && followedRef.current !== `${recitingKey}@scroll`) {
           followedRef.current = `${recitingKey}@scroll`;
           const row = word.closest<HTMLElement>(".qb-ayah-row") ?? word;
@@ -584,6 +614,7 @@ export function MushafStage() {
         return;
       }
       setRecitingAyahId(null);
+      setRecitedAway(true);
       if (followedRef.current === recitingKey || !pageData) return;
       const onPage = pageData.ayahs.some((ayah) => ayah.surah_id === reciting.surah && ayah.ayah === reciting.ayah);
       if (onPage) return;
@@ -593,7 +624,28 @@ export function MushafStage() {
     locate();
     return () => cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recitingKey, ayahMode, pageData, layout, facing.layout, showSpread]);
+  }, [recitingKey, ayahMode, pageData, layout, facing.layout, showSpread, followNonce]);
+
+  // «الآية المتلوّة»: back to the verse being recited, and to following it.
+  const showRecited = useCallback(() => {
+    const recited = recitedRef.current;
+    if (!recited) return;
+    setFollowPaused(false);
+    followedRef.current = null;
+    setFollowNonce((value) => value + 1);
+  }, []);
+  // The same, asked from another screen (the capsule): once the reader shows.
+  const showRequests = useShowRecitedRequests();
+  useEffect(() => {
+    if (!entering || !ready || !showRecitedPending()) return;
+    takeShowRecited();
+    const recited = recitedRef.current;
+    if (!recited) return;
+    setFollowPaused(false);
+    followedRef.current = null;
+    void mushaf.loadBySurah(selectedMushaf, recited.surah, recited.ayah);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showRequests, entering, ready]);
 
   // Desktop page ribbons: outline / red, a click (un)saves that page.
   const savedPages = useSavedPages();
@@ -972,6 +1024,8 @@ export function MushafStage() {
         onCloseDisplay={() => setDisplayOpen(false)}
         onToggleImmersive={() => setImmersive((value) => !value)}
         locked={sessionActive}
+        recitedAway={recitedAway}
+        onShowRecited={showRecited}
       />
 
       {/* The reading surface: touch swipe turns the page (paged modes), a tap on

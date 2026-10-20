@@ -66,6 +66,8 @@ export const ICON_PATHS = {
   cards: "M3 5h12v12H3zM7 9h12v12H7",
   page: "M6 3h9l4 4v14H6zM14 3v5h5",
   mosque: "M4 21V11l8-7 8 7v10M9 21v-6h6v6M12 4v3",
+  // A target: back to the verse being recited.
+  locate: "M12 5a7 7 0 1 1 0 14a7 7 0 0 1 0-14zM12 9.5a2.5 2.5 0 1 1 0 5a2.5 2.5 0 0 1 0-5zM12 2v3M12 19v3M2 12h3M19 12h3",
   compass: "M12 3a9 9 0 1 1 0 18a9 9 0 0 1 0-18zM15 9l-2 6-4 2 2-6z",
   command: "M9 6h-3a3 3 0 1 0 3 3v0v6v0a3 3 0 1 0-3 3h3 M15 6h3a3 3 0 1 1-3 3v0v6v0a3 3 0 1 1 3 3h-3 M9 6h6v12H9z",
   // Strict evidence (gold) — shield with check. Tafssir (copper) — flask.
