@@ -90,6 +90,14 @@ native backups to R2.
   status), `ai_usage` (one row per study question: user, provider, tokens,
   outcome).
 - `audit_log`: sign-ins, links, deletions, exports, admin actions.
+- Designed now for the product features below (built later, no structural
+  migration then): `user_trust` (unverified / verified / suspicious /
+  banned from posting, declined-check count), roles mirrored from Keycloak
+  (`admin`, `moderator`), `moderation_checks` (one row per agent or human
+  check of a post or comment: verdict, reasons, model, guidelines version),
+  `moderation_queue` (human approvals, declined checks, suspicious users),
+  `notifications` + `push_devices`, `feedback_tickets` (class, status,
+  attachments, linked error report).
 - Every user-owned row: `user_id` (indexed, cascade on account deletion),
   `created_at`, `updated_at`, `deleted_at` (soft delete for the app's sync,
   purged after 30 days).
@@ -151,6 +159,29 @@ native backups to R2.
   only env file on each server.
 - Legal: privacy policy, terms, account-deletion page (App Store requirement),
   data export.
+
+## Product features (after or beside the platform)
+
+| Feature | Depends on the platform | Place |
+|---|---|---|
+| Community moderation: hourly agent batches on posts and comments, human gate, trust levels, posting bans | Yes (roles, PostgreSQL, worker) | **Brainstorm first** (rules and design feed the database), built after step 4 |
+| Admin and moderator account types + supervision panel (approvals, suspicious users, feedback) | Yes | After step 4 |
+| Feedback center: contact, bug report, help, feature idea, error reports, classed and reviewed in the panel | Yes | After step 4, with the panel |
+| Notifications for likes and comments (in-app; phone push later) | Yes; push needs the developer accounts | In-app after step 4, push at step 9 |
+| Lock-screen player with logo, Dynamic Island, Android media notification | No | Before the platform |
+| Offline recitation downloads per reciter (iPhone / Android only) | No (per-surah download exists in the app's settings) | Before the platform |
+| Landing page (goals, features, technical highlights, privacy, community guidelines) in the app's design language | No (final URLs need the domain) | Before the platform |
+| Search engine visibility: public pages for surahs, verses and posts, metadata, sitemap | Partly (domain) | Groundwork before, finished with the domain |
+| Sharing a research to Instagram / Facebook: a share image, and the **post's public link** that shows a rich preview card (Open Graph) and opens the app when installed (universal / app links) | The link and app opening need the domain and app link verification | Image before, links after the domain |
+
+There is no referral program: the shared link is simply the post's own
+public address, clickable like a Facebook post.
+
+Order agreed: moderation brainstorm → quick wins (player, downloads, landing,
+SEO groundwork, share image) → platform steps 1–4 → moderation, panel,
+feedback center → notifications, share links, push.
+The background jobs (hourly moderation batches) run in a `worker` container
+added to the Compose stack.
 
 ## Build order
 
