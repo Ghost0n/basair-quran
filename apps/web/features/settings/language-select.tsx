@@ -5,19 +5,22 @@ import { useState } from "react";
 import { SelectMenu } from "@/components/select-menu";
 import { APP_MODE } from "@/lib/app-mode/config";
 import { LOCALES, t } from "@/lib/i18n";
+import { numeralsForLanguageChoice } from "@/lib/i18n/first-language";
 import { useI18n } from "@/lib/i18n/provider";
 import { usePreferences } from "@/lib/preferences-context";
 
 /**
  * The interface language picker (native names). Choosing a language switches
  * this device and saves it on the account (so it follows the reader to other
- * devices). The digits stay as chosen («الأرقام» is its own setting). In the
+ * devices). The digits stay as chosen («الأرقام» is its own setting), except
+ * on the first choice, which brings the language's usual digits
+ * (`numeralsForLanguageChoice`; the app's onboarding does the same). In the
  * standalone app it first downloads the language (interface + translation of
  * meanings).
  */
 export function LanguageSelect({ className = "" }: { className?: string }) {
-  const { locale, setLocale } = useI18n();
-  const { updateAccount } = usePreferences();
+  const { locale, setLocale, explicit } = useI18n();
+  const { account, updateAccount } = usePreferences();
   const [failed, setFailed] = useState(false);
   return (
     <>
@@ -35,7 +38,13 @@ export function LanguageSelect({ className = "" }: { className?: string }) {
               .catch(() => setFailed(true));
             return;
           }
-          void updateAccount({ ui_language: code }).catch(() => {});
+          const numerals = numeralsForLanguageChoice({
+            code,
+            explicit,
+            accountLanguage: account.ui_language,
+            accountNumerals: account.numerals,
+          });
+          void updateAccount({ ui_language: code, ...(numerals ? { numerals } : {}) }).catch(() => {});
           void setLocale(code);
         }}
       />
