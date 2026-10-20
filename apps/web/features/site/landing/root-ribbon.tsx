@@ -138,8 +138,9 @@ export function RootRibbon({ onOpen }: { onOpen: (href: string) => void }) {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={t("جرّب كلمةً أو جذراً")}
-          dir="rtl"
-          lang="ar"
+          // Typed words are Arabic; the placeholder follows the interface.
+          dir={query ? "rtl" : undefined}
+          lang={query ? "ar" : undefined}
           autoComplete="off"
           enterKeyHint="search"
         />

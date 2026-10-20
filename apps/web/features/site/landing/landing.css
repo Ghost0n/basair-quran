@@ -454,6 +454,11 @@
   font: inherit;
   font-size: 18px;
   outline: none;
+  text-overflow: ellipsis;
+}
+
+.qb-root .try input::placeholder {
+  font-size: 15px;
 }
 
 .qb-root .examples {
