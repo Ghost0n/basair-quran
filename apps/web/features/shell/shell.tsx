@@ -18,6 +18,7 @@ import { RecitationProvider } from "@/features/recitation/recitation-context";
 import { PhonePlayer } from "@/features/recitation/phone-player";
 import { RecitationBar } from "@/features/recitation/recitation-bar";
 import { RecitationSessionAttributes } from "@/features/recitation/session-view";
+import { RecitationMediaSession } from "@/features/recitation/media-session";
 import { AuthSessionProvider } from "@/lib/auth-session-context";
 import { PreferencesProvider } from "@/lib/preferences-context";
 import { usePhoneLayout } from "@/lib/use-phone-layout";
@@ -86,6 +87,7 @@ export function Shell({ children }: { children: ReactNode }) {
               {phone ? <PhonePlayer /> : null}
             </div>
             <RecitationSessionAttributes />
+            <RecitationMediaSession />
             <EdgeSwipeBack />
             <ShellModeAttribute />
             <ShortcutsModal />
