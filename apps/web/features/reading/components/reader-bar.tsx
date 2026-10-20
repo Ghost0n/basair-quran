@@ -56,6 +56,8 @@ export function ReaderBar({
   onCloseDisplay,
   onToggleImmersive,
   locked = false,
+  recitedAway = false,
+  onShowRecited,
 }: {
   pageData: QuranPageResponse;
   surahs: SurahListItem[];
@@ -76,6 +78,9 @@ export function ReaderBar({
   onToggleImmersive: () => void;
   /** A recitation is open: the reading tools are locked (dimmed, unreachable) until it is closed. */
   locked?: boolean;
+  /** The recited verse isn't on screen: the dock offers «الآية المتلوّة». */
+  recitedAway?: boolean;
+  onShowRecited?: () => void;
 }) {
   const headRef = useRef<HTMLDivElement | null>(null);
   const formatNumber = useNumerals();
@@ -288,6 +293,8 @@ export function ReaderBar({
   if (dock) {
     const reciteView = recitation.active && reciteOpen;
     const live = recitation.active && !reciteView;
+    // Settings changed from their defaults (repeat, speed): a dot on the button.
+    const customised = recitation.repeatMode !== "off" || recitation.speed !== 1;
     const corner = <div className="qb-reader-corner">{bookmark}</div>;
     const back = (
       <button
@@ -312,17 +319,29 @@ export function ReaderBar({
         <div className={`qb-reader-bar qb-reader-dock${reciteView ? " is-reciting" : ""}${locked ? " is-locked" : ""}`}>
           {reciteView ? (
             <div className={`actions recite${swapClass}`} key="recite">
+              {/* Flanking the transport, which stays centred: the way back to
+                  the recited verse (when it isn't on screen) and the settings. */}
+              <span className="flank start">
+                {recitedAway && onShowRecited ? (
+                  <button type="button" className="round locate-btn" onClick={onShowRecited} aria-label={t("الآية المتلوّة")} title={t("الآية المتلوّة")}>
+                    <Icon name="locate" size={19} />
+                  </button>
+                ) : null}
+              </span>
               <Transport />
-              <button
-                type="button"
-                className="act labelled reciter-btn"
-                onClick={() => setSheetOpen(true)}
-                aria-haspopup="dialog"
-                aria-label={t("إعدادات التلاوة")}
-              >
-                <Icon name="sliders" size={18} />
-                <span className="lbl">{t("الإعدادات")}</span>
-              </button>
+              <span className="flank end">
+                <button
+                  type="button"
+                  className="round reciter-btn"
+                  onClick={() => setSheetOpen(true)}
+                  aria-haspopup="dialog"
+                  aria-label={t("إعدادات التلاوة")}
+                  title={t("إعدادات التلاوة")}
+                >
+                  <Icon name="sliders" size={18} />
+                  {customised ? <span className="dot" aria-hidden="true" /> : null}
+                </button>
+              </span>
             </div>
           ) : (
             <div className={`actions${swapClass}`} key="tools">
