@@ -78,8 +78,22 @@ MORPHOLOGY_PATH = os.path.join(DATA_DIR, "quran-morphology.txt")
 # =============================================================================
 
 
+# Qālūn and Warsh write some letters the other narrations write otherwise: a
+# yā' barī «ے» is a yā' (فِے, رَبِّے), and a yā' carrying a separate hamza
+# mark is «ئ» (يَسْتَهْزِۓُ). Folded before any other normalization so that
+# a word reads, and is searched, the same in every narration.
+_SEATED_HAMZA_RE = re.compile(r"[\u064A\u06D2]([\u064B-\u0653\u0655-\u065F\u0670]*)\u0654")
+
+
+def fold_narration_letters(text):
+    """Fold the narrations' spellings of yā' and seated hamza (see above)."""
+    text = _SEATED_HAMZA_RE.sub(lambda match: "\u0626" + match.group(1), text)
+    return text.replace("\u06D2", "\u064A")
+
+
 def normalize_text_search(text):
     """Standard normalization for search matching."""
+    text = fold_narration_letters(text)
     text = re.sub(r"[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]", "", text)
     text = re.sub(r"[\u0623\u0625\u0622\u0671]", "\u0627", text)
     text = text.replace("\u0621", "")
@@ -88,13 +102,12 @@ def normalize_text_search(text):
 
 def normalize_for_matching(text):
     """Aggressive normalization for word-root matching."""
+    text = fold_narration_letters(text)
     text = re.sub(r"[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]", "", text)
     text = re.sub(r"[\u0623\u0625\u0622\u0671\u0627]", "\u0627", text)
     text = text.replace("\u0621", "")
     text = text.replace("\u0629", "\u0647")
     text = text.replace("\u0649", "\u064A")
-    # Qālūn and Warsh write a final yā' as yā' barī (فِے, رَبِّے).
-    text = text.replace("\u06D2", "\u064A")
     text = text.replace("\u0640", "")
     return text.strip()
 

@@ -11,9 +11,20 @@ const PY_SPACES = new RegExp(`[${PY_SPACE_CLASS}]+`, "g");
 export const ARTICLE_LEMMA = "ال";
 export const SUPPORTED_PREFIX_LEMMAS = new Set(["و", "ف", "ب", "ك", "ل"]);
 
+// Qālūn and Warsh write some letters the other narrations write otherwise: a
+// yā' barī «ے» is a yā' (فِے, رَبِّے), and a yā' carrying a separate hamza
+// mark is «ئ» (يَسْتَهْزِۓُ). Folded before any other normalization so that
+// a word reads, and is searched, the same in every narration.
+const SEATED_HAMZA = /[\u064A\u06D2]([\u064B-\u0653\u0655-\u065F\u0670]*)\u0654/g;
+
+/** Fold the narrations' spellings of yā' and seated hamza (see above). */
+export function foldNarrationLetters(text: string): string {
+  return text.replace(SEATED_HAMZA, "\u0626$1").replaceAll("\u06D2", "\u064A");
+}
+
 /** Matches build_db normalization logic. */
 export function normalizeTextSearch(text: string): string {
-  let result = text.replace(SEARCH_MARKS, "");
+  let result = foldNarrationLetters(text).replace(SEARCH_MARKS, "");
   result = result.replace(/[أإآٱ]/g, "ا");
   result = result.replaceAll("ء", "");
   return strip(result);
@@ -103,7 +114,7 @@ export function rankLatinVariantMatch(queryFull: string, querySkeleton: string, 
 }
 
 export function standardizeUthmani(text: string): string {
-  return text
+  return foldNarrationLetters(text)
     .replace(/ٱ/g, "ا")
     .replace(/ٰ/g, "ا")
     .replace(/[ۥۦ]/g, "")
