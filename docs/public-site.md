@@ -5,7 +5,7 @@ server-rendered pages exist for visitors, search engines and shared links.
 
 | Path | What | Source |
 |---|---|---|
-| `/about` | The landing page: goals, features, technical highlights, privacy promises, community guidelines (summary), calls to open the app or create an account | `features/site/site-landing.tsx`, `app/about/page.tsx` |
+| `/about` | The landing page (sections below), calls to open the app or create an account | `features/site/site-landing.tsx`, `features/site/landing/`, `app/about/page.tsx` |
 | `/` (visitor's door) | The same landing, shown by `ShellGate` to web visitors who are neither signed in nor guests (auth enabled); «ابدأ القراءة» opens the app in place | `features/identity/shell-gate.tsx` |
 | `/guidelines` | The community guidelines in full: Arabic (the reference, `docs/community-guidelines.md`) or English for every other interface language | `features/site/guidelines-content.ts`, `app/guidelines/page.tsx` |
 | `/robots.txt`, `/sitemap.xml` | Crawl rules (API and account pages excluded) and the public pages | `app/robots.ts`, `app/sitemap.ts`, `lib/site.ts` |
@@ -25,6 +25,35 @@ server-rendered pages exist for visitors, search engines and shared links.
   is no analytics; error reporting is off unless `NEXT_PUBLIC_ERROR_REPORTING=1`),
   no selling or marketing use of data, reading and search without an account,
   account and data deletion.
+
+## The landing page
+
+Built around the app's name, from real data, with no screenshots yet (the
+phones are drawn in the app's style; real screenshots can replace them later):
+
+1. **Hero** — a rosette (`landing/pattern.tsx`) draws itself around the mark
+   while «هذا بصائر للناس» (45:20) appears word by word; a soft light follows
+   the pointer on desktop.
+2. **Pillars** — Quran first, verifiable precision, open to everyone.
+3. **The root of the name** (`landing/root-ribbon.tsx`) — the root ب ص ر over
+   the 114 surahs, one bar per surah (Al-Fātiḥa on the right). Visitors can type
+   any word or root: the ribbon is redrawn live from
+   `GET /api/root-distribution` (Ḥafṣ) and the occurrences open in the app's
+   search. Without the API (offline, static app) the ribbon keeps the name's root
+   and says live search isn't available.
+4. **«بصائر في يدك»** (`landing/phone-story.tsx`) — read, search, recite,
+   study, told on a phone that stays in place and changes screen as each step
+   scrolls into view (≥ 900 px); on phones every step carries its own phone.
+5. **Under the hood** — offline, verified text, trusted translations, AI limits.
+6. **The Quran in numbers** (`landing/numbers.tsx`) — counted up when seen.
+7. **The pledge** (privacy promises) and the **community principles**, with a
+   link to `/guidelines`.
+
+Every figure and verse comes from `features/site/landing-data.json`, written by
+`python scripts/build_landing_data.py` from `data/quran.db` (Ḥafṣ) and the
+reciter catalogue; `--check` (and `tests/test_landing_data.py`) fail when the
+committed file no longer matches the database — re-run it after a database
+rebuild. Motion respects `prefers-reduced-motion` (everything is shown at once).
 
 ## Next (with the domain and the production platform)
 
