@@ -1,6 +1,7 @@
 "use client";
 
 import "./companions.css";
+import "./companions.web.css";
 
 import { useEffect, useRef, useState } from "react";
 
@@ -10,6 +11,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { NotebookItem, ThemeColor, ThemeSummary } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
+import { citedSurahCounts } from "@/features/studio/cited-surahs";
+import { RoomWideToggle } from "@/features/shell/room";
+import { useWebDesign } from "@/lib/use-web-design";
+import { useIsMobile } from "@/lib/use-is-mobile";
 import { SwipeRow } from "@/components/swipe-row";
 import { useNumerals } from "@/lib/preferences-context";
 import { queueStudioOpenSession } from "@/lib/studio-prefill";
@@ -63,6 +69,9 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
   const { state } = useWorkspace();
   const { setMode } = useShellMode();
   const formatNumber = useNumerals();
+  // Web design: where the saved verses sit across the surahs, and a panel that can widen.
+  const web = useWebDesign();
+  const compact = useIsMobile(1000);
   const router = useRouter();
 
   const [tab, setTabState] = useState<LibraryTab>(initialTab);
@@ -116,6 +125,8 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
     (s) => sessionFilter === "all" || s.mode === sessionFilter,
   );
 
+  const savedCounts = citedSurahCounts(companions.notebook.map((item) => ({ surah_id: item.surah_id ?? 0 })));
+
   const TABS: { value: LibraryTab; label: string; count: number }[] = [
     { value: "verses", label: tt("الآيات"), count: companions.notebook.length },
     { value: "boards", label: tt("اللوحات"), count: themeBoards.boards?.length ?? 0 },
@@ -139,6 +150,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
             ].join(tt("، "))}
           </div>
         </div>
+        {web && !compact ? <RoomWideToggle /> : null}
       </div>
 
       <div className="qb-lib-tabs qb-fit-track" data-autofit="2" suppressHydrationWarning role="tablist">
@@ -199,6 +211,17 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                 ))}
               </div>
             ) : (
+              <>
+              {web ? (
+                <Ribbon
+                  className="qb-lib-ribbon"
+                  counts={savedCounts}
+                  label={tt("أين تقع آياتك المحفوظة")}
+                  height={48}
+                  readout={(i) => tt("{0}: {1}", { 0: SURAH_NAMES[i], 1: formatNumber(savedCounts[i]) })}
+                  restReadout={tt("أين تقع آياتك المحفوظة")}
+                />
+              ) : null}
               <div className="qb-aux-grid">
                 {themeGroups.map(({ theme, items }) => (
                   <ThemeCard
@@ -227,6 +250,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                   </div>
                 ) : null}
               </div>
+              </>
             )}
           </>
         )
