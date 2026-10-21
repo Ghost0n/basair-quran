@@ -11,6 +11,12 @@ import type { ResearchAgentResponse, TafssirDepth } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { drawEvidenceThread } from "@/lib/draw-evidence-thread";
+import { MiniRibbon } from "@/components/ribbon";
+import { RoomWideToggle } from "@/features/shell/room";
+import { useWebDesign } from "@/lib/use-web-design";
+
+import { citedSurahCounts } from "./cited-surahs";
+import "./studio.web.css";
 import { useNumerals } from "@/lib/preferences-context";
 import { renderHighlightedVerseText } from "@/lib/quran-ui";
 import { STUDIO_ASK_EVENT, drainStudioAsk, drainStudioOpenSession, type StudioAsk } from "@/lib/studio-prefill";
@@ -70,6 +76,8 @@ export function StudioPanel() {
   const studio = useStudioSessions();
   const mushaf = useMushaf();
   const { state } = useWorkspace();
+  // Web design: the panel can widen over the Mushaf (features/shell/room.tsx).
+  const webDesign = useWebDesign();
   const { setMode: setShellMode } = useShellMode();
   const formatNumber = useNumerals();
 
@@ -220,6 +228,7 @@ export function StudioPanel() {
               {isTafssir ? t("قراءة تفسيرية") : t("القرآن وحدَه")}
             </div>
           </div>
+          {webDesign ? <RoomWideToggle /> : null}
           {hasMessages ? (
             <button
               type="button"
@@ -529,6 +538,8 @@ function BotMessage({
       })).filter((section) => typeof section.content === "string" && section.content.trim().length > 0)
     : [];
   const ayahs = response?.ayahs ?? [];
+  // Web design: which surahs the evidence comes from.
+  const web = useWebDesign();
 
   return (
     <div className={`qb-msg bot${isTafssir ? " tafssir" : ""}`}>
@@ -551,6 +562,12 @@ function BotMessage({
       {ayahs.length > 0 ? (
         <div className="evidence">
           <div className="evidence-label">{t("الدليل القرآني ({0})", { 0: tn("{0} آية", ayahs.length, { 0: formatNumber(ayahs.length) }) })}</div>
+          {web ? (
+            <div className="ev-spread" title={t("مصادر الدليل في السور")}>
+              <MiniRibbon counts={citedSurahCounts(ayahs)} />
+              <span>{t("مصادر الدليل في السور")}</span>
+            </div>
+          ) : null}
           {ayahs.map((ayah, index) => (
             <button
               key={ayah.ayah_id}

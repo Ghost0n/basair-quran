@@ -1,0 +1,50 @@
+/* Study (الدراسة) in the web design (desktop web): a typeset thread, not chat
+   bubbles; gold for the Quran-only reading, copper for the experimental
+   Tafssir. Source: design/prototype-web-full/screens/study.* */
+
+.qb-web .qb-studio-head .kicker { color: var(--world); font-weight: 700; }
+.qb-web .qb-studio-title { font-family: var(--font-arabic-heading); }
+
+/* Session tabs: a quiet row with a gold underline on the open session. */
+.qb-web .qb-studio-tabs { border-bottom: 1px solid var(--border); background: none; }
+.qb-web .qb-studio-tab { border-radius: 0; background: none; box-shadow: none; border: 0; border-bottom: 2px solid transparent; }
+.qb-web .qb-studio-tab.active { color: var(--fg-1); border-bottom-color: var(--gold-400); background: none; }
+
+/* The question: a gold rule and the words, no bubble. */
+.qb-web .qb-msg.user {
+  background: none;
+  border: 0;
+  border-inline-start: 2px solid var(--gold-400);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 2px 14px;
+}
+.qb-web .qb-msg.user p { font-family: var(--font-arabic-heading); font-size: 19px; line-height: var(--lh-heading, 1.6); }
+
+/* The answer: typeset text. */
+.qb-web .qb-msg.bot { background: none; border: 0; box-shadow: none; padding: 4px 2px; }
+.qb-web .qb-msg.bot .lbl { color: var(--world); font-weight: 700; }
+.qb-web .qb-msg.bot.tafssir .lbl { color: var(--copper); }
+.qb-web .qb-msg.bot p { font-size: 15px; line-height: 1.95; color: var(--fg-1); }
+.qb-web .qb-msg.bot .section h5 { font-family: var(--font-arabic-heading); font-size: 17px; color: var(--copper); }
+
+/* Evidence: numbered citations, hairline rows, verse in Amiri Quran. */
+.qb-web .qb-msg.bot .evidence { border-top: 1px solid var(--border); padding-top: 14px; background: none; }
+.qb-web .qb-msg.bot .ev-row {
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+}
+.qb-web .qb-msg.bot .ev-row:hover { background: var(--gold-soft); }
+.qb-web .qb-msg.bot .ev-row .num { background: var(--gold-soft); color: var(--gold-text); border: 0; }
+.qb-web .qb-msg.bot .ev-row .ev-meta { font-family: var(--font-arabic-heading); color: var(--gold-text); }
+.qb-web .qb-msg.bot .ev-spread { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; font-size: 11.5px; color: var(--fg-3); }
+
+/* Mode tabs: gold for «القرآن وحدَه», copper for «قراءة تفسيرية». */
+.qb-web .qb-mode-tabs { background: var(--bg-elev-2); border: 0; box-shadow: none; border-radius: var(--r-ctl); }
+
+/* Composer: a flat field with the gold «اسأل». */
+.qb-web .qb-composer { background: var(--bg-elev-1); border: 1px solid var(--border-strong); box-shadow: none; border-radius: 14px; }
+.qb-web .qb-composer:focus-within { border-color: var(--gold-line); }
