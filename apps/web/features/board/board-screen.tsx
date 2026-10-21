@@ -3,6 +3,7 @@
 import "@xyflow/react/dist/style.css";
 import "@/features/themes/themes.css";
 import "./board.css";
+import "./board.web.css";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";

@@ -1,0 +1,55 @@
+/* The theme board in the web design (desktop web): a scholar's drafting table,
+   not a SaaS whiteboard — warm dotted surface, ayah cards set like Mushaf
+   excerpts, hairline gold links. Source: design/prototype-web-full/screens/board.* */
+
+.qb-web .qb-board .react-flow {
+  --xy-background-pattern-dots-color: var(--gold-line);
+  --xy-edge-stroke: var(--gold-line);
+  --xy-edge-stroke-width: 1.2;
+  --xy-edge-label-background-color: var(--bg-elev-1);
+}
+.qb-web .qb-board .react-flow__edge-text { font-weight: 700; font-size: 11.5px; }
+
+/* Bar: flat, a hairline under it, the board name in Amiri. */
+.qb-web .qb-board-bar {
+  border-radius: 0;
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  box-shadow: none;
+}
+.qb-web .qb-board-bar .board-name,
+.qb-web .qb-board-bar .title { font-family: var(--font-arabic-heading); }
+.qb-web .qb-board-bar .meta,
+.qb-web .qb-board-bar .theme-name { color: var(--world); }
+
+/* Ayah cards: an excerpt of the Mushaf — a double hairline frame, no heavy shadow. */
+.qb-web .qb-bnode {
+  box-shadow: none;
+  border-radius: 6px;
+}
+.qb-web .qb-bnode.ayah {
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border-strong);
+  outline: 1px solid var(--border);
+  outline-offset: 3px;
+}
+.qb-web .qb-bnode.ayah .ref { font-family: var(--font-arabic-heading); color: var(--gold-text); }
+.qb-web .qb-bnode.ayah .text { line-height: 2.1; }
+.qb-web .qb-bnode.sel { border-color: var(--gold-400); outline-color: var(--gold-line); }
+.qb-web .qb-bnode.note { background: var(--bg-elev-2); border: 1px solid var(--border-strong); }
+.qb-web .qb-bnode.heading { background: none; border: 0; }
+.qb-web .qb-bnode.heading .heading-text { font-family: var(--font-arabic-heading); }
+
+/* Side panels and menus: the flat panel. */
+.qb-web .qb-style-panel,
+.qb-web .qb-verses-panel,
+.qb-web .qb-edge-editor,
+.qb-web .qb-shape-menu,
+.qb-web .qb-board-minimap {
+  border-radius: var(--r-panel);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev-1);
+  box-shadow: 0 30px 60px -40px var(--shade);
+}

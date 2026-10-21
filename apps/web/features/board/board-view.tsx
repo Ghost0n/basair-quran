@@ -3,6 +3,7 @@
 import "@xyflow/react/dist/style.css";
 import "@/features/themes/themes.css";
 import "./board.css";
+import "./board.web.css";
 
 import { useMemo, useState } from "react";
 import {
