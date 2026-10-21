@@ -47,7 +47,7 @@ export function SupervisionPanel({ surahName, onOpen }: { surahName: (surahId: n
 
   return (
     <div className="qb-moderation qb-supervision">
-      <div className="qb-segmented qb-fit-track sections" data-autofit="1" role="tablist" aria-label={t("لوحة الإشراف")}>
+      <div className="qb-segmented qb-fit-track sections" data-autofit="1" suppressHydrationWarning role="tablist" aria-label={t("لوحة الإشراف")}>
         {sections.map((entry) => (
           <button
             key={entry.value}

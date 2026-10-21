@@ -58,7 +58,7 @@ export function FeedbackCard() {
     <section className="qb-setting-card qb-feedback-card">
       <h3>{t("الدعم والملاحظات")}</h3>
       <p className="card-sub">{t("راسل الفريق: سؤال، أو خلل وجدته، أو اقتراح ميزة. يقرأ كلَّ رسالة شخصٌ من الفريق.")}</p>
-      <div className="qb-setting-seg qb-fit-choice" data-autofit="2" role="radiogroup" aria-label={t("نوع الرسالة")}>
+      <div className="qb-setting-seg qb-fit-choice" data-autofit="2" suppressHydrationWarning role="radiogroup" aria-label={t("نوع الرسالة")}>
         {KINDS.map((value) => (
           <button
             key={value}
