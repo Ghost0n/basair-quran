@@ -141,8 +141,7 @@ export function HeatmapScreen() {
               grow
               readout={(i) => t("{0}: {1}", { 0: SURAH_NAMES[i], 1: formatNumber(spreadCounts[i]) })}
               restReadout={t("المس سورة لتفتحها في المصحف")}
-              onPick={(i) => {
-                if (i == null) return;
+              onActivate={(i) => {
                 void mushaf.loadBySurah(state.selectedMushaf, i + 1);
                 setMode("reading");
               }}

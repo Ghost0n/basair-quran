@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
+import { useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent, type PointerEvent } from "react";
 
 import landing from "@/features/site/landing-data.json";
 
@@ -38,8 +38,10 @@ export type RibbonProps = {
   readout?: (index: number) => string;
   /** Readout when nothing is hovered (defaults to the `here` surah's readout). */
   restReadout?: string;
-  /** Makes the ribbon a picker: click, drag, ←/→ and Esc. */
+  /** Makes the ribbon a chooser: click or drag chooses a surah, ←/→ move the choice, Esc clears it. */
   onPick?: (index: number | null) => void;
+  /** Makes each surah a way somewhere: ←/→ move along the ribbon, Enter or a click opens the surah. */
+  onActivate?: (index: number) => void;
   /** Hide the axis row (surah names and readout). */
   bare?: boolean;
   className?: string;
@@ -61,13 +63,17 @@ export function Ribbon({
   readout,
   restReadout,
   onPick,
+  onActivate,
   bare = false,
   className = "",
 }: RibbonProps) {
   const [hover, setHover] = useState<number | null>(null);
   const dragging = useRef(false);
+  const lastPick = useRef<number | null>(null);
+  // The keyboard's place on the ribbon (also follows pointer picks).
   const keyIndex = useRef<number | null>(focus);
   const heights = ribbonHeights(counts, { flat });
+  const interactive = Boolean(onPick || onActivate);
 
   const indexAt = (event: PointerEvent<HTMLDivElement>): number | null => {
     const target = (event.target as HTMLElement).closest<HTMLElement>("[data-i]");
@@ -81,35 +87,58 @@ export function Ribbon({
     return hit ? Number(hit.dataset.i) : null;
   };
 
+  // A choice fires once per surah: moving within the same bar, or jitter, does nothing.
+  const pick = (i: number | null) => {
+    keyIndex.current = i;
+    if (!onPick || i === lastPick.current) return;
+    lastPick.current = i;
+    onPick(i);
+  };
+
   const onPointerMove = (event: PointerEvent<HTMLDivElement>) => {
     const i = indexAt(event);
     if (i == null) return;
     setHover(i);
-    if (dragging.current && onPick) onPick(i);
+    if (dragging.current) pick(i);
   };
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
     if (!onPick) return;
     dragging.current = true;
+    lastPick.current = null;
     try {
       event.currentTarget.setPointerCapture(event.pointerId);
     } catch {
       // Capture is a nicety (drag across bars).
     }
-    const i = indexAt(event);
-    if (i != null) onPick(i);
+    pick(indexAt(event));
+  };
+  const endDrag = () => {
+    dragging.current = false;
+  };
+  const onClick = (event: MouseEvent<HTMLDivElement>) => {
+    if (!onActivate) return;
+    const target = (event.target as HTMLElement).closest<HTMLElement>("[data-i]");
+    if (target) onActivate(Number(target.dataset.i));
   };
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (!onPick) return;
+    if (!interactive) return;
     // Bars run right to left (Al-Fātiḥa on the right): ← moves forward in the Mushaf.
     let next = keyIndex.current;
     if (event.key === "ArrowLeft") next = Math.min(counts.length - 1, (next ?? -1) + 1);
     else if (event.key === "ArrowRight") next = Math.max(0, (next ?? 1) - 1);
     else if (event.key === "Escape") next = null;
-    else return;
+    else if ((event.key === "Enter" || event.key === " ") && onActivate && keyIndex.current != null) {
+      event.preventDefault();
+      onActivate(keyIndex.current);
+      return;
+    } else return;
     event.preventDefault();
     keyIndex.current = next;
     setHover(next);
-    onPick(next);
+    if (onPick) {
+      lastPick.current = next;
+      onPick(next);
+    }
   };
 
   const shown = hover ?? null;
@@ -118,23 +147,24 @@ export function Ribbon({
   return (
     <div className={`qb-ribbon-wrap ${className}`.trim()}>
       <div
-        className={`qb-ribbon${onPick ? " is-live" : ""}${grow ? " is-grow" : ""}`}
+        className={`qb-ribbon${interactive ? " is-live" : ""}${grow ? " is-grow" : ""}`}
         style={{ ["--rh" as string]: `${height}px` } as CSSProperties}
-        role={onPick ? "slider" : "img"}
+        role={interactive ? "slider" : "img"}
         aria-label={label}
-        aria-valuemin={onPick ? 1 : undefined}
-        aria-valuemax={onPick ? counts.length : undefined}
-        aria-valuenow={onPick && focus != null ? focus + 1 : undefined}
-        aria-valuetext={onPick && focus != null && readout ? readout(focus) : undefined}
-        tabIndex={onPick ? 0 : undefined}
+        aria-valuemin={interactive ? 1 : undefined}
+        aria-valuemax={interactive ? counts.length : undefined}
+        aria-valuenow={interactive ? (hover ?? focus ?? here ?? 0) + 1 : undefined}
+        aria-valuetext={interactive && readout ? readout(hover ?? focus ?? here ?? 0) : undefined}
+        tabIndex={interactive ? 0 : undefined}
         onPointerMove={onPointerMove}
         onPointerLeave={() => {
           if (!dragging.current) setHover(null);
         }}
         onPointerDown={onPointerDown}
-        onPointerUp={() => {
-          dragging.current = false;
-        }}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onLostPointerCapture={endDrag}
+        onClick={onClick}
         onKeyDown={onKeyDown}
       >
         {counts.map((count, i) => (

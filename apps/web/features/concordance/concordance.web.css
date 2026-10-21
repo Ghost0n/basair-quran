@@ -62,7 +62,7 @@
   animation: none;
 }
 .qb-web .qb-verse-row:hover { background: var(--gold-soft); }
-.qb-web .qb-verse-row.selected { background: var(--gold-soft); box-shadow: inset 2px 0 0 var(--gold-400); }
+.qb-web .qb-verse-row.selected { background: var(--gold-soft); border-inline-start: 2px solid var(--gold-400); }
 .qb-web .qb-verse-row .vmeta .surah { font-family: var(--font-arabic-heading); font-weight: 700; color: var(--gold-text); }
 .qb-web .qb-verse-row .vtext { font-size: 20px; line-height: 2.05; color: var(--fg-2); }
 .qb-web .qb-verse-row .vtext .highlight {

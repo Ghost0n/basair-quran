@@ -71,9 +71,7 @@ function RootSpread({ selection, mushafId }: { selection: WordSelection; mushafI
         here={here}
         height={48}
         readout={(i) => t("{0}: {1}", { 0: SURAH_NAMES[i], 1: formatNumber(counts[i]) })}
-        onPick={(i) => {
-          if (i != null) openRoot();
-        }}
+        onActivate={() => openRoot()}
       />
       <button type="button" className="qb-btn primary" onClick={openRoot}>
         {t("كل المواضع")}

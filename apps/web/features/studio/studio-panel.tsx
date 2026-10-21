@@ -14,6 +14,7 @@ import { drawEvidenceThread } from "@/lib/draw-evidence-thread";
 import { MiniRibbon } from "@/components/ribbon";
 import { RoomWideToggle } from "@/features/shell/room";
 import { useWebDesign } from "@/lib/use-web-design";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 import { citedSurahCounts } from "./cited-surahs";
 import "./studio.web.css";
@@ -78,6 +79,7 @@ export function StudioPanel() {
   const { state } = useWorkspace();
   // Web design: the panel can widen over the Mushaf (features/shell/room.tsx).
   const webDesign = useWebDesign();
+  const compactCanvas = useIsMobile(1000);
   const { setMode: setShellMode } = useShellMode();
   const formatNumber = useNumerals();
 
@@ -228,7 +230,7 @@ export function StudioPanel() {
               {isTafssir ? t("قراءة تفسيرية") : t("القرآن وحدَه")}
             </div>
           </div>
-          {webDesign ? <RoomWideToggle /> : null}
+          {webDesign && !compactCanvas ? <RoomWideToggle /> : null}
           {hasMessages ? (
             <button
               type="button"

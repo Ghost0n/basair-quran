@@ -9,9 +9,11 @@
    This file (1) adds the web design's tokens and (2) redefines the glass
    tokens as a flat material, so every existing surface turns quiet without
    its own CSS changing. Screen-specific rules live in *.web.css files.
+   The public site (.qb-site: /about, the visitor's landing, /guidelines)
+   keeps its own design: the material stops at the app.
    ===================================================================== */
 
-html.qb-web body {
+html.qb-web body:not(:has(.qb-site)) {
   /* Gold: the one accent — your place, your selection, matches, primary actions. */
   --gold-line: rgba(212, 175, 55, 0.35);
   --gold-soft: rgba(212, 175, 55, 0.14);
@@ -78,8 +80,8 @@ html.qb-web body {
   --aurora-3: transparent;
 }
 
-html.qb-web body.light,
-html.qb-web body.light-mode {
+html.qb-web body.light:not(:has(.qb-site)),
+html.qb-web body.light-mode:not(:has(.qb-site)) {
   --gold-line: rgba(164, 129, 41, 0.42);
   --gold-soft: rgba(164, 129, 41, 0.12);
   --gold-glow: #8a6a0c;
@@ -118,9 +120,9 @@ html.qb-web[data-world="research"] body { --world: var(--teal); --world-soft: va
 html.qb-web[data-world="community"] body { --world: var(--copper); --world-soft: var(--copper-soft); }
 
 /* No blur anywhere: the flat material has nothing to refract. */
-html.qb-web *,
-html.qb-web *::before,
-html.qb-web *::after {
+html.qb-web body:not(:has(.qb-site)) *,
+html.qb-web body:not(:has(.qb-site)) *::before,
+html.qb-web body:not(:has(.qb-site)) *::after {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }

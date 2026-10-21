@@ -15,34 +15,30 @@ const cache = new Map<string, RootDistributionResponse>();
 /**
  * Where a root occurs across the 114 surahs (GET /api/root-distribution),
  * cached for the session. `counts` is one count per surah, Al-Fātiḥa first.
+ * Returns nothing while the current root's spread is loading — never the
+ * previous root's.
  */
 export function useRootSpread(root: string | null, mushafId: number): { spread: RootDistributionResponse | null; counts: number[] | null } {
   const key = root ? `${mushafId}:${root}` : null;
-  const [spread, setSpread] = useState<RootDistributionResponse | null>(key ? cache.get(key) ?? null : null);
+  const [loaded, setLoaded] = useState<{ key: string; data: RootDistributionResponse } | null>(null);
 
   useEffect(() => {
-    if (!key || !root) {
-      setSpread(null);
-      return;
-    }
-    const cached = cache.get(key);
-    if (cached) {
-      setSpread(cached);
-      return;
-    }
+    if (!key || !root || cache.has(key)) return;
     let cancelled = false;
     api.getRootDistribution(root, mushafId).then(
       (result) => {
         cache.set(key, result);
-        if (!cancelled) setSpread(result);
+        if (!cancelled) setLoaded({ key, data: result });
       },
-      () => !cancelled && setSpread(null),
+      () => undefined,
     );
     return () => {
       cancelled = true;
     };
   }, [key, root, mushafId]);
 
-  const counts = useMemo(() => (spread && spread.found ? rootSpreadCounts(spread) : null), [spread]);
-  return { spread: spread && spread.found ? spread : null, counts };
+  // Only the current key's data counts (the cache answers at once on a revisit).
+  const current = key ? cache.get(key) ?? (loaded?.key === key ? loaded.data : null) : null;
+  const counts = useMemo(() => (current && current.found ? rootSpreadCounts(current) : null), [current]);
+  return { spread: current && current.found ? current : null, counts };
 }

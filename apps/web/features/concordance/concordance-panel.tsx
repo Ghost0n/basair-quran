@@ -346,8 +346,8 @@ export function ConcordancePanel() {
                 height={64}
                 readout={(i) => t("{0}: {1}", { 0: SURAH_NAMES[i], 1: formatNumber(spreadCounts[i]) })}
                 restReadout={t("المس سورة لتفتحها في المصحف")}
-                onPick={(i) => {
-                  if (i != null && spreadCounts[i]) void mushaf.loadBySurah(DEFAULT_MUSHAF_ID, i + 1);
+                onActivate={(i) => {
+                  if (spreadCounts[i]) void mushaf.loadBySurah(DEFAULT_MUSHAF_ID, i + 1);
                 }}
               />
             ) : null}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
@@ -15,6 +15,7 @@ import { useWorkspace } from "@/features/shell/workspace-context";
 
 import { useMorphology } from "../use-morphology";
 import { useWebDesign } from "@/lib/use-web-design";
+import { useIsMobile } from "@/lib/use-is-mobile";
 
 import { StudyExtras } from "./study-extras";
 import "./tools.web.css";
@@ -42,14 +43,23 @@ export function SelectionBar({
   onClear: () => void;
 }) {
   const formatNumber = useNumerals();
-  const { setMode } = useShellMode();
+  const { mode, setMode } = useShellMode();
   const { actions } = useWorkspace();
   const [counting, setCounting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [rootBusy, setRootBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  // Web design: the bar becomes the study panel at the stage's edge (tools.web.css).
+  // Web design, wide canvas: the bar becomes the study panel in its column beside
+  // the Mushaf (features/shell/workspace-canvas.tsx). The column is found after
+  // commit, so the panel follows it when the page changes; elsewhere (other
+  // pages, a compact canvas) the reader keeps today's bar.
   const web = useWebDesign();
+  const compact = useIsMobile(1000);
+  const study = web && !compact;
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setSlot(study && mode === "reading" ? document.getElementById("qb-study-slot") : null);
+  }, [study, mode]);
 
   const words = selection.keys.length;
   const single = words === 1;
@@ -107,11 +117,12 @@ export function SelectionBar({
     }
   }
 
+  // The study panel shows only in its column (reading mode, wide canvas).
+  if (study && !slot) return null;
+
   // Portaled to <body> so it layers above the mobile tab bar and media bar.
-  // Web design: into the study column beside the Mushaf when it is there.
-  const slot = web && typeof document !== "undefined" ? document.getElementById("qb-study-slot") : null;
   return createPortal(
-    <div className={`qb-selection-bar${web ? " is-study" : ""}`} role="region" aria-label={t("الكلمات المحدّدة")}>
+    <div className={`qb-selection-bar${study ? " is-study" : ""}`} role="region" aria-label={t("الكلمات المحدّدة")}>
       {counting && !wholeVerse ? (
         <CountPanel selection={selection} mushafId={mushafId} onClose={() => setCounting(false)} />
       ) : null}
@@ -129,7 +140,7 @@ export function SelectionBar({
         </button>
       </div>
       {single ? <WordAnalysis selection={selection} mushafId={mushafId} /> : null}
-      {web ? <StudyExtras selection={selection} mushafId={mushafId} /> : null}
+      {study ? <StudyExtras selection={selection} mushafId={mushafId} /> : null}
       <div className="acts">
         {wholeVerse ? null : (
           <button type="button" onClick={search}>
@@ -155,7 +166,7 @@ export function SelectionBar({
       </div>
       {note ? <div className="note" role="status">{note}</div> : null}
     </div>,
-    slot ?? document.body,
+    study && slot ? slot : document.body,
   );
 }
 

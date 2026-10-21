@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
@@ -73,10 +73,14 @@ export function CommandBar() {
 
   // When the user starts typing or runs a search, surface the Search mode.
   // Use `replace` so this derived switch doesn't add a history entry.
+  // Only a change counts: the web design mounts the bar on every page (top-bar.tsx),
+  // and mounting while a search is active must not pull the page into Search.
+  const wasActive = useRef(state.workspaceActive);
   useEffect(() => {
-    if (state.workspaceActive) {
+    if (state.workspaceActive && !wasActive.current) {
       setMode("search", { replace: true });
     }
+    wasActive.current = state.workspaceActive;
     // we only react to workspaceActive becoming true
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.workspaceActive]);
