@@ -1,10 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import type { SavedPageEntry, SurahListItem } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
+import { useWebDesign } from "@/lib/use-web-design";
 import { SwipeRow } from "@/components/swipe-row";
 import { canHover } from "@/lib/can-hover";
 import { relativeAge } from "@/features/companions/use-companions";
@@ -14,6 +16,9 @@ import { divisionRange, DIVISION_COUNT } from "@/lib/quran-ranges";
 import { useDialog } from "@/lib/use-dialog";
 
 import { useSavedPages } from "../use-saved-pages";
+import { surahLengths, surahsOfKind, type SurahKind } from "../surah-filter";
+
+import "./navigate-sheet.web.css";
 
 import { t, tn } from "@/lib/i18n";
 
@@ -87,7 +92,25 @@ export function NavigateSheet({
   const [pageDraft, setPageDraft] = useState(currentPage ? String(currentPage) : "");
 
   const command = parseNavCommand(query);
-  const filtered = useMemo(() => surahs.filter((surah) => surahMatches(query, surah)), [surahs, query]);
+  // Web design: the surahs' lengths as a ribbon, filtered by Meccan / Medinan.
+  const web = useWebDesign();
+  const [kind, setKind] = useState<SurahKind>("all");
+  const listRef = useRef<HTMLUListElement>(null);
+  const ofKind = useMemo(() => surahsOfKind(surahs, kind), [surahs, kind]);
+  const lengths = useMemo(() => surahLengths(surahs), [surahs]);
+  const filtered = useMemo(
+    () => surahs.filter((surah) => surahMatches(query, surah) && (!web || ofKind.has(surah.id))),
+    [surahs, query, web, ofKind],
+  );
+  function showSurah(index: number | null) {
+    if (index == null) return;
+    const row = listRef.current?.querySelector<HTMLElement>(`[data-surah="${index + 1}"]`);
+    if (!row) return;
+    row.scrollIntoView({ block: "center", behavior: "smooth" });
+    row.classList.remove("is-flash");
+    void row.offsetWidth;
+    row.classList.add("is-flash");
+  }
 
   function go(target: NavigateTarget) {
     onNavigate(target);
@@ -220,11 +243,42 @@ export function NavigateSheet({
             )
           ) : null}
 
+          {tab === "surah" && web ? (
+            <div className="qb-nav-ribbon">
+              <div className="kinds" role="group" aria-label={t("نوع السورة")}>
+                {(
+                  [
+                    ["all", t("الكل"), surahs.length],
+                    ["meccan", t("مكّيّة"), surahsOfKind(surahs, "meccan").size],
+                    ["medinan", t("مدنيّة"), surahsOfKind(surahs, "medinan").size],
+                  ] as const
+                ).map(([value, label, count]) => (
+                  <button key={value} type="button" aria-pressed={kind === value} onClick={() => setKind(value)}>
+                    {label}
+                    <span>{formatNumber(count)}</span>
+                  </button>
+                ))}
+              </div>
+              <Ribbon
+                counts={lengths.map((length, i) => (ofKind.has(i + 1) ? length : 0))}
+                label={t("أطوال السور")}
+                here={currentSurahId ? currentSurahId - 1 : null}
+                height={56}
+                readout={(i) => {
+                  const surah = surahs.find((item) => item.id === i + 1);
+                  return surah ? `${SURAH_NAMES[i]}: ${tn("{0} آية", surah.ayah_count, { 0: formatNumber(surah.ayah_count) })}` : SURAH_NAMES[i];
+                }}
+                restReadout={tn("{0} آية", 6236, { 0: formatNumber(6236) })}
+                onPick={showSurah}
+              />
+            </div>
+          ) : null}
+
           {tab === "surah" ? (
             filtered.length ? (
-              <ul className="surahs">
+              <ul className="surahs" ref={listRef}>
                 {filtered.map((surah) => (
-                  <li key={surah.id}>
+                  <li key={surah.id} data-surah={surah.id}>
                     <button
                       type="button"
                       className={surah.id === currentSurahId ? "current" : ""}
