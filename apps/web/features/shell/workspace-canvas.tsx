@@ -10,7 +10,8 @@ import { OnlineOnly } from "@/features/app-mode/online-only";
 import { StudioPanel } from "@/features/studio/studio-panel";
 import { useIsMobile } from "@/lib/use-is-mobile";
 
-import type { ShellMode } from "./mode-context";
+import { useShellMode, type ShellMode } from "./mode-context";
+import { useRoomReset, useRoomWide } from "./room";
 
 /**
  * Below this width the scholar's desk (a panel beside the Mushaf) stops being
@@ -32,6 +33,9 @@ const COMPACT_WORKSPACE = 1000;
  */
 export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
   const isCompact = useIsMobile(COMPACT_WORKSPACE);
+  // Web design: the panel can widen over the whole canvas (features/shell/room.tsx).
+  useRoomReset(mode);
+  const [wide] = useRoomWide();
 
   const panel =
     mode === "search" ? <ConcordancePanel /> : mode === "studio" ? <OnlineOnly><StudioPanel /></OnlineOnly> : null;
@@ -45,7 +49,7 @@ export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
   const panelOpen = mode === "search" || mode === "studio";
 
   return (
-    <div className={`qb-workspace-canvas${panelOpen ? " has-panel" : ""}`}>
+    <div className={`qb-workspace-canvas${panelOpen ? " has-panel" : ""}${panelOpen && wide ? " is-wide" : ""}`}>
       {/* Every panel opens on the same side — inline-start (the right in RTL),
           next to the rail that summoned it; the mushaf keeps the rest. */}
       {mode === "search" ? <ConcordancePanel /> : null}
@@ -66,13 +70,16 @@ export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
  */
 export function CompanionCanvas({ children }: { children: ReactNode }) {
   const isCompact = useIsMobile(COMPACT_WORKSPACE);
+  const { mode } = useShellMode();
+  useRoomReset(mode);
+  const [wide] = useRoomWide();
 
   if (isCompact) {
     return <div className="qb-workspace-canvas qb-companion-canvas">{children}</div>;
   }
 
   return (
-    <div className="qb-workspace-canvas qb-companion-canvas">
+    <div className={`qb-workspace-canvas qb-companion-canvas${wide ? " is-wide" : ""}`}>
       <div className="qb-companion-panel">{children}</div>
       <MushafStage />
     </div>

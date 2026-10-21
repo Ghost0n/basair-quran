@@ -5,6 +5,7 @@ import { useEffect, useLayoutEffect, type ReactNode } from "react";
 
 import "./shell.css";
 import "./phone-ergonomics.css";
+import "./shell.web.css";
 
 import { installGlobalErrorHooks } from "@/lib/error-report";
 import { closeExclusiveOverlay } from "@/lib/exclusive-overlay";
