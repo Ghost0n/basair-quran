@@ -1,0 +1,36 @@
+/* Community and a post in the web design (desktop web): an editorial feed in
+   one readable column with hairlines, copper world marks, a ribbon of the
+   surahs the posts discuss. Source: design/prototype-web-full/screens/community.* */
+
+.qb-web .qb-community-hero { border: 0; background: none; box-shadow: none; padding-inline: 0; }
+.qb-web .qb-community-hero .kicker { color: var(--world); font-weight: 700; letter-spacing: 0; text-transform: none; }
+.qb-web .qb-community-hero h1 { font-family: var(--font-arabic-heading); font-size: clamp(34px, 3.6vw, 48px); line-height: var(--lh-heading, 1.6); }
+.qb-web .qb-community-ribbon { margin: 4px 0 22px; }
+
+/* The feed: one column of entries, not a card grid. */
+.qb-web .qb-post-card {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  animation: none;
+}
+.qb-web .qb-post-card:hover { background: var(--gold-soft); }
+.qb-web .qb-post-card h3,
+.qb-web .qb-post-card .title { font-family: var(--font-arabic-heading); font-size: 21px; line-height: var(--lh-heading, 1.6); }
+
+/* Guidelines and moderation: quiet panels. */
+.qb-web .qb-guidelines,
+.qb-web .qb-mod-card {
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-panel);
+  box-shadow: none;
+}
+
+/* A post: a paper. */
+.qb-web .qb-post h1,
+.qb-web .qb-post .title { font-family: var(--font-arabic-heading); }
+.qb-web .qb-docview-section { border: 0; border-top: 1px solid var(--border); border-radius: 0; background: none; box-shadow: none; }
+.qb-web .qb-comment .bubble { background: none; border: 0; border-inline-start: 2px solid var(--border-strong); border-radius: 0; box-shadow: none; }

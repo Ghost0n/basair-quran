@@ -1,6 +1,7 @@
 "use client";
 
 import "./community.css";
+import "./community.web.css";
 import "@/features/documents/documents.css";
 
 import { useEffect, useState } from "react";

@@ -1,6 +1,7 @@
 "use client";
 
 import "./community.css";
+import "./community.web.css";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -10,6 +11,10 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type { PostSummary, SurahListItem, TagCount } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
+import { citedSurahCounts } from "@/features/studio/cited-surahs";
+import { useWebDesign } from "@/lib/use-web-design";
+import { useNumerals } from "@/lib/preferences-context";
 import { SelectMenu } from "@/components/select-menu";
 import { API_BASE_URL } from "@/lib/config";
 
@@ -19,7 +24,7 @@ import { PostCard, type PostCardActions } from "./post-card";
 import { sharePostLink } from "./share-link";
 import { useCommunityAccess } from "./use-community-access";
 
-import { t } from "@/lib/i18n";
+import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -71,6 +76,9 @@ export function CommunityScreen() {
   }));
   const [debouncedQ, setDebouncedQ] = useState(filters.q);
   const [posts, setPosts] = useState<PostSummary[]>([]);
+  // Web design: which surahs the shown posts discuss (a ribbon that filters the feed).
+  const web = useWebDesign();
+  const formatNumber = useNumerals();
   const [cursor, setCursor] = useState<string | null>(null);
   const [mine, setMine] = useState<PostSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,6 +231,7 @@ export function CommunityScreen() {
     ...(access.isModerator ? [{ value: "moderation" as Tab, label: t("الإشراف"), icon: "gavel" as const }] : []),
   ];
 
+  const postSurahCounts = useMemo(() => citedSurahCounts(posts.flatMap((post) => (post.surah_ids ?? []).map((surah_id) => ({ surah_id })))), [posts]);
   const surahOptions = useMemo(
     () => [{ value: "", label: t("كل السور") }, ...surahs.map((surah) => ({ value: String(surah.id), label: `${surah.id}. ${surah.name}` }))],
     [surahs],
@@ -244,6 +253,19 @@ export function CommunityScreen() {
           <Icon name="plus" size={15} /> {t("شارك بحثاً")}
         </button>
       </header>
+
+      {web && tab === "feed" && posts.length ? (
+        <Ribbon
+          className="qb-community-ribbon"
+          counts={postSurahCounts}
+          label={t("السور التي تتناولها الأبحاث المعروضة")}
+          focus={filters.surah ? filters.surah - 1 : null}
+          height={56}
+          readout={(i) => t("{0}: {1}", { 0: SURAH_NAMES[i], 1: tn("{0} بحث", postSurahCounts[i], { 0: formatNumber(postSurahCounts[i]) }) })}
+          restReadout={t("المس سورة لتعرض أبحاثها")}
+          onPick={(i) => setFilter("surah", i == null || (filters.surah === i + 1) ? null : i + 1)}
+        />
+      ) : null}
 
       <div className="qb-segmented qb-fit-track qb-community-tabs" data-autofit="1" suppressHydrationWarning role="tablist" aria-label={t("المجتمع")}>
         {tabs.map((entry) => (
