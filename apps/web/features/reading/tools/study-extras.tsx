@@ -1,26 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-
-import { createQBasairApiClient } from "@q-basair/api-client";
-import type { RootDistributionResponse } from "@q-basair/shared";
+import { useMemo } from "react";
 
 import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
-import { API_BASE_URL } from "@/lib/config";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
+import { useRootSpread } from "@/lib/use-root-spread";
 
 import { useAyahTranslations } from "../use-ayah-translations";
 import { useMorphology } from "../use-morphology";
 
-import { rootSpreadCounts } from "./study-extras-model";
 import type { WordSelection } from "./word-selection";
 
 import { t } from "@/lib/i18n";
-
-const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
-const spreadCache = new Map<string, RootDistributionResponse>();
 
 /**
  * The study panel's extras (web design): where the selected word's root lives
@@ -43,34 +36,8 @@ function RootSpread({ selection, mushafId }: { selection: WordSelection; mushafI
   const { actions } = useWorkspace();
   const { data } = useMorphology(selection.start.surah, selection.start.ayah, mushafId);
   const root = data?.words.find((entry) => entry.position === selection.start.position)?.root ?? null;
-  const [spread, setSpread] = useState<RootDistributionResponse | null>(root ? spreadCache.get(`${mushafId}:${root}`) ?? null : null);
-
-  useEffect(() => {
-    if (!root) {
-      setSpread(null);
-      return;
-    }
-    const key = `${mushafId}:${root}`;
-    const cached = spreadCache.get(key);
-    if (cached) {
-      setSpread(cached);
-      return;
-    }
-    let cancelled = false;
-    api.getRootDistribution(root, mushafId).then(
-      (result) => {
-        spreadCache.set(key, result);
-        if (!cancelled) setSpread(result);
-      },
-      () => !cancelled && setSpread(null),
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, [root, mushafId]);
-
-  const counts = useMemo(() => (spread ? rootSpreadCounts(spread) : null), [spread]);
-  if (!root || !spread || !spread.found || !counts) return null;
+  const { spread, counts } = useRootSpread(root, mushafId);
+  if (!root || !spread || !counts) return null;
 
   const here = selection.start.surah - 1;
   const openRoot = () => {

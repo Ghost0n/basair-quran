@@ -8,6 +8,14 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type { SearchVerse } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
+import { useMushaf } from "@/features/reading/mushaf-context";
+import { RoomWideToggle } from "@/features/shell/room";
+import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
+import { useRootSpread } from "@/lib/use-root-spread";
+import { useWebDesign } from "@/lib/use-web-design";
+
+import "./concordance.web.css";
 import { API_BASE_URL } from "@/lib/config";
 import { useNotebookSync } from "@/lib/notebook-sync";
 import { useIsMobile } from "@/lib/use-is-mobile";
@@ -52,6 +60,9 @@ export function ConcordancePanel() {
   const { openSave } = useSaveAyah();
   const { setMode } = useShellMode();
   const formatNumber = useNumerals();
+  // Web design: the root's spread across the surahs, and a panel that can widen.
+  const web = useWebDesign();
+  const mushaf = useMushaf();
   const router = useRouter();
   // At ≤1000 px the reader isn't mounted beside the results, so a verse tap must
   // switch the shell to the reader surface (Back returns to the results). At wide
@@ -148,6 +159,7 @@ export function ConcordancePanel() {
   // Reset + re-seed the "followed" state whenever the primary root changes, so it
   // reflects the CURRENT root rather than staying stale from the previous search.
   const primaryRoot = primary?.root;
+  const { counts: spreadCounts } = useRootSpread(web && primary?.search_type === "root" ? primary.root : null, DEFAULT_MUSHAF_ID);
   useEffect(() => {
     if (!primaryRoot) {
       setRootFollowed(false);
@@ -226,6 +238,7 @@ export function ConcordancePanel() {
           </div>
         </div>
         <div className="qb-side-head-actions">
+          {web && !isCompact ? <RoomWideToggle /> : null}
           {primary ? (
             <button
               type="button"
@@ -298,7 +311,7 @@ export function ConcordancePanel() {
 
         {primary ? (
           <div className="qb-root-summary">
-            <div className="root-disp">{primary.root}</div>
+            <div className="root-disp">{web && primary.search_type === "root" ? [...primary.root.replace(/\s/g, "")].join(" ") : primary.root}</div>
             <div className="root-gloss">
               {primary.search_type === "root" ? t("جذر قرآني") : t("بحث لفظي")} · {tn("{0} مجموعة", results.length, { 0: formatNumber(results.length) })}
             </div>
@@ -325,6 +338,19 @@ export function ConcordancePanel() {
               <Icon name={rootFollowed ? "check" : "tree"} size={12} />
               {rootFollowed ? t("جذر مُتابَع") : t("تابِع هذا الجذر")}
             </button>
+            {web && spreadCounts ? (
+              <Ribbon
+                className="qb-conc-ribbon"
+                counts={spreadCounts}
+                label={t("انتشار الجذر في السور")}
+                height={64}
+                readout={(i) => t("{0}: {1}", { 0: SURAH_NAMES[i], 1: formatNumber(spreadCounts[i]) })}
+                restReadout={t("المس سورة لتفتحها في المصحف")}
+                onPick={(i) => {
+                  if (i != null && spreadCounts[i]) void mushaf.loadBySurah(DEFAULT_MUSHAF_ID, i + 1);
+                }}
+              />
+            ) : null}
             <button
               type="button"
               className="qb-follow-root"

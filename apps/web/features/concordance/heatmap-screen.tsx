@@ -9,12 +9,16 @@ import type { RootDistributionResponse, SurahListItem } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
 import { Icon } from "@/components/icon";
+import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
+import { rootSpreadCounts } from "@/features/reading/tools/study-extras-model";
+import { useWebDesign } from "@/lib/use-web-design";
 import { useNumerals } from "@/lib/preferences-context";
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { useGoBack, useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
 import "./concordance.css";
+import "./concordance.web.css";
 
 import { t, tn } from "@/lib/i18n";
 
@@ -89,6 +93,10 @@ export function HeatmapScreen() {
     [distribution],
   );
 
+  // Web design: the same counts as the surah ribbon above the grid.
+  const web = useWebDesign();
+  const spreadCounts = useMemo(() => (distribution?.found ? rootSpreadCounts(distribution) : null), [distribution]);
+
   function intensity(count: number): number {
     if (count <= 0) return 0;
     return Math.min(6, Math.ceil((count / maxCount) * 6));
@@ -124,6 +132,22 @@ export function HeatmapScreen() {
 
       {distribution?.found ? (
         <>
+          {web && spreadCounts ? (
+            <Ribbon
+              className="qb-heat-ribbon"
+              counts={spreadCounts}
+              label={t("انتشار الجذر في السور")}
+              height={110}
+              grow
+              readout={(i) => t("{0}: {1}", { 0: SURAH_NAMES[i], 1: formatNumber(spreadCounts[i]) })}
+              restReadout={t("المس سورة لتفتحها في المصحف")}
+              onPick={(i) => {
+                if (i == null) return;
+                void mushaf.loadBySurah(state.selectedMushaf, i + 1);
+                setMode("reading");
+              }}
+            />
+          ) : null}
           <div className="qb-heatmap-grid">
             {surahs.map((surah) => {
               const count = countBySurah.get(surah.id) ?? 0;
