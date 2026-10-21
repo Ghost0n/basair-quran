@@ -1,0 +1,30 @@
+/* Settings in the web design (desktop web): one calm column of sections
+   separated by hairlines, an Amiri heading per section, rows of
+   label / description / control. Source: design/prototype-web-full/screens/settings.* */
+
+.qb-web .qb-settings-h .kicker { color: var(--world); font-weight: 700; letter-spacing: 0; text-transform: none; }
+.qb-web .qb-settings-h h1,
+.qb-web .qb-settings-h h2 { font-family: var(--font-arabic-heading); }
+
+.qb-web .qb-settings-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 860px;
+}
+.qb-web .qb-setting-card {
+  padding: 26px 2px;
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--border-strong);
+  border-radius: 0;
+  box-shadow: none;
+}
+.qb-web .qb-setting-card h2,
+.qb-web .qb-setting-card h3 { font-family: var(--font-arabic-heading); font-size: 22px; line-height: var(--lh-heading, 1.6); }
+.qb-web .qb-setting-card .card-sub { color: var(--fg-3); }
+.qb-web .qb-setting-row + .qb-setting-row,
+.qb-web .qb-switch-row + .qb-switch-row { border-top: 1px solid var(--border); }
+.qb-web .qb-setting-seg { background: var(--bg-elev-2); box-shadow: none; border: 0; border-radius: var(--r-ctl); }
+.qb-web .qb-setting-select { border-radius: var(--r-ctl); border: 1px solid var(--border-strong); background: var(--bg-elev-1); box-shadow: none; }
+.qb-web .qb-translations-card .pill { border-radius: 999px; }

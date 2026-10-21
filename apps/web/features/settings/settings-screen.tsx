@@ -1,6 +1,7 @@
 "use client";
 
 import "./settings.css";
+import "./settings.web.css";
 
 import type { NumeralScript } from "@q-basair/shared";
 
