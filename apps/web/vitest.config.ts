@@ -6,6 +6,8 @@ import { defineConfig } from "vitest/config";
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  // Same JSX runtime as Next, so component modules can be rendered in tests (react-dom/server).
+  esbuild: { jsx: "automatic" },
   resolve: {
     alias: {
       "@": rootDir,
