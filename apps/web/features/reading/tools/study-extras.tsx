@@ -84,6 +84,7 @@ function RootSpread({ selection, mushafId }: { selection: WordSelection; mushafI
 
 function Meaning({ selection }: { selection: WordSelection }) {
   const { preferences } = usePreferences();
+  const formatNumber = useNumerals();
   const keys = preferences.translations ?? [];
   const refs = useMemo(() => [{ surah: selection.start.surah, ayah: selection.start.ayah }], [selection.start.surah, selection.start.ayah]);
   const translations = useAyahTranslations(keys, refs);
@@ -91,7 +92,7 @@ function Meaning({ selection }: { selection: WordSelection }) {
   if (!keys.length || !list.length) return null;
   return (
     <section className="qb-study-meaning" aria-label={t("معنى الآية")}>
-      <span className="lbl">{t("معنى الآية {0}", { 0: selection.start.ayah })}</span>
+      <span className="lbl">{t("معنى الآية {0}", { 0: formatNumber(selection.start.ayah) })}</span>
       {list.map((item) => (
         <figure key={item.meta.key} dir={item.meta.direction === "rtl" ? "rtl" : item.meta.direction === "ltr" ? "ltr" : "auto"} lang={item.meta.language}>
           <p>{item.text}</p>
