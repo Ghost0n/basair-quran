@@ -1,6 +1,7 @@
 "use client";
 
 import "./documents.css";
+import "./documents.web.css";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";

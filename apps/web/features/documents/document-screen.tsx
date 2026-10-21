@@ -1,6 +1,7 @@
 "use client";
 
 import "./documents.css";
+import "./documents.web.css";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
