@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
-    environment:
+    environment: &api-environment
       PORT: "8001"
       QBASAIR_DB_PATH: /app/data/quran.db
       QBASAIR_AUTH_DB_PATH: /app/data/auth.db
@@ -42,6 +42,13 @@ services:
       QBASAIR_SMTP_PASSWORD: ${QBASAIR_SMTP_PASSWORD:-}
       QBASAIR_SMTP_SECURITY: ${QBASAIR_SMTP_SECURITY:-starttls}
       QBASAIR_MAIL_FROM: ${QBASAIR_MAIL_FROM:-}
+      # Community moderation (docs/community-moderation-design.md): the batches
+      # run in the `worker` service below, not in the API.
+      QBASAIR_MODERATION_WORKER: external
+      QBASAIR_MODERATION_INTERVAL_SECONDS: ${QBASAIR_MODERATION_INTERVAL_SECONDS:-900}
+      QBASAIR_MODERATION_DAILY_BUDGET: ${QBASAIR_MODERATION_DAILY_BUDGET:-2000}
+      QBASAIR_MODERATION_MIN_CONFIDENCE: ${QBASAIR_MODERATION_MIN_CONFIDENCE:-0.7}
+      QBASAIR_RATE_LIMIT_FEEDBACK_MAX: ${QBASAIR_RATE_LIMIT_FEEDBACK_MAX:-10}
     volumes:
       - ./data:/app/data
     expose:
@@ -64,6 +71,31 @@ services:
       timeout: 10s
       retries: 5
       start_period: 30s
+    restart: unless-stopped
+
+  # The moderation batches: the API's image and settings, its own process
+  # (src/app/workers/moderation_worker.py). Restarting it loses nothing — the
+  # work waits in the database.
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    command: ["python", "-m", "src.app.workers.moderation_worker"]
+    environment: *api-environment
+    volumes:
+      - ./data:/app/data
+    networks:
+      - app
+    depends_on:
+      api:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: ${QBASAIR_WORKER_MEM_LIMIT:-384m}
+    cpus: ${QBASAIR_WORKER_CPUS:-0.5}
     restart: unless-stopped
 
   web:

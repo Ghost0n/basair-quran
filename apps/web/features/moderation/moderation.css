@@ -1,0 +1,233 @@
+/* The supervision panel (features/moderation). Cards, issues and decisions share
+   .qb-mod-card from features/community/community.css. */
+
+.qb-supervision .sections {
+  margin-bottom: 4px;
+}
+
+.qb-supervision .sections .count,
+.qb-filter-row .count {
+  margin-inline-start: 4px;
+  padding: 0 7px;
+  border-radius: var(--r-pill);
+  background: var(--gold-a12);
+  color: var(--gold-text);
+  font-size: 11px;
+}
+
+.qb-supervision .qb-segmented.sub {
+  align-self: flex-start;
+}
+
+.qb-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.qb-filter-row .qb-chip.toggle {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-rim);
+  background: var(--glass-tint-soft);
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.qb-filter-row .qb-chip.toggle.on {
+  border-color: var(--gold-a55);
+  background: var(--gold-a12);
+  color: var(--gold-text);
+}
+
+.qb-mod-card .reason {
+  padding: 1px 10px;
+  border-radius: var(--r-pill);
+  background: var(--glass-tint-soft);
+  border: 1px solid var(--glass-rim);
+  font-size: 12px;
+  color: var(--fg-2);
+}
+
+.qb-mod-card .reason.r-declined,
+.qb-mod-card .reason.r-reported,
+.qb-mod-card .reason.k-bug,
+.qb-mod-card .reason.k-error {
+  color: var(--danger-fg);
+}
+
+.qb-mod-card .reason.r-unsure,
+.qb-mod-card .reason.k-help {
+  color: var(--warn-fg);
+}
+
+.qb-mod-card .reason.r-first_post,
+.qb-mod-card .reason.k-feature {
+  color: var(--gold-text);
+}
+
+.qb-mod-card .title {
+  display: block;
+  margin-top: 6px;
+}
+
+.qb-mod-card .comment-body {
+  margin: 8px 0;
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: var(--fg-1);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.qb-mod-card .ai.v-valid {
+  color: var(--ok-fg, var(--gold-text));
+}
+
+.qb-mod-card .ai.v-declined {
+  color: var(--danger-fg);
+}
+
+.qb-mod-card .ai small {
+  color: var(--fg-3);
+}
+
+.qb-mod-card .reports,
+.qb-mod-card .history {
+  margin: 6px 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--fg-2);
+}
+
+.qb-mod-card .reports small,
+.qb-mod-card .history small {
+  color: var(--fg-3);
+}
+
+.qb-mod-card .problem {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--danger-fg);
+}
+
+.qb-mod-card .detail {
+  max-height: 260px;
+  overflow: auto;
+  margin: 8px 0;
+  padding: 10px;
+  border-radius: var(--r-md);
+  background: var(--glass-tint-soft);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--fg-2);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.qb-mod-author {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--fg-1);
+}
+
+.qb-mod-author > span {
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  font-size: 11.5px;
+  border: 1px solid var(--glass-rim);
+  color: var(--fg-3);
+}
+
+.qb-mod-author .trust.verified {
+  color: var(--gold-text);
+}
+
+.qb-mod-author .strikes.suspicious,
+.qb-mod-author .banned {
+  color: var(--danger-fg);
+  border-color: currentColor;
+}
+
+.qb-mod-card.member {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.qb-mod-card.member .who {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 160px;
+}
+
+.qb-mod-card.member .who small {
+  color: var(--fg-3);
+  text-align: start;
+}
+
+.qb-mod-card.member .role.admin {
+  color: var(--gold-text);
+}
+
+.qb-mod-card.add-member {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.qb-mod-card.add-member label {
+  font-size: 14px;
+  color: var(--fg-1);
+}
+
+.qb-mod-card.add-member input {
+  flex: 1;
+  min-width: 200px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--glass-tint-soft);
+  color: var(--fg-1);
+  font-size: 16px;
+}
+
+.qb-mod-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.qb-mod-stats .stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+}
+
+.qb-mod-stats .stat b {
+  font-size: 24px;
+  color: var(--fg-1);
+}
+
+.qb-mod-stats .stat.busy b {
+  color: var(--gold-text);
+}
+
+.qb-mod-stats .stat span {
+  font-size: 12.5px;
+  color: var(--fg-3);
+}

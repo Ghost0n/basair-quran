@@ -14,7 +14,7 @@ import { SelectMenu } from "@/components/select-menu";
 import { API_BASE_URL } from "@/lib/config";
 
 import { EMPTY_FILTERS, activeFilterCount, feedQuery, type FeedFilters } from "./feed-filters";
-import { ModerationPanel } from "./moderation-panel";
+import { SupervisionPanel } from "@/features/moderation/supervision-panel";
 import { PostCard, type PostCardActions } from "./post-card";
 import { sharePostLink } from "./share-link";
 import { useCommunityAccess } from "./use-community-access";
@@ -388,7 +388,7 @@ export function CommunityScreen() {
         : null}
 
       {tab === "moderation" ? (
-        <ModerationPanel surahName={surahName} onOpen={open} />
+        <SupervisionPanel surahName={surahName} onOpen={open} />
       ) : (
         <div className="qb-feed" aria-busy={loading}>
           {error ? <div className="qb-empty">{t("تعذّر تحميل المنشورات.")}</div> : null}

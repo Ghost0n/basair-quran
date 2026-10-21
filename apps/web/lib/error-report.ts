@@ -1,5 +1,6 @@
 "use client";
 
+import { API_BASE_URL } from "@/lib/config";
 import { t } from "@/lib/i18n";
 
 /**
@@ -11,11 +12,11 @@ import { t } from "@/lib/i18n";
  *     technical to a calm, actionable Arabic message, while letting already-
  *     friendly Arabic messages (the reader's own copy) pass through.
  *
- *  2. reportError() / sendDiagnosticReport() — SCAFFOLD for a future
- *     "send a report to the admin panel" feature. Today they capture a
- *     breadcrumb trail + a diagnostic bundle and log it (dev console). When the
- *     server side lands, flip NEXT_PUBLIC_ERROR_REPORTING=1 and they POST the
- *     bundle to /api/reports. See docs/error-reporting.md for the full design.
+ *  2. reportError() / sendDiagnosticReport() — a breadcrumb trail, and the
+ *     «أبلِغ عن المشكلة» action: the diagnostic bundle goes to the feedback
+ *     centre (POST /api/feedback, kind "error"), which staff triage in the
+ *     supervision panel. Automatic capture of uncaught errors stays opt-in
+ *     (NEXT_PUBLIC_ERROR_REPORTING=1). See docs/error-reporting.md.
  */
 
 const TECHNICAL_PATTERNS = [
@@ -125,13 +126,11 @@ export function installGlobalErrorHooks(): void {
 }
 
 /**
- * The user-initiated "send a report" action (future admin pipeline). Assembles a
- * diagnostic bundle (sanitized user message + technical detail + recent
- * breadcrumbs + url/agent) and:
- *   • always logs it locally (so a dev/admin can retrieve it today), and
- *   • POSTs it to /api/reports ONLY when NEXT_PUBLIC_ERROR_REPORTING=1 (the
- *     endpoint + admin panel are a future implementation — see
- *     docs/error-reporting.md). Never throws; returns whether it was accepted.
+ * The user-initiated "send a report" action. Assembles a diagnostic bundle
+ * (sanitized user message + technical detail + recent breadcrumbs +
+ * url/agent), logs it locally and sends it to the feedback centre (the person
+ * pressed «أبلِغ», so no opt-in flag is needed). Never throws; returns whether
+ * it was accepted.
  */
 export async function sendDiagnosticReport(
   scope: string,
@@ -155,17 +154,18 @@ export async function sendDiagnosticReport(
     console.warn("[qb:report]", report);
   }
 
-  if (!REPORTING_ENABLED) {
-    // Captured locally; the transport is a future implementation.
-    return true;
-  }
-
   try {
-    const response = await fetch("/api/reports", {
+    const response = await fetch(`${API_BASE_URL}/feedback`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(report),
+      body: JSON.stringify({
+        kind: "error",
+        message: report.user_message,
+        detail: report,
+        url: report.url ?? null,
+        language: typeof document !== "undefined" ? document.documentElement.lang || null : null,
+      }),
     });
     return response.ok;
   } catch {

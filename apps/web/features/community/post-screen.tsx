@@ -21,7 +21,8 @@ import { useMushaf } from "@/features/reading/mushaf-context";
 import { useShellMode } from "@/features/shell/mode-context";
 import { TafssirDisclaimer } from "@/features/studio/tafssir-disclaimer";
 
-import { REPORT_RULES, RULE_LABEL, STATUS_LABEL } from "./labels";
+import { REPORT_RULES, RULE_LABEL, isBanned } from "./labels";
+import { ReviewBanner } from "./review-banner";
 import { useCommunityAccess } from "./use-community-access";
 
 import { t } from "@/lib/i18n";
@@ -109,10 +110,20 @@ export function PostScreen() {
     try {
       const created = await api.addComment(post.id, body);
       setComments((current) => [...current, created]);
-      setPost((current) => (current ? { ...current, comment_count: current.comment_count + 1 } : current));
+      if (created.status === "visible") {
+        setPost((current) => (current ? { ...current, comment_count: current.comment_count + 1 } : current));
+      } else {
+        say(t("سيظهر تعليقك للجميع بعد فحصه."));
+      }
       setDraft("");
     } catch (err) {
-      say(err instanceof Error && /روابط/.test(err.message) ? t("التعليق يحوي روابط كثيرة.") : t("تعذّر إرسال التعليق."));
+      say(
+        isBanned(err)
+          ? t("النشر والتعليق موقوفان مؤقتاً لحسابك.")
+          : err instanceof Error && /روابط/.test(err.message)
+            ? t("التعليق يحوي روابط كثيرة.")
+            : t("تعذّر إرسال التعليق."),
+      );
     }
   }
 
@@ -177,10 +188,6 @@ export function PostScreen() {
   }
   if (!post) return <div className="qb-skeleton-page" aria-hidden />;
 
-  const latestHuman = post.reviews.find((review) => review.stage === "human");
-  const latestAi = post.reviews.find((review) => review.stage === "ai");
-  const aiIssues = (latestAi?.issues ?? []) as { rule?: string; explanation_ar?: string; suggestion_ar?: string; quote?: string }[];
-
   return (
     <div className="qb-post qb-page-enter">
       <div className="qb-post-bar qb-glass-strong">
@@ -222,22 +229,8 @@ export function PostScreen() {
       <div className="qb-post-body">
         {flash ? <div className="qb-toast-inline" role="status">{flash}</div> : null}
 
-        {post.is_mine && post.status !== "published" ? (
-          <div className={`qb-review-banner s-${post.status} qb-glass`}>
-            <strong>{STATUS_LABEL[post.status]}</strong>
-            {post.status === "pending_review" ? <p>{t("يراجع المشرفون بحثك قبل ظهوره في المجتمع.")}</p> : null}
-            {latestHuman?.note ? <p>{t("ملاحظة المشرف:")} {latestHuman.note}</p> : null}
-            {aiIssues.length ? (
-              <ul>
-                {aiIssues.map((issue, index) => (
-                  <li key={index}>
-                    <b>{RULE_LABEL[(issue.rule ?? "other") as GuidelineRule] ?? issue.rule}:</b> {issue.explanation_ar}
-                    {issue.suggestion_ar ? <span className="suggest"> — {issue.suggestion_ar}</span> : null}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
+        {post.is_mine ? (
+          <ReviewBanner post={post} onEdit={() => router.push(`/?mode=document&id=${encodeURIComponent(post.document.id)}`)} />
         ) : null}
 
         <header className="qb-post-head">
@@ -305,16 +298,33 @@ export function PostScreen() {
             <h2>
               {t("التعليقات")} <span className="count">{formatNumber(comments.length)}</span>
             </h2>
-            {comments.map((comment, index) => (
-              <div key={comment.id} className="qb-comment qb-rise" style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}>
+            {comments.map((comment, index) =>
+              comment.status === "hidden" && !comment.body ? (
+                // Hidden by a moderator, the checks or reports: no author, no text.
+                <div key={comment.id} className="qb-comment hidden">
+                  <span className="avatar" aria-hidden>
+                    <Icon name="eyeOff" size={13} />
+                  </span>
+                  <div className="bubble">
+                    <p>{t("تعليق مخفي")}</p>
+                  </div>
+                </div>
+              ) : (
+              <div
+                key={comment.id}
+                className={`qb-comment qb-rise${comment.status !== "visible" ? ` ${comment.status}` : ""}`}
+                style={{ animationDelay: `${Math.min(index, 8) * 30}ms` }}
+              >
                 <span className="avatar" aria-hidden>{comment.author_name.trim().charAt(0) || "ب"}</span>
                 <div className="bubble">
                   <div className="meta">
                     <b>{comment.author_name}</b> <small>{relativeAge(comment.created_at, formatNumber)}</small>
+                    {comment.status === "pending" ? <span className="state">{t("قيد الفحص")}</span> : null}
+                    {comment.status === "hidden" ? <span className="state">{t("مخفي عن القرّاء")}</span> : null}
                   </div>
                   <p>{comment.body}</p>
                 </div>
-                {comment.is_mine || access.isModerator ? (
+                {comment.is_mine ? (
                   <button type="button" className="qb-icon-round small" onClick={() => void removeComment(comment)} aria-label={t("حذف التعليق")}>
                     <Icon name="trash" size={13} />
                   </button>
@@ -324,7 +334,8 @@ export function PostScreen() {
                   </button>
                 )}
               </div>
-            ))}
+              ),
+            )}
             {access.canWrite ? (
               <form
                 className="qb-comment-composer qb-glass"

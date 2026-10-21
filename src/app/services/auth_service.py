@@ -27,6 +27,13 @@ class AuthUser:
     name: str | None = None
     avatar: str | None = None
     onboarded: bool = False
+    # Moderates community content (docs/community-moderation-design.md); an
+    # admin is a moderator too (``is_staff``). Appointed by an admin.
+    is_moderator: bool = False
+
+    @property
+    def is_staff(self) -> bool:
+        return self.is_admin or self.is_moderator
 
 
 @dataclass(frozen=True)
@@ -148,6 +155,8 @@ def ensure_auth_db() -> None:
             connection.execute("ALTER TABLE users ADD COLUMN avatar TEXT")
         if "onboarded" not in existing:
             connection.execute("ALTER TABLE users ADD COLUMN onboarded INTEGER NOT NULL DEFAULT 0")
+        if "is_moderator" not in existing:
+            connection.execute("ALTER TABLE users ADD COLUMN is_moderator INTEGER NOT NULL DEFAULT 0")
         connection.commit()
 
 
@@ -161,7 +170,7 @@ def _hash_token(raw_token: str) -> str:
     return hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
 
 
-_USER_COLUMNS = "id, email, is_admin, is_active, name, avatar, onboarded"
+_USER_COLUMNS = "id, email, is_admin, is_active, name, avatar, onboarded, is_moderator"
 
 
 def _row_to_user(row: sqlite3.Row | None) -> AuthUser | None:
@@ -176,6 +185,7 @@ def _row_to_user(row: sqlite3.Row | None) -> AuthUser | None:
         name=(str(row["name"]) if "name" in keys and row["name"] is not None else None),
         avatar=(str(row["avatar"]) if "avatar" in keys and row["avatar"] is not None else None),
         onboarded=(bool(row["onboarded"]) if "onboarded" in keys else False),
+        is_moderator=(bool(row["is_moderator"]) if "is_moderator" in keys else False),
     )
 
 
@@ -279,6 +289,40 @@ def set_user_active(email: str, is_active: bool) -> AuthUser:
     return user
 
 
+def set_moderator(user_id: int, is_moderator: bool) -> AuthUser:
+    """Appoint or remove a moderator (admins only, checked by the route)."""
+    ensure_auth_db()
+    with _connect() as connection:
+        cursor = connection.execute(
+            "UPDATE users SET is_moderator = ?, updated_at = ? WHERE id = ?",
+            (1 if is_moderator else 0, int(time.time()), user_id),
+        )
+        connection.commit()
+        if cursor.rowcount == 0:
+            raise AuthError("User was not found.")
+    user = get_user_by_id(user_id)
+    if user is None:
+        raise AuthError("User was not found.")
+    return user
+
+
+def get_user_by_email(email: str) -> AuthUser | None:
+    ensure_auth_db()
+    with _connect() as connection:
+        row = connection.execute(f"SELECT {_USER_COLUMNS} FROM users WHERE email = ?", (normalize_email(email),)).fetchone()
+    return _row_to_user(row)
+
+
+def list_staff() -> list[AuthUser]:
+    """Admins and moderators, admins first."""
+    ensure_auth_db()
+    with _connect() as connection:
+        rows = connection.execute(
+            f"SELECT {_USER_COLUMNS} FROM users WHERE is_admin = 1 OR is_moderator = 1 ORDER BY is_admin DESC, email"
+        ).fetchall()
+    return [user for row in rows if (user := _row_to_user(row)) is not None]
+
+
 def update_profile(
     user_id: int,
     *,
@@ -340,7 +384,7 @@ def authenticate_user(email: str, password: str) -> AuthUser | None:
     with _connect() as connection:
         row = connection.execute(
             """
-            SELECT id, email, password_salt, password_hash, is_active, is_admin, name, avatar, onboarded
+            SELECT id, email, password_salt, password_hash, is_active, is_admin, name, avatar, onboarded, is_moderator
             FROM users
             WHERE email = ?
             """,

@@ -1,8 +1,9 @@
-"""Community endpoints — publish, feed, posts, likes, comments, reports, moderation.
+"""Community endpoints — publish, feed, posts, likes, comments, reports, appeals.
 
 Reading the feed and published posts is open to guests. Writing (publish, like,
-comment, report) needs an account when auth is enabled; moderation needs an
-admin. With auth disabled (single-user/local) the local user may do both.
+comment, report, appeal) needs an account when auth is enabled. Moderation is
+in ``routes/moderation.py``. With auth disabled (single-user/local) the local
+user is also its moderator.
 """
 
 from typing import Literal
@@ -11,13 +12,14 @@ from fastapi import APIRouter, HTTPException, Query, Request
 
 from src.app.core import config
 from src.app.models.api import (
+    AppealCreate,
+    AppealItem,
+    AuthorStanding,
     CommentCreate,
     CommentItem,
     DeleteResult,
     FeedPage,
     LikeResult,
-    ModerationDecision,
-    ModerationQueue,
     PostDetail,
     PostSummary,
     PublishRequest,
@@ -26,7 +28,7 @@ from src.app.models.api import (
     SaveResult,
     TagCount,
 )
-from src.app.services import app_data_service, community_service
+from src.app.services import app_data_service, community_service, moderation_service
 
 router = APIRouter(prefix="/api", tags=["community"])
 
@@ -36,7 +38,7 @@ def _viewer(request: Request) -> tuple[int | None, bool, str]:
     user = getattr(request.state, "auth_user", None)
     if user is not None and getattr(user, "id", None) is not None:
         name = (getattr(user, "name", None) or "").strip() or f"باحث {int(user.id)}"
-        return int(user.id), bool(getattr(user, "is_admin", False)), name
+        return int(user.id), bool(getattr(user, "is_staff", False)), name
     if not config.is_auth_enabled():
         return app_data_service.DEFAULT_USER_ID, True, "باحث"
     return None, False, ""
@@ -52,15 +54,9 @@ def _require_user(request: Request) -> tuple[int, bool, str]:
     return user_id, is_moderator, name
 
 
-def _require_moderator(request: Request) -> int:
-    user_id, is_moderator, _ = _require_user(request)
-    if not is_moderator:
-        raise HTTPException(status_code=403, detail="Moderator access required.")
-    return user_id
-
-
 def _raise(exc: community_service.CommunityError):
-    raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
+    detail = {"code": exc.code, "message": str(exc), **exc.extra} if exc.code else str(exc)
+    raise HTTPException(status_code=exc.status, detail=detail) from exc
 
 
 @router.post("/documents/{document_id}/publish", response_model=PublishResult, response_model_exclude_none=True)
@@ -165,9 +161,9 @@ def unsave(request: Request, post_id: str) -> SaveResult:
 
 @router.get("/community/posts/{post_id}/comments", response_model=list[CommentItem])
 def comments(request: Request, post_id: str) -> list[CommentItem]:
-    viewer_id, _, _ = _viewer(request)
+    viewer_id, is_staff, _ = _viewer(request)
     try:
-        return [CommentItem(**item) for item in community_service.list_comments(post_id, viewer_id)]
+        return [CommentItem(**item) for item in community_service.list_comments(post_id, viewer_id, is_staff)]
     except community_service.CommunityError as exc:
         _raise(exc)
 
@@ -183,8 +179,9 @@ def add_comment(request: Request, post_id: str, payload: CommentCreate) -> Comme
 
 @router.delete("/community/comments/{comment_id}", response_model=DeleteResult)
 def delete_comment(request: Request, comment_id: int) -> DeleteResult:
-    user_id, is_moderator, _ = _require_user(request)
-    return DeleteResult(deleted=community_service.delete_comment(comment_id, user_id, is_moderator))
+    """Its author deletes a comment (moderators decide through the queue)."""
+    user_id, _, _ = _require_user(request)
+    return DeleteResult(deleted=community_service.delete_comment(comment_id, user_id))
 
 
 @router.post("/community/reports", response_model=DeleteResult)
@@ -198,28 +195,24 @@ def report(request: Request, payload: ReportCreate) -> DeleteResult:
     return DeleteResult(deleted=False)
 
 
-@router.get("/moderation/queue", response_model=ModerationQueue, response_model_exclude_none=True)
-def moderation_queue(request: Request) -> ModerationQueue:
-    _require_moderator(request)
-    return ModerationQueue(**community_service.moderation_queue())
+@router.get("/community/me/standing", response_model=AuthorStanding, response_model_exclude_none=True)
+def my_standing(request: Request) -> AuthorStanding:
+    """The signed-in author's trust level, strikes and ban (if any)."""
+    user_id, _, name = _require_user(request)
+    return AuthorStanding(**moderation_service.standing(user_id), name=name)
 
 
-@router.post("/moderation/posts/{post_id}/decision", response_model=PostDetail, response_model_exclude_none=True)
-def decide(request: Request, post_id: str, payload: ModerationDecision) -> PostDetail:
-    moderator_id = _require_moderator(request)
-    post = community_service.decide(post_id, payload.decision, moderator_id, payload.note)
-    if post is None:
-        raise HTTPException(status_code=404, detail="Post not found.")
-    return PostDetail(**post)
+@router.post("/community/appeals", response_model=AppealItem)
+def appeal(request: Request, payload: AppealCreate) -> AppealItem:
+    """Contest the latest decision on one's post, comment or ban — once per decision."""
+    user_id, _, _ = _require_user(request)
+    try:
+        return AppealItem(**moderation_service.appeal(user_id, payload.target_type, payload.target_id, payload.message))
+    except moderation_service.ModerationError as exc:
+        raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
 
 
-@router.post("/moderation/comments/{comment_id}/hide", response_model=DeleteResult)
-def hide_comment(request: Request, comment_id: int) -> DeleteResult:
-    _require_moderator(request)
-    return DeleteResult(deleted=community_service.hide_comment(comment_id))
-
-
-@router.post("/moderation/reports/{report_id}/resolve", response_model=DeleteResult)
-def resolve_report(request: Request, report_id: int) -> DeleteResult:
-    _require_moderator(request)
-    return DeleteResult(deleted=community_service.resolve_report(report_id))
+@router.get("/community/appeals", response_model=list[AppealItem], response_model_exclude_none=True)
+def my_appeals(request: Request) -> list[AppealItem]:
+    user_id, _, _ = _require_user(request)
+    return [AppealItem(**item) for item in moderation_service.my_appeals(user_id)]

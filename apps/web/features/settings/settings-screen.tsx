@@ -8,6 +8,7 @@ import { SelectMenu } from "@/components/select-menu";
 import { AccountSettings } from "@/features/identity/account-settings";
 import { LanguageSelect } from "./language-select";
 import { DownloadsSettings } from "@/features/app-mode/downloads-settings";
+import { FeedbackCard } from "@/features/feedback/feedback-card";
 
 import { HomeSettings } from "./home-settings";
 import { TranslationsSettings } from "./translations-settings";
@@ -125,6 +126,8 @@ export function SettingsScreen() {
         <TranslationsSettings />
 
         <DownloadsSettings />
+
+        <FeedbackCard />
 
         <AccountSettings />
 

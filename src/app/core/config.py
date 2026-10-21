@@ -255,7 +255,39 @@ def get_rate_limit(bucket: str) -> tuple[float, int]:
         return window, _read_int_env("QBASAIR_RATE_LIMIT_RESEARCH_MAX", 60)
     if bucket == "community":
         return window, _read_int_env("QBASAIR_RATE_LIMIT_COMMUNITY_MAX", 30)
+    if bucket == "feedback":
+        return window, _read_int_env("QBASAIR_RATE_LIMIT_FEEDBACK_MAX", 10)
     return window, 0
+
+
+# --- Community moderation (docs/community-moderation-design.md) --------------
+
+
+def get_moderation_worker_mode() -> str:
+    """Where the moderation batches run: ``embedded`` (a thread of the API — the
+    default, so a single process works), ``external`` (the ``worker`` container
+    runs them; the API doesn't) or ``off``."""
+    mode = os.environ.get("QBASAIR_MODERATION_WORKER", "embedded").strip().lower()
+    return mode if mode in ("embedded", "external", "off") else "embedded"
+
+
+def get_moderation_interval_seconds() -> int:
+    """Seconds between two moderation batches (15 minutes by default)."""
+    return max(10, _read_int_env("QBASAIR_MODERATION_INTERVAL_SECONDS", 900))
+
+
+def get_moderation_daily_budget() -> int:
+    """Agent checks allowed per UTC day; past it items wait for the next day."""
+    return max(0, _read_int_env("QBASAIR_MODERATION_DAILY_BUDGET", 2000))
+
+
+def get_moderation_min_confidence() -> float:
+    """An agent answer less confident than this is ``unsure`` (a person decides)."""
+    try:
+        value = float(os.environ.get("QBASAIR_MODERATION_MIN_CONFIDENCE", "0.7"))
+    except ValueError:
+        return 0.7
+    return min(1.0, max(0.0, value))
 
 
 def is_low_memory_mode() -> bool:

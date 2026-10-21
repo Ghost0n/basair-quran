@@ -8,8 +8,24 @@ import type {
   TagCount,
   TranslationAyahsResponse,
   TranslationInfo,
+  AppealCreate,
+  AppealDecision,
+  AppealItem,
+  AuthorStanding,
+  BanRequest,
+  FeedbackCreate,
+  FeedbackItem,
+  FeedbackKind,
+  FeedbackPage,
+  FeedbackStatus,
+  FeedbackUpdate,
+  ModerationAction,
   ModerationDecision,
+  ModerationHealth,
   ModerationQueue,
+  ModerationRun,
+  ModerationUser,
+  TeamMember,
   PostDetail,
   PostSummary,
   PublishRequest,
@@ -525,11 +541,70 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
         body: JSON.stringify(decision),
       });
     },
-    hideComment(commentId: number): Promise<DeleteResult> {
-      return request<DeleteResult>(`/moderation/comments/${commentId}/hide`, { method: "POST" });
+    decideComment(commentId: number, decision: ModerationDecision): Promise<CommentItem> {
+      return request<CommentItem>(`/moderation/comments/${commentId}/decision`, {
+        method: "POST",
+        body: JSON.stringify(decision),
+      });
     },
-    resolveReport(reportId: number): Promise<DeleteResult> {
-      return request<DeleteResult>(`/moderation/reports/${reportId}/resolve`, { method: "POST" });
+    decideAppeal(appealId: number, decision: AppealDecision): Promise<AppealItem> {
+      return request<AppealItem>(`/moderation/appeals/${appealId}/decision`, {
+        method: "POST",
+        body: JSON.stringify(decision),
+      });
+    },
+    getModerationUsers(kind: "suspicious" | "banned"): Promise<ModerationUser[]> {
+      return request<ModerationUser[]>(`/moderation/users?kind=${kind}`);
+    },
+    banUser(userId: number, ban: BanRequest): Promise<AuthorStanding> {
+      return request<AuthorStanding>(`/moderation/users/${userId}/ban`, { method: "POST", body: JSON.stringify(ban) });
+    },
+    unbanUser(userId: number, reason?: string): Promise<AuthorStanding> {
+      return request<AuthorStanding>(`/moderation/users/${userId}/unban`, {
+        method: "POST",
+        body: JSON.stringify({ reason: reason ?? null }),
+      });
+    },
+    getModerationActions(mine = false): Promise<ModerationAction[]> {
+      return request<ModerationAction[]>(`/moderation/actions${mine ? "?mine=true" : ""}`);
+    },
+    getModerationTeam(): Promise<TeamMember[]> {
+      return request<TeamMember[]>("/moderation/team");
+    },
+    setModeratorRole(email: string, role: "moderator" | "user"): Promise<TeamMember[]> {
+      return request<TeamMember[]>("/moderation/team", { method: "POST", body: JSON.stringify({ email, role }) });
+    },
+    getModerationHealth(): Promise<ModerationHealth> {
+      return request<ModerationHealth>("/moderation/health");
+    },
+    runModerationBatch(): Promise<ModerationRun> {
+      return request<ModerationRun>("/moderation/run", { method: "POST" });
+    },
+    getMyStanding(): Promise<AuthorStanding> {
+      return request<AuthorStanding>("/community/me/standing");
+    },
+    appeal(appeal: AppealCreate): Promise<AppealItem> {
+      return request<AppealItem>("/community/appeals", { method: "POST", body: JSON.stringify(appeal) });
+    },
+    getMyAppeals(): Promise<AppealItem[]> {
+      return request<AppealItem[]>("/community/appeals");
+    },
+    sendFeedback(feedback: FeedbackCreate): Promise<FeedbackItem> {
+      return request<FeedbackItem>("/feedback", { method: "POST", body: JSON.stringify(feedback) });
+    },
+    getMyFeedback(): Promise<FeedbackItem[]> {
+      return request<FeedbackItem[]>("/feedback/mine");
+    },
+    getFeedbackTriage(query: { status?: FeedbackStatus; kind?: FeedbackKind; before?: number } = {}): Promise<FeedbackPage> {
+      const params = new URLSearchParams();
+      if (query.status) params.set("status", query.status);
+      if (query.kind) params.set("kind", query.kind);
+      if (query.before) params.set("before", String(query.before));
+      const suffix = params.toString();
+      return request<FeedbackPage>(`/moderation/feedback${suffix ? `?${suffix}` : ""}`);
+    },
+    updateFeedback(feedbackId: number, update: FeedbackUpdate): Promise<FeedbackItem> {
+      return request<FeedbackItem>(`/moderation/feedback/${feedbackId}`, { method: "PATCH", body: JSON.stringify(update) });
     },
     getThemes(): Promise<ThemeSummary[]> {
       return request<ThemeSummary[]>("/themes");

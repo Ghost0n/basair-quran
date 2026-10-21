@@ -1,7 +1,9 @@
 from src.app.routes.auth import router as auth_router
 from src.app.routes.community import router as community_router
 from src.app.routes.companions import router as companions_router
+from src.app.routes.feedback import router as feedback_router
 from src.app.routes.health import router as health_router
+from src.app.routes.moderation import router as moderation_router
 from src.app.routes.mushafs import router as mushafs_router
 from src.app.routes.offline import router as offline_router
 from src.app.routes.reader import router as reader_router
@@ -13,7 +15,9 @@ __all__ = [
     "auth_router",
     "community_router",
     "companions_router",
+    "feedback_router",
     "health_router",
+    "moderation_router",
     "mushafs_router",
     "offline_router",
     "reader_router",

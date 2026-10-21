@@ -1,8 +1,10 @@
 # AI audit agent — design (for community publishing)
 
-**Status:** implemented (Q-Basair-19) — `src/app/services/audit_agent_service.py`, called by
-`community_service.publish_document`. The deterministic step is `GET /api/documents/{id}/audit`.
-Not yet built: the labelled evaluation set (§7).
+**Status:** superseded by `docs/community-moderation-design.md` (Q-Basair-58). The agent now runs
+in batches, not at publish time, answers `valid | unsure | declined` with a confidence, writes its
+reasons in the author's language and also checks comments. The inputs, the rules and the guards
+below still describe it; the routing, the output contract and the storage changed (see that
+document). The deterministic step is still `GET /api/documents/{id}/audit`.
 
 ## 1. Where it sits
 

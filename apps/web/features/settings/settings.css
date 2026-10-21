@@ -465,3 +465,70 @@
     transition: none;
   }
 }
+
+/* «الدعم والملاحظات» (features/feedback/feedback-card.tsx) */
+
+.qb-feedback-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.qb-feedback-form textarea,
+.qb-feedback-form input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--glass-tint-soft);
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.qb-feedback-form .qb-btn {
+  align-self: flex-start;
+}
+
+.qb-feedback-mine h4 {
+  margin: 16px 0 6px;
+  font-size: 14px;
+  color: var(--fg-1);
+}
+
+.qb-feedback-mine ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qb-feedback-mine li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--fg-2);
+}
+
+.qb-feedback-mine .kind,
+.qb-feedback-mine .status {
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+
+.qb-feedback-mine .status.s-resolved {
+  color: var(--gold-text);
+}
+
+.qb-feedback-mine .text {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}

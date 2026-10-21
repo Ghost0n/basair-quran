@@ -69,6 +69,8 @@ class AuthUserInfo(BaseModel):
     id: int
     email: str
     is_admin: bool = False
+    # Moderates community content (appointed by an admin).
+    is_moderator: bool = False
     name: Optional[str] = None
     avatar: Optional[str] = None
     onboarded: bool = False
@@ -673,7 +675,7 @@ class AuditCheck(BaseModel):
 
 
 class DocumentAudit(BaseModel):
-    """Deterministic pre-publication checks (blocking). The AI audit is advisory and not wired yet."""
+    """Deterministic pre-publication checks (blocking); the agent checks a queued post later."""
 
     publishable: bool
     checks: List[AuditCheck]
@@ -684,7 +686,9 @@ class DocumentAudit(BaseModel):
 # (docs/community-guidelines.md, docs/ai-audit-agent.md)
 # ---------------------------------------------------------------------------
 
-PostStatus = Literal["pending_review", "published", "changes_requested", "rejected", "withdrawn", "removed"]
+PostStatus = Literal["queued", "pending_review", "published", "changes_requested", "rejected", "withdrawn", "removed"]
+# The state of a new version of a published post, while it is reviewed.
+ReviewState = Literal["queued", "pending_review", "changes_requested"]
 GuidelineRule = Literal[
     "misattribution",
     "ruling_as_fact",
@@ -694,6 +698,8 @@ GuidelineRule = Literal[
     "integrity",
     "spam_promo",
     "personal_data",
+    "off_topic",
+    "harassment",
     "other",
 ]
 MAX_COMMENT_CHARS = 2000
@@ -705,28 +711,24 @@ class PublishRequest(BaseModel):
     accept_guidelines: bool = False
 
 
+class PublishResult(BaseModel):
+    """`blocked`: the deterministic audit failed (nothing is queued); `queued`: the
+    next moderation batch checks it (docs/community-moderation-design.md)."""
+
+    status: Literal["blocked", "queued"]
+    post_id: Optional[str] = None
+    audit: DocumentAudit
+
+
 class AuditIssue(BaseModel):
-    section_id: str
+    """One finding of the moderation agent, written in the author's interface language."""
+
+    target: str
     rule: GuidelineRule
     severity: Literal["low", "medium", "high"]
     quote: Optional[str] = None
-    explanation_ar: str
-    suggestion_ar: Optional[str] = None
-
-
-class AiAudit(BaseModel):
-    verdict: Literal["pass", "review", "reject"]
-    issues: List[AuditIssue] = Field(default_factory=list)
-    model: Optional[str] = None
-    # Why the agent could not decide (provider unavailable, invalid output) — fail closed.
-    fallback_reason: Optional[str] = None
-
-
-class PublishResult(BaseModel):
-    status: Literal["blocked", "pending_review", "published"]
-    post_id: Optional[str] = None
-    audit: DocumentAudit
-    ai_audit: Optional[AiAudit] = None
+    explanation: str
+    suggestion: Optional[str] = None
 
 
 class PostExcerpt(BaseModel):
@@ -760,12 +762,21 @@ class PostSummary(BaseModel):
     published_at: Optional[int] = None
     updated_at: int
     excerpt: Optional[PostExcerpt] = None
+    # A new version under review while this one stays published.
+    review_state: Optional[ReviewState] = None
+    # Hidden from readers by reports until a moderator decides (its author and staff still see it).
+    hidden: bool = False
 
 
 class PostReview(BaseModel):
-    stage: Literal["deterministic", "ai", "human"]
+    """One check of a post or comment: the deterministic audit, the agent or a person."""
+
+    stage: Literal["deterministic", "agent", "human"]
     verdict: str
+    confidence: Optional[float] = None
     issues: List[Dict[str, Any]] = Field(default_factory=list)
+    # The language the agent wrote its reasons in (the author's interface language).
+    language: Optional[str] = None
     note: Optional[str] = None
     created_at: int
 
@@ -775,6 +786,8 @@ class PostDetail(PostSummary):
     board: Optional[Dict[str, Any]] = None
     # Reviews are shown to the author and moderators only.
     reviews: List[PostReview] = Field(default_factory=list)
+    # The new version under review (its document), for its author and moderators.
+    candidate: Optional[Dict[str, Any]] = None
 
 
 class FeedPage(BaseModel):
@@ -787,12 +800,15 @@ class CommentCreate(BaseModel):
 
 
 class CommentItem(BaseModel):
+    """`pending`: waiting for its check (shown to its author only); `hidden`: shown
+    to others as «تعليق مخفي», without author or text."""
+
     id: int
     post_id: str
     author_name: str
     body: str
     is_mine: bool = False
-    status: Literal["visible", "hidden"] = "visible"
+    status: Literal["visible", "pending", "hidden"] = "visible"
     created_at: int
 
 
@@ -825,17 +841,184 @@ class ReportItem(BaseModel):
     note: Optional[str] = None
     status: Literal["open", "resolved"]
     created_at: int
-    target_preview: Optional[str] = None
+
+
+# --- Moderation (docs/community-moderation-design.md) ------------------------
+
+TrustLevel = Literal["unverified", "verified"]
+QueueReason = Literal["first_post", "unsure", "declined", "reported"]
+
+
+class AuthorStanding(BaseModel):
+    user_id: int
+    level: TrustLevel
+    # Declines a moderator upheld; three make the author suspicious.
+    upheld_declines: int = 0
+    suspicious: bool = False
+    banned: bool = False
+    # Unix time, or -1 for a permanent ban.
+    banned_until: Optional[int] = None
+    ban_reason: Optional[str] = None
+    is_staff: bool = False
+    name: Optional[str] = None
 
 
 class ModerationDecision(BaseModel):
-    decision: Literal["publish", "reject", "request_changes", "remove"]
+    """`decline` (the author may edit and resubmit) and `remove` need a reason, shown to the author."""
+
+    decision: Literal["approve", "decline", "remove", "restore"]
+    note: Optional[str] = Field(None, max_length=1000)
+
+
+class ModerationQueueItem(BaseModel):
+    id: int
+    item_type: Literal["post", "comment"]
+    item_id: str
+    reason: QueueReason
+    opened_at: int
+    checks: List[PostReview] = Field(default_factory=list)
+    reports: List[ReportItem] = Field(default_factory=list)
+    post: Optional[PostDetail] = None
+    comment: Optional[CommentItem] = None
+    post_title: Optional[str] = None
+    author: AuthorStanding
+    # The viewer's own content: shown, never decided by them.
+    is_mine: bool = False
+
+
+class AppealCreate(BaseModel):
+    """Contest the latest decision on one's post, comment or ban (`target_id` unused for a ban)."""
+
+    target_type: Literal["post", "comment", "ban"]
+    target_id: str = Field("", max_length=64)
+    message: str = Field(..., min_length=1, max_length=2000)
+
+
+class AppealItem(BaseModel):
+    id: int
+    user_id: int
+    target_type: Literal["post", "comment", "user"]
+    target_id: str
+    message: str
+    status: Literal["open", "upheld", "overturned"]
+    created_at: int
+    decision: Optional[str] = None
+    decision_reason: Optional[str] = None
+    decided_by: Optional[int] = None
+    note: Optional[str] = None
+
+
+class AppealDecision(BaseModel):
+    outcome: Literal["uphold", "overturn"]
     note: Optional[str] = Field(None, max_length=1000)
 
 
 class ModerationQueue(BaseModel):
-    posts: List[PostDetail]
-    reports: List[ReportItem]
+    items: List[ModerationQueueItem]
+    appeals: List[AppealItem]
+
+
+class BanRequest(BaseModel):
+    """7 or 30 days; no `days` means permanent (admins only)."""
+
+    days: Optional[Literal[7, 30]] = None
+    reason: str = Field(..., min_length=1, max_length=1000)
+
+
+class UnbanRequest(BaseModel):
+    reason: Optional[str] = Field(None, max_length=1000)
+
+
+class ModerationUser(AuthorStanding):
+    history: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+class ModerationAction(BaseModel):
+    id: int
+    actor_id: int
+    action: str
+    target_type: str
+    target_id: str
+    subject_user_id: Optional[int] = None
+    reason: Optional[str] = None
+    created_at: int
+
+
+class TeamMember(BaseModel):
+    user_id: int
+    email: str
+    name: Optional[str] = None
+    role: Literal["admin", "moderator"]
+    actions: int = 0
+
+
+class RoleChange(BaseModel):
+    email: str = Field(..., min_length=3, max_length=200)
+    role: Literal["moderator", "user"]
+
+
+class ModerationHealth(BaseModel):
+    worker: Literal["embedded", "external", "off"]
+    interval_seconds: int
+    backlog: Dict[str, int]
+    last_batch: Optional[Dict[str, Any]] = None
+    today: Dict[str, int]
+
+
+class ModerationRun(BaseModel):
+    kind: str
+    checked: int = 0
+    errors: int = 0
+    budget_reached: bool = False
+    skipped: Optional[str] = None
+
+
+# --- Feedback centre (docs/feedback-centre.md) -------------------------------
+
+FeedbackKind = Literal["contact", "bug", "help", "feature", "error"]
+FeedbackStatus = Literal["new", "in_progress", "resolved", "closed"]
+
+
+class FeedbackCreate(BaseModel):
+    """`error` carries the diagnostic bundle (`detail`); the others a message."""
+
+    kind: FeedbackKind
+    message: str = Field("", max_length=4000)
+    # How to answer a guest (optional; signed-in people are answered in the app).
+    email: Optional[str] = Field(None, max_length=200)
+    detail: Optional[Dict[str, Any]] = None
+    url: Optional[str] = Field(None, max_length=500)
+    language: Optional[str] = Field(None, max_length=12)
+
+
+class FeedbackItem(BaseModel):
+    id: int
+    kind: FeedbackKind
+    status: FeedbackStatus
+    message: str
+    created_at: int
+    updated_at: int
+    # Staff only:
+    user_id: Optional[int] = None
+    email: Optional[str] = None
+    detail: Optional[Dict[str, Any]] = None
+    url: Optional[str] = None
+    user_agent: Optional[str] = None
+    language: Optional[str] = None
+    assigned_to: Optional[int] = None
+    staff_note: Optional[str] = None
+
+
+class FeedbackPage(BaseModel):
+    items: List[FeedbackItem]
+    next_before: Optional[int] = None
+    counts: Dict[str, int]
+
+
+class FeedbackUpdate(BaseModel):
+    status: Optional[FeedbackStatus] = None
+    staff_note: Optional[str] = Field(None, max_length=2000)
+    assigned_to: Optional[int] = None
 
 
 class FollowedRoot(BaseModel):

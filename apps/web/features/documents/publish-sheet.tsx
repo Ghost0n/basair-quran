@@ -4,12 +4,12 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { GuidelineRule, PublishResult } from "@q-basair/shared";
+import type { PublishResult } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
 import { useDialog } from "@/lib/use-dialog";
-import { RULE_LABEL } from "@/features/community/labels";
+import { isBanned } from "@/features/community/labels";
 
 import { t } from "@/lib/i18n";
 
@@ -63,7 +63,13 @@ export function PublishSheet({
       await beforePublish();
       setResult(await api.publishDocument(documentId, { visibility, accept_guidelines: accepted }));
     } catch (err) {
-      setError(err instanceof Error && /401|auth/i.test(err.message) ? t("سجّل الدخول لتنشر في المجتمع.") : t("تعذّر النشر الآن."));
+      setError(
+        isBanned(err)
+          ? t("النشر والتعليق موقوفان مؤقتاً لحسابك.")
+          : err instanceof Error && /401|auth/i.test(err.message)
+            ? t("سجّل الدخول لتنشر في المجتمع.")
+            : t("تعذّر النشر الآن."),
+      );
     } finally {
       setBusy(false);
     }
@@ -139,25 +145,11 @@ function Outcome({ result, onOpenPost, onClose }: { result: PublishResult; onOpe
       </div>
     );
   }
-  const issues = result.ai_audit?.issues ?? [];
   return (
-    <div className={`outcome ${result.status}`}>
-      <Icon name={result.status === "published" ? "check" : "shieldCheck"} size={26} />
-      <h3>{result.status === "published" ? t("نُشر البحث") : t("أُرسل البحث للمراجعة")}</h3>
-      <p>
-        {result.status === "published"
-          ? t("اجتاز الفحوص والمراجعة الآلية، وهو الآن ظاهر في المجتمع.")
-          : t("سيراجعه مشرف قبل ظهوره، وتصلك ملاحظته في «منشوراتي».")}
-      </p>
-      {issues.length ? (
-        <ul>
-          {issues.map((issue, index) => (
-            <li key={index}>
-              <b>{RULE_LABEL[issue.rule as GuidelineRule] ?? issue.rule}:</b> {issue.explanation_ar}
-            </li>
-          ))}
-        </ul>
-      ) : null}
+    <div className="outcome queued">
+      <Icon name="shieldCheck" size={26} />
+      <h3>{t("أُرسل البحث للمراجعة")}</h3>
+      <p>{t("اجتاز الفحوص الحاسمة. يُفحص آلياً خلال ربع ساعة تقريباً وفق إرشادات المجتمع، ثم يظهر أو يراجعه مشرف؛ وتجد النتيجة وأسبابها في «منشوراتي».")}</p>
       {result.post_id ? (
         <button type="button" className="qb-btn primary block" onClick={() => onOpenPost(result.post_id!)}>
           {t("افتح المنشور")}

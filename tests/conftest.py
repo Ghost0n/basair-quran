@@ -1,5 +1,10 @@
+import os
 import sqlite3
 from pathlib import Path
+
+# Tests run the moderation batches explicitly (moderation_service.run_batch),
+# never in the background.
+os.environ.setdefault("QBASAIR_MODERATION_WORKER", "off")
 
 import pytest
 from fastapi.testclient import TestClient

@@ -74,8 +74,9 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/text-count`
 - `GET /api/notebook` · `POST /api/notebook` · `DELETE /api/notebook/{item_id}` · `PUT /api/notebook/{item_id}/themes`
 - `GET /api/documents` · `POST /api/documents` · `GET /api/documents/{id}` · `PUT /api/documents/{id}` · `GET /api/documents/{id}/audit` · `DELETE /api/documents/{id}`
-- `POST /api/documents/{id}/publish` · `GET /api/community/feed` · `GET /api/community/tags` · `GET /api/community/mine` · `GET|DELETE /api/community/posts/{id}` · `POST|DELETE /api/community/posts/{id}/like` · `PUT|DELETE /api/community/posts/{id}/save` · `GET|POST /api/community/posts/{id}/comments` · `DELETE /api/community/comments/{id}` · `POST /api/community/reports`
-- `GET /api/moderation/queue` · `POST /api/moderation/posts/{id}/decision` · `POST /api/moderation/comments/{id}/hide` · `POST /api/moderation/reports/{id}/resolve`
+- `POST /api/documents/{id}/publish` · `GET /api/community/feed` · `GET /api/community/tags` · `GET /api/community/mine` · `GET|DELETE /api/community/posts/{id}` · `POST|DELETE /api/community/posts/{id}/like` · `PUT|DELETE /api/community/posts/{id}/save` · `GET|POST /api/community/posts/{id}/comments` · `DELETE /api/community/comments/{id}` · `POST /api/community/reports` · `GET /api/community/me/standing` · `GET|POST /api/community/appeals`
+- `GET /api/moderation/queue` · `POST /api/moderation/posts/{id}/decision` · `POST /api/moderation/comments/{id}/decision` · `POST /api/moderation/appeals/{id}/decision` · `GET /api/moderation/users?kind=suspicious|banned` · `POST /api/moderation/users/{id}/ban` · `POST /api/moderation/users/{id}/unban` · `GET /api/moderation/actions` · `GET|POST /api/moderation/team` · `GET /api/moderation/health` · `POST /api/moderation/run` · `GET /api/moderation/feedback` · `PATCH /api/moderation/feedback/{id}`
+- `POST /api/feedback` · `GET /api/feedback/mine`
 - `GET /api/themes` · `POST /api/themes` · `GET /api/themes/{theme_id}` · `PATCH /api/themes/{theme_id}` · `PUT /api/themes/{theme_id}/board` · `DELETE /api/themes/{theme_id}`
 - `GET /api/sessions` · `GET /api/sessions/{session_id}` · `POST /api/sessions` · `DELETE /api/sessions/{session_id}`
 - `GET /api/roots` · `POST /api/roots` · `DELETE /api/roots/{root_id}`
@@ -158,27 +159,47 @@ Details in `docs/quran-translations.md`.
 
 ## Community notes
 
-Publishing and the community (guidelines: `docs/community-guidelines.md`; agent:
-`docs/ai-audit-agent.md`).
+Publishing and the community (guidelines: `docs/community-guidelines.md`; moderation:
+`docs/community-moderation-design.md`).
 
-- **Access.** Reading the feed and published posts is open to guests. Publish, like, comment and
-  report need an account when auth is enabled (`401 {code: "auth_required", gate: "community"}`);
-  `/api/moderation/*` needs an admin (`403`). With auth disabled, the local user may do both.
+- **Access.** Reading the feed and published posts is open to guests. Publish, like, comment, report
+  and appeal need an account when auth is enabled (`401 {code: "auth_required", gate: "community"}`).
+  `/api/moderation/*` needs a moderator or an admin (`403`); the team, the full action log and
+  `POST /api/moderation/run` need an admin. With auth disabled the local user is both.
+  `AuthUserInfo.is_moderator` marks an appointed moderator.
 - **Publish** `POST /api/documents/{id}/publish {visibility: public|unlisted, accept_guidelines}`.
-  - `accept_guidelines: false` returns `422`.
-  - The server runs the deterministic audit. If it fails, the response is
+  - `accept_guidelines: false` returns `422`; a banned author gets
+    `403 {code: "banned", message, banned_until, reason}`.
+  - The server runs the deterministic audit at once. If it fails, the response is
     `{status: "blocked", audit}` and no post is created.
-  - Otherwise it runs the AI audit agent on a snapshot and returns
-    `PublishResult {status: published|pending_review, post_id, audit, ai_audit {verdict, issues[],
-    model?, fallback_reason?}}`.
-  - The agent **fails closed**: an unavailable provider or invalid output gives `review` → moderator.
-  - Republishing the same document updates the same post with a new snapshot and re-enters the
-    pipeline.
+  - Otherwise the post is **queued**: `PublishResult {status: "queued", post_id, audit}`. No agent
+    runs in the request.
+  - Republishing a document whose post is published keeps the published version up and queues the new
+    one as a candidate (`PostSummary.review_state`, `PostDetail.candidate`); it replaces the published
+    snapshot only once it passes. Republishing an unpublished post replaces it and re-queues it.
+- **The batches** (`moderation_service.run_batch`, every `QBASAIR_MODERATION_INTERVAL_SECONDS`, 900 by
+  default; reported items between batches) check queued posts, unchecked comments and reported items
+  with the agent in the **author's interface language**, under `QBASAIR_MODERATION_DAILY_BUDGET` agent
+  calls per UTC day.
+  - The agent answers `{verdict: valid|unsure|declined, confidence, issues[{target, rule, severity,
+    quote, explanation, suggestion}]}`. An issue whose quote isn't in the cited text is dropped. The
+    verdict is never laxer than the issues (high → declined, medium → unsure). A confidence under
+    `QBASAIR_MODERATION_MIN_CONFIDENCE` (0.7) is `unsure`. A provider error or invalid output is
+    `unsure` (it **fails closed**).
+  - A **verified** author's valid post is published. Every other outcome sends the post to a person:
+    an unverified author's valid post (`first_post`), `unsure`, `declined`. An agent decline also
+    makes the author unverified again (it is not a strike).
+- **Trust** `GET /api/community/me/standing` → `AuthorStanding {level: unverified|verified,
+  upheld_declines, suspicious, banned, banned_until (-1 = permanent), ban_reason, is_staff}`. Every
+  account starts unverified. A moderator approving one of its posts verifies it. Staff publish as
+  verified.
 - **Posts are snapshots** of a document version. A document exported from a theme board also
   carries a read-only board copy with the ayahs' mushaf text (`PostDetail.board`).
-- **Visibility.** `unlisted` posts are reachable by link only. Pending, rejected and
-  changes-requested posts are visible only to their author and to moderators; `reviews[]` (AI issues,
-  moderator notes) is included for them only.
+- **Visibility.** `unlisted` posts are reachable by link only. Queued, pending, changes-requested and
+  removed posts are visible only to their author and to moderators. `reviews[]` lists the checks
+  (`stage: deterministic|agent|human`, `verdict`, `confidence`, `issues`, `language`, `note`) for them
+  only. A post that three different people reported (or that the agent declines after a report) is
+  `hidden` from readers until a moderator decides (`404` for others, out of the feed).
 - **Feed** `GET /api/community/feed?cursor&limit≤50&sort&q&surah&tag&mode&board&author&saved` returns
   published public posts.
   - `sort=latest` (default): newest first, keyset pagination (`next_cursor`).
@@ -198,16 +219,54 @@ Publishing and the community (guidelines: `docs/community-guidelines.md`; agent:
   1,000 most recent public posts.
 - **Saved posts** `PUT|DELETE /api/community/posts/{id}/save` → `{saved}`: a private, idempotent
   bookmark on a published post (`404` otherwise). There is no public save count.
-- **Comments** are 1–2000 chars with at most 2 links (`422` otherwise). Authors and moderators hide
-  them (never hard-deleted). Likes are idempotent per user.
-- **Reports** `{target_type: post|comment, target_id, rule, note?}`. Duplicate open reports from
-  the same user collapse into one.
-- **Moderation.** The decision is `publish | request_changes | reject | remove`, with an optional note
-  shown to the author. Every stage (deterministic, ai, human) is journalled in `post_reviews` with
-  the document version.
+- **Comments** are 1–2000 chars with at most 2 links (`422` otherwise). A verified author's comment is
+  `visible` at once and checked afterwards; a failing check hides it. An unverified author's comment
+  is `pending` until its check: it is shown to its author only, and a failing check keeps it hidden
+  for a person. To others a hidden comment comes back as `{status: "hidden", body: "", author_name: ""}`
+  («تعليق مخفي»). Its author deletes it (`DELETE /api/community/comments/{id}`); moderators decide
+  through the queue. Likes are idempotent per user.
+- **Reports** `{target_type: post|comment, target_id, rule, note?}`. One's own content can't be reported
+  (`422`). Duplicate open reports from the same user collapse into one. A report queues the item for a
+  person and has the agent re-check it.
+- **Moderation** (staff):
+  - `GET /api/moderation/queue` → `{items[{item_type, item_id, reason: first_post|unsure|declined|reported,
+    checks, reports, post|comment, author: AuthorStanding, is_mine}], appeals[]}`, oldest first.
+  - `POST /api/moderation/posts/{id}/decision` and `/comments/{id}/decision` take
+    `{decision: approve|decline|remove|restore, note}`. `decline` and `remove` need a `note` (`422`),
+    which the author reads.
+  - A decline or removal a moderator takes is a strike (`upheld_declines`); three make the author
+    suspicious. Nobody decides on their own content (`403`).
+  - Bans: `POST /api/moderation/users/{id}/ban {days: 7|30|null, reason}`, where `null` is permanent
+    (admins only); `.../unban`. A ban stops posting and commenting only.
+  - Appeals: `POST /api/community/appeals {target_type: post|comment|ban, target_id, message}`, once
+    per decision (`409`). Another moderator than the one who decided rules on it with
+    `POST /api/moderation/appeals/{id}/decision {outcome: uphold|overturn}`. Overturning restores the
+    item and removes the strike, or lifts the ban.
+  - `GET /api/moderation/users?kind=suspicious|banned`, `GET /api/moderation/actions[?mine=true]`,
+    `GET|POST /api/moderation/team {email, role: moderator|user}` (admins), `GET /api/moderation/health`
+    (backlog, last batch, today's checks against the budget, where the worker runs),
+    `POST /api/moderation/run` (admins: a batch now).
+  - Every check is journalled in `moderation_checks` with the item version, every human action in
+    `moderation_actions`.
 - **Rate limit.** Publish, comment and report share the `community` bucket
   (`QBASAIR_RATE_LIMIT_COMMUNITY_MAX`, default 30 per window per IP).
-- **Account deletion** removes the user's posts, likes, saves, comments and reports, and refreshes counts.
+- **Account deletion** removes the user's posts, likes, saves, comments, reports, trust standing,
+  appeals and feedback, and refreshes counts (the action log keeps the actions, without the user).
+
+## Feedback centre notes
+
+`docs/feedback-centre.md`.
+
+- `POST /api/feedback {kind: contact|bug|help|feature|error, message, email?, detail?, url?, language?}`
+  → `FeedbackItem`. It is open to guests and rate-limited per IP (`QBASAIR_RATE_LIMIT_FEEDBACK_MAX`,
+  default 10). Every kind needs a message except `error`. An `error` report needs its diagnostic
+  `detail` (≤32 KB, `413` beyond).
+- `GET /api/feedback/mine` → what the signed-in sender wrote (not their diagnostic reports), with its
+  status.
+- Staff: `GET /api/moderation/feedback?status&kind&before` → `{items, next_before, counts}` (newest
+  first, 50 a page, with the sender, email, detail, page, user agent).
+  `PATCH /api/moderation/feedback/{id} {status: new|in_progress|resolved|closed, staff_note,
+  assigned_to}`.
 
 ## Themes (مواضيع) notes
 
