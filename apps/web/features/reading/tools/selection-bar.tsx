@@ -14,6 +14,10 @@ import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
 import { useMorphology } from "../use-morphology";
+import { useWebDesign } from "@/lib/use-web-design";
+
+import { StudyExtras } from "./study-extras";
+import "./tools.web.css";
 
 import type { WordSelection } from "./word-selection";
 
@@ -44,6 +48,8 @@ export function SelectionBar({
   const [copied, setCopied] = useState(false);
   const [rootBusy, setRootBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  // Web design: the bar becomes the study panel at the stage's edge (tools.web.css).
+  const web = useWebDesign();
 
   const words = selection.keys.length;
   const single = words === 1;
@@ -102,8 +108,10 @@ export function SelectionBar({
   }
 
   // Portaled to <body> so it layers above the mobile tab bar and media bar.
+  // Web design: into the study column beside the Mushaf when it is there.
+  const slot = web && typeof document !== "undefined" ? document.getElementById("qb-study-slot") : null;
   return createPortal(
-    <div className="qb-selection-bar" role="region" aria-label={t("الكلمات المحدّدة")}>
+    <div className={`qb-selection-bar${web ? " is-study" : ""}`} role="region" aria-label={t("الكلمات المحدّدة")}>
       {counting && !wholeVerse ? (
         <CountPanel selection={selection} mushafId={mushafId} onClose={() => setCounting(false)} />
       ) : null}
@@ -121,6 +129,7 @@ export function SelectionBar({
         </button>
       </div>
       {single ? <WordAnalysis selection={selection} mushafId={mushafId} /> : null}
+      {web ? <StudyExtras selection={selection} mushafId={mushafId} /> : null}
       <div className="acts">
         {wholeVerse ? null : (
           <button type="button" onClick={search}>
@@ -146,7 +155,7 @@ export function SelectionBar({
       </div>
       {note ? <div className="note" role="status">{note}</div> : null}
     </div>,
-    document.body,
+    slot ?? document.body,
   );
 }
 

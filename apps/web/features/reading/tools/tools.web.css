@@ -1,0 +1,92 @@
+/* The reader's tools in the web design (desktop web).
+   The «تحديد» selection bar becomes the study panel: a column at the stage's
+   inline-end edge (it floats over the canvas, so the stabilized page fit and
+   spreads never change). Source: design/prototype-web-full/screens/reader.* */
+
+.qb-web .qb-selection-bar.is-study {
+  top: 86px;
+  bottom: 24px;
+  inset-inline-start: auto;
+  inset-inline-end: 24px;
+  width: min(400px, calc(100vw - 140px));
+  margin: 0;
+  padding: 20px 22px 22px;
+  border-radius: var(--r-panel);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev-1);
+  box-shadow: inset 0 2px 0 -0.5px var(--world), 0 30px 60px -30px var(--shade);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  animation: qbStudyIn 260ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes qbStudyIn { from { opacity: 0; transform: translateY(8px); } }
+
+.qb-web .qb-selection-bar.is-study .picked .text {
+  font-size: 34px;
+  line-height: 2;
+  color: var(--gold-glow);
+  white-space: normal;
+}
+.qb-web .qb-selection-bar.is-study .picked .meta { font-size: 12.5px; }
+.qb-web .qb-selection-bar.is-study .clear { border-radius: 50%; border: 1px solid var(--border-strong); }
+
+.qb-web .qb-selection-bar.is-study .analysis {
+  padding: 0;
+  background: none;
+  border: 0;
+}
+.qb-web .qb-selection-bar.is-study .analysis dl { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 16px; }
+.qb-web .qb-selection-bar.is-study .analysis dt { font-size: 11.5px; color: var(--fg-3); }
+.qb-web .qb-selection-bar.is-study .analysis dd { font-size: 15px; color: var(--fg-1); }
+
+/* Actions wrap in the column instead of scrolling sideways. */
+.qb-web .qb-selection-bar.is-study .acts { flex-wrap: wrap; overflow: visible; margin-top: 0; }
+.qb-web .qb-selection-bar.is-study .acts button {
+  border-radius: 999px;
+  border: 1px solid var(--gold-line);
+  background: transparent;
+  color: var(--gold-text);
+  font-weight: 700;
+}
+.qb-web .qb-selection-bar.is-study .acts button:hover:not(:disabled),
+.qb-web .qb-selection-bar.is-study .acts button.on { background: var(--gold-soft); }
+
+/* Root spread and meaning. */
+.qb-web .qb-study-extras { display: flex; flex-direction: column; gap: 18px; border-top: 1px solid var(--border); padding-top: 16px; }
+.qb-web .qb-study-root { display: flex; flex-direction: column; gap: 12px; }
+.qb-web .qb-study-root .head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.qb-web .qb-study-root .lbl,
+.qb-web .qb-study-meaning .lbl { display: block; font-size: 12px; color: var(--fg-3); }
+.qb-web .qb-study-root .qb-letters { font-size: 28px; line-height: 1.5; }
+.qb-web .qb-study-root .figs { display: flex; gap: 18px; }
+.qb-web .qb-study-root .figs span { display: flex; flex-direction: column; font-size: 11.5px; color: var(--fg-3); }
+.qb-web .qb-study-root .figs b {
+  font-family: var(--font-arabic-heading);
+  font-size: 26px;
+  line-height: 1.2;
+  color: var(--gold-text);
+  font-variant-numeric: tabular-nums;
+}
+.qb-web .qb-study-root .qb-btn { align-self: flex-start; }
+.qb-web .qb-study-meaning figure { margin: 6px 0 0; }
+.qb-web .qb-study-meaning p { margin: 0; font-size: 14.5px; line-height: 1.75; color: var(--fg-2); }
+.qb-web .qb-study-meaning figcaption { margin-top: 4px; font-size: 11.5px; color: var(--fg-3); }
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-web .qb-selection-bar.is-study { animation: none; }
+}
+
+/* Inside the study column beside the Mushaf: a plain column, not a floating card. */
+.qb-web .qb-study-slot > .qb-selection-bar.is-study {
+  position: static;
+  inset: auto;
+  width: auto;
+  min-height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: inset 0 2px 0 -0.5px var(--world);
+  overflow: visible;
+}

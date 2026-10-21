@@ -9,6 +9,7 @@ import { MushafStage } from "@/features/reading/mushaf-stage";
 import { OnlineOnly } from "@/features/app-mode/online-only";
 import { StudioPanel } from "@/features/studio/studio-panel";
 import { useIsMobile } from "@/lib/use-is-mobile";
+import { useWebDesign } from "@/lib/use-web-design";
 
 import { useShellMode, type ShellMode } from "./mode-context";
 import { useRoomReset, useRoomWide } from "./room";
@@ -36,6 +37,7 @@ export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
   // Web design: the panel can widen over the whole canvas (features/shell/room.tsx).
   useRoomReset(mode);
   const [wide] = useRoomWide();
+  const web = useWebDesign();
 
   const panel =
     mode === "search" ? <ConcordancePanel /> : mode === "studio" ? <OnlineOnly><StudioPanel /></OnlineOnly> : null;
@@ -59,9 +61,16 @@ export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
         </OnlineOnly>
       ) : null}
       <MushafStage />
+      {/* Web design: the study panel's column — the «تحديد» bar portals here
+          (tools/selection-bar.tsx). Empty, it takes no room; filled, the page
+          re-fits beside it as it does beside the search panel. */}
+      {web && mode === "reading" ? <div id={STUDY_SLOT_ID} className="qb-study-slot" /> : null}
     </div>
   );
 }
+
+/** Where the web design's study panel mounts (features/shell/workspace-canvas.tsx). */
+export const STUDY_SLOT_ID = "qb-study-slot";
 
 /**
  * U5 — CompanionCanvas: shows a companion screen (Bookmarks, History, Roots,

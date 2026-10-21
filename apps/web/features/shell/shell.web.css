@@ -141,3 +141,17 @@
 .qb-web .qb-media-bar .play { background: var(--btn-grad); color: var(--on-gold); box-shadow: none; }
 .qb-web .qb-media-bar .chip { border: 1px solid var(--border-strong); background: transparent; border-radius: 999px; }
 .qb-web .qb-media-progress .fill { background: var(--gold-glow); }
+
+/* ---------- The study column (reading mode, a selection open) ---------- */
+.qb-web .qb-study-slot {
+  width: 400px;
+  flex: 0 0 400px;
+  min-height: 0;
+  overflow-y: auto;
+  border-inline-start: 1px solid var(--border-strong);
+  background: linear-gradient(180deg, var(--bg-elev-1), var(--bg) 40%);
+}
+.qb-web .qb-study-slot:empty { display: none; }
+@media (max-width: 1280px) {
+  .qb-web .qb-study-slot { width: 360px; flex-basis: 360px; }
+}
