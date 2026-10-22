@@ -9,7 +9,6 @@ import type { SearchVerse } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
-import { useMushaf } from "@/features/reading/mushaf-context";
 import { RoomWideToggle } from "@/features/shell/room";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { useRootSpread } from "@/lib/use-root-spread";
@@ -62,7 +61,6 @@ export function ConcordancePanel() {
   const formatNumber = useNumerals();
   // Web design: the root's spread across the surahs, and a panel that can widen.
   const web = useWebDesign();
-  const mushaf = useMushaf();
   const router = useRouter();
   // At ≤1000 px the reader isn't mounted beside the results, so a verse tap must
   // switch the shell to the reader surface (Back returns to the results). At wide
@@ -339,17 +337,29 @@ export function ConcordancePanel() {
               {rootFollowed ? t("جذر مُتابَع") : t("تابِع هذا الجذر")}
             </button>
             {web && spreadCounts ? (
-              <Ribbon
-                className="qb-conc-ribbon"
-                counts={spreadCounts}
-                label={t("انتشار الجذر في السور")}
-                height={64}
-                readout={(i) => t("{0}: {1}", { 0: SURAH_NAMES[i], 1: formatNumber(spreadCounts[i]) })}
-                restReadout={t("المس سورة لتفتحها في المصحف")}
-                onActivate={(i) => {
-                  if (spreadCounts[i]) void mushaf.loadBySurah(DEFAULT_MUSHAF_ID, i + 1);
-                }}
-              />
+              <>
+                <Ribbon
+                  className="qb-conc-ribbon"
+                  counts={spreadCounts}
+                  label={t("انتشار الجذر في السور")}
+                  height={64}
+                  focus={state.surahFilter ? state.surahFilter - 1 : null}
+                  readout={(i) => t("{0}: {1}", { 0: SURAH_NAMES[i], 1: formatNumber(spreadCounts[i]) })}
+                  restReadout={t("المس سورة لتعرض مواضعها فيها")}
+                  onPick={(i) => {
+                    // A surah without the root has nothing to show; picking the
+                    // filtered surah again (or Esc) shows every surah.
+                    if (i == null || state.surahFilter === i + 1) void actions.filterBySurah(null);
+                    else if (spreadCounts[i]) void actions.filterBySurah(i + 1);
+                  }}
+                />
+                {state.surahFilter ? (
+                  <button type="button" className="qb-conc-filter" onClick={() => void actions.filterBySurah(null)} aria-label={t("اعرض كل السور")}>
+                    {t("سورة {0}", { 0: SURAH_NAMES[state.surahFilter - 1] })}
+                    <Icon name="close" size={13} />
+                  </button>
+                ) : null}
+              </>
             ) : null}
             <button
               type="button"

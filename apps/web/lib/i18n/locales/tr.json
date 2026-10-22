@@ -1147,5 +1147,7 @@
  "من {0}": "{0} içinde",
  "موضعك في المصحف": "Mushaftaki yeriniz",
  "نوع السورة": "Sure türü",
- "وسّع اللوحة": "Paneli genişlet"
+ "وسّع اللوحة": "Paneli genişlet",
+ "المس سورة لتعرض مواضعها فيها": "Geçtiği yerleri görmek için bir sureye dokunun",
+ "اعرض كل السور": "Tüm sureleri göster"
 }

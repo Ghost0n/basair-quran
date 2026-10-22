@@ -1147,5 +1147,7 @@
  "من {0}": "de {0}",
  "موضعك في المصحف": "Tu posición en el Mushaf",
  "نوع السورة": "Tipo de sura",
- "وسّع اللوحة": "Ampliar el panel"
+ "وسّع اللوحة": "Ampliar el panel",
+ "المس سورة لتعرض مواضعها فيها": "Toca una sura para ver sus apariciones",
+ "اعرض كل السور": "Mostrar todas las suras"
 }

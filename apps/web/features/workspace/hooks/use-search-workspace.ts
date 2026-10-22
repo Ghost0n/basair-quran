@@ -60,7 +60,8 @@ export function useSearchWorkspace() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [didYouMean, setDidYouMean] = useState<DidYouMeanSuggestion | null>(null);
   const [selectedVerseKey, setSelectedVerseKey] = useState<string | null>(null);
-  const [searchContext, setSearchContext] = useState<{ q: string; mode: SearchMode; mushaf: number } | null>(null);
+  // `surah`: the results are filtered to one surah (the concordance ribbon), null for all.
+  const [searchContext, setSearchContext] = useState<{ q: string; mode: SearchMode; mushaf: number; surah: number | null } | null>(null);
 
   // Quran-page reading state is owned by the shared MushafProvider so the
   // Reading mode and this search reader stay in sync.
@@ -619,7 +620,7 @@ export function useSearchWorkspace() {
 
       startTransition(() => {
         setResults(response.results);
-        setSearchContext({ q: effectiveQuery, mode: effectiveMode, mushaf: selectedMushaf });
+        setSearchContext({ q: effectiveQuery, mode: effectiveMode, mushaf: selectedMushaf, surah: null });
       });
       reflectSearchUrl(effectiveQuery, effectiveMode);
 
@@ -665,6 +666,7 @@ export function useSearchWorkspace() {
         resultKey,
         nextPage,
         ITEMS_PER_PAGE,
+        searchContext.surah,
       );
 
       startTransition(() => {
@@ -672,6 +674,35 @@ export function useSearchWorkspace() {
       });
     } catch (error) {
       setErrorMessage(toUserError("search:page", error, t("حدث خطأ في جلب الصفحة المطلوبة.")));
+    }
+  }
+
+  /** Keep only one surah's verses (null: every surah) for the current search. */
+  async function filterBySurah(surah: number | null) {
+    if (!searchContext || searchContext.surah === surah) return;
+    const context = searchContext;
+    const requestId = ++runSearchIdRef.current;
+    setIsSearching(true);
+    try {
+      const response = await api.searchV2(context.q, context.mode, context.mushaf, ITEMS_PER_PAGE, surah);
+      if (requestId !== runSearchIdRef.current) return;
+      if (!response.found) {
+        setErrorMessage(t("لا توجد نتائج لهذا البحث."));
+        return;
+      }
+      startTransition(() => {
+        setErrorMessage(null);
+        setResults(response.results);
+        setSearchContext({ ...context, surah });
+      });
+      const firstResult = response.results.find((result) => result.verses.length > 0);
+      const firstVerse = firstResult?.verses[0];
+      if (firstResult && firstVerse) await selectVerse(firstVerse, firstResult.result_key);
+    } catch (error) {
+      if (requestId !== runSearchIdRef.current) return;
+      setErrorMessage(toUserError("search:filter", error, t("حدث خطأ في الاتصال بالخادم.")));
+    } finally {
+      if (requestId === runSearchIdRef.current) setIsSearching(false);
     }
   }
 
@@ -822,6 +853,8 @@ export function useSearchWorkspace() {
       workspaceVisible,
       workspaceActive,
       results,
+      /** The surah the results are filtered to (null: every surah). */
+      surahFilter: searchContext?.surah ?? null,
       selectedVerseKey,
       searchPrefix,
       resultsSummary,
@@ -835,6 +868,7 @@ export function useSearchWorkspace() {
       runSearch,
       selectVerse,
       loadResultPage,
+      filterBySurah,
       resetSearch,
       applySuggestion,
       applyDidYouMean,

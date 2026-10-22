@@ -1147,5 +1147,7 @@
  "من {0}": "nga {0}",
  "موضعك في المصحف": "Vendi juaj në Mushaf",
  "نوع السورة": "Lloji i sures",
- "وسّع اللوحة": "Zgjero panelin"
+ "وسّع اللوحة": "Zgjero panelin",
+ "المس سورة لتعرض مواضعها فيها": "Prekni një sure për të parë rastet në të",
+ "اعرض كل السور": "Shfaq të gjitha suret"
 }

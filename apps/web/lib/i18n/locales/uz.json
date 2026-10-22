@@ -1147,5 +1147,7 @@
  "من {0}": "{0} dan",
  "موضعك في المصحف": "Mushafdagi o‘rningiz",
  "نوع السورة": "Sura turi",
- "وسّع اللوحة": "Panelni kengaytirish"
+ "وسّع اللوحة": "Panelni kengaytirish",
+ "المس سورة لتعرض مواضعها فيها": "O‘rinlarini ko‘rish uchun suraga bosing",
+ "اعرض كل السور": "Barcha suralarni ko‘rsatish"
 }

@@ -1168,5 +1168,7 @@
  "من {0}": "od {0}",
  "موضعك في المصحف": "Vaše mjesto u Mushafu",
  "نوع السورة": "Vrsta sure",
- "وسّع اللوحة": "Proširi panel"
+ "وسّع اللوحة": "Proširi panel",
+ "المس سورة لتعرض مواضعها فيها": "Dodirnite suru da vidite pojavljivanja u njoj",
+ "اعرض كل السور": "Prikaži sve sure"
 }
