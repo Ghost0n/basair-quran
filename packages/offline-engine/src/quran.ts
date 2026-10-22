@@ -870,27 +870,29 @@ export class QuranEngine {
     );
   }
 
-  private async fetchRootSummary(rootId: number, mushaf: number): Promise<[number, number, number]> {
+  /** Root counts for paginated search (within one surah when given). */
+  private async fetchRootSummary(rootId: number, mushaf: number, surah: number | null = null): Promise<[number, number, number]> {
     const row = (await one(
       this.db,
       `SELECT COUNT(*) AS total_occurrences, COUNT(DISTINCT wo.ayah_id) AS total_verses, COUNT(DISTINCT a.surah_id) AS total_surahs
        FROM word_occurrences wo JOIN ayahs a ON wo.ayah_id = a.id
-       WHERE wo.root_id = ? AND a.mushaf_id = ?`,
-      [rootId, mushaf],
+       WHERE wo.root_id = ? AND a.mushaf_id = ?${surah !== null ? " AND a.surah_id = ?" : ""}`,
+      [rootId, mushaf, ...(surah !== null ? [surah] : [])],
     ))!;
     return [row.total_occurrences, row.total_verses, row.total_surahs];
   }
 
-  private async fetchRootPageVerses(rootId: number, mushaf: number, page: number, pageSize: number) {
+  /** One page of a root's verses (within one surah when given). */
+  private async fetchRootPageVerses(rootId: number, mushaf: number, page: number, pageSize: number, surah: number | null = null) {
     const offset = (page - 1) * pageSize;
     const ayahRows = await this.db.all(
       `SELECT a.id AS ayah_id, a.mushaf_id, s.name_arabic AS surah_name, a.surah_id, a.number_in_surah, a.text_uthmani, a.global_index
        FROM word_occurrences wo JOIN ayahs a ON wo.ayah_id = a.id JOIN surahs s ON a.surah_id = s.id
-       WHERE wo.root_id = ? AND a.mushaf_id = ?
+       WHERE wo.root_id = ? AND a.mushaf_id = ?${surah !== null ? " AND a.surah_id = ?" : ""}
        GROUP BY a.id, s.name_arabic, a.surah_id, a.number_in_surah, a.text_uthmani
        ORDER BY a.surah_id, a.number_in_surah
        LIMIT ? OFFSET ?`,
-      [rootId, mushaf, pageSize, offset],
+      [rootId, mushaf, ...(surah !== null ? [surah] : []), pageSize, offset],
     );
     const ayahIds = ayahRows.map((row) => row.ayah_id as number);
     const highlights = new Map<number, number[]>(ayahIds.map((id) => [id, []]));
@@ -961,7 +963,7 @@ export class QuranEngine {
     return results;
   }
 
-  private async buildPaginatedExactResult(q: string, qSimple: string, mushaf: number, page: number, pageSize: number): Promise<Row | null> {
+  private async buildPaginatedExactResult(q: string, qSimple: string, mushaf: number, page: number, pageSize: number, surah: number | null = null): Promise<Row | null> {
     const queryTokens = tokenizeExactQuery(q);
     const displayQuery = buildExactQueryLabel(q, queryTokens);
     let root: string;
@@ -969,14 +971,16 @@ export class QuranEngine {
     let totalOccurrences: number;
     let verseList: Row[];
     if (queryTokens.length > 1) {
-      const [phraseTokens, matches] = await this.searchExactPhraseMatches(q, mushaf);
+      const [phraseTokens, allMatches] = await this.searchExactPhraseMatches(q, mushaf);
+      const matches = surah !== null ? allMatches.filter((match) => match.surah_id === surah) : allMatches;
       if (!matches.length) return null;
       verseList = phraseMatchesToVerseList(matches);
       totalOccurrences = matches.length;
       root = buildExactQueryLabel(q, phraseTokens);
       matchType = "phrase";
     } else {
-      const occurrences = await this.filterExactOccurrences(await this.fetchExactCandidateRows(qSimple, mushaf), q, qSimple);
+      const allOccurrences = await this.filterExactOccurrences(await this.fetchExactCandidateRows(qSimple, mushaf), q, qSimple);
+      const occurrences = surah !== null ? allOccurrences.filter((occurrence) => occurrence.surah_id === surah) : allOccurrences;
       if (!occurrences.length) return null;
       verseList = occurrencesToVerseList(occurrences);
       totalOccurrences = occurrences.length;
@@ -1003,10 +1007,10 @@ export class QuranEngine {
     };
   }
 
-  private async buildPaginatedRootResult(rootId: number, mushaf: number, page: number, pageSize: number): Promise<Row | null> {
+  private async buildPaginatedRootResult(rootId: number, mushaf: number, page: number, pageSize: number, surah: number | null = null): Promise<Row | null> {
     const info = await one(this.db, "SELECT root_text FROM roots WHERE id = ?", [rootId]);
     if (!info) return null;
-    const [totalOccurrences, totalVerses, totalSurahs] = await this.fetchRootSummary(rootId, mushaf);
+    const [totalOccurrences, totalVerses, totalSurahs] = await this.fetchRootSummary(rootId, mushaf, surah);
     if (!totalOccurrences || !totalVerses) return null;
     const totalPages = computeTotalPages(totalVerses, pageSize);
     page = clampPage(page, totalPages);
@@ -1021,11 +1025,11 @@ export class QuranEngine {
       total_occurrences: totalOccurrences,
       total_verses: totalVerses,
       total_surahs: totalSurahs,
-      verses: await this.fetchRootPageVerses(rootId, mushaf, page, pageSize),
+      verses: await this.fetchRootPageVerses(rootId, mushaf, page, pageSize, surah),
     };
   }
 
-  async buildPaginatedSearchResults(q: string, qSimple: string, mode: string, mushaf: number, pageSize: number): Promise<[Row[], DidYouMean]> {
+  async buildPaginatedSearchResults(q: string, qSimple: string, mode: string, mushaf: number, pageSize: number, surah: number | null = null): Promise<[Row[], DidYouMean]> {
     if (!qSimple) return [[], null];
     if (mode === "exact") {
       const queryTokens = tokenizeExactQuery(q);
@@ -1035,30 +1039,32 @@ export class QuranEngine {
         didYouMean = phraseDidYouMean;
         if (!matches.length) return [[], didYouMean];
       }
-      const result = await this.buildPaginatedExactResult(q, qSimple, mushaf, 1, pageSize);
+      const result = await this.buildPaginatedExactResult(q, qSimple, mushaf, 1, pageSize, surah);
       if (result) return [[result], didYouMean];
+      // The words exist elsewhere: no spelling suggestion for an empty surah.
+      if (surah !== null) return [[], null];
       if (queryTokens.length === 1) didYouMean = await this.buildWordDidYouMean(qSimple, mushaf);
       return [[], didYouMean];
     }
     const results: Row[] = [];
     for (const rootId of await this.getRootIds(qSimple, mushaf)) {
-      const result = await this.buildPaginatedRootResult(rootId, mushaf, 1, pageSize);
+      const result = await this.buildPaginatedRootResult(rootId, mushaf, 1, pageSize, surah);
       if (result !== null) results.push(result);
     }
     return [results, null];
   }
 
-  async buildSingleResultPage(q: string, qSimple: string, mode: string, mushaf: number, resultKey: string, page: number, pageSize: number): Promise<Row | null> {
+  async buildSingleResultPage(q: string, qSimple: string, mode: string, mushaf: number, resultKey: string, page: number, pageSize: number, surah: number | null = null): Promise<Row | null> {
     if (!qSimple) return null;
     if (mode === "exact") {
       if (resultKey !== `exact:${qSimple}`) return null;
-      return this.buildPaginatedExactResult(q, qSimple, mushaf, page, pageSize);
+      return this.buildPaginatedExactResult(q, qSimple, mushaf, page, pageSize, surah);
     }
     if (!resultKey.startsWith("root:")) return null;
     const rootId = parsePyInt(resultKey.slice(5));
     if (rootId === null) return null;
     if (!(await this.getRootIds(qSimple, mushaf)).includes(rootId)) return null;
-    return this.buildPaginatedRootResult(rootId, mushaf, page, pageSize);
+    return this.buildPaginatedRootResult(rootId, mushaf, page, pageSize, surah);
   }
 
   // --- reader -------------------------------------------------------------------
