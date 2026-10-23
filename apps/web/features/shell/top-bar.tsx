@@ -43,30 +43,21 @@ export function TopBar() {
   const web = useWebDesign();
   // ⌘K / `/` work everywhere: they open Search (whose bar then takes focus).
   useCommandShortcut(() => setMode("search"));
-  // The web design (desktop): the top bar is each page's own toolbar. Search
-  // gets the command bar; the reading page gets its reader bar (the surah, the
-  // tools, «العرض»…), portaled into the slot by reader-bar.tsx so the Mushaf
-  // keeps the stage's whole height. Other pages carry their own header, so no
-  // bar at all. ⌘K and `/` still open Search from anywhere.
+  // The web design (desktop): one top bar on every page, with the page's name.
+  // It also carries the page's own tools: the reading page's reader bar (the
+  // surah, the tools, «العرض»…, portaled into the slot by reader-bar.tsx, so the
+  // Mushaf keeps the stage's whole height), and the command bar on Search and
+  // Home. ⌘K and `/` open Search from anywhere.
   if (web) {
-    if (mode === "search") {
-      return (
-        <div className="qb-topbar qb-topbar-web">
-          <div className="qb-crumbs-web">
-            <h1>{pageTitle(mode)}</h1>
-          </div>
-          <CommandBar />
-        </div>
-      );
-    }
-    if (mode === "reading") {
-      return (
-        <div className="qb-topbar qb-topbar-web is-reader">
-          <div id="qb-topbar-slot" className="qb-topbar-slot" />
-        </div>
-      );
-    }
-    return null;
+    const title = mode === "home" ? "" : pageTitle(mode);
+    const tools = mode === "reading";
+    return (
+      <div className={`qb-topbar qb-topbar-web${tools ? " has-tools" : ""}`}>
+        <div className="qb-crumbs-web">{title ? <h1>{title}</h1> : null}</div>
+        {tools ? <div id="qb-topbar-slot" className="qb-topbar-slot" /> : null}
+        {mode === "search" || mode === "home" ? <CommandBar /> : null}
+      </div>
+    );
   }
   // The command bar is Search's own surface: elsewhere it would only cost a
   // row of height (the reader bar carries a search button; Home has its hero

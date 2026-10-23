@@ -152,17 +152,23 @@
 }
 .qb-web .qb-study-slot:empty { display: none; }
 
-/* ---------- The reading page's top bar: the reader bar itself ---------- */
-.qb-web .qb-topbar-web.is-reader {
-  height: auto;
-  flex-basis: auto;
-  padding-block: 8px 0;
+/* ---------- The reading page's tools, inside the top bar ---------- */
+/* The top bar keeps its look (the page's name, the same height); the reader
+   bar's tools sit in it, flat — no capsule of their own. */
+.qb-web .qb-topbar-slot { flex: 1; min-width: 0; display: flex; align-items: center; }
+.qb-web .qb-topbar-slot .qb-reader-head { flex: 1; min-width: 0; }
+.qb-web .qb-topbar-slot .qb-reader-bar {
+  margin: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
   background: none;
+  box-shadow: none;
 }
-.qb-web .qb-topbar-slot { flex: 1; min-width: 0; }
-.qb-web .qb-topbar-slot .qb-reader-bar { margin: 0; }
-/* Focus mode hides the bar (it no longer lives in the stage). */
-html.qb-web.qb-immersive .qb-topbar-web.is-reader { display: none; }
+.qb-web .qb-topbar-slot .qb-reader-bar .progress { inset-inline: 0; bottom: -12px; }
+/* Focus mode hides the bar with the rest of the chrome (it no longer lives in the stage). */
+html.qb-web.qb-immersive .qb-topbar-web.has-tools { display: none; }
 @media (max-width: 1280px) {
   .qb-web .qb-study-slot { width: 360px; flex-basis: 360px; }
 }
