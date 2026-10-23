@@ -3,6 +3,7 @@
 import { BrandMark } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
 import { AccountMenu } from "@/features/identity/account-menu";
+import { useWebDesign } from "@/lib/use-web-design";
 
 import { Fragment } from "react";
 
@@ -27,6 +28,7 @@ export function LeftRail() {
   useWorldSync();
   const open = useOpenDestination();
   const { actions } = useWorkspace();
+  const web = useWebDesign();
 
   const handleBrandClick = () => {
     // One clean navigation to the root (resetSearch handles the route); with the
@@ -51,7 +53,8 @@ export function LeftRail() {
       {RAIL_GROUPS.map((group, index) => (
         <Fragment key={index}>
           <div className="qb-rail-divider" role="separator" />
-          {group.map((item) => (
+          {/* Web design: the Index opens from the reader's surah name, not the rail. */}
+          {group.filter((item) => !(web && item.id === "index")).map((item) => (
             <RailButton
               key={item.id}
               icon={item.icon}

@@ -60,11 +60,12 @@ export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
           <StudioPanel />
         </OnlineOnly>
       ) : null}
-      <MushafStage />
       {/* Web design: the study panel's column — the «تحديد» bar portals here
           (tools/selection-bar.tsx). Empty, it takes no room; filled, the page
-          re-fits beside it as it does beside the search panel. */}
+          re-fits beside it as it does beside the search panel. Like every
+          panel, it opens on the reading-start side. */}
       {web && mode === "reading" ? <div id={STUDY_SLOT_ID} className="qb-study-slot" /> : null}
+      <MushafStage />
     </div>
   );
 }

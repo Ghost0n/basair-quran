@@ -27,6 +27,10 @@ import { useThemes } from "@/features/themes/themes-store";
 import "./reading.css";
 
 import { ReaderBar } from "./components/reader-bar";
+import { useWebDesign } from "@/lib/use-web-design";
+
+/** The printed page's default size (paged-reader.tsx DEFAULT_FONT_PX): full fit, no zoom-out. */
+const WEB_PAGE_FONT_PX = 28;
 import { NavigateSheet, type NavigateTab, type NavigateTarget } from "./components/navigate-sheet";
 import { TravelOverlay } from "./components/travel-overlay";
 import { type MorphTarget } from "./components/morph-popover";
@@ -366,6 +370,9 @@ export function MushafStage() {
   // and verse by verse, on every device.
   const compact = useCompactReader();
   const readerMode = resolveReaderMode(preferences.reader_layout);
+  // Web design: the printed page always shows at its default size (pages mode
+  // keeps no size of its own; the «العرض» size applies to verse by verse).
+  const webDesign = useWebDesign();
   const ayahMode = readerMode === "ayah";
   // The verse-by-verse reader is continuous (a windowing engine): prev/next
   // become a smooth in-place scroll rather than a page swap.
@@ -1092,7 +1099,7 @@ export function MushafStage() {
           showSpread={showSpread}
           rightLayout={rightLayout}
           leftLayout={leftLayout}
-          fontSize={preferences.font_size}
+          fontSize={webDesign ? WEB_PAGE_FONT_PX : preferences.font_size}
           neighbours={swipeTrack ? { prev: prevNeighbour.layout, next: nextNeighbour.layout } : undefined}
           trackRef={trackRef}
           selectedAyahId={selectedAyahId}

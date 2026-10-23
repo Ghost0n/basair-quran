@@ -1,6 +1,7 @@
 /* Home in the web design (features/home/home-web.tsx). Source: design/prototype-web-full/screens/home.* */
 
-.qb-web .qb-home-web { width: 100%; padding-bottom: 56px; }
+/* Its own scroll container, like the phone Home (.qb-home): the canvas does not scroll. */
+.qb-web .qb-home-web { width: 100%; flex: 1; min-height: 0; overflow-y: auto; padding-bottom: 56px; }
 
 /* Hero: the verse written word by word over the rosette. */
 .qb-web .qbw-hero {

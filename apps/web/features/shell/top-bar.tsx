@@ -43,17 +43,30 @@ export function TopBar() {
   const web = useWebDesign();
   // ⌘K / `/` work everywhere: they open Search (whose bar then takes focus).
   useCommandShortcut(() => setMode("search"));
-  // The web design (desktop): the page's name and the command bar on every
-  // page, so a root, a reference or a question is one keystroke away. Home
-  // carries its own greeting.
+  // The web design (desktop): the top bar is each page's own toolbar. Search
+  // gets the command bar; the reading page gets its reader bar (the surah, the
+  // tools, «العرض»…), portaled into the slot by reader-bar.tsx so the Mushaf
+  // keeps the stage's whole height. Other pages carry their own header, so no
+  // bar at all. ⌘K and `/` still open Search from anywhere.
   if (web) {
-    const title = mode === "home" ? "" : pageTitle(mode);
-    return (
-      <div className="qb-topbar qb-topbar-web">
-        <div className="qb-crumbs-web">{title ? <h1>{title}</h1> : null}</div>
-        <CommandBar />
-      </div>
-    );
+    if (mode === "search") {
+      return (
+        <div className="qb-topbar qb-topbar-web">
+          <div className="qb-crumbs-web">
+            <h1>{pageTitle(mode)}</h1>
+          </div>
+          <CommandBar />
+        </div>
+      );
+    }
+    if (mode === "reading") {
+      return (
+        <div className="qb-topbar qb-topbar-web is-reader">
+          <div id="qb-topbar-slot" className="qb-topbar-slot" />
+        </div>
+      );
+    }
+    return null;
   }
   // The command bar is Search's own surface: elsewhere it would only cost a
   // row of height (the reader bar carries a search button; Home has its hero

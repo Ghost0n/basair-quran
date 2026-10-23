@@ -7,6 +7,7 @@ import { setShowHighlights, useShowHighlights } from "@/features/themes/ayah-mar
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { swallowNextClick, useExclusiveOverlay } from "@/lib/exclusive-overlay";
 import { useIsMobile } from "@/lib/use-is-mobile";
+import { useWebDesign } from "@/lib/use-web-design";
 
 import { READER_MODES, resolveReaderMode } from "../reader-modes";
 
@@ -70,9 +71,11 @@ export function DisplayStrip({ onClose, headRef }: { onClose: () => void; headRe
   const formatNumber = useNumerals();
   const mode = resolveReaderMode(preferences.reader_layout);
   const showHighlights = useShowHighlights();
-  // Phones pin the printed page to the screen at one fixed size: the size
-  // control shows, inactive, until verse-by-verse mode.
-  const sizeLocked = useIsMobile() && mode === "pages";
+  // Phones — and the desktop web design — pin the printed page at one fixed
+  // size: the size control shows, inactive, until verse-by-verse mode.
+  const web = useWebDesign();
+  const phone = useIsMobile();
+  const sizeLocked = (phone || web) && mode === "pages";
   useExclusiveOverlay(true, onClose);
 
   useEffect(() => {

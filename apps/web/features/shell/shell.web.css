@@ -97,9 +97,8 @@
 .qb-web .qb-topbar-web .qb-cmd.is-search-active { border-color: var(--gold-line); box-shadow: none; }
 
 /* ---------- The room ---------- */
-/* The Mushaf on the inline-start side, the panel on the inline-end side. */
-.qb-web .qb-workspace-canvas.has-panel > .qb-mushaf-stage,
-.qb-web .qb-companion-canvas > .qb-mushaf-stage { order: -1; }
+/* A panel opens on the reading-start side of the Mushaf (beside the rail):
+   the right in Arabic, Persian and Urdu, the left in the other languages. */
 /* The Mushaf no longer recedes: the panel is a neighbour, not a layer. */
 .qb-web .qb-workspace-canvas.has-panel .qb-mushaf-stage { transform: none; opacity: 1; }
 /* Widened panel: the Mushaf steps aside until it is brought back. */
@@ -113,7 +112,7 @@
   margin: 0;
   border-radius: 0;
   border: 0;
-  border-inline-start: 1px solid var(--border-strong);
+  border-inline-end: 1px solid var(--border-strong);
   background: linear-gradient(180deg, var(--bg-elev-1), var(--bg) 40%);
   box-shadow: inset 0 2px 0 -0.5px var(--world);
   animation: none;
@@ -148,10 +147,22 @@
   flex: 0 0 400px;
   min-height: 0;
   overflow-y: auto;
-  border-inline-start: 1px solid var(--border-strong);
+  border-inline-end: 1px solid var(--border-strong);
   background: linear-gradient(180deg, var(--bg-elev-1), var(--bg) 40%);
 }
 .qb-web .qb-study-slot:empty { display: none; }
+
+/* ---------- The reading page's top bar: the reader bar itself ---------- */
+.qb-web .qb-topbar-web.is-reader {
+  height: auto;
+  flex-basis: auto;
+  padding-block: 8px 0;
+  background: none;
+}
+.qb-web .qb-topbar-slot { flex: 1; min-width: 0; }
+.qb-web .qb-topbar-slot .qb-reader-bar { margin: 0; }
+/* Focus mode hides the bar (it no longer lives in the stage). */
+html.qb-web.qb-immersive .qb-topbar-web.is-reader { display: none; }
 @media (max-width: 1280px) {
   .qb-web .qb-study-slot { width: 360px; flex-basis: 360px; }
 }
