@@ -95,6 +95,9 @@
 .qb-web .qb-topbar-web .qb-cmd:hover,
 .qb-web .qb-topbar-web .qb-cmd:focus-within,
 .qb-web .qb-topbar-web .qb-cmd.is-search-active { border-color: var(--gold-line); box-shadow: none; }
+/* Home has no page name: the search stands alone, in the middle. */
+.qb-web .qb-topbar-web.is-home { justify-content: center; }
+.qb-web .qb-topbar-web.is-home .qb-cmd { flex-basis: 560px; }
 
 /* ---------- The room ---------- */
 /* A panel opens on the reading-start side of the Mushaf (beside the rail):
@@ -106,7 +109,7 @@
 .qb-web .qb-workspace-canvas.is-wide > .qb-side-panel,
 .qb-web .qb-workspace-canvas.is-wide > .qb-companion-panel { flex: 1 1 auto; width: auto; }
 
-/* Panels: a flat column with a hairline in the page's world, no floating glass. */
+/* Panels: a flat column, no floating glass and no coloured line along the top. */
 .qb-web .qb-side-panel,
 .qb-web .qb-companion-panel {
   margin: 0;
@@ -114,7 +117,7 @@
   border: 0;
   border-inline-end: 1px solid var(--border-strong);
   background: linear-gradient(180deg, var(--bg-elev-1), var(--bg) 40%);
-  box-shadow: inset 0 2px 0 -0.5px var(--world);
+  box-shadow: none;
   animation: none;
 }
 .qb-web .qb-side-panel { width: 560px; flex-basis: 560px; }
@@ -169,6 +172,36 @@
 .qb-web .qb-topbar-slot .qb-reader-bar .progress { inset-inline: 0; bottom: -12px; }
 /* Focus mode hides the bar with the rest of the chrome (it no longer lives in the stage). */
 html.qb-web.qb-immersive .qb-topbar-web.has-tools { display: none; }
+
+/* Search: the root and its counts beside the page's name, the panel's actions
+   after the command bar (concordance-panel.tsx portals both). */
+.qb-web .qb-topbar-web:not(.has-tools) .qb-topbar-slot { gap: 12px; padding-inline: 18px; }
+.qb-web .qb-topbar-slot .qb-conc-heading { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.qb-web .qb-topbar-slot .qb-conc-heading .kicker { display: none; }
+.qb-web .qb-topbar-slot .qb-conc-heading h3 {
+  margin: 0;
+  font-family: var(--font-arabic-heading);
+  font-size: 20px;
+  line-height: var(--lh-heading, 1.6);
+  color: var(--gold-text);
+  white-space: nowrap;
+}
+.qb-web .qb-topbar-slot .qb-conc-heading .meta { font-size: 12.5px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qb-web .qb-topbar-actions { display: flex; align-items: center; margin-inline-start: 10px; }
+.qb-web .qb-topbar-actions:empty { display: none; }
 @media (max-width: 1280px) {
   .qb-web .qb-study-slot { width: 360px; flex-basis: 360px; }
 }
+.qb-web .qb-topbar-actions .close {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-ctl);
+  color: var(--fg-3);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qb-web .qb-topbar-actions .close:hover { color: var(--gold-text); background: var(--gold-soft); border-color: var(--border); }

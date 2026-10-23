@@ -11,6 +11,7 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type { PostSummary, SurahListItem, TagCount } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { GirihPattern } from "@/components/girih";
 import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
 import { citedSurahCounts } from "@/features/studio/cited-surahs";
 import { useWebDesign } from "@/lib/use-web-design";
@@ -239,8 +240,8 @@ export function CommunityScreen() {
   const filterCount = activeFilterCount(filters);
   const narrowed = filterCount > 0;
 
-  return (
-    <div className="qb-community qb-page-enter">
+  const hero = (
+    <>
       <header className="qb-community-hero">
         <div>
           <div className="kicker">{t("المجتمع")}</div>
@@ -254,6 +255,10 @@ export function CommunityScreen() {
         </button>
       </header>
 
+    </>
+  );
+  const ribbon = (
+    <>
       {web && tab === "feed" && posts.length ? (
         <Ribbon
           className="qb-community-ribbon"
@@ -267,6 +272,10 @@ export function CommunityScreen() {
         />
       ) : null}
 
+    </>
+  );
+  const body = (
+    <>
       <div className="qb-segmented qb-fit-track qb-community-tabs" data-autofit="1" suppressHydrationWarning role="tablist" aria-label={t("المجتمع")}>
         {tabs.map((entry) => (
           <button
@@ -459,6 +468,9 @@ export function CommunityScreen() {
         </div>
       )}
 
+    </>
+  );
+  const guidelines = (
       <section id="guidelines" className="qb-guidelines qb-glass">
         <h2>{t("إرشادات المجتمع باختصار")}</h2>
         <ul>
@@ -472,6 +484,32 @@ export function CommunityScreen() {
           {t("تمرّ المنشورات بفحوص آلية ثم بمراجعة وكيل آلي استشاري، والقرار الأخير للمشرفين.")}
         </p>
       </section>
+  );
+
+  // The web design: the page spans the screen like Home — a hero band over the
+  // rosette carrying the surah ribbon, then the feed beside the guidelines.
+  if (web) {
+    return (
+      <div className="qb-community qb-community-web qb-page-enter">
+        <section className="qbc-hero">
+          <GirihPattern className="qbc-hero-girih" drawn />
+          {hero}
+          {ribbon}
+        </section>
+        <div className="qbc-grid">
+          <div className="qbc-main">{body}</div>
+          <aside className="qbc-aside">{guidelines}</aside>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="qb-community qb-page-enter">
+      {hero}
+      {ribbon}
+      {body}
+      {guidelines}
     </div>
   );
 }

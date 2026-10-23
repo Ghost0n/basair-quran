@@ -14,7 +14,7 @@
   border-radius: var(--r-panel);
   border: 1px solid var(--border-strong);
   background: var(--bg-elev-1);
-  box-shadow: inset 0 2px 0 -0.5px var(--world), 0 30px 60px -30px var(--shade);
+  box-shadow: 0 30px 60px -30px var(--shade);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -87,6 +87,6 @@
   border: 0;
   border-radius: 0;
   background: none;
-  box-shadow: inset 0 2px 0 -0.5px var(--world);
+  box-shadow: none;
   overflow: visible;
 }

@@ -28,7 +28,6 @@ export type WebHomeProps = {
     onListen?: () => void;
   } | null;
   rows: WebHomeRow[];
-  onSearch: (() => void) | null;
   formatNumber: (value: number) => string;
 };
 
@@ -37,7 +36,7 @@ export type WebHomeProps = {
  * by word over the rosette; beside the reading card, the way back into your
  * work as a quiet list. Same data and actions as the phone Home (home-screen.tsx).
  */
-export function WebHome({ greeting, verse, reading, rows, onSearch, formatNumber }: WebHomeProps) {
+export function WebHome({ greeting, verse, reading, rows, formatNumber }: WebHomeProps) {
   const words = verse ? verse.text.split(" ") : [];
   const here = reading?.surah ? reading.surah - 1 : null;
 
@@ -122,13 +121,6 @@ export function WebHome({ greeting, verse, reading, rows, onSearch, formatNumber
                 ) : null}
               </div>
             </section>
-          ) : null}
-          {onSearch ? (
-            <button type="button" className="qbw-search" onClick={onSearch}>
-              <Icon name="search" size={20} />
-              <span>{t("ابحث بكلمة أو جذر، أو اطرح سؤالاً")}</span>
-              <kbd>/</kbd>
-            </button>
           ) : null}
         </div>
 

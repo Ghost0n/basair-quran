@@ -1,6 +1,7 @@
-/* Community and a post in the web design (desktop web): an editorial feed in
-   one readable column with hairlines, copper world marks, a ribbon of the
-   surahs the posts discuss. Source: design/prototype-web-full/screens/community.* */
+/* Community and a post in the web design (desktop web): the page spans the
+   screen like Home — a hero band over the rosette with the ribbon of the
+   surahs the posts discuss, then the feed (hairline entries, copper world
+   marks) beside the guidelines. Source: design/prototype-web-full/screens/community.* */
 
 .qb-web .qb-community-hero { border: 0; background: none; box-shadow: none; padding-inline: 0; }
 .qb-web .qb-community-hero .kicker { color: var(--world); font-weight: 700; letter-spacing: 0; text-transform: none; }
@@ -34,3 +35,69 @@
 .qb-web .qb-post .title { font-family: var(--font-arabic-heading); }
 .qb-web .qb-docview-section { border: 0; border-top: 1px solid var(--border); border-radius: 0; background: none; box-shadow: none; }
 .qb-web .qb-comment .bubble { background: none; border: 0; border-inline-start: 2px solid var(--border-strong); border-radius: 0; box-shadow: none; }
+
+/* ---------- The page, as wide as Home (community-screen.tsx, web branch) ---------- */
+.qb-web .qb-community-web { max-width: none; margin: 0; padding: 0 0 72px; }
+
+/* The hero band: the title over the rosette, the ribbon of discussed surahs under it. */
+.qb-web .qbc-hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 30px 28px 26px;
+  border-bottom: 1px solid var(--border);
+}
+.qb-web .qbc-hero-girih {
+  position: absolute;
+  width: 1100px;
+  height: 1100px;
+  left: 50%; /* centring is direction-neutral */
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+  -webkit-mask-image: radial-gradient(circle, #000 14%, transparent 56%);
+  mask-image: radial-gradient(circle, #000 14%, transparent 56%);
+}
+.qb-web .qbc-hero .qb-community-hero {
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin: 0 auto;
+  max-width: 900px;
+  text-align: center;
+}
+.qb-web .qbc-hero .qb-community-hero h1 { margin: 6px 0 10px; }
+.qb-web .qbc-hero .qb-community-hero p { max-width: 640px; margin-inline: auto; }
+.qb-web .qbc-hero .qb-community-ribbon { max-width: 1240px; margin: 26px auto 0; }
+
+/* Below: the feed beside the guidelines, on Home's grid. */
+.qb-web .qbc-grid {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 30px 28px 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: 48px;
+  align-items: start;
+}
+.qb-web .qbc-main { min-width: 0; }
+.qb-web .qbc-main .qb-community-tabs { margin-bottom: 14px; }
+.qb-web .qbc-main .qb-feed-tools { background: none; border: 0; box-shadow: none; padding: 0; margin-bottom: 8px; }
+.qb-web .qbc-main .qb-feed { gap: 0; border-top: 1px solid var(--border); }
+.qb-web .qbc-main .qb-feed .qb-post-card { padding-inline: 4px; }
+.qb-web .qbc-main .qb-feed .qb-empty { border: 0; background: none; padding-block: 56px; }
+.qb-web .qbc-main .qb-feed .more { margin-top: 18px; }
+
+/* The guidelines: Home's quiet list, beside the feed as it scrolls. */
+.qb-web .qbc-aside { position: sticky; top: 24px; }
+.qb-web .qbc-aside .qb-guidelines { margin: 0; padding: 0; background: none; border: 0; border-radius: 0; }
+.qb-web .qbc-aside .qb-guidelines h2 { margin: 0 0 6px; font-size: 22px; color: var(--fg-1); }
+.qb-web .qbc-aside .qb-guidelines ul { list-style: none; padding: 0; gap: 0; }
+.qb-web .qbc-aside .qb-guidelines li { padding: 12px 0; }
+.qb-web .qbc-aside .qb-guidelines li + li { border-top: 1px solid var(--border); }
+.qb-web .qbc-aside .qb-guidelines .fine { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+@media (max-width: 1080px) {
+  .qb-web .qbc-grid { grid-template-columns: minmax(0, 1fr); }
+  .qb-web .qbc-aside { position: static; }
+}

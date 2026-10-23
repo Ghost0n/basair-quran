@@ -47,15 +47,17 @@ export function TopBar() {
   // It also carries the page's own tools: the reading page's reader bar (the
   // surah, the tools, «العرض»…, portaled into the slot by reader-bar.tsx, so the
   // Mushaf keeps the stage's whole height), and the command bar on Search and
-  // Home. ⌘K and `/` open Search from anywhere.
+  // Home — on Search between the results' root and the panel's actions
+  // (concordance-panel.tsx), so the panel needs no heading of its own. ⌘K and `/` open Search from anywhere.
   if (web) {
     const title = mode === "home" ? "" : pageTitle(mode);
     const tools = mode === "reading";
     return (
-      <div className={`qb-topbar qb-topbar-web${tools ? " has-tools" : ""}`}>
-        <div className="qb-crumbs-web">{title ? <h1>{title}</h1> : null}</div>
-        {tools ? <div id="qb-topbar-slot" className="qb-topbar-slot" /> : null}
+      <div className={`qb-topbar qb-topbar-web${tools ? " has-tools" : ""}${mode === "home" ? " is-home" : ""}`}>
+        {title ? <div className="qb-crumbs-web"><h1>{title}</h1></div> : null}
+        {tools || mode === "search" ? <div id="qb-topbar-slot" className="qb-topbar-slot" /> : null}
         {mode === "search" || mode === "home" ? <CommandBar /> : null}
+        {mode === "search" ? <div id="qb-topbar-actions" className="qb-topbar-actions" /> : null}
       </div>
     );
   }

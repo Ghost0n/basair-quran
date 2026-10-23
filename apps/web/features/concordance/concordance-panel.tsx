@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { createPortal } from "react-dom";
 
 import { useRouter } from "next/navigation";
 
@@ -57,7 +58,7 @@ function resultsScroller(panel: HTMLElement | null): HTMLElement | null {
 export function ConcordancePanel() {
   const { state, actions } = useWorkspace();
   const { openSave } = useSaveAyah();
-  const { setMode } = useShellMode();
+  const { mode: shellMode, setMode } = useShellMode();
   const formatNumber = useNumerals();
   // Web design: the root's spread across the surahs, and a panel that can widen.
   const web = useWebDesign();
@@ -66,6 +67,15 @@ export function ConcordancePanel() {
   // switch the shell to the reader surface (Back returns to the results). At wide
   // widths the reader is already visible beside the panel — no mode switch needed.
   const isCompact = useIsMobile(1000);
+  // Web design, desktop: the panel's heading lives in the shell's top bar, beside
+  // the page's name — the root and its counts before the command bar, the
+  // panel's actions after it (features/shell/top-bar.tsx). Found after commit.
+  const [topSlots, setTopSlots] = useState<{ head: HTMLElement; actions: HTMLElement } | null>(null);
+  useLayoutEffect(() => {
+    const head = web && !isCompact ? document.getElementById("qb-topbar-slot") : null;
+    const actions = web && !isCompact ? document.getElementById("qb-topbar-actions") : null;
+    setTopSlots(head && actions ? { head, actions } : null);
+  }, [web, isCompact, shellMode]);
 
   const panelRef = useRef<HTMLElement | null>(null);
   const recitation = useRecitation();
@@ -223,36 +233,50 @@ export function ConcordancePanel() {
     }
   }
 
+  const heading = (
+    <div className="qb-conc-heading">
+      <div className="kicker">{t("المطابقة")}</div>
+      <h3>{primary ? primary.root : t("البحث")}</h3>
+      <div className="meta">
+        {primary
+          ? tn("{0} موضع", totalOccurrences, { 0: formatNumber(totalOccurrences) }) + t("، ") + tn("{0} آية", totalVerses, { 0: formatNumber(totalVerses) })
+          : t("اكتب جذراً أو كلمة في شريط الأوامر")}
+      </div>
+    </div>
+  );
+  const headActions = (
+    <div className="qb-side-head-actions">
+      {web && !isCompact ? <RoomWideToggle /> : null}
+      {primary ? (
+        <button
+          type="button"
+          className="close"
+          title={t("بحث جديد")}
+          aria-label={t("مسح البحث وبدء بحث جديد")}
+          onClick={() => actions.resetSearch()}
+        >
+          <Icon name="history" size={15} />
+        </button>
+      ) : null}
+      <button type="button" className="close dismiss" title={t("إغلاق")} aria-label={t("إغلاق لوحة المطابقة")} onClick={() => setMode("reading")}>
+        <Icon name="close" size={16} />
+      </button>
+    </div>
+  );
+
   return (
     <aside className={`qb-side-panel${primary ? "" : " is-empty"}`} ref={panelRef} aria-label={t("لوحة المطابقة")}>
-      <div className="qb-side-head">
-        <div>
-          <div className="kicker">{t("المطابقة")}</div>
-          <h3>{primary ? primary.root : t("البحث")}</h3>
-          <div className="meta">
-            {primary
-              ? tn("{0} موضع", totalOccurrences, { 0: formatNumber(totalOccurrences) }) + t("، ") + tn("{0} آية", totalVerses, { 0: formatNumber(totalVerses) })
-              : t("اكتب جذراً أو كلمة في شريط الأوامر")}
-          </div>
+      {topSlots ? (
+        <>
+          {primary ? createPortal(heading, topSlots.head) : null}
+          {createPortal(headActions, topSlots.actions)}
+        </>
+      ) : (
+        <div className="qb-side-head">
+          {heading}
+          {headActions}
         </div>
-        <div className="qb-side-head-actions">
-          {web && !isCompact ? <RoomWideToggle /> : null}
-          {primary ? (
-            <button
-              type="button"
-              className="close"
-              title={t("بحث جديد")}
-              aria-label={t("مسح البحث وبدء بحث جديد")}
-              onClick={() => actions.resetSearch()}
-            >
-              <Icon name="history" size={15} />
-            </button>
-          ) : null}
-          <button type="button" className="close dismiss" title={t("إغلاق")} aria-label={t("إغلاق لوحة المطابقة")} onClick={() => setMode("reading")}>
-            <Icon name="close" size={16} />
-          </button>
-        </div>
-      </div>
+      )}
 
       <div className="qb-side-body">
         {state.errorMessage ? (

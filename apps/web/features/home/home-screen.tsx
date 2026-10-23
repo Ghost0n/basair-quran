@@ -253,7 +253,6 @@ export function HomeScreen() {
             : null
         }
         rows={tiles.map((item) => ({ ...item, dot: item.id === "community" && newPosts > 0 }))}
-        onSearch={shows("search") ? () => setMode("search") : null}
       />
     );
   }
