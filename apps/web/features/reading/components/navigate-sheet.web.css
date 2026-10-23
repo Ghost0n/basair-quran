@@ -51,3 +51,11 @@
 @media (prefers-reduced-motion: reduce) {
   .qb-web .qb-nav-sheet .surahs li.is-flash button { animation: none; }
 }
+
+/* The «انتقل» window keeps one size whatever the tab holds (saved pages,
+   surahs, juz…): it doesn't move under the pointer; its body scrolls. */
+.qb-web .qb-nav-sheet:not(.is-inline) .panel {
+  width: min(640px, 100%);
+  height: min(760px, calc(100dvh - 48px));
+  max-height: none;
+}
