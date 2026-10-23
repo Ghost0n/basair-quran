@@ -26,6 +26,11 @@ every production capability it covers. Plan: `docs/superpowers/plans/2026-10-21-
 
 - **The Mushaf is the room.** On wide screens the Mushaf stays; Search, Study, the Notebook, the
   Index and Saved open as a panel beside it, which can widen to full width.
+- **The top bar carries tools, not names.** The rail already says where you are, so the top bar
+  never repeats the page's name. It has two zones over the columns below: over the panel, the
+  page's own tools (its tabs, field, root or section links, then its actions — pages portal them
+  through `features/shell/top-bar-slots.ts` and drop their own heading); over the Mushaf, the
+  reader's toolbox, wherever the Mushaf shows. Below 1000 px pages keep their own heading.
 - **Only the authentic Madani Mushaf.** Reader pages are the QCF V1 glyph pages (Hafs). The page
   rendering, fit, spreads and turning are stabilized and are not part of the redesign; only the
   chrome around the page is.

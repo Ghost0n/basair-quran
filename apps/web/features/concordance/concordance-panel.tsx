@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
 import { useRouter } from "next/navigation";
@@ -11,6 +11,7 @@ import type { SearchVerse } from "@q-basair/shared";
 import { Icon } from "@/components/icon";
 import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
 import { RoomWideToggle } from "@/features/shell/room";
+import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { useRootSpread } from "@/lib/use-root-spread";
 import { useWebDesign } from "@/lib/use-web-design";
@@ -67,15 +68,9 @@ export function ConcordancePanel() {
   // switch the shell to the reader surface (Back returns to the results). At wide
   // widths the reader is already visible beside the panel — no mode switch needed.
   const isCompact = useIsMobile(1000);
-  // Web design, desktop: the panel's heading lives in the shell's top bar, beside
-  // the page's name — the root and its counts before the command bar, the
-  // panel's actions after it (features/shell/top-bar.tsx). Found after commit.
-  const [topSlots, setTopSlots] = useState<{ head: HTMLElement; actions: HTMLElement } | null>(null);
-  useLayoutEffect(() => {
-    const head = web && !isCompact ? document.getElementById("qb-topbar-slot") : null;
-    const actions = web && !isCompact ? document.getElementById("qb-topbar-actions") : null;
-    setTopSlots(head && actions ? { head, actions } : null);
-  }, [web, isCompact, shellMode]);
+  // Web design, desktop: the panel's heading lives in the shell's top bar — the
+  // root and its counts before the command bar, the panel's actions after it.
+  const topSlots = useTopBarSlots(shellMode === "search");
 
   const panelRef = useRef<HTMLElement | null>(null);
   const recitation = useRecitation();
@@ -268,8 +263,8 @@ export function ConcordancePanel() {
     <aside className={`qb-side-panel${primary ? "" : " is-empty"}`} ref={panelRef} aria-label={t("لوحة المطابقة")}>
       {topSlots ? (
         <>
-          {primary ? createPortal(heading, topSlots.head) : null}
-          {createPortal(headActions, topSlots.actions)}
+          {primary ? createPortal(heading, topSlots.start) : null}
+          {createPortal(headActions, topSlots.end)}
         </>
       ) : (
         <div className="qb-side-head">

@@ -64,23 +64,13 @@
 }
 .qb-web .qb-rail-btn.active .qb-icon { animation: none; }
 
-/* ---------- Top bar: the page's name and the command bar ---------- */
+/* ---------- Top bar: the page's tools over the panel, the reader's over the Mushaf ---------- */
 .qb-web .qb-topbar-web {
   height: 70px;
   flex-basis: 70px;
   justify-content: space-between;
   padding-inline: 28px;
   background: linear-gradient(180deg, var(--bg) 62%, transparent);
-}
-.qb-web .qb-crumbs-web { min-width: 0; display: flex; align-items: baseline; gap: 12px; }
-.qb-web .qb-crumbs-web h1 {
-  margin: 0;
-  font-family: var(--font-arabic-heading);
-  font-size: 24px;
-  font-weight: 700;
-  line-height: var(--lh-heading, 1.6);
-  color: var(--fg-1);
-  white-space: nowrap;
 }
 .qb-web .qb-topbar-web .qb-cmd {
   flex: 0 1 440px;
@@ -96,7 +86,7 @@
 .qb-web .qb-topbar-web .qb-cmd:focus-within,
 .qb-web .qb-topbar-web .qb-cmd.is-search-active { border-color: var(--gold-line); box-shadow: none; }
 /* Home has no page name: the search stands alone, in the middle. */
-.qb-web .qb-topbar-web.is-home { justify-content: center; }
+.qb-web .qb-topbar-web.is-home .qb-topbar-page { justify-content: center; }
 .qb-web .qb-topbar-web.is-home .qb-cmd { flex-basis: 560px; }
 
 /* ---------- The room ---------- */
@@ -155,12 +145,22 @@
 }
 .qb-web .qb-study-slot:empty { display: none; }
 
-/* ---------- The reading page's tools, inside the top bar ---------- */
-/* The top bar keeps its look (the page's name, the same height); the reader
-   bar's tools sit in it, flat — no capsule of their own. */
-.qb-web .qb-topbar-slot { flex: 1; min-width: 0; display: flex; align-items: center; }
-.qb-web .qb-topbar-slot .qb-reader-head { flex: 1; min-width: 0; }
-.qb-web .qb-topbar-slot .qb-reader-bar {
+/* ---------- The two zones of the top bar (top-bar.tsx) ---------- */
+/* The page zone: the page's heading/tabs/field, the command bar, its actions.
+   Beside the Mushaf it takes the panel's measured width (--qb-panel-w). */
+.qb-web .qb-topbar-page { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 10px; }
+.qb-web .qb-topbar-web:has(.qb-topbar-reader:not(:empty)) .qb-topbar-page { flex: 0 0 var(--qb-panel-w, 40%); }
+.qb-web .qb-topbar-slot { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px; }
+.qb-web .qb-topbar-page:not(:has(.qb-cmd)) .qb-topbar-slot { flex: 1 1 auto; }
+.qb-web .qb-topbar-slot:empty { display: none; }
+/* Search: the command bar takes what the root and the actions leave. */
+.qb-web .qb-topbar-web:not(.is-home) .qb-topbar-page .qb-cmd { flex: 1 1 260px; }
+/* The reader zone: the reader bar's tools, flat — no capsule of their own. */
+.qb-web .qb-topbar-reader { flex: 1; min-width: 0; display: flex; align-items: center; }
+.qb-web .qb-topbar-reader:empty { display: none; }
+.qb-web .qb-topbar-web:not(.has-tools) .qb-topbar-reader { padding-inline-start: 22px; }
+.qb-web .qb-topbar-reader .qb-reader-head { flex: 1; min-width: 0; }
+.qb-web .qb-topbar-reader .qb-reader-bar {
   margin: 0;
   min-height: 0;
   padding: 0;
@@ -169,13 +169,12 @@
   background: none;
   box-shadow: none;
 }
-.qb-web .qb-topbar-slot .qb-reader-bar .progress { inset-inline: 0; bottom: -12px; }
+.qb-web .qb-topbar-reader .qb-reader-bar .progress { inset-inline: 0; bottom: -12px; }
 /* Focus mode hides the bar with the rest of the chrome (it no longer lives in the stage). */
-html.qb-web.qb-immersive .qb-topbar-web.has-tools { display: none; }
+html.qb-web.qb-immersive .qb-topbar-web { display: none; }
 
-/* Search: the root and its counts beside the page's name, the panel's actions
-   after the command bar (concordance-panel.tsx portals both). */
-.qb-web .qb-topbar-web:not(.has-tools) .qb-topbar-slot { gap: 12px; padding-inline: 18px; }
+/* Search: the root and its counts, the panel's actions after the command bar
+   (concordance-panel.tsx portals both). */
 .qb-web .qb-topbar-slot .qb-conc-heading { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
 .qb-web .qb-topbar-slot .qb-conc-heading .kicker { display: none; }
 .qb-web .qb-topbar-slot .qb-conc-heading h3 {
@@ -187,7 +186,7 @@ html.qb-web.qb-immersive .qb-topbar-web.has-tools { display: none; }
   white-space: nowrap;
 }
 .qb-web .qb-topbar-slot .qb-conc-heading .meta { font-size: 12.5px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.qb-web .qb-topbar-actions { display: flex; align-items: center; margin-inline-start: 10px; }
+.qb-web .qb-topbar-actions { display: flex; align-items: center; gap: 4px; flex: none; }
 .qb-web .qb-topbar-actions:empty { display: none; }
 @media (max-width: 1280px) {
   .qb-web .qb-study-slot { width: 360px; flex-basis: 360px; }
@@ -205,3 +204,58 @@ html.qb-web.qb-immersive .qb-topbar-web.has-tools { display: none; }
   justify-content: center;
 }
 .qb-web .qb-topbar-actions .close:hover { color: var(--gold-text); background: var(--gold-soft); border-color: var(--border); }
+.qb-web .qb-topbar-actions .close.on { color: var(--gold-text); background: var(--gold-soft); border-color: var(--gold-line); }
+.qb-web .qb-topbar-actions .close:disabled { opacity: 0.4; cursor: default; }
+
+/* Pages' own pieces, once up in the top bar (top-bar-slots.ts). */
+/* The Index's field (navigate-sheet.tsx): the command bar's look. */
+.qb-web .qb-topbar-slot > .field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: var(--r-ctl);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev-1);
+  color: var(--fg-3);
+}
+.qb-web .qb-topbar-slot > .field:focus-within { border-color: var(--gold-line); }
+.qb-web .qb-topbar-slot > .field input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: none; color: var(--fg-1); font: inherit; font-size: 14px; }
+/* Tab strips (the notebook's, the study's sessions): a quiet row, scrolling when long. */
+.qb-web .qb-topbar-slot > .qb-lib-tabs,
+.qb-web .qb-topbar-slot > .qb-studio-tabs,
+.qb-web .qb-topbar-slot > .qb-community-tabs {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.qb-web .qb-topbar-slot > .qb-studio-tabs { border: 0; padding: 0; background: none; }
+/* Heatmap: back, the root and its counts (heatmap-screen.tsx). */
+.qb-web .qb-topbar-slot > .qb-aux-h { margin: 0; padding: 0; border: 0; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.qb-web .qb-topbar-slot > .qb-aux-h > div { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.qb-web .qb-topbar-slot > .qb-aux-h .kicker { margin: 0; font-size: 12px; color: var(--fg-3); white-space: nowrap; }
+.qb-web .qb-topbar-slot > .qb-aux-h h2 { margin: 0; font-family: var(--font-arabic-heading); font-size: 20px; line-height: var(--lh-heading, 1.6); color: var(--gold-text); white-space: nowrap; }
+.qb-web .qb-topbar-slot > .qb-aux-h .sub { margin: 0; font-size: 12.5px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Settings: a link per section (settings-screen.tsx). */
+.qb-web .qb-settings-links { display: flex; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.qb-web .qb-settings-links button {
+  flex: none;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.qb-web .qb-settings-links button:hover { border-color: var(--gold-line); color: var(--gold-text); background: var(--gold-soft); }
+/* Community: its segmented tabs keep their own width (the share button closes the row). */
+.qb-web .qb-topbar-slot > .qb-community-tabs { flex: 0 1 auto; }
+.qb-web .qb-topbar-page:has(> .qb-topbar-slot > .qb-community-tabs) { justify-content: space-between; }

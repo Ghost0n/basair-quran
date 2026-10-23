@@ -15,6 +15,7 @@ import { GirihPattern } from "@/components/girih";
 import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
 import { citedSurahCounts } from "@/features/studio/cited-surahs";
 import { useWebDesign } from "@/lib/use-web-design";
+import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { useNumerals } from "@/lib/preferences-context";
 import { SelectMenu } from "@/components/select-menu";
 import { API_BASE_URL } from "@/lib/config";
@@ -79,6 +80,7 @@ export function CommunityScreen() {
   const [posts, setPosts] = useState<PostSummary[]>([]);
   // Web design: which surahs the shown posts discuss (a ribbon that filters the feed).
   const web = useWebDesign();
+  const topSlots = useTopBarSlots();
   const formatNumber = useNumerals();
   const [cursor, setCursor] = useState<string | null>(null);
   const [mine, setMine] = useState<PostSummary[]>([]);
@@ -240,6 +242,29 @@ export function CommunityScreen() {
   const filterCount = activeFilterCount(filters);
   const narrowed = filterCount > 0;
 
+  // Web design, desktop: the tabs and «شارك بحثاً» go up into the top bar.
+  const shareButton = (
+    <button type="button" className="qb-btn primary" onClick={() => router.push("/?mode=notebook&tab=documents")}>
+      <Icon name="plus" size={15} /> {t("شارك بحثاً")}
+    </button>
+  );
+  const tabStrip = (
+    <div className="qb-segmented qb-fit-track qb-community-tabs" data-autofit="1" suppressHydrationWarning role="tablist" aria-label={t("المجتمع")}>
+      {tabs.map((entry) => (
+        <button
+          key={entry.value}
+          type="button"
+          role="tab"
+          aria-selected={tab === entry.value}
+          className={tab === entry.value ? "on" : ""}
+          onClick={() => setTab(entry.value)}
+        >
+          <Icon name={entry.icon} size={14} /> {entry.label}
+        </button>
+      ))}
+    </div>
+  );
+
   const hero = (
     <>
       <header className="qb-community-hero">
@@ -250,9 +275,7 @@ export function CommunityScreen() {
             {t("كل بحث هنا مرّ بفحص نصوص الآيات ومراجعة وفق")} <a href="#guidelines">{t("إرشادات المجتمع")}</a>{t(". القرآن هو الدليل، وما سواه فهمٌ يُناقش.")}
           </p>
         </div>
-        <button type="button" className="qb-btn primary" onClick={() => router.push("/?mode=notebook&tab=documents")}>
-          <Icon name="plus" size={15} /> {t("شارك بحثاً")}
-        </button>
+        {topSlots ? null : shareButton}
       </header>
 
     </>
@@ -276,20 +299,7 @@ export function CommunityScreen() {
   );
   const body = (
     <>
-      <div className="qb-segmented qb-fit-track qb-community-tabs" data-autofit="1" suppressHydrationWarning role="tablist" aria-label={t("المجتمع")}>
-        {tabs.map((entry) => (
-          <button
-            key={entry.value}
-            type="button"
-            role="tab"
-            aria-selected={tab === entry.value}
-            className={tab === entry.value ? "on" : ""}
-            onClick={() => setTab(entry.value)}
-          >
-            <Icon name={entry.icon} size={14} /> {entry.label}
-          </button>
-        ))}
-      </div>
+      {topSlots ? null : tabStrip}
 
       {listTab ? (
         <section className="qb-feed-tools qb-glass" aria-label={t("تصفية المنشورات")}>
@@ -491,6 +501,8 @@ export function CommunityScreen() {
   if (web) {
     return (
       <div className="qb-community qb-community-web qb-page-enter">
+        {topSlots ? createPortal(tabStrip, topSlots.start) : null}
+        {topSlots ? createPortal(shareButton, topSlots.end) : null}
         <section className="qbc-hero">
           <GirihPattern className="qbc-hero-girih" drawn />
           {hero}

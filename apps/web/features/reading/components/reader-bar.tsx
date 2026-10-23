@@ -12,6 +12,8 @@ import { useRecitation } from "@/features/recitation/recitation-context";
 import { RecitationSheet } from "@/features/recitation/recitation-sheet";
 import { useGoBack, useShellMode } from "@/features/shell/mode-context";
 import { readerBackLeadsHome } from "@/features/shell/navigation";
+import { useRoomWide } from "@/features/shell/room";
+import { TOP_BAR_READER_ID } from "@/features/shell/top-bar-slots";
 import { useExclusiveOverlay } from "@/lib/exclusive-overlay";
 import { modKey } from "@/lib/platform";
 import { useNumerals } from "@/lib/preferences-context";
@@ -117,15 +119,18 @@ export function ReaderBar({
   if (dockView !== firstDockView.current) dockSwapped.current = true;
   const swapClass = dockSwapped.current ? " swap" : "";
   const { mode, setMode } = useShellMode();
-  // Web design, reading page: the bar lives in the shell's top bar (the page's
-  // own toolbar there), leaving the stage's height to the Mushaf. The slot is
-  // found after commit (features/shell/top-bar.tsx).
+  // Web design, wide screens: the bar lives in the shell's top bar wherever the
+  // Mushaf shows — the reading page, and beside a panel (search, study, the
+  // notebook…) unless the panel is widened over it — leaving the stage's
+  // height to the Mushaf. The slot is found after commit (features/shell/top-bar.tsx).
   const web = useWebDesign();
-  const inTopBar = web && mode === "reading";
+  const narrowCanvas = useIsMobile(1000);
+  const [roomWide] = useRoomWide();
+  const inTopBar = web && !narrowCanvas && (mode === "reading" || !roomWide);
   const [topSlot, setTopSlot] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {
-    setTopSlot(inTopBar ? document.getElementById("qb-topbar-slot") : null);
-  }, [inTopBar]);
+    setTopSlot(inTopBar ? document.getElementById(TOP_BAR_READER_ID) : null);
+  }, [inTopBar, mode]);
   const savedPages = useSavedPages();
 
   const firstAyah = pageData.ayahs[0];

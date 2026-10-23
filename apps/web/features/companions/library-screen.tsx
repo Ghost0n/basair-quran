@@ -4,6 +4,7 @@ import "./companions.css";
 import "./companions.web.css";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import "@/features/themes/themes.css";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -14,6 +15,7 @@ import { Icon } from "@/components/icon";
 import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
 import { citedSurahCounts } from "@/features/studio/cited-surahs";
 import { RoomWideToggle } from "@/features/shell/room";
+import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { useWebDesign } from "@/lib/use-web-design";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { SwipeRow } from "@/components/swipe-row";
@@ -72,6 +74,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
   // Web design: where the saved verses sit across the surahs, and a panel that can widen.
   const web = useWebDesign();
   const compact = useIsMobile(1000);
+  const topSlots = useTopBarSlots();
   const router = useRouter();
 
   const [tab, setTabState] = useState<LibraryTab>(initialTab);
@@ -135,38 +138,52 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
     { value: "roots", label: tt("الجذور"), count: companions.roots.length },
   ];
 
+  // Web design, desktop: the tabs (each with its count) and the widen toggle
+  // live in the shell's top bar (top-bar-slots.ts); the page needs no heading.
+  const tabStrip = (
+    <div className="qb-lib-tabs qb-fit-track" data-autofit="2" suppressHydrationWarning role="tablist">
+      {TABS.map((t) => (
+        <button
+          key={t.value}
+          type="button"
+          role="tab"
+          aria-selected={tab === t.value}
+          className={`qb-lib-tab${tab === t.value ? " active" : ""}`}
+          onClick={() => setTab(t.value)}
+        >
+          {t.label} <span className="n">{formatNumber(t.count)}</span>
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="qb-aux">
-      <div className="qb-aux-h">
-        <div>
-          <div className="kicker">{tt("الدفتر")}</div>
-          <h2>{tt("الدفتر")}</h2>
-          <div className="sub">
-            {[
-              tn("{0} آية", companions.notebook.length, { 0: formatNumber(companions.notebook.length) }),
-              tn("{0} بحث", companions.documents.length, { 0: formatNumber(companions.documents.length) }),
-              tn("{0} جلسة", companions.sessions.length, { 0: formatNumber(companions.sessions.length) }),
-              tn("{0} جذر", companions.roots.length, { 0: formatNumber(companions.roots.length) }),
-            ].join(tt("، "))}
+      {topSlots ? (
+        <>
+          {createPortal(tabStrip, topSlots.start)}
+          {web && !compact ? createPortal(<RoomWideToggle />, topSlots.end) : null}
+        </>
+      ) : (
+        <>
+          <div className="qb-aux-h">
+            <div>
+              <div className="kicker">{tt("الدفتر")}</div>
+              <h2>{tt("الدفتر")}</h2>
+              <div className="sub">
+                {[
+                  tn("{0} آية", companions.notebook.length, { 0: formatNumber(companions.notebook.length) }),
+                  tn("{0} بحث", companions.documents.length, { 0: formatNumber(companions.documents.length) }),
+                  tn("{0} جلسة", companions.sessions.length, { 0: formatNumber(companions.sessions.length) }),
+                  tn("{0} جذر", companions.roots.length, { 0: formatNumber(companions.roots.length) }),
+                ].join(tt("، "))}
+              </div>
+            </div>
+            {web && !compact ? <RoomWideToggle /> : null}
           </div>
-        </div>
-        {web && !compact ? <RoomWideToggle /> : null}
-      </div>
-
-      <div className="qb-lib-tabs qb-fit-track" data-autofit="2" suppressHydrationWarning role="tablist">
-        {TABS.map((t) => (
-          <button
-            key={t.value}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.value}
-            className={`qb-lib-tab${tab === t.value ? " active" : ""}`}
-            onClick={() => setTab(t.value)}
-          >
-            {t.label} <span className="n">{formatNumber(t.count)}</span>
-          </button>
-        ))}
-      </div>
+          {tabStrip}
+        </>
+      )}
 
       {companions.error ? <div className="qb-aux-state">{companions.error}</div> : null}
       {companions.loading ? <div className="qb-aux-state is-loading">{tt("جارٍ التحميل…")}</div> : null}

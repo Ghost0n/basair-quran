@@ -3,6 +3,9 @@
 import "./settings.css";
 import "./settings.web.css";
 
+import { useLayoutEffect, useRef, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
+
 import type { NumeralScript } from "@q-basair/shared";
 
 import { SelectMenu } from "@/components/select-menu";
@@ -15,6 +18,7 @@ import { TranslationsSettings } from "./translations-settings";
 import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
 import { usePreferences } from "@/lib/preferences-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
+import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 
 import { t } from "@/lib/i18n";
 
@@ -48,13 +52,21 @@ export function SettingsScreen() {
   const { state, actions } = useWorkspace();
 
   const edition = state.edition;
+  const pageRef = useRef<HTMLDivElement>(null);
+  const topSlots = useTopBarSlots();
 
   return (
-    <div className="qb-settings">
-      <div className="qb-settings-h">
-        <div className="kicker">{t("الإعدادات")}</div>
-        <h2>{t("التفضيلات")}</h2>
-      </div>
+    <div className="qb-settings" ref={pageRef}>
+      {/* Web design, desktop: the rail names the page; the top bar carries a
+          link to each section instead of a heading. */}
+      {topSlots ? (
+        createPortal(<SectionLinks page={pageRef} />, topSlots.start)
+      ) : (
+        <div className="qb-settings-h">
+          <div className="kicker">{t("الإعدادات")}</div>
+          <h2>{t("التفضيلات")}</h2>
+        </div>
+      )}
 
       <div className="qb-settings-grid">
 
@@ -131,5 +143,34 @@ export function SettingsScreen() {
 
       </div>
     </div>
+  );
+}
+
+/** The settings' sections as links (web top bar): read from the page, so they follow whatever it shows. */
+function SectionLinks({ page }: { page: RefObject<HTMLDivElement | null> }) {
+  const [sections, setSections] = useState<{ label: string; element: HTMLElement }[]>([]);
+  useLayoutEffect(() => {
+    const host = page.current;
+    if (!host) return;
+    const read = () =>
+      setSections(
+        Array.from(host.querySelectorAll<HTMLElement>("section")).flatMap((element) => {
+          const label = element.querySelector("h3, h2")?.textContent?.trim();
+          return label ? [{ label, element }] : [];
+        }),
+      );
+    read();
+    const changes = new MutationObserver(read);
+    changes.observe(host, { childList: true, subtree: true });
+    return () => changes.disconnect();
+  }, [page]);
+  return (
+    <nav className="qb-settings-links" aria-label={t("الإعدادات")}>
+      {sections.map((section) => (
+        <button key={section.label} type="button" onClick={() => section.element.scrollIntoView({ behavior: "smooth", block: "start" })}>
+          {section.label}
+        </button>
+      ))}
+    </nav>
   );
 }

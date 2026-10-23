@@ -11,6 +11,7 @@ import { Icon } from "@/components/icon";
 import { SwipeRow } from "@/components/swipe-row";
 import { relativeAge } from "@/features/companions/use-companions";
 import { useShellMode } from "@/features/shell/mode-context";
+import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { API_BASE_URL } from "@/lib/config";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
@@ -32,6 +33,7 @@ export function SavedPagesScreen() {
   const { setMode } = useShellMode();
   const formatNumber = useNumerals();
   const { remove: removeSaved } = useSavedPages();
+  const topSlots = useTopBarSlots();
   const pages: SavedPageEntry[] = [...(preferences.saved_pages ?? [])].sort((a, b) => (b.saved_at ?? 0) - (a.saved_at ?? 0));
 
   function open(entry: SavedPageEntry) {
@@ -41,11 +43,17 @@ export function SavedPagesScreen() {
 
   return (
     <div className="qb-world-page">
-      <span className="eyebrow">
-        <Icon name="book" size={14} />
-        {t("القراءة")}
-      </span>
-      <h2>{t("الصفحات المحفوظة")}</h2>
+      {/* Web design, desktop: the rail names the page and the top bar carries the
+          reader's tools, so no heading here. */}
+      {topSlots ? null : (
+        <>
+          <span className="eyebrow">
+            <Icon name="book" size={14} />
+            {t("القراءة")}
+          </span>
+          <h2>{t("الصفحات المحفوظة")}</h2>
+        </>
+      )}
       {pages.length === 0 ? (
         <p className="lead">{t("احفظ صفحة من القراءة (علامة الحفظ في شريط القارئ) لتجدها هنا.")}</p>
       ) : (
@@ -84,6 +92,8 @@ export function IndexScreen() {
   const { setMode } = useShellMode();
   const mushafId = state.selectedMushaf;
   const [surahs, setSurahs] = useState<SurahListItem[]>([]);
+  // Web design, desktop: the index's field goes up into the top bar.
+  const topSlots = useTopBarSlots();
 
   useEffect(() => {
     let cancelled = false;
@@ -120,6 +130,7 @@ export function IndexScreen() {
         currentHizb={first ? divisionOf("hizb", { surah: first.surah_id, ayah: first.ayah }) : null}
         onNavigate={navigate}
         onClose={() => undefined}
+        topSlots={topSlots}
       />
     </div>
   );

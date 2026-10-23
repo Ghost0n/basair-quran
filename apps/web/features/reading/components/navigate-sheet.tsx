@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import type { SavedPageEntry, SurahListItem } from "@q-basair/shared";
 
@@ -14,6 +15,7 @@ import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { parseNavCommand, surahMatches, toAsciiDigits, TOTAL_PAGES } from "@/lib/quran-nav";
 import { divisionRange, DIVISION_COUNT } from "@/lib/quran-ranges";
 import { useDialog } from "@/lib/use-dialog";
+import type { TopBarSlots } from "@/features/shell/top-bar-slots";
 
 import { useSavedPages } from "../use-saved-pages";
 import { surahLengths, surahsOfKind, type SurahKind } from "../surah-filter";
@@ -67,6 +69,7 @@ export function NavigateSheet({
   onClose,
   inline = false,
   initialTab,
+  topSlots = null,
 }: {
   surahs: SurahListItem[];
   currentSurahId?: number;
@@ -80,6 +83,8 @@ export function NavigateSheet({
   inline?: boolean;
   /** The tab to open on; by default the saved pages when there are some, else the surahs. */
   initialTab?: NavigateTab;
+  /** The web top bar's slots, for the Index page: the field goes up there and the heading is dropped. */
+  topSlots?: TopBarSlots | null;
 }) {
   const formatNumber = useNumerals();
   const panelRef = useDialog<HTMLDivElement>(onClose, { enabled: !inline });
@@ -144,6 +149,34 @@ export function NavigateSheet({
   const pageNumber = Number(toAsciiDigits(pageDraft));
   const pageValid = Number.isInteger(pageNumber) && pageNumber >= 1 && pageNumber <= TOTAL_PAGES;
 
+  const field = (
+    <div className="field">
+      <Icon name="search" size={16} />
+      <input
+        type="search"
+        value={query}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setTab("surah");
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            // Closing returns focus to the «انتقل» button; without this the
+            // same Enter would activate it and reopen the sheet.
+            event.preventDefault();
+            runCommand();
+          }
+        }}
+        placeholder={formatNumber(t("اسم السورة أو رقمها · ٢:٢٥٥ · صفحة ٥٠"))}
+        // Type-to-filter on desktop; on touch screens don't pop the keyboard
+        // over the list — the user may just scroll and tap.
+        autoFocus={hover}
+        aria-label={t("ابحث عن سورة أو اكتب مرجعاً")}
+        enterKeyHint="go"
+      />
+    </div>
+  );
+
   return (
     <div
       className={`qb-rsheet qb-nav-sheet${inline ? " is-inline" : ""}`}
@@ -154,40 +187,20 @@ export function NavigateSheet({
       {inline ? null : <div className="backdrop" onClick={onClose} aria-hidden />}
       <div className="panel" ref={panelRef} tabIndex={-1}>
         <div className="grip" aria-hidden />
-        <div className="head">
-          <h2>{inline ? t("الفهرس") : t("انتقل")}</h2>
-          {inline ? null : (
-            <button type="button" className="close" onClick={onClose} aria-label={t("إغلاق")}>
-              <Icon name="close" size={18} />
-            </button>
-          )}
-        </div>
+        {/* As the Index page under the web top bar, the rail names the page and
+            the field goes up into the bar (shell/top-bar-slots.ts). */}
+        {topSlots ? null : (
+          <div className="head">
+            <h2>{inline ? t("الفهرس") : t("انتقل")}</h2>
+            {inline ? null : (
+              <button type="button" className="close" onClick={onClose} aria-label={t("إغلاق")}>
+                <Icon name="close" size={18} />
+              </button>
+            )}
+          </div>
+        )}
 
-        <div className="field">
-          <Icon name="search" size={16} />
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setTab("surah");
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                // Closing returns focus to the «انتقل» button; without this the
-                // same Enter would activate it and reopen the sheet.
-                event.preventDefault();
-                runCommand();
-              }
-            }}
-            placeholder={formatNumber(t("اسم السورة أو رقمها · ٢:٢٥٥ · صفحة ٥٠"))}
-            // Type-to-filter on desktop; on touch screens don't pop the keyboard
-            // over the list — the user may just scroll and tap.
-            autoFocus={hover}
-            aria-label={t("ابحث عن سورة أو اكتب مرجعاً")}
-            enterKeyHint="go"
-          />
-        </div>
+        {topSlots ? createPortal(field, topSlots.start) : field}
 
         {command ? (
           <button type="button" className="command" onClick={runCommand}>

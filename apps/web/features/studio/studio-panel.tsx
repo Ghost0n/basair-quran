@@ -25,6 +25,7 @@ import { useMushaf } from "@/features/reading/mushaf-context";
 import { useDialog } from "@/lib/use-dialog";
 import { saveClientResearchSettings } from "@/features/research/lib/research-client-settings";
 import { useShellMode } from "@/features/shell/mode-context";
+import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
 import { ExportModal } from "@/features/export/export-modal";
@@ -80,7 +81,8 @@ export function StudioPanel() {
   // Web design: the panel can widen over the Mushaf (features/shell/room.tsx).
   const webDesign = useWebDesign();
   const compactCanvas = useIsMobile(1000);
-  const { setMode: setShellMode } = useShellMode();
+  const { mode: shellMode, setMode: setShellMode } = useShellMode();
+  const topSlots = useTopBarSlots(shellMode === "studio");
   const formatNumber = useNumerals();
 
   const [draft, setDraft] = useState("");
@@ -176,103 +178,122 @@ export function StudioPanel() {
     saveClientResearchSettings(next);
   }
 
+  // Web design, desktop: the session tabs and the panel's actions live in the
+  // shell's top bar (top-bar-slots.ts); the panel then needs no heading.
+  const sessionTabs = (
+    <div className="qb-studio-tabs">
+      {studio.sessions.map((session) => (
+        <div
+          key={session.id}
+          className={`qb-studio-tab${session.id === studio.activeId ? " active" : ""}`}
+        >
+          <Icon name="sparkles" size={12} />
+          <button
+            type="button"
+            className="label"
+            style={{ background: "transparent", border: "none", color: "inherit", cursor: "pointer" }}
+            onClick={() => studio.setActiveId(session.id)}
+          >
+            {session.title}
+          </button>
+          <button
+            type="button"
+            className="x"
+            aria-label={t("إغلاق الجلسة")}
+            onClick={() => studio.closeSession(session.id)}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+      <button type="button" className="qb-studio-tab add" onClick={studio.newSession} aria-label={t("جلسة جديدة")}>
+        <Icon name="plus" size={12} />
+      </button>
+    </div>
+  );
+  const headActions = (
+    <>
+      {webDesign && !compactCanvas ? <RoomWideToggle /> : null}
+      {hasMessages ? (
+        <button
+          type="button"
+          className={`close${convertAsk !== "closed" ? " on" : ""}`}
+          title={t("حوّل إلى بحث قابل للتحرير والمشاركة")}
+          aria-label={t("حوّل إلى بحث")}
+          aria-expanded={convertAsk !== "closed"}
+          disabled={converting}
+          onClick={() => setConvertAsk((value) => (value === "closed" ? "ask" : "closed"))}
+        >
+          <Icon name="page" size={16} />
+        </button>
+      ) : null}
+      <button
+        type="button"
+        className="close desk-only"
+        title={t("تصدير الجلسة")}
+        aria-label={t("تصدير الجلسة")}
+        disabled={!active || active.messages.length === 0}
+        onClick={() => setExportOpen(true)}
+      >
+        <Icon name="share" size={16} />
+      </button>
+      <button
+        type="button"
+        className="close"
+        title={t("الإعدادات")}
+        aria-label={t("إعدادات النموذج")}
+        onClick={() => setSettingsOpen((open) => !open)}
+      >
+        <Icon name="settings" size={16} />
+      </button>
+      <button
+        type="button"
+        className="close desk-only"
+        title={t("إغلاق")}
+        aria-label={t("إغلاق لوحة الدراسة")}
+        onClick={() => setShellMode("reading")}
+      >
+        <Icon name="close" size={16} />
+      </button>
+    </>
+  );
+
   return (
     <aside className="qb-side-panel qb-side-panel-wide" aria-label={t("لوحة الدراسة")}>
       <div className="qb-studio">
-        <div className="qb-studio-tabs">
-          {studio.sessions.map((session) => (
-            <div
-              key={session.id}
-              className={`qb-studio-tab${session.id === studio.activeId ? " active" : ""}`}
-            >
-              <Icon name="sparkles" size={12} />
-              <button
-                type="button"
-                className="label"
-                style={{ background: "transparent", border: "none", color: "inherit", cursor: "pointer" }}
-                onClick={() => studio.setActiveId(session.id)}
-              >
-                {session.title}
-              </button>
-              <button
-                type="button"
-                className="x"
-                aria-label={t("إغلاق الجلسة")}
-                onClick={() => studio.closeSession(session.id)}
-              >
-                ×
-              </button>
+        {topSlots ? (
+          <>
+            {createPortal(sessionTabs, topSlots.start)}
+            {createPortal(headActions, topSlots.end)}
+          </>
+        ) : (
+          <>
+            {sessionTabs}
+            <div className="qb-side-head qb-studio-head" style={{ borderBottom: "none", padding: "14px 20px 4px" }}>
+              <div className="qb-studio-head-main">
+                <div className="kicker">{t("جلسة الدراسة")}</div>
+                {/* The title opens the open sessions (phones have no tab strip). */}
+                <h3 style={{ fontSize: 20 }}>
+                  <button
+                    type="button"
+                    className="qb-studio-title"
+                    onClick={() => setSessionsOpen(true)}
+                    aria-haspopup="dialog"
+                    aria-label={`${active?.title ?? t("جلسة جديدة")} · ${t("الجلسات")}`}
+                  >
+                    <span className="txt">{active?.title ?? t("جلسة جديدة")}</span>
+                    <Icon name="chevDown" size={16} />
+                  </button>
+                </h3>
+                <div className="meta">
+                  {tn("{0} رسالة", active?.messages.length ?? 0, { 0: formatNumber(active?.messages.length ?? 0) })} ·{" "}
+                  {isTafssir ? t("قراءة تفسيرية") : t("القرآن وحدَه")}
+                </div>
+              </div>
+              {headActions}
             </div>
-          ))}
-          <button type="button" className="qb-studio-tab add" onClick={studio.newSession} aria-label={t("جلسة جديدة")}>
-            <Icon name="plus" size={12} />
-          </button>
-        </div>
-
-        <div className="qb-side-head qb-studio-head" style={{ borderBottom: "none", padding: "14px 20px 4px" }}>
-          <div className="qb-studio-head-main">
-            <div className="kicker">{t("جلسة الدراسة")}</div>
-            {/* The title opens the open sessions (phones have no tab strip). */}
-            <h3 style={{ fontSize: 20 }}>
-              <button
-                type="button"
-                className="qb-studio-title"
-                onClick={() => setSessionsOpen(true)}
-                aria-haspopup="dialog"
-                aria-label={`${active?.title ?? t("جلسة جديدة")} · ${t("الجلسات")}`}
-              >
-                <span className="txt">{active?.title ?? t("جلسة جديدة")}</span>
-                <Icon name="chevDown" size={16} />
-              </button>
-            </h3>
-            <div className="meta">
-              {tn("{0} رسالة", active?.messages.length ?? 0, { 0: formatNumber(active?.messages.length ?? 0) })} ·{" "}
-              {isTafssir ? t("قراءة تفسيرية") : t("القرآن وحدَه")}
-            </div>
-          </div>
-          {webDesign && !compactCanvas ? <RoomWideToggle /> : null}
-          {hasMessages ? (
-            <button
-              type="button"
-              className={`close${convertAsk !== "closed" ? " on" : ""}`}
-              title={t("حوّل إلى بحث قابل للتحرير والمشاركة")}
-              aria-label={t("حوّل إلى بحث")}
-              aria-expanded={convertAsk !== "closed"}
-              disabled={converting}
-              onClick={() => setConvertAsk((value) => (value === "closed" ? "ask" : "closed"))}
-            >
-              <Icon name="page" size={16} />
-            </button>
-          ) : null}
-          <button
-            type="button"
-            className="close desk-only"
-            title={t("تصدير الجلسة")}
-            aria-label={t("تصدير الجلسة")}
-            disabled={!active || active.messages.length === 0}
-            onClick={() => setExportOpen(true)}
-          >
-            <Icon name="share" size={16} />
-          </button>
-          <button
-            type="button"
-            className="close"
-            title={t("الإعدادات")}
-            aria-label={t("إعدادات النموذج")}
-            onClick={() => setSettingsOpen((open) => !open)}
-          >
-            <Icon name="settings" size={16} />
-          </button>
-          <button
-            type="button"
-            className="close desk-only"
-            title={t("إغلاق")}
-            aria-label={t("إغلاق لوحة الدراسة")}
-            onClick={() => setShellMode("reading")}
-          >
-            <Icon name="close" size={16} />
-          </button>
-        </div>
+          </>
+        )}
 
         {convertAsk !== "closed" && hasMessages ? (
           <div className="qb-studio-confirm" role={convertAsk === "failed" ? "alert" : "status"}>

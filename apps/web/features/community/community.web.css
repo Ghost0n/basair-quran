@@ -101,3 +101,7 @@
   .qb-web .qbc-grid { grid-template-columns: minmax(0, 1fr); }
   .qb-web .qbc-aside { position: static; }
 }
+
+/* Under the web top bar (which carries the tabs and «شارك بحثاً»), the rail
+   names the page: no kicker over the title. */
+.qb-web .qbc-hero .qb-community-hero .kicker { display: none; }

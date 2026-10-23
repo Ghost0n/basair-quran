@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { useSearchParams } from "next/navigation";
 
@@ -16,6 +17,7 @@ import { useNumerals } from "@/lib/preferences-context";
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { useGoBack, useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
+import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 
 import "./concordance.css";
 import "./concordance.web.css";
@@ -37,6 +39,7 @@ export function HeatmapScreen() {
   const { setMode } = useShellMode();
   const { goBack } = useGoBack();
   const formatNumber = useNumerals();
+  const topSlots = useTopBarSlots();
 
   const [surahs, setSurahs] = useState<SurahListItem[]>([]);
   const [distribution, setDistribution] = useState<RootDistributionResponse | null>(null);
@@ -110,25 +113,30 @@ export function HeatmapScreen() {
     );
   }
 
+  // Web design, desktop: back, the root and its counts go up into the top bar.
+  const head = (
+  <div className="qb-aux-h has-back">
+    {/* Back to where the root was opened from (the saved roots, a search). */}
+    <button type="button" className="qb-icon-round qb-aux-back" onClick={() => goBack()} aria-label={t("رجوع")}>
+      <Icon name="chevRight" size={18} />
+    </button>
+    <div>
+      <div className="kicker">{t("خريطة انتشار الجذر")}</div>
+      <h2>{distribution?.root ?? root}</h2>
+      <div className="sub">
+        {loading
+          ? t("جارٍ حساب الانتشار…")
+          : distribution?.found
+            ? `${tn("{0} موضع", distribution.total, { 0: formatNumber(distribution.total) })} · ${tn("{0} سورة", distribution.surah_count, { 0: formatNumber(distribution.surah_count) })}`
+            : t("لا توجد مواضع لهذا الجذر.")}
+      </div>
+    </div>
+  </div>
+  );
+
   return (
     <div className="qb-aux">
-      <div className="qb-aux-h has-back">
-        {/* Back to where the root was opened from (the saved roots, a search). */}
-        <button type="button" className="qb-icon-round qb-aux-back" onClick={() => goBack()} aria-label={t("رجوع")}>
-          <Icon name="chevRight" size={18} />
-        </button>
-        <div>
-          <div className="kicker">{t("خريطة انتشار الجذر")}</div>
-          <h2>{distribution?.root ?? root}</h2>
-          <div className="sub">
-            {loading
-              ? t("جارٍ حساب الانتشار…")
-              : distribution?.found
-                ? `${tn("{0} موضع", distribution.total, { 0: formatNumber(distribution.total) })} · ${tn("{0} سورة", distribution.surah_count, { 0: formatNumber(distribution.surah_count) })}`
-                : t("لا توجد مواضع لهذا الجذر.")}
-          </div>
-        </div>
-      </div>
+      {topSlots ? createPortal(head, topSlots.start) : head}
 
       {distribution?.found ? (
         <>
