@@ -50,8 +50,12 @@ export function rowsFromRects(rects: Rect[], width: number, band?: (rect: Rect) 
   return rows;
 }
 
-/** Split rows into blocks that can be drawn as one outline (adjacent lines whose extents overlap). */
-export function blocks(rows: OutlineRow[]): OutlineRow[][] {
+/**
+ * Split rows into blocks that can be drawn as one outline (adjacent lines whose extents overlap).
+ * With `bridge` (the web design), lines that overlap at all stay one block: the
+ * joint is widened, half on each line, until it holds two rounded corners.
+ */
+export function blocks(rows: OutlineRow[], options: { bridge?: boolean } = {}): OutlineRow[][] {
   const out: OutlineRow[][] = [];
   for (const row of rows) {
     const block = out[out.length - 1];
@@ -59,7 +63,15 @@ export function blocks(rows: OutlineRow[]): OutlineRow[][] {
     const height = above ? Math.min(above.bottom - above.top, row.bottom - row.top) : 0;
     const touching = above && row.top - above.bottom < height * 0.75;
     const overlap = above ? Math.min(above.x2, row.x2) - Math.max(above.x1, row.x1) : 0;
-    if (block && touching && overlap > OUTLINE_RADIUS * 2) {
+    if (block && touching && options.bridge && overlap > 0 && overlap <= OUTLINE_RADIUS * 2) {
+      const half = (OUTLINE_RADIUS * 2 - overlap) / 2 + 0.5;
+      // Widen each line toward the other: the one ending further left reaches right.
+      const [left, right] = above.x1 + above.x2 < row.x1 + row.x2 ? [above, row] : [row, above];
+      left.x2 += half;
+      right.x1 -= half;
+    }
+    const joint = above ? Math.min(above.x2, row.x2) - Math.max(above.x1, row.x1) : 0;
+    if (block && touching && joint > OUTLINE_RADIUS * 2) {
       const middle = (above.bottom + row.top) / 2;
       above.bottom = middle;
       row.top = middle;

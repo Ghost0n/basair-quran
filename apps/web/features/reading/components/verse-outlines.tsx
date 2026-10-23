@@ -61,6 +61,8 @@ export function VerseOutlines() {
         verses.set(id, verse);
       }
       const width = host.clientWidth;
+      // The web design keeps a verse one block even where its lines barely meet.
+      const bridge = document.documentElement.classList.contains("qb-web");
       const drawn = Array.from(verses.values()).map((verse) => ({
         kind: verse.kind,
         color: verse.color,
@@ -70,7 +72,7 @@ export function VerseOutlines() {
       const paths = drawn.map((verse) => ({
         kind: verse.kind,
         color: verse.color,
-        d: blocks(verse.rows).map(outlinePath).join(""),
+        d: blocks(verse.rows, { bridge }).map(outlinePath).join(""),
       }));
       const key = `${width}|${paths.map((item) => `${item.kind}${item.color ?? ""}${item.d}`).join("|")}`;
       if (key === lastKey) return;
