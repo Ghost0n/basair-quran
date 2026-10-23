@@ -11,6 +11,8 @@ import { usePickedWords, useVerseFocus, verseFocusClass, wordKey, type VerseFocu
 import { isGlyphFontReady } from "@/features/reading/qcf-font-loader";
 import { JUZ_STARTS } from "@/lib/quran-divisions.generated";
 import { toArabicDigits } from "@/lib/numerals";
+import { useNumerals } from "@/lib/preferences-context";
+import { useWebDesign } from "@/lib/use-web-design";
 
 import { t } from "@/lib/i18n";
 
@@ -194,6 +196,9 @@ export function GlyphPage({
   const isPicked = usePickedWords();
   const focusOf = useVerseFocus();
   const ribbons = usePageRibbons();
+  // The web design writes the folio in the reader's numerals, like the focus-mode footer.
+  const webDesign = useWebDesign();
+  const formatNumber = useNumerals();
   // The layout only arrives once its page font is loaded, so it can be measured now.
   const measured = useMemo(() => measurePage(lines), [lines]);
   const calligraphy = isGlyphFontReady(layout.font_base_path ?? "", "qcf-bsml");
@@ -371,7 +376,7 @@ export function GlyphPage({
         })}
       </div>
       <div className="qb-print-folio" aria-hidden="true">
-        {page ? toArabicDigits(page) : null}
+        {page ? (webDesign ? formatNumber(page) : toArabicDigits(page)) : null}
       </div>
     </div>
   );

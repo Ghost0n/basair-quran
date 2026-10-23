@@ -25,6 +25,7 @@ import { useSaveAyah } from "@/features/themes/save-ayah-context";
 import { useThemes } from "@/features/themes/themes-store";
 
 import "./reading.css";
+import "./reading.web.css";
 
 import { ReaderBar } from "./components/reader-bar";
 import { useWebDesign } from "@/lib/use-web-design";
@@ -1142,9 +1143,12 @@ export function MushafStage() {
               }}
               onClick={() => setImmersive(false)}
               aria-label={tt("إنهاء وضع التركيز")}
+              title={webDesign ? tt("إنهاء وضع التركيز") : undefined}
             >
-              <span>{tt("صفحة")} {formatNumber(displayPage)}</span>
-              <Icon name="shrink" size={14} />
+              {/* Web: the page's own folio stays the page number in both modes;
+                  the way back is only this icon, in the corner. */}
+              {webDesign ? null : <span>{tt("صفحة")} {formatNumber(displayPage)}</span>}
+              <Icon name="shrink" size={webDesign ? 16 : 14} />
             </button>,
             document.body,
           )

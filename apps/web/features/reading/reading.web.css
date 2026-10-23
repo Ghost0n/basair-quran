@@ -1,0 +1,16 @@
+/* The reader in the web design (desktop web). */
+
+/* Focus mode: the page's folio stays the only page number, as in normal mode,
+   so entering or leaving focus moves nothing. The way back is a quiet icon in
+   the bottom corner on the inline end, clear of the folio. */
+.qb-web .qb-immersive-exit {
+  left: auto;
+  inset-inline-end: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+}
