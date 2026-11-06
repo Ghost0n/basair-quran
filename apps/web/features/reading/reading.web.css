@@ -161,6 +161,38 @@ html.qb-web[dir="rtl"] .qb-display-strip .size input[type="range"]::-webkit-slid
     margin-inline: auto;
   }
 
+  /* Turning by the screen's edges: a tap or a click on a narrow band at each
+     side turns the page (RTL book: the next page lies to the left), over the
+     page's words but under the corner buttons and the dock. Invisible; a
+     mouse shows the turn arrow (the pointer-screen rules above). */
+  html.qb-web:root .qb-mushaf-stage:not(.is-ayah) .qb-turn-zone {
+    display: block;
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 56px);
+    bottom: calc(var(--dock-bottom) + 66px + 8px);
+    z-index: 1;
+    width: clamp(32px, 10vw, 56px);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    opacity: 1;
+    outline: none;
+    transition: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html.qb-web:root .qb-mushaf-stage:not(.is-ayah) .qb-turn-zone.next {
+    left: 0;
+    right: auto;
+  }
+
+  html.qb-web:root .qb-mushaf-stage:not(.is-ayah) .qb-turn-zone.prev {
+    right: 0;
+    left: auto;
+  }
+
   /* Frosted on every phone (the owner's call, 2026-11-07): the page shows
      through only as a blur, so the dock reads as a surface of its own. */
   html.qb-web .qb-reader-bar.qb-reader-dock,

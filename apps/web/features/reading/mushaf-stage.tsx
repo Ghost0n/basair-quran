@@ -775,6 +775,7 @@ export function MushafStage() {
     },
     onTap: () => onPageTap(),
     mouseTaps: compact,
+    mouseDrag: compact,
   });
 
   // The turned-to page is drawn: back to rest, without a glide (before paint,
@@ -1065,6 +1066,7 @@ export function MushafStage() {
         onPointerUp={gestures.onPointerUp}
         onPointerCancel={gestures.onPointerCancel}
         onClick={gestures.onClick}
+        onClickCapture={gestures.onClickCapture}
         onWheel={onSurfaceWheel}
         onPointerOver={onSurfaceHover}
         onPointerLeave={() => setHoverAyahId(null)}
