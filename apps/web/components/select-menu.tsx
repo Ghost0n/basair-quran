@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import "./select-menu.css";
 
 import { Icon } from "./icon";
+import { Sheet, usePhoneSheets } from "./sheet";
 
 export type SelectOption = { value: string; label: string };
 
@@ -46,6 +47,8 @@ export function SelectMenu({
   const [activeIndex, setActiveIndex] = useState(-1);
   const [position, setPosition] = useState<MenuPosition | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // A phone: the options rise in a bottom sheet instead of a dropdown.
+  const asSheet = usePhoneSheets();
   const listRef = useRef<HTMLUListElement | null>(null);
 
   const selected = options.find((option) => option.value === value);
@@ -53,7 +56,7 @@ export function SelectMenu({
 
   // Position the portalled list against the trigger; flip up when low.
   useLayoutEffect(() => {
-    if (!open || !triggerRef.current) return;
+    if (!open || asSheet || !triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom - 12;
     const spaceAbove = rect.top - 12;
@@ -65,11 +68,11 @@ export function SelectMenu({
       maxHeight: Math.min(320, Math.max(140, up ? spaceAbove : spaceBelow)),
       placement: up ? "up" : "down",
     });
-  }, [open]);
+  }, [open, asSheet]);
 
   // Close on outside pointer, ancestor/page scroll, resize, or Escape.
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open || asSheet) return;
     function onPointer(event: MouseEvent) {
       const target = event.target as Node;
       if (triggerRef.current?.contains(target) || listRef.current?.contains(target)) return;
@@ -95,7 +98,7 @@ export function SelectMenu({
       window.removeEventListener("scroll", onScroll, true);
       window.removeEventListener("resize", onResize);
     };
-  }, [open]);
+  }, [open, asSheet]);
 
   useLayoutEffect(() => {
     if (open && activeIndex >= 0) {
@@ -156,8 +159,31 @@ export function SelectMenu({
     }
   }
 
+  const sheet = open && asSheet ? (
+    <Sheet label={ariaLabel} onClose={() => setOpen(false)} className="is-menu">
+      <div role="listbox" aria-label={ariaLabel}>
+        {options.map((option) => {
+          const isSelected = option.value === value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="option"
+              aria-selected={isSelected}
+              className="qb-sheet-opt"
+              onClick={() => choose(option.value)}
+            >
+              <span className="lbl">{option.label}</span>
+              <span className="check">{isSelected ? <Icon name="check" size={18} /> : null}</span>
+            </button>
+          );
+        })}
+      </div>
+    </Sheet>
+  ) : null;
+
   const list =
-    open && position && typeof document !== "undefined"
+    open && !asSheet && position && typeof document !== "undefined"
       ? createPortal(
           <ul
             className="qb-select-list"
@@ -214,6 +240,7 @@ export function SelectMenu({
         <Icon name="chevDown" size={14} />
       </button>
       {list}
+      {sheet}
     </div>
   );
 }

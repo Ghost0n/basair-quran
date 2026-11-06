@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, type RefObject, type CSSProperties } from "react";
 
 import { Icon } from "@/components/icon";
+import { Sheet, usePhoneSheets } from "@/components/sheet";
 import { setShowHighlights, useShowHighlights } from "@/features/themes/ayah-marks";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { swallowNextClick, useExclusiveOverlay } from "@/lib/exclusive-overlay";
@@ -103,8 +104,12 @@ export function DisplayStrip({ onClose, headRef }: { onClose: () => void; headRe
   const phone = useIsMobile();
   const sizeLocked = (phone || web) && mode === "pages";
   useExclusiveOverlay(true, onClose);
+  // A phone: the choices rise in a bottom sheet, which closes itself (Escape,
+  // its backdrop, a swipe down).
+  const asSheet = usePhoneSheets();
 
   useEffect(() => {
+    if (asSheet) return;
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
     }
@@ -121,9 +126,9 @@ export function DisplayStrip({ onClose, headRef }: { onClose: () => void; headRe
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("pointerdown", onPointer, true);
     };
-  }, [onClose, headRef]);
+  }, [onClose, headRef, asSheet]);
 
-  return (
+  const strip = (
     <div className="qb-display-strip" role="group" aria-label={t("العرض")}>
       <div className="modes" role="group" aria-label={t("طريقة القراءة (Shift+M)")}>
         {READER_MODES.map((item) => (
@@ -178,4 +183,12 @@ export function DisplayStrip({ onClose, headRef }: { onClose: () => void; headRe
       </button>
     </div>
   );
+  if (asSheet) {
+    return (
+      <Sheet label={t("العرض")} onClose={onClose} className="is-display">
+        {strip}
+      </Sheet>
+    );
+  }
+  return strip;
 }

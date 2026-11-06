@@ -6,6 +6,7 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 
 import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-mark";
 import { Icon } from "@/components/icon";
+import { Sheet, usePhoneSheets } from "@/components/sheet";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
 import { useAuthSession } from "@/lib/auth-session-context";
 import { clearGuestChoice } from "@/features/auth/identity-flow";
@@ -34,6 +35,8 @@ type AccountMenuProps = {
 export function AccountMenu({ onOpenSettings }: AccountMenuProps) {
   const { user } = useAuthSession();
   const [open, setOpen] = useState(false);
+  // A phone held sideways keeps the rail: the menu rises as a bottom sheet there.
+  const asSheet = usePhoneSheets();
   const [pos, setPos] = useState<{ bottom: number; left: number }>({ bottom: 12, left: 80 });
   const btnRef = useRef<HTMLButtonElement>(null);
 
@@ -91,7 +94,46 @@ export function AccountMenu({ onOpenSettings }: AccountMenuProps) {
         <span className="qb-rail-label" data-fit-watch>{t("حسابي")}</span>
       </button>
 
-      {open ? (
+      {open && asSheet ? (
+        <Sheet label={t("حسابي")} onClose={() => setOpen(false)} className="qb-account-sheet-pop">
+          <div className="qb-account-pop is-sheet" role="menu">
+            <div className="qb-account-head">
+              <UserAvatar motif={motif} size={40} />
+              <div className="who">
+                <div className="name">{user.name || t("مستخدم")}</div>
+                <div className="email">{user.email}</div>
+              </div>
+            </div>
+
+            <div className="qb-account-body">
+              <button
+                type="button"
+                className="qb-account-link"
+                onClick={() => {
+                  setOpen(false);
+                  onOpenSettings();
+                }}
+              >
+                {t("الإعدادات والأجهزة")}
+                <span className="chev">›</span>
+              </button>
+
+              <div className="qb-account-sync">
+                <span className="dot" aria-hidden />
+                {t("محفوظاتك تُزامَن تلقائياً")}
+              </div>
+            </div>
+
+            <div className="qb-account-foot">
+              <button type="button" className="qb-account-signout" onClick={signOut}>
+                <Icon name="logout" size={15} />
+                {t("تسجيل الخروج")}
+              </button>
+            </div>
+          </div>
+        </Sheet>
+      ) : null}
+      {open && !asSheet ? (
         <>
           <div className="qb-account-backdrop" onClick={() => setOpen(false)} aria-hidden />
           <div

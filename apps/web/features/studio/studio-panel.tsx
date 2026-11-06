@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import type { ResearchAgentResponse, TafssirDepth } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { Sheet, usePhoneSheets } from "@/components/sheet";
 import { drawEvidenceThread } from "@/lib/draw-evidence-thread";
 import { MiniRibbon } from "@/components/ribbon";
 import { useWebDesign } from "@/lib/use-web-design";
@@ -91,6 +92,8 @@ export function StudioPanel() {
   // «حوّل إلى بحث» asks first (a banner under the header): the tap creates a
   // document, so a stray touch shouldn't. A failure says so in the banner.
   const [convertAsk, setConvertAsk] = useState<"closed" | "ask" | "failed">("closed");
+  // A phone asks in a bottom sheet instead of a banner under the header.
+  const phoneSheets = usePhoneSheets();
   const [sessionsOpen, setSessionsOpen] = useState(false);
   // Web design: the sessions are a pane laid over the thread, like every AI
   // chat; it never splits the page, and folds away once a question is sent.
@@ -365,7 +368,33 @@ export function StudioPanel() {
         {/* Desk: the thread and the composer beside the sessions; elsewhere the
             wrapper is transparent to the panel's column layout. */}
         <div className="qb-studio-main" style={topSlots ? undefined : { display: "contents" }}>
-        {convertAsk !== "closed" && hasMessages ? (
+        {convertAsk !== "closed" && hasMessages && phoneSheets ? (
+          <Sheet
+            label={convertAsk === "failed" ? t("تعذّر إنشاء البحث. حاول مرة أخرى.") : t("حوّل إلى بحث")}
+            onClose={() => setConvertAsk("closed")}
+            className="is-confirm"
+          >
+            {convertAsk === "failed" ? null : (
+              <p className="qb-sheet-text">{t("حوّل هذه الجلسة إلى بحث قابل للتحرير؟ تبقى الجلسة كما هي.")}</p>
+            )}
+            <div className="qb-sheet-actions">
+              <button
+                type="button"
+                className="primary"
+                disabled={converting}
+                onClick={() => {
+                  void convertToDocument();
+                }}
+              >
+                {t("حوّل إلى بحث")}
+              </button>
+              <button type="button" className="cancel" onClick={() => setConvertAsk("closed")}>
+                {t("إلغاء")}
+              </button>
+            </div>
+          </Sheet>
+        ) : null}
+        {convertAsk !== "closed" && hasMessages && !phoneSheets ? (
           <div className="qb-studio-confirm" role={convertAsk === "failed" ? "alert" : "status"}>
             <p>
               {convertAsk === "failed"
