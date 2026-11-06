@@ -83,7 +83,7 @@ export function NavigateSheet({
   inline?: boolean;
   /** The tab to open on; by default the saved pages when there are some, else the surahs. */
   initialTab?: NavigateTab;
-  /** The web top bar's slots, for the Index page: the field goes up there and the heading is dropped. */
+  /** The web top bar's slots, for the Index and Saved pages: the tabs go up there and the heading is dropped. */
   topSlots?: TopBarSlots | null;
 }) {
   const formatNumber = useNumerals();
@@ -177,6 +177,23 @@ export function NavigateSheet({
     </div>
   );
 
+  const tabStrip = (
+    <div className="tabs qb-fit-choice" data-autofit="2" suppressHydrationWarning role="tablist" aria-label={t("طريقة التنقل")}>
+      {TABS.map((item) => (
+        <button
+          key={item.value}
+          type="button"
+          role="tab"
+          aria-selected={tab === item.value}
+          className={tab === item.value ? "active" : ""}
+          onClick={() => setTab(item.value)}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div
       className={`qb-rsheet qb-nav-sheet${inline ? " is-inline" : ""}`}
@@ -187,8 +204,9 @@ export function NavigateSheet({
       {inline ? null : <div className="backdrop" onClick={onClose} aria-hidden />}
       <div className="panel" ref={panelRef} tabIndex={-1}>
         <div className="grip" aria-hidden />
-        {/* As the Index page under the web top bar, the rail names the page and
-            the field goes up into the bar (shell/top-bar-slots.ts). */}
+        {/* As a page under the web top bar (the Index, Saved), the rail names the
+            page and its tabs — saved pages, surahs, juz… — go up into the bar
+            (shell/top-bar-slots.ts). */}
         {topSlots ? null : (
           <div className="head">
             <h2>{inline ? t("الفهرس") : t("انتقل")}</h2>
@@ -200,7 +218,7 @@ export function NavigateSheet({
           </div>
         )}
 
-        {topSlots ? createPortal(field, topSlots.start) : field}
+        {field}
 
         {command ? (
           <button type="button" className="command" onClick={runCommand}>
@@ -209,20 +227,7 @@ export function NavigateSheet({
           </button>
         ) : null}
 
-        <div className="tabs qb-fit-choice" data-autofit="2" suppressHydrationWarning role="tablist" aria-label={t("طريقة التنقل")}>
-          {TABS.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              aria-selected={tab === item.value}
-              className={tab === item.value ? "active" : ""}
-              onClick={() => setTab(item.value)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        {topSlots ? createPortal(tabStrip, topSlots.start) : tabStrip}
 
         <div className="body">
           {/* «المحفوظة»: the pages bookmarked in the reader, latest first. */}

@@ -18,7 +18,7 @@ import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { divisionOf, divisionRange } from "@/lib/quran-ranges";
 
-import { NavigateSheet, type NavigateTarget } from "./components/navigate-sheet";
+import { NavigateSheet, type NavigateTab, type NavigateTarget } from "./components/navigate-sheet";
 import { useMushaf } from "./mushaf-context";
 import { useSavedPages } from "./use-saved-pages";
 
@@ -36,6 +36,10 @@ export function SavedPagesScreen() {
   const topSlots = useTopBarSlots();
   const pages: SavedPageEntry[] = [...(preferences.saved_pages ?? [])].sort((a, b) => (b.saved_at ?? 0) - (a.saved_at ?? 0));
 
+  // Web design, desktop: Saved is the Index opened on its saved pages, so the
+  // top bar's tabs move between the bookmarks, the surahs, the juz…
+  if (topSlots) return <IndexScreen initialTab="saved" />;
+
   function open(entry: SavedPageEntry) {
     void mushaf.loadPage(entry.mushaf_id || DEFAULT_MUSHAF_ID, entry.page, { persist: true });
     setMode("reading");
@@ -43,17 +47,11 @@ export function SavedPagesScreen() {
 
   return (
     <div className="qb-world-page">
-      {/* Web design, desktop: the rail names the page and the top bar carries the
-          reader's tools, so no heading here. */}
-      {topSlots ? null : (
-        <>
-          <span className="eyebrow">
-            <Icon name="book" size={14} />
-            {t("القراءة")}
-          </span>
-          <h2>{t("الصفحات المحفوظة")}</h2>
-        </>
-      )}
+      <span className="eyebrow">
+        <Icon name="book" size={14} />
+        {t("القراءة")}
+      </span>
+      <h2>{t("الصفحات المحفوظة")}</h2>
       {pages.length === 0 ? (
         <p className="lead">{t("احفظ صفحة من القراءة (علامة الحفظ في شريط القارئ) لتجدها هنا.")}</p>
       ) : (
@@ -86,13 +84,13 @@ export function SavedPagesScreen() {
 }
 
 /** «الفهرس» (the reading world): surahs, juz, hizb and pages — the reader's «انتقل» as a page. */
-export function IndexScreen() {
+export function IndexScreen({ initialTab }: { initialTab?: NavigateTab } = {}) {
   const mushaf = useMushaf();
   const { state } = useWorkspace();
   const { setMode } = useShellMode();
   const mushafId = state.selectedMushaf;
   const [surahs, setSurahs] = useState<SurahListItem[]>([]);
-  // Web design, desktop: the index's field goes up into the top bar.
+  // Web design, desktop: the index's tabs go up into the top bar.
   const topSlots = useTopBarSlots();
 
   useEffect(() => {
@@ -130,6 +128,7 @@ export function IndexScreen() {
         currentHizb={first ? divisionOf("hizb", { surah: first.surah_id, ayah: first.ayah }) : null}
         onNavigate={navigate}
         onClose={() => undefined}
+        initialTab={initialTab}
         topSlots={topSlots}
       />
     </div>

@@ -259,3 +259,35 @@ html.qb-web.qb-immersive .qb-topbar-web { display: none; }
 /* Community: its segmented tabs keep their own width (the share button closes the row). */
 .qb-web .qb-topbar-slot > .qb-community-tabs { flex: 0 1 auto; }
 .qb-web .qb-topbar-page:has(> .qb-topbar-slot > .qb-community-tabs) { justify-content: space-between; }
+/* The Index and Saved (navigate-sheet.tsx): its pages — saved, surahs, juz,
+   hizb, page — as a segmented row in the bar. */
+.qb-web .qb-topbar-slot > .tabs {
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.qb-web .qb-topbar-slot > .tabs button {
+  flex: none;
+  height: 32px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.qb-web .qb-topbar-slot > .tabs button:hover { color: var(--gold-text); }
+.qb-web .qb-topbar-slot > .tabs button.active {
+  background: var(--gold-soft);
+  color: var(--gold-text);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--gold-line);
+}
