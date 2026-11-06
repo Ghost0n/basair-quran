@@ -132,3 +132,51 @@ html.qb-web[dir="rtl"] .qb-display-strip .size input[type="range"]::-webkit-slid
 }
 .qb-web .qb-display-strip .size input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 1px var(--gold-line), 0 0 0 6px var(--gold-soft); }
 .qb-web .qb-display-strip .size input[type="range"]:disabled { opacity: 0.45; cursor: default; }
+
+/* ---------- Phones: the reader's own chrome in the web design ---------- */
+/* The dock, the back button and the bookmark (laid out by phone-ergonomics.css,
+   untouched here): a flat surface with a token hairline drawn as an inset
+   shadow, so no box changes size and the page's fit stays as stabilized.
+   iPhone keeps them translucent, like its tab bar (mobile-tab-bar.web.css). */
+@media (max-width: 768px) {
+  html.qb-web .qb-reader-bar.qb-reader-dock,
+  html.qb-web .qb-reader-back,
+  html.qb-web .qb-reader-bookmark {
+    background: var(--bg-elev-1);
+    box-shadow: inset 0 0 0 1px var(--border-strong), var(--shadow-1);
+  }
+
+  html.qb-web .qb-reader-bar.qb-reader-dock::after,
+  html.qb-web .qb-reader-back::after,
+  html.qb-web .qb-reader-bookmark::after {
+    content: none;
+  }
+
+  html.qb-web .qb-reader-bar.qb-reader-dock .act {
+    color: var(--fg-2);
+  }
+
+  html.qb-web .qb-reader-bar.qb-reader-dock .act.on,
+  html.qb-web .qb-reader-bar.qb-reader-dock .act.is-live,
+  html.qb-web .qb-reader-bar.qb-reader-dock .surah-btn,
+  html.qb-web .qb-reader-bookmark.on {
+    color: var(--gold-text);
+  }
+
+  html.qb-web.qb-ios .qb-reader-bar.qb-reader-dock,
+  html.qb-web.qb-ios .qb-reader-back,
+  html.qb-web.qb-ios .qb-reader-bookmark {
+    background: color-mix(in srgb, var(--bg-elev-1) 58%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fg-1) 16%, transparent),
+      inset 0 0 0 1px color-mix(in srgb, var(--fg-1) 10%, transparent), var(--shadow-2);
+  }
+
+  /* The web design turns blur off (web-design.css); the iPhone reader chrome
+     is glass like the tab bar it replaces while reading. */
+  html.qb-web.qb-ios body .qb-reader-bar.qb-reader-dock,
+  html.qb-web.qb-ios body .qb-reader-back,
+  html.qb-web.qb-ios body .qb-reader-bookmark {
+    -webkit-backdrop-filter: blur(24px) saturate(1.6) !important;
+    backdrop-filter: blur(24px) saturate(1.6) !important;
+  }
+}
