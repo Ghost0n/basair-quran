@@ -12,6 +12,7 @@ import { APP_MODE } from "@/lib/app-mode/config";
 import { LOCALE_INIT_SCRIPT } from "@/lib/i18n/init-script";
 import { I18nProvider } from "@/lib/i18n/provider";
 import { SITE_URL } from "@/lib/site";
+import { PLATFORM_INIT_SCRIPT } from "@/lib/platform-class";
 import { WEB_DESIGN_INIT_SCRIPT } from "@/lib/web-design";
 
 import { t } from "@/lib/i18n";
@@ -93,6 +94,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script dangerouslySetInnerHTML={{ __html: LOCALE_INIT_SCRIPT }} />
         {/* The web design (desktop web only): <html class="qb-web"> before first paint. */}
         <script dangerouslySetInnerHTML={{ __html: WEB_DESIGN_INIT_SCRIPT }} />
+        {/* The platform touches: <html class="qb-ios"> or "qb-android" before first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: PLATFORM_INIT_SCRIPT }} />
       </head>
       <body suppressHydrationWarning>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
