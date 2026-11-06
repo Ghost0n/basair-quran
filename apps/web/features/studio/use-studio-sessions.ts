@@ -24,6 +24,8 @@ import {
 
 import { t } from "@/lib/i18n";
 
+import { dropExtraBlanks, placeNewSession } from "./session-reuse";
+
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 export type StudioMode = "strict" | "tafssir";
@@ -131,9 +133,11 @@ export function useStudioSessions() {
   useEffect(() => {
     const persisted = loadPersistedSessions();
     if (persisted) {
-      setSessions(persisted.sessions);
-      const validActive = persisted.sessions.some((session) => session.id === persisted.activeId);
-      setActiveId(validActive ? persisted.activeId : persisted.sessions[0]?.id ?? "");
+      // Tabs saved before the one-blank-session rule may hold several blank ones.
+      const restored = dropExtraBlanks(persisted.sessions, persisted.activeId);
+      setSessions(restored);
+      const validActive = restored.some((session) => session.id === persisted.activeId);
+      setActiveId(validActive ? persisted.activeId : restored[0]?.id ?? "");
     }
     hydratedRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -149,6 +153,22 @@ export function useStudioSessions() {
       /* sessionStorage unavailable/full — tabs just won't survive reload */
     }
   }, [sessions, activeId]);
+
+  // The latest tabs, for the actions that place a new session synchronously.
+  const sessionsRef = useRef(sessions);
+  sessionsRef.current = sessions;
+  const activeIdRef = useRef(activeId);
+  activeIdRef.current = activeId;
+
+  // A new session never doubles a blank one: that one is reused (session-reuse.ts).
+  const placeSession = useCallback((fresh: StudioSession): StudioSession => {
+    const placed = placeNewSession(sessionsRef.current, fresh, activeIdRef.current);
+    sessionsRef.current = placed.sessions;
+    activeIdRef.current = placed.session.id;
+    setSessions(placed.sessions);
+    setActiveId(placed.session.id);
+    return placed.session;
+  }, []);
 
   const active = useMemo(
     () => sessions.find((session) => session.id === activeId) ?? sessions[0],
@@ -166,10 +186,8 @@ export function useStudioSessions() {
   }, []);
 
   const newSession = useCallback(() => {
-    const session = createSession(researchDefaultsRef.current);
-    setSessions((current) => [...current, session]);
-    setActiveId(session.id);
-  }, []);
+    placeSession(createSession(researchDefaultsRef.current));
+  }, [placeSession]);
 
   const closeSession = useCallback(
     (id: string) => {
@@ -300,7 +318,7 @@ export function useStudioSessions() {
   );
 
   // A hand-off ask (command bar / Home) opens its own fresh session so it can't
-  // inherit an existing thread's mode or context. `submitInto` updates by id, so
+  // inherit an existing thread's mode or context (a blank one is reused, reset). `submitInto` updates by id, so
   // submitting before the state flush is safe.
   const askInNewSession = useCallback(
     async (
@@ -309,17 +327,17 @@ export function useStudioSessions() {
       options: { mode?: StudioMode; focus?: ResearchFocusAyah | null; focusLabel?: string } = {},
     ) => {
       if (!(await ensureAuth())) return;
-      const session = createSession({
-        ...researchDefaultsRef.current,
-        ...(options.mode ? { mode: allowedStudyMode(options.mode) } : {}),
-        focus: options.focus ?? null,
-        focusLabel: options.focusLabel,
-      });
-      setSessions((current) => [...current, session]);
-      setActiveId(session.id);
+      const session = placeSession(
+        createSession({
+          ...researchDefaultsRef.current,
+          ...(options.mode ? { mode: allowedStudyMode(options.mode) } : {}),
+          focus: options.focus ?? null,
+          focusLabel: options.focusLabel,
+        }),
+      );
       return submitInto(session, content, mushaf);
     },
-    [submitInto, ensureAuth],
+    [submitInto, ensureAuth, placeSession],
   );
 
   // Re-open a saved session (from Home / the history list) as a live tab: fetch
