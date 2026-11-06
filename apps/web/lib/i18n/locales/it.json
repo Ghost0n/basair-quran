@@ -1149,5 +1149,14 @@
  "نوع السورة": "Tipo di sura",
  "وسّع اللوحة": "Allarga il pannello",
  "المس سورة لتعرض مواضعها فيها": "Tocca una sura per vederne le occorrenze",
- "اعرض كل السور": "Mostra tutte le sure"
+ "اعرض كل السور": "Mostra tutte le sure",
+ "أجوبة من نص القرآن وحده.": "Risposte dal solo testo del Corano.",
+ "الأعمق أدقّ وأبطأ.": "Più profondo è più accurato e più lento.",
+ "العمق": "Profondità",
+ "القارئ الذي تبدأ به التلاوة على كل أجهزتك.": "Il recitatore con cui inizia la recitazione, su tutti i tuoi dispositivi.",
+ "المنهج": "Approccio",
+ "في وضع «آية آية»؛ تبقى الصفحات بحجمها المطبوع.": "In modalità versetto per versetto; le pagine mantengono la dimensione stampata.",
+ "قراءة تستعين بالتفاسير، مع التنبيه عليها.": "Una lettura che attinge ai tafsir, dichiarandolo.",
+ "كيف تبدأ كل دراسة جديدة؛ تغيّرها لكل سؤال من صفحة الدراسة.": "Come inizia ogni nuovo studio; modificabile per ogni domanda nella pagina di studio.",
+ "لوّن آيات مواضيعك في المصحف.": "Colora i versetti dei tuoi temi nel Mushaf."
 }

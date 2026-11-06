@@ -28,3 +28,125 @@
 .qb-web .qb-setting-seg { background: var(--bg-elev-2); box-shadow: none; border: 0; border-radius: var(--r-ctl); }
 .qb-web .qb-setting-select { border-radius: var(--r-ctl); border: 1px solid var(--border-strong); background: var(--bg-elev-1); box-shadow: none; }
 .qb-web .qb-translations-card .pill { border-radius: 999px; }
+
+/* Desktop (settings-web.tsx): the index of the sections beside the page, on
+   the reading-start side next to the rail, following the scroll; the page is
+   one column of rows — the setting and what it does, then its control. */
+.qb-web .qb-settings.is-web {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 780px);
+  justify-content: center;
+  align-items: start;
+  gap: clamp(32px, 5vw, 88px);
+  padding: 0 clamp(28px, 4vw, 72px) 30vh;
+  scroll-padding-top: 28px;
+}
+.qb-web .qb-settings-index {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 40px;
+}
+.qb-web .qb-settings-index button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 42px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--r-ctl);
+  background: none;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 14.5px;
+  text-align: start;
+  cursor: pointer;
+  transition: background-color var(--motion-dur-fast, 140ms), color var(--motion-dur-fast, 140ms);
+}
+.qb-web .qb-settings-index button .qb-icon { color: var(--fg-3); flex: none; }
+.qb-web .qb-settings-index button:hover { background: var(--bg-elev-1); color: var(--fg-1); }
+.qb-web .qb-settings-index button.active { background: var(--gold-soft); color: var(--gold-text); font-weight: 700; }
+.qb-web .qb-settings-index button.active .qb-icon { color: var(--gold-text); }
+.qb-web .qb-settings-index button:focus-visible { outline: 2px solid var(--gold-line); outline-offset: 1px; }
+
+.qb-web .qb-settings.is-web .qb-settings-grid { max-width: none; padding-top: 24px; }
+.qb-web .qb-settings.is-web .qb-settings-sec:empty { display: none; }
+.qb-web .qb-settings.is-web .qb-settings-sec:first-child .qb-setting-card { border-top: 0; }
+.qb-web .qb-settings.is-web .qb-setting-card { padding: 30px 0 22px; }
+.qb-web .qb-settings.is-web .qb-setting-card h3 { margin: 0 0 4px; }
+.qb-web .qb-settings.is-web .qb-setting-card .card-sub { margin: 0 0 8px; font-size: 13.5px; }
+
+.qb-web .qb-setting-row.is-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 32px;
+  padding: 16px 0;
+  margin: 0;
+}
+.qb-web .qb-setting-row.is-split .txt { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.qb-web .qb-setting-row.is-split .name { font-size: 15px; font-weight: 600; color: var(--fg-1); }
+.qb-web .qb-setting-row.is-split .hint { font-size: 13px; line-height: 1.6; color: var(--fg-3); }
+.qb-web .qb-setting-row.is-split .ctl { display: flex; align-items: center; justify-content: flex-end; min-width: 0; }
+.qb-web .qb-setting-row.is-split .ctl .value { font-size: 14px; color: var(--fg-2); }
+.qb-web .qb-setting-row.is-split .qb-setting-menu { min-width: 240px; }
+
+/* Segmented choice, sized to its options. */
+.qb-web .qb-seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--bg-elev-2);
+}
+.qb-web .qb-seg button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 13.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.qb-web .qb-seg button:hover { color: var(--fg-1); }
+.qb-web .qb-seg button.active { background: var(--gold-soft); border-color: var(--gold-line); color: var(--gold-text); font-weight: 700; }
+
+/* − value + */
+.qb-web .qb-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--bg-elev-2);
+}
+.qb-web .qb-stepper button {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--fg-2);
+  cursor: pointer;
+}
+.qb-web .qb-stepper button:hover:not(:disabled) { background: var(--gold-soft); color: var(--gold-text); }
+.qb-web .qb-stepper button:disabled { opacity: 0.35; cursor: default; }
+.qb-web .qb-stepper .value { min-width: 3ch; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* A lone switch (the rows of Home have theirs in the row). */
+.qb-web .qb-switch-btn { padding: 0; border: 0; background: none; cursor: pointer; border-radius: 14px; }
+.qb-web .qb-switch-btn[aria-checked="true"] .qb-switch { background: var(--gold-500); }
+.qb-web .qb-switch-btn[aria-checked="true"] .qb-switch::after { transform: translateX(18px); }
+html.qb-web[dir="rtl"] .qb-switch-btn[aria-checked="true"] .qb-switch::after { transform: translateX(-18px); }
+.qb-web .qb-switch-btn:focus-visible { outline: 2px solid var(--gold-line); outline-offset: 2px; }
