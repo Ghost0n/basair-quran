@@ -169,13 +169,17 @@
   background: var(--fg-3);
   box-shadow: none;
 }
-.qb-web :is(.qb-switch-btn, .qb-switch-row)[aria-checked="true"] .qb-switch {
+.qb-web .qb-switch-btn[aria-checked="true"] .qb-switch,
+.qb-web .qb-switch-row[aria-checked="true"] .qb-switch {
   background: var(--gold-400);
   box-shadow: none;
 }
-.qb-web :is(.qb-switch-btn, .qb-switch-row)[aria-checked="true"] .qb-switch::after { background: var(--bg); transform: translateX(20px); }
-html.qb-web[dir="rtl"] :is(.qb-switch-btn, .qb-switch-row)[aria-checked="true"] .qb-switch::after { transform: translateX(-20px); }
-.qb-web :is(.qb-switch-row, .qb-switch-btn)[aria-checked="false"]:hover .qb-switch { box-shadow: inset 0 0 0 1px var(--gold-line); }
+.qb-web .qb-switch-btn[aria-checked="true"] .qb-switch::after,
+.qb-web .qb-switch-row[aria-checked="true"] .qb-switch::after { background: var(--bg); transform: translateX(20px); }
+html.qb-web[dir="rtl"] .qb-switch-btn[aria-checked="true"] .qb-switch::after,
+html.qb-web[dir="rtl"] .qb-switch-row[aria-checked="true"] .qb-switch::after { transform: translateX(-20px); }
+.qb-web .qb-switch-row[aria-checked="false"]:hover .qb-switch,
+.qb-web .qb-switch-btn[aria-checked="false"]:hover .qb-switch { box-shadow: inset 0 0 0 1px var(--gold-line); }
 .qb-web .qb-switch-btn:focus-visible { outline: 2px solid var(--gold-line); outline-offset: 2px; }
 
 /* The settings' search in the top bar, and what it hides. */
