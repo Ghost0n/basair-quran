@@ -70,13 +70,12 @@
   flex-basis: 70px;
   justify-content: space-between;
   padding-inline: 28px;
-  /* A solid band with one hairline under it: the panels' dividers and the
-     reading progress meet a crisp edge (a fade smeared over the lighter panel). */
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
+  /* Home's soft fade on every page: the bar dissolves into the frame's glow
+     instead of ending on a line. Over a side page its zone is the panel's own
+     surface (below), so the page and its tools stay one piece. */
+  background: linear-gradient(180deg, var(--bg) 62%, transparent);
+  border-bottom: 0;
 }
-/* Home keeps the soft fade into its hero. */
-.qb-web .qb-topbar-web.is-home { background: linear-gradient(180deg, var(--bg) 62%, transparent); border-bottom: 0; }
 .qb-web .qb-topbar-web .qb-cmd {
   flex: 0 1 440px;
   margin: 0;

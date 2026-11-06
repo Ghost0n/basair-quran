@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import type { NumeralScript, ResearchDefaults } from "@q-basair/shared";
 
@@ -10,6 +11,7 @@ import { DownloadsSettings } from "@/features/app-mode/downloads-settings";
 import { AccountSettings } from "@/features/identity/account-settings";
 import { READER_MODES, resolveReaderMode } from "@/features/reading/reader-modes";
 import { useRecitation } from "@/features/recitation/recitation-context";
+import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { setShowHighlights, useShowHighlights } from "@/features/themes/ayah-marks";
 import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
@@ -39,6 +41,14 @@ const DEPTHS: { value: ResearchDefaults["depth"]; label: () => string }[] = [
 ];
 
 const FONT_MIN = 18;
+
+/** Arabic without its marks (and tatweel), lower-cased: what a search compares. */
+function fold(text: string): string {
+  return text.replace(/[ً-ٰٟـ]/g, "").toLowerCase().trim();
+}
+
+/** What a search can show or hide inside a section (Home's switches, a translation…). */
+const ROWS = ".qb-setting-row, .qb-switch-list > li, .qb-translations-card .options > li";
 const FONT_MAX = 48;
 
 /** The settings' sections, in the order of the page and of its index. */
@@ -119,6 +129,10 @@ export function SettingsWeb() {
   const pageRef = useRef<HTMLDivElement>(null);
   const [present, setPresent] = useState<string[]>(SECTIONS.map((section) => section.id));
   const [active, setActive] = useState(SECTIONS[0].id);
+  // The top bar carries a search over every setting (the rail already names the page).
+  const topSlots = useTopBarSlots();
+  const [query, setQuery] = useState("");
+  const [matching, setMatching] = useState<string[] | null>(null);
 
   // A section with nothing to show (downloads on the web, the account without
   // sign-in) leaves the index.
@@ -150,6 +164,41 @@ export function SettingsWeb() {
     return () => seen.disconnect();
   }, []);
 
+  // The search keeps the rows that match (or a whole section when its name
+  // does) and hides the rest; the index lists only the sections left.
+  useLayoutEffect(() => {
+    const page = pageRef.current;
+    if (!page) return;
+    const needle = fold(query);
+    const apply = () => {
+      const found: string[] = [];
+      page.querySelectorAll<HTMLElement>("[data-settings-section]").forEach((section) => {
+        const id = section.id.replace("settings-", "");
+        const rows = Array.from(section.querySelectorAll<HTMLElement>(ROWS));
+        const titled = needle !== "" && fold(section.querySelector("h2, h3")?.textContent ?? "").includes(needle);
+        let any = titled;
+        for (const row of rows) {
+          const keep = !needle || titled || fold(row.textContent ?? "").includes(needle);
+          row.toggleAttribute("data-filtered-out", !keep);
+          if (keep && needle) any = true;
+        }
+        section.toggleAttribute("data-filtered-out", needle !== "" && !any);
+        if (!needle || any) found.push(id);
+      });
+      setMatching(needle ? found : null);
+    };
+    apply();
+    if (!needle) return;
+    // Rows that arrive later (the translations' catalogue) are filtered too.
+    const changes = new MutationObserver(() => {
+      changes.disconnect();
+      apply();
+      changes.observe(page, { childList: true, subtree: true });
+    });
+    changes.observe(page, { childList: true, subtree: true });
+    return () => changes.disconnect();
+  }, [query]);
+
   function jump(id: string) {
     setActive(id);
     pageRef.current?.querySelector(`#settings-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -168,8 +217,32 @@ export function SettingsWeb() {
 
   return (
     <div className="qb-settings is-web" ref={pageRef}>
+      {topSlots
+        ? createPortal(
+            <div className="field qb-settings-search">
+              <Icon name="search" size={16} />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") setQuery("");
+                  if (event.key === "Enter" && matching?.[0]) jump(matching[0]);
+                }}
+                placeholder={t("ابحث في الإعدادات…")}
+                aria-label={t("ابحث في الإعدادات…")}
+              />
+              {query ? (
+                <button type="button" className="clear" onClick={() => setQuery("")} aria-label={t("مسح التصفية")} title={t("مسح التصفية")}>
+                  <Icon name="close" size={14} />
+                </button>
+              ) : null}
+            </div>,
+            topSlots.start,
+          )
+        : null}
       <nav className="qb-settings-index" aria-label={t("الإعدادات")}>
-        {SECTIONS.filter((item) => present.includes(item.id)).map((item) => (
+        {SECTIONS.filter((item) => present.includes(item.id) && (!matching || matching.includes(item.id))).map((item) => (
           <button
             key={item.id}
             type="button"
@@ -184,6 +257,7 @@ export function SettingsWeb() {
       </nav>
 
       <div className="qb-settings-grid">
+        {matching && matching.length === 0 ? <p className="qb-settings-empty">{t("لا نتائج مطابقة.")}</p> : null}
         {section(
           "appearance",
           <section className="qb-setting-card">

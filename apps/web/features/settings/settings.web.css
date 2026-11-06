@@ -73,7 +73,9 @@
 
 .qb-web .qb-settings.is-web .qb-settings-grid { max-width: none; padding-top: 24px; }
 .qb-web .qb-settings.is-web .qb-settings-sec:empty { display: none; }
-.qb-web .qb-settings.is-web .qb-settings-sec:first-child .qb-setting-card { border-top: 0; }
+/* A divider only between two sections shown (the search hides some). */
+.qb-web .qb-settings.is-web .qb-setting-card { border-top: 0; }
+.qb-web .qb-settings.is-web .qb-settings-sec:not([data-filtered-out]):not(:empty) ~ .qb-settings-sec .qb-setting-card { border-top: 1px solid var(--border-strong); }
 .qb-web .qb-settings.is-web .qb-setting-card { padding: 30px 0 22px; }
 .qb-web .qb-settings.is-web .qb-setting-card h3 { margin: 0 0 4px; }
 .qb-web .qb-settings.is-web .qb-setting-card .card-sub { margin: 0 0 8px; font-size: 13.5px; }
@@ -150,3 +152,24 @@
 .qb-web .qb-switch-btn[aria-checked="true"] .qb-switch::after { transform: translateX(18px); }
 html.qb-web[dir="rtl"] .qb-switch-btn[aria-checked="true"] .qb-switch::after { transform: translateX(-18px); }
 .qb-web .qb-switch-btn:focus-visible { outline: 2px solid var(--gold-line); outline-offset: 2px; }
+
+/* The settings' search in the top bar, and what it hides. */
+.qb-web .qb-topbar-slot > .qb-settings-search { flex: 0 1 520px; }
+.qb-web .qb-settings-search .clear {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+.qb-web .qb-settings-search .clear:hover { color: var(--gold-text); background: var(--gold-soft); }
+.qb-web .qb-settings-search input::-webkit-search-cancel-button { display: none; }
+.qb-web .qb-settings.is-web [data-filtered-out] { display: none !important; }
+.qb-web .qb-settings-empty { margin: 40px 0 0; font-size: 15px; color: var(--fg-3); }
+.qb-web .qb-topbar-slot:has(> .qb-settings-search) { justify-content: center; }
