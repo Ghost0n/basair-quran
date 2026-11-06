@@ -442,7 +442,8 @@ export function StudioPanel() {
           </div>
         ) : null}
 
-        {studio.error ? <div className="qb-studio-error">{studio.error}</div> : null}
+        {/* Desk: the error sits on the question field instead (below). */}
+        {studio.error && !topSlots ? <div className="qb-studio-error">{studio.error}</div> : null}
 
         {active?.focus ? (
           <div className="qb-studio-focus" role="note">
@@ -488,6 +489,12 @@ export function StudioPanel() {
         )}
 
         <div className="qb-composer">
+          {studio.error && topSlots ? (
+            <div className="qb-studio-error is-docked" role="alert">
+              <Icon name="alert" size={15} />
+              <span>{studio.error}</span>
+            </div>
+          ) : null}
           <div className="input-wrap">
             <textarea
               ref={textareaRef}

@@ -295,3 +295,18 @@ html.qb-web .qb-studio-side.open {
 }
 
 .qb-web .qb-studio-side-label:first-child { margin-top: 4px; }
+
+/* A failed answer: said right on top of the question field, where the eye
+   already is — the column's width, never clipped by the bar's fade. */
+.qb-web .qb-studio.is-desk .qb-composer .qb-studio-error.is-docked {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 auto 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.qb-web .qb-studio.is-desk .qb-composer .qb-studio-error.is-docked .qb-icon { flex: none; margin-top: 4px; color: var(--copper); }
