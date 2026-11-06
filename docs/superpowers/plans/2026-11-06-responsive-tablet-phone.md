@@ -376,6 +376,20 @@ Swift 5 for the iOS plugin.
   commit body "non compilé (pas de Mac)", and record the Xcode steps in the plan's notes below.
 - [ ] **Step 3:** Commit `feat: [Q-Basair-55] - Barre d'onglets native iOS (Liquid Glass) dans l'app`.
 
+**Notes for the Mac build (written on Windows, not compiled yet):**
+
+1. From `apps/web`, build the static export (`next build` with the app-mode export), then from `apps/mobile` run
+   `npx cap sync ios` (it copies `apps/web/out` and resolves the Swift packages, including haptics and app).
+2. Open `apps/mobile/ios/App/App.xcodeproj` in Xcode 26. `NativeTabBarPlugin.swift` and `MainViewController.swift`
+   are already in the App target's sources; `SceneDelegate` and `Main.storyboard` start `MainViewController`.
+3. Build for an iPhone simulator on iOS 26 and check:
+   - the bar is Apple's (Liquid Glass), the active item is gold, and the web bar is gone;
+   - a tap changes page with a light haptic, and a second tap on the current tab scrolls it to the top;
+   - the bar hides in the Mushaf, in landscape and on iPad, and while the keyboard is up;
+   - switching the language or the light theme redraws the labels and the gold.
+4. If the bar does not appear, check in the Safari Web Inspector that `Capacitor.isPluginAvailable("NativeTabBar")`
+   is true; it is false when `MainViewController` is not the root view controller.
+
 ### Task 11: The continuous sweep and the audit
 
 **Files:**

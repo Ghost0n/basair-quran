@@ -102,3 +102,9 @@
     background: none;
   }
 }
+
+/* The iPhone app draws Apple's own tab bar over the web view
+   (lib/native-tab-bar.ts); the web-drawn one steps aside. */
+html.qb-web.qb-native-tabbar .qb-tabbar {
+  display: none !important;
+}

@@ -8,6 +8,8 @@ import { useCallback, useEffect, useLayoutEffect, useRef, type PointerEvent as R
 import { BrandMark } from "@/components/brand-mark";
 import { Icon } from "@/components/icon";
 import { haptic } from "@/lib/haptics";
+import { useIsMobile } from "@/lib/use-is-mobile";
+import { useNativeTabBar } from "@/lib/native-tab-bar";
 
 import { useShellMode } from "./mode-context";
 import { PHONE_TABS, useOpenDestination } from "./worlds";
@@ -32,6 +34,9 @@ import { t } from "@/lib/i18n";
  * It also tracks the on-screen keyboard (`html[data-kb]`, `--qb-kb`): the bar
  * steps aside while a field is typed into, and the bottom search bar rides on
  * top of the keyboard.
+ *
+ * In the iPhone app the bar is Apple's own (lib/native-tab-bar.ts): this
+ * component drives it, and its web bar is hidden (`html.qb-native-tabbar`).
  */
 export function MobileTabBar() {
   const { mode } = useShellMode();
@@ -42,6 +47,20 @@ export function MobileTabBar() {
     openDestination(item);
   };
   useKeyboardInset();
+  const narrow = useIsMobile(768);
+  const activeId = PHONE_TABS.find((item) => item.owns.includes(mode))?.id ?? "";
+  useNativeTabBar({
+    tabs: PHONE_TABS.map((item) => ({ id: item.id, title: item.label, symbol: NATIVE_SYMBOLS[item.id] ?? "circle" })),
+    active: activeId,
+    // The Mushaf has its own controls; the side menu replaces the bar when wider.
+    hidden: mode === "reading" || !narrow,
+    onSelect: (id) => {
+      const item = PHONE_TABS.find((tab) => tab.id === id);
+      if (!item) return;
+      if (item.owns.includes(mode) && item.mode === mode) scrollCanvasToTop();
+      else open(item);
+    },
+  });
   const navRef = useRef<HTMLElement | null>(null);
   const lensRef = useRef<HTMLSpanElement | null>(null);
   const activeIndex = PHONE_TABS.findIndex((item) => item.owns.includes(mode));
@@ -161,6 +180,15 @@ export function MobileTabBar() {
     </nav>
   );
 }
+
+/** The native iPhone bar's SF Symbols, by tab id. */
+const NATIVE_SYMBOLS: Record<string, string> = {
+  home: "house",
+  reader: "book",
+  search: "magnifyingglass",
+  study: "sparkles",
+  notebook: "note.text",
+};
 
 /** Every scrolled region of the page goes back to its top. */
 function scrollCanvasToTop() {
