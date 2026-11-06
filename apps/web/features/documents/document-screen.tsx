@@ -4,6 +4,7 @@ import "./documents.css";
 import "./documents.web.css";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
@@ -24,6 +25,8 @@ import { API_BASE_URL } from "@/lib/config";
 import { useNumerals } from "@/lib/preferences-context";
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { useBackToNotebook, useShellMode } from "@/features/shell/mode-context";
+import { useTopBarSlots } from "@/features/shell/top-bar-slots";
+import { useWebDesign } from "@/lib/use-web-design";
 import { TafssirDisclaimer } from "@/features/studio/tafssir-disclaimer";
 
 import { AyahPicker } from "./ayah-picker";
@@ -96,6 +99,8 @@ export function DocumentScreen() {
   const params = useSearchParams();
   const documentId = params.get("id") ?? "";
   const { setMode } = useShellMode();
+  const web = useWebDesign();
+  const topSlots = useTopBarSlots();
   const backToNotebook = useBackToNotebook("documents");
   const router = useRouter();
   const mushaf = useMushaf();
@@ -291,14 +296,13 @@ export function DocumentScreen() {
             ? t("محفوظ")
             : "";
 
-  return (
-    <div className="qb-doc">
-      <div className="qb-doc-bar">
-        <button type="button" className="back" onClick={backToNotebook} aria-label={t("العودة إلى الدفتر")}>
+  const barBack = (
+    <button type="button" className="back" onClick={backToNotebook} aria-label={t("العودة إلى الدفتر")}>
           <Icon name="chevRight" size={18} />
         </button>
-        {/* The research's name, edited in place in the bar (like a board's). */}
-        <div className="title">
+  );
+  const barTitle = (
+    <div className="title">
           <input
             className="doc-name"
             value={doc.title}
@@ -311,10 +315,14 @@ export function DocumentScreen() {
             {t("بحث")}{doc.provenance.created_from === "studio" ? t("، من الدراسة") : doc.provenance.created_from === "board" ? t("، من لوحة موضوع") : ""}
           </span>
         </div>
-        <span className={`save ${saveState}`} role="status" aria-live="polite">
+  );
+  const barSave = (
+    <span className={`save ${saveState}`} role="status" aria-live="polite">
           {saveLabel}
         </span>
-        <div className="acts">
+  );
+  const barActs = (
+    <div className="acts">
           <button type="button" onClick={() => setSharing({ artifact: "research" })}>
             <Icon name="share" size={15} /> <span className="lbl">{t("مشاركة")}</span>
           </button>
@@ -325,12 +333,10 @@ export function DocumentScreen() {
             <Icon name="users" size={15} /> <span className="lbl">{t("نشر")}</span>
           </button>
         </div>
-      </div>
-
-      <div className="qb-doc-body">
-        {shareNote ? <div className="qb-doc-flash" role="status">{shareNote}</div> : null}
-
-        <textarea
+  );
+  const head = (
+    <>
+      <textarea
           className="summary"
           value={doc.summary ?? ""}
           onChange={(event) => update({ summary: event.target.value.slice(0, 1200) })}
@@ -346,8 +352,11 @@ export function DocumentScreen() {
         </div>
 
         {doc.provenance.mode === "tafssir" ? <TafssirDisclaimer /> : null}
-
-        {doc.provenance.created_from === "board" && parseBoardSource(doc.provenance.source_id) ? (
+    </>
+  );
+  const boardView = (
+    <>
+      {doc.provenance.created_from === "board" && parseBoardSource(doc.provenance.source_id) ? (
           <DocumentBoard
             source={parseBoardSource(doc.provenance.source_id)!}
             onOpenAyah={(item) => {
@@ -356,14 +365,16 @@ export function DocumentScreen() {
             }}
           />
         ) : null}
-
-        {verification && !verification.ok ? (
+    </>
+  );
+  const warnings = (
+    <>
+      {verification && !verification.ok ? (
           <div className="qb-doc-warn" role="alert">
             <Icon name="alert" size={15} /> {t("بعض النصوص المقتبسة لا تطابق نص المصحف — راجِعها في الأقسام المعلَّمة.")}
           </div>
         ) : null}
-
-        {audit ? (
+      {audit ? (
           <div className={`qb-doc-audit${audit.publishable ? " ok" : ""}`}>
             <div className="head">
               <strong>{audit.publishable ? t("البحث جاهز للنشر") : t("قبل النشر:")}</strong>
@@ -384,8 +395,11 @@ export function DocumentScreen() {
             </p>
           </div>
         ) : null}
-
-        <ol className="sections">
+    </>
+  );
+  const body = (
+    <>
+      <ol className="sections">
           {doc.sections.map((section, index) => {
             const issues = issuesBySection.get(section.id) ?? [];
             const isAi = section.kind === "ai_answer";
@@ -501,13 +515,17 @@ export function DocumentScreen() {
           <button type="button" onClick={() => addSection("note")}>{t("ملاحظة")}</button>
           <button type="button" onClick={() => addSection("question")}>{t("سؤال")}</button>
         </div>
-
-        <References
+    </>
+  );
+  const references = (
+    <References
           references={doc.references}
           onChange={(references) => update({ references })}
         />
-
-        {sharing ? (
+  );
+  const sheets = (
+    <>
+      {sharing ? (
           <ShareStudio
             research={{
               title: doc.title,
@@ -550,8 +568,10 @@ export function DocumentScreen() {
             onOpenPost={(postId) => router.push(`/?mode=post&id=${encodeURIComponent(postId)}`)}
           />
         ) : null}
-
-        <div className="danger-zone">
+    </>
+  );
+  const danger = (
+    <div className="danger-zone">
           {confirmDelete ? (
             <>
               <span>{t("حذف البحث نهائياً؟")}</span>
@@ -564,6 +584,56 @@ export function DocumentScreen() {
             </button>
           )}
         </div>
+  );
+
+  // The web design: the bar's name and actions live in the top bar, and the
+  // paper spans the canvas — the sections beside a column of the references
+  // and the publishing checks — instead of a narrow band that scrolls alone.
+  if (web) {
+    return (
+      <div className="qb-doc is-web">
+        {topSlots
+          ? <>
+              {createPortal(<div className="qb-doc-bar in-topbar">{barBack}{barTitle}</div>, topSlots.start)}
+              {createPortal(<div className="qb-doc-bar in-topbar">{barSave}{barActs}</div>, topSlots.end)}
+            </>
+          : <div className="qb-doc-bar">{barBack}{barTitle}{barSave}{barActs}</div>}
+        <div className="qb-doc-body">
+          {shareNote ? <div className="qb-doc-flash" role="status">{shareNote}</div> : null}
+          <header className="qb-doc-head">{head}</header>
+          {boardView}
+          <div className="qb-doc-grid">
+            <div className="qb-doc-main">{body}</div>
+            <aside className="qb-doc-aside">
+              {warnings}
+              {references}
+              {danger}
+            </aside>
+          </div>
+          {sheets}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="qb-doc">
+      <div className="qb-doc-bar">
+        {barBack}
+        {barTitle}
+        {barSave}
+        {barActs}
+      </div>
+
+      <div className="qb-doc-body">
+        {shareNote ? <div className="qb-doc-flash" role="status">{shareNote}</div> : null}
+        {head}
+        {boardView}
+        {warnings}
+        {body}
+        {references}
+        {sheets}
+        {danger}
       </div>
     </div>
   );

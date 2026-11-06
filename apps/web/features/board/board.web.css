@@ -53,3 +53,55 @@
   background: var(--bg-elev-1);
   box-shadow: 0 30px 60px -40px var(--shade);
 }
+
+/* In the top bar: the board's name on the start side, its tools on the end
+   side, set on the bar itself — no frame, no glass, quiet until hovered. */
+.qb-web .qb-topbar-web .qb-board-bar.in-topbar {
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.qb-web .qb-topbar-actions .qb-board-bar.in-topbar { flex: none; }
+.qb-web .qb-board-bar.in-topbar .back { width: 36px; height: 36px; }
+.qb-web .qb-board-bar.in-topbar .back:hover { color: var(--gold-text); border-color: var(--gold-line); }
+.qb-web .qb-board-bar.in-topbar .title { flex-wrap: nowrap; align-items: baseline; overflow: hidden; }
+.qb-web .qb-board-bar.in-topbar .title .dot { width: 10px; height: 10px; flex: none; }
+.qb-web .qb-board-bar.in-topbar .board-name { flex: 0 1 auto; width: auto; field-sizing: content; min-width: 4ch; max-width: 100%; font-size: 21px; }
+.qb-web .qb-board-bar.in-topbar .theme-name,
+.qb-web .qb-board-bar.in-topbar .meta { white-space: nowrap; font-size: 12.5px; }
+.qb-web .qb-board-bar.in-topbar .tools { gap: 2px; flex-wrap: nowrap; }
+.qb-web .qb-board-bar.in-topbar .tools button {
+  height: 36px;
+  padding: 0 11px;
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  color: var(--fg-2);
+}
+.qb-web .qb-board-bar.in-topbar .tools button:hover:not(:disabled) { color: var(--gold-text); background: var(--gold-soft); border-color: var(--border); transform: none; }
+.qb-web .qb-board-bar.in-topbar .tools button.on { color: var(--gold-text); background: var(--gold-soft); border-color: var(--gold-line); }
+.qb-web .qb-board-bar.in-topbar .tools-sep { height: 20px; margin-inline: 6px; }
+.qb-web .qb-board-bar.in-topbar .save { min-width: 0; padding-inline-start: 8px; white-space: nowrap; }
+.qb-web .qb-board-bar.in-topbar .save:empty { display: none; }
+/* Narrower windows: the tools keep their icons, the names go to the tooltip. */
+@media (max-width: 1440px) {
+  .qb-web .qb-board-bar.in-topbar .tools .lbl {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .qb-web .qb-board-bar.in-topbar .tools button { width: 36px; padding: 0; justify-content: center; }
+  .qb-web .qb-board-bar.in-topbar .tools button .badge { position: absolute; inset-block-start: 2px; inset-inline-end: 0; }
+  .qb-web .qb-board-bar.in-topbar .tools button { position: relative; }
+}
