@@ -453,3 +453,14 @@ html.qb-web body .qb-selectable * {
   user-select: text;
   -webkit-touch-callout: default;
 }
+
+/* ---------- Phones: the compact top bar ---------- */
+/* Only Home and Search keep a top bar on a phone (top-bar.tsx): the command
+   bar, 56px under the status bar, edge to edge with a small gutter. */
+@media (max-width: 768px) {
+  html.qb-web .qb-topbar-web {
+    height: calc(56px + env(safe-area-inset-top, 0px));
+    flex-basis: calc(56px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px));
+  }
+}

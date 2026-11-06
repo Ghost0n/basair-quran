@@ -1,6 +1,7 @@
 "use client";
 
 import "./mobile-tab-bar.css";
+import "./mobile-tab-bar.web.css";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 

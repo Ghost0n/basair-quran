@@ -3,6 +3,7 @@
 import { useLayoutEffect, useRef } from "react";
 
 import { Icon } from "@/components/icon";
+import { useBand } from "@/lib/bands";
 import { useWebDesign } from "@/lib/use-web-design";
 
 import { CommandBar } from "./command-bar";
@@ -39,7 +40,11 @@ export function TopBar() {
   const web = useWebDesign();
   // ⌘K / `/` work everywhere: they open Search (whose bar then takes focus).
   useCommandShortcut(() => setMode("search"));
-  // The web design (desktop): one top bar on every page (WebTopBar).
+  const phone = useBand() === "phone";
+  // The web design: one top bar on every page (WebTopBar). On a phone a page
+  // draws its own compact header (no top-bar slots there) and the reader its
+  // own bar, so the top bar stays only where it carries the command bar.
+  if (web && phone && mode !== "search" && mode !== "home") return null;
   if (web) return <WebTopBar mode={mode} />;
   // The command bar is Search's own surface: elsewhere it would only cost a
   // row of height (the reader bar carries a search button; Home has its hero
