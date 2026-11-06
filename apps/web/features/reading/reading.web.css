@@ -33,6 +33,15 @@
   .qb-web .qb-turn-zone.next { cursor: url("/cursors/turn-next.svg") 16 16, w-resize; }
   .qb-web .qb-turn-zone.prev { cursor: url("/cursors/turn-prev.svg") 16 16, e-resize; }
   .qb-web .qb-turn-zone:disabled { cursor: default; }
+  /* The stage is a centred column: each zone reaches out over its side margin
+     to the canvas edge (clipped there), and the panels beside the Mushaf stay
+     above it so they keep their own clicks. */
+  .qb-web .qb-workspace-canvas { overflow-x: clip; }
+  .qb-web .qb-turn-zone.next { left: -100vw; width: calc(50% + 100vw); }
+  .qb-web .qb-turn-zone.prev { right: -100vw; width: calc(50% + 100vw); }
+  .qb-web .qb-workspace-canvas > .qb-study-slot,
+  .qb-web .qb-workspace-canvas > .qb-side-panel,
+  .qb-web .qb-workspace-canvas > .qb-companion-panel { position: relative; z-index: 1; }
 }
 
 /* The surah name opens «انتقل»: no press scale — the name and the page line

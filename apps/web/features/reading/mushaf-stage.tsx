@@ -913,13 +913,16 @@ export function MushafStage() {
 
   // «تحديد»: first tap picks a word (and shows its analysis); a second tap
   // extends the run to it; a tap on a lone picked word, or any tap after a
-  // run, starts over.
+  // run, starts over. On the web design (desk) a tap picks that one word only
+  // — the verse number takes the whole verse — and a tap on it lets it go.
   function pickWord(element: HTMLElement) {
     const root = surfaceRef.current;
     const key = element.dataset.wk;
     if (!root || !key) return;
     setMorphTarget(null);
+    const single = webDesk && !narrowCanvas;
     setSelection((current) => {
+      if (single) return current && current.keys.length === 1 && current.anchor === key ? null : readSelection(root, key, key);
       if (current && current.keys.length === 1) {
         if (current.anchor === key) return null;
         return readSelection(root, current.anchor, key);

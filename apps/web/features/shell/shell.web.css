@@ -19,10 +19,10 @@
   border-inline-end: 1px solid var(--border);
   background: transparent;
   box-shadow: none;
-  width: 84px;
-  flex-basis: 84px;
+  width: 88px;
+  flex-basis: 88px;
   padding: 14px 0 16px;
-  gap: 2px;
+  gap: 4px;
 }
 .qb-web .qb-rail-brand-btn {
   border-radius: 16px;
@@ -37,11 +37,31 @@
 }
 .qb-web .qb-rail-divider { width: 30px; background: var(--border-strong); opacity: 1; }
 .qb-web .qb-rail-btn {
-  width: 70px;
-  border-radius: 12px;
-  color: var(--fg-3);
+  width: 76px;
+  min-height: 60px;
+  padding: 8px 3px 7px;
+  gap: 6px;
+  border-radius: 14px;
+  color: var(--fg-2);
 }
 .qb-web .qb-rail-btn:hover { color: var(--fg-1); background: var(--gold-soft); }
+/* Labels readable in every script: a real size, and a line box tall enough
+   for Arabic marks, Devanagari headstrokes and descenders (the base rule's
+   line-height 1 under overflow:hidden cut their tops). */
+.qb-web .qb-rail-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  padding-block: 1px;
+  letter-spacing: 0;
+}
+.qb-web .qb-rail[data-fit="1"] .qb-rail-label,
+.qb-web .qb-rail[data-fit="2"] .qb-rail-label,
+.qb-web .qb-rail[data-fit="3"] .qb-rail-label { font-size: 10.5px; letter-spacing: 0; }
+.qb-web .qb-rail[data-fit="2"] .qb-rail-label,
+.qb-web .qb-rail[data-fit="3"] .qb-rail-label { line-height: 1.3; }
+/* Nastaliq (Urdu) rises and falls far beyond its em box. */
+html.qb-web[lang="ur"] .qb-rail-label { line-height: 2.1; padding-inline: 3px; margin-block: -4px; }
 .qb-web .qb-rail-btn:active { transform: none; }
 /* Active: gold text and a thin lit line at the rail's edge, no gel. */
 .qb-web .qb-rail-btn.active {
@@ -166,6 +186,11 @@ html.qb-web { --qb-panel: 560px; }
   position: relative;
   z-index: 1;
 }
+/* On the reader the page zone exists only over the study panel (a selection
+   open), so that panel runs from the top of the screen like the other side
+   pages; otherwise the reader's tools take the whole bar. */
+.qb-web .qb-topbar-web.has-tools .qb-topbar-page { display: none; }
+html.qb-web:has(.qb-study-slot:not(:empty)) .qb-topbar-web.has-tools .qb-topbar-page { display: flex; }
 .qb-web .qb-topbar-slot { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px; }
 .qb-web .qb-topbar-page:not(:has(.qb-cmd)) .qb-topbar-slot { flex: 1 1 auto; }
 .qb-web .qb-topbar-slot:empty { display: none; }
@@ -188,7 +213,26 @@ html.qb-web { --qb-panel: 560px; }
 /* The reading progress lies on the bar's hairline, across the Mushaf's column
    (the zone, not the bar inside it, is its box). */
 .qb-web .qb-topbar-reader .qb-reader-bar { position: static; }
-.qb-web .qb-topbar-reader .qb-reader-bar .progress { inset-inline: 0; bottom: -1px; border-radius: 0; }
+/* It sits a little under the bar, a touch thicker, fading out at both ends
+   and glowing softly at its tip. */
+.qb-web .qb-topbar-reader .qb-reader-bar .progress {
+  inset-inline: 0;
+  bottom: -10px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--gold-a08);
+  overflow: visible;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+}
+.qb-web .qb-topbar-reader .qb-reader-bar .progress span {
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--gold-a18), var(--gold-400));
+  box-shadow: 0 0 10px var(--gold-a40);
+}
+html.qb-web[dir="rtl"] .qb-topbar-reader .qb-reader-bar .progress span {
+  background: linear-gradient(270deg, var(--gold-a18), var(--gold-400));
+}
 /* Focus mode hides the bar with the rest of the chrome (it no longer lives in the stage). */
 html.qb-web.qb-immersive .qb-topbar-web { display: none; }
 

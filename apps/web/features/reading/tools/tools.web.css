@@ -90,3 +90,29 @@
   box-shadow: none;
   overflow: visible;
 }
+
+/* «تحديد»: the picked word (or the whole verse, from its number) is one block
+   on the outline layer (verse-outlines.tsx), like a recited or highlighted
+   verse — not a box around each word. */
+.qb-web .qb-glyph-word.qb-word-picked,
+.qb-web .qb-word.qb-word-picked {
+  background: none;
+  box-shadow: none;
+}
+.qb-web .qb-verse-outlines .is-pick path {
+  fill: color-mix(in srgb, var(--info) 24%, transparent);
+  stroke: color-mix(in srgb, var(--info) 46%, transparent);
+}
+.qb-web .qb-verse-outlines .is-pick {
+  filter: drop-shadow(0 0 7px color-mix(in srgb, var(--info) 22%, transparent));
+}
+/* «تظليل» shows its verse with its own focus block. */
+.qb-web .qb-mushaf-stage.tool-highlight .qb-verse-outlines .is-pick { display: none; }
+
+/* Words light up under the pointer only where a tap does something with the
+   word («تحديد»): reading and «تظليل» leave the text as printed. */
+.qb-web .qb-mushaf-stage:not(.tool-select) .qb-glyph-word:hover,
+.qb-web .qb-mushaf-stage:not(.tool-select) .qb-word:hover {
+  color: inherit;
+  background: none;
+}
