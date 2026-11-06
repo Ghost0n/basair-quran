@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
@@ -61,6 +61,16 @@ export function SelectionBar({
     setSlot(study && mode === "reading" ? document.getElementById("qb-study-slot") : null);
   }, [study, mode]);
 
+  // Another side page beside the Mushaf (library, «انتقل», search…): a word or
+  // verse picked there asks first, then opens the reader with its details. A
+  // selection already open when you left the reader asks nothing.
+  const pickKey = selection.keys.join(",");
+  const seenInReader = useRef<string | null>(mode === "reading" ? pickKey : null);
+  useEffect(() => {
+    if (mode === "reading") seenInReader.current = pickKey;
+  }, [mode, pickKey]);
+  const confirmElsewhere = study && mode !== "reading" && seenInReader.current !== pickKey;
+
   const words = selection.keys.length;
   const single = words === 1;
   // A whole verse is not a phrase to search or count: those two actions go.
@@ -115,6 +125,29 @@ export function SelectionBar({
     } catch {
       setNote(t("تعذّر النسخ."));
     }
+  }
+
+  if (confirmElsewhere) {
+    const host = typeof document === "undefined" ? null : document.querySelector<HTMLElement>(".qb-mushaf-stage");
+    return host
+      ? createPortal(
+          <div className="qb-pick-confirm" role="dialog" aria-label={t("عرض التحديد في المصحف؟")}>
+            <div className="copy">
+              <strong>{t("عرض التحديد في المصحف؟")}</strong>
+              <span>{t("تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.", { 0: selection.text })}</span>
+            </div>
+            <div className="acts">
+              <button type="button" className="go" onClick={() => setMode("reading")}>
+                {t("انتقل إلى المصحف")}
+              </button>
+              <button type="button" onClick={onClear}>
+                {t("إلغاء")}
+              </button>
+            </div>
+          </div>,
+          host,
+        )
+      : null;
   }
 
   // The study panel shows only in its column (reading mode, wide canvas).

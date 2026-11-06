@@ -65,7 +65,7 @@ html.qb-web[lang="ur"] .qb-rail-label { line-height: 2.1; padding-inline: 3px; m
 .qb-web .qb-rail-btn:active { transform: none; }
 /* Active: gold text and a thin lit line at the rail's edge, no gel. */
 .qb-web .qb-rail-btn.active {
-  color: var(--world);
+  color: var(--gold-text);
   font-weight: 700;
   background: transparent;
   border-color: transparent;
@@ -79,8 +79,18 @@ html.qb-web[lang="ur"] .qb-rail-label { line-height: 2.1; padding-inline: 3px; m
   bottom: 12px;
   width: 2px;
   border-radius: 2px;
-  background: var(--world);
-  box-shadow: 0 0 10px var(--world);
+  background: var(--gold-400);
+  box-shadow: 0 0 10px var(--gold-glow);
+}
+/* The page you are on is always lit in gold, whatever its world. */
+html.qb-web .qb-rail .qb-rail-btn.active,
+html.qb-web .qb-rail .qb-rail-btn.is-world.active,
+html.qb-web .qb-rail .qb-rail-btn.is-world.active .qb-icon { color: var(--gold-text); }
+/* Keyboard focus on the rail: a fine ring inside the tile, not a heavy gold frame. */
+.qb-web .qb-rail-btn:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--gold-line);
+  background: var(--gold-soft);
 }
 .qb-web .qb-rail-btn.active .qb-icon { animation: none; }
 
@@ -163,8 +173,10 @@ html.qb-web { --qb-panel: 560px; }
   flex: 0 0 400px;
   min-height: 0;
   overflow-y: auto;
-  border-inline-end: 1px solid var(--border-strong);
-  background: linear-gradient(180deg, var(--bg-elev-1), var(--bg) 40%);
+  /* Under the top bar, with no hard edge: no divider line, and the panel's
+     surface rises softly out of the bar's fade. */
+  border: 0;
+  background: linear-gradient(180deg, transparent, var(--bg-elev-1) 72px);
 }
 .qb-web .qb-study-slot:empty { display: none; }
 
@@ -186,11 +198,6 @@ html.qb-web { --qb-panel: 560px; }
   position: relative;
   z-index: 1;
 }
-/* On the reader the page zone exists only over the study panel (a selection
-   open), so that panel runs from the top of the screen like the other side
-   pages; otherwise the reader's tools take the whole bar. */
-.qb-web .qb-topbar-web.has-tools .qb-topbar-page { display: none; }
-html.qb-web:has(.qb-study-slot:not(:empty)) .qb-topbar-web.has-tools .qb-topbar-page { display: flex; }
 .qb-web .qb-topbar-slot { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px; }
 .qb-web .qb-topbar-page:not(:has(.qb-cmd)) .qb-topbar-slot { flex: 1 1 auto; }
 .qb-web .qb-topbar-slot:empty { display: none; }
@@ -338,4 +345,34 @@ html.qb-web.qb-immersive .qb-topbar-web { display: none; }
   color: var(--gold-text);
   font-weight: 700;
   box-shadow: inset 0 0 0 1px var(--gold-line);
+}
+
+/* The search field never cuts the query: once something is typed, the ⌘K hint
+   steps aside and the field takes the room. */
+.qb-web .qb-topbar-web .qb-cmd:has(input:not(:placeholder-shown)) .qb-cmd-kbd,
+.qb-web .qb-topbar-web .qb-cmd:focus-within .qb-cmd-kbd { display: none; }
+.qb-web .qb-topbar-web .qb-cmd input { min-width: 6ch; flex: 1 1 auto; text-overflow: clip; }
+
+/* ---------- No cropped text ---------- */
+/* One-line labels that clip their overflow get a line box tall enough for
+   Arabic marks, Nastaliq and Indic scripts (found by the clipped-text audit). */
+.qb-web .qb-select-label { line-height: 1.6; padding-block: 1px; }
+.qb-web .qb-reader-bar .identity .meta { line-height: 1.7; padding-block: 1px; }
+html.qb-web[lang="ur"] .qb-select-label,
+html.qb-web[lang="ur"] .qb-reader-bar .identity .meta { line-height: 2.3; padding-block: 0; }
+
+/* ---------- No gold frame on click ---------- */
+/* A click or tap leaves no focus ring anywhere — on the Mushaf's words above
+   all; the keyboard keeps a fine ring so arrow-key walking still shows where
+   you are. */
+.qb-web :focus:not(:focus-visible) { outline: none; }
+.qb-web .qb-glyph-word:focus:not(:focus-visible),
+.qb-web .qb-word:focus:not(:focus-visible),
+.qb-web .qb-verse-mark:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+.qb-web .qb-glyph-word:focus-visible,
+.qb-web .qb-word:focus-visible,
+.qb-web .qb-verse-mark:focus-visible {
+  outline: 1px solid var(--gold-line);
+  outline-offset: 2px;
+  border-radius: 6px;
 }

@@ -116,3 +116,59 @@
   color: inherit;
   background: none;
 }
+
+/* A word or verse picked while another side page is open: a banner over the
+   Mushaf asks before switching to the reader with its details. */
+.qb-web .qb-pick-confirm {
+  position: absolute;
+  z-index: 30;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(560px, calc(100% - 48px));
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 16px 14px 20px;
+  border-radius: var(--r-panel);
+  border: 1px solid var(--gold-line);
+  background: var(--bg-elev-1);
+  box-shadow: 0 24px 48px -24px var(--shade);
+  animation: qbPickConfirmIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes qbPickConfirmIn { from { opacity: 0; transform: translate(-50%, 10px); } }
+.qb-web .qb-pick-confirm .copy { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.qb-web .qb-pick-confirm strong { font-size: 15px; line-height: 1.6; color: var(--fg-1); }
+.qb-web .qb-pick-confirm .copy span {
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--fg-3);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.qb-web .qb-pick-confirm .acts { display: flex; gap: 8px; flex: none; }
+.qb-web .qb-pick-confirm .acts button {
+  height: 38px;
+  padding-inline: 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--fg-2);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.qb-web .qb-pick-confirm .acts button:hover { color: var(--fg-1); background: var(--gold-soft); }
+.qb-web .qb-pick-confirm .acts .go { border-color: transparent; background: var(--btn-grad); color: var(--on-gold); }
+.qb-web .qb-pick-confirm .acts .go:hover { background: var(--btn-grad); color: var(--on-gold); filter: brightness(1.06); }
+@media (prefers-reduced-motion: reduce) {
+  .qb-web .qb-pick-confirm { animation: none; }
+}
+
+/* Theme highlights never move the words: the piece's side padding is paid
+   back by a negative margin (as the focus and selection pieces do), so
+   turning «تظليل المواضيع» on or off leaves every line — and the page's fit —
+   exactly as printed. */
+.qb-web .qb-glyph-hl { margin: 0 -3px; }

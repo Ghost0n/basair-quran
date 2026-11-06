@@ -262,11 +262,11 @@ export function ConcordancePanel() {
 
   return (
     <aside className={`qb-side-panel${primary ? "" : " is-empty"}`} ref={panelRef} aria-label={t("لوحة المطابقة")}>
+      {/* Web design: the panel's own summary (the root, its counts) already
+          heads the page, so the top bar carries only the command bar and the
+          actions — no second summary beside the search field. */}
       {topSlots ? (
-        <>
-          {primary ? createPortal(heading, topSlots.start) : null}
-          {createPortal(headActions, topSlots.end)}
-        </>
+        createPortal(headActions, topSlots.end)
       ) : (
         <div className="qb-side-head">
           {heading}

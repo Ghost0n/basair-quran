@@ -1159,5 +1159,8 @@
  "قراءة تستعين بالتفاسير، مع التنبيه عليها.": "A reading that draws on the tafsirs, and says so.",
  "كيف تبدأ كل دراسة جديدة؛ تغيّرها لكل سؤال من صفحة الدراسة.": "How each new study starts; change it for any question on the study page.",
  "لوّن آيات مواضيعك في المصحف.": "Colour your themes' verses in the Mushaf.",
- "ابحث في الإعدادات…": "Search settings…"
+ "ابحث في الإعدادات…": "Search settings…",
+ "عرض التحديد في المصحف؟": "Show the selection in the Mushaf?",
+ "تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.": "The side page closes and the details of «{0}» open beside the Mushaf.",
+ "انتقل إلى المصحف": "Go to the Mushaf"
 }

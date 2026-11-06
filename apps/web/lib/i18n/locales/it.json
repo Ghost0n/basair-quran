@@ -1159,5 +1159,8 @@
  "قراءة تستعين بالتفاسير، مع التنبيه عليها.": "Una lettura che attinge ai tafsir, dichiarandolo.",
  "كيف تبدأ كل دراسة جديدة؛ تغيّرها لكل سؤال من صفحة الدراسة.": "Come inizia ogni nuovo studio; modificabile per ogni domanda nella pagina di studio.",
  "لوّن آيات مواضيعك في المصحف.": "Colora i versetti dei tuoi temi nel Mushaf.",
- "ابحث في الإعدادات…": "Cerca nelle impostazioni…"
+ "ابحث في الإعدادات…": "Cerca nelle impostazioni…",
+ "عرض التحديد في المصحف؟": "Mostrare la selezione nel Mushaf?",
+ "تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.": "La pagina laterale si chiude e i dettagli di «{0}» si aprono accanto al Mushaf.",
+ "انتقل إلى المصحف": "Vai al Mushaf"
 }

@@ -34,10 +34,11 @@
    one column of rows — the setting and what it does, then its control. */
 .qb-web .qb-settings.is-web {
   display: grid;
-  grid-template-columns: 232px minmax(0, 780px);
-  /* On the reading-start side (the right in Arabic, the left in English),
-     next to the rail, like the side pages — not centred in the window. */
-  justify-content: start;
+  /* The settings themselves stand in the middle of the page; the index keeps
+     to the reading-start side (next to the rail). The third column mirrors
+     the index's so the content column is truly centred when there is room. */
+  grid-template-columns: minmax(200px, 1fr) minmax(0, 780px) minmax(0, 1fr);
+  justify-content: stretch;
   align-items: start;
   gap: clamp(32px, 4vw, 64px);
   padding-block: 0 30vh;

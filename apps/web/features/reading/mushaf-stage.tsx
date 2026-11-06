@@ -1069,8 +1069,10 @@ export function MushafStage() {
         onPointerLeave={() => setHoverAyahId(null)}
       >
       {/* Page-turn zones at the page edges (pointer screens): a soft glow on
-          hover, a click turns the page. RTL book: the next page is on the left. */}
-      {!continuousMode ? (
+          hover, a click turns the page. RTL book: the next page is on the left.
+          Web design: only on the Mushaf's own page — beside another side page
+          the Mushaf turns with its bar's arrows, never by a stray click. */}
+      {!continuousMode && !(webDesk && !narrowCanvas && shellMode !== "reading") ? (
         <>
           <button
             type="button"

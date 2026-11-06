@@ -8,7 +8,6 @@ import { useWebDesign } from "@/lib/use-web-design";
 import { CommandBar } from "./command-bar";
 import { useShellMode } from "./mode-context";
 import { useRoomWide } from "./room";
-import { STUDY_SLOT_ID } from "./workspace-canvas";
 import { TOP_BAR_READER_ID } from "./top-bar-slots";
 import { useCommandShortcut } from "./use-command-shortcut";
 import { useWorkspace } from "./workspace-context";
@@ -74,13 +73,11 @@ function WebTopBar({ mode }: { mode: ShellMode }) {
 
   useLayoutEffect(() => {
     const bar = barRef.current;
-    if (!bar) return;
+    if (!bar || reading) return;
     let frame = 0;
     const fit = () => {
       frame = 0;
-      const panel = document.querySelector<HTMLElement>(
-        ".qb-workspace-canvas > .qb-side-panel, .qb-workspace-canvas > .qb-companion-panel, .qb-workspace-canvas > .qb-study-slot:not(:empty)",
-      );
+      const panel = document.querySelector<HTMLElement>(".qb-workspace-canvas > .qb-side-panel, .qb-workspace-canvas > .qb-companion-panel");
       if (!panel) {
         bar.style.removeProperty("--qb-panel-w");
         return;
@@ -98,35 +95,21 @@ function WebTopBar({ mode }: { mode: ShellMode }) {
     schedule();
     const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(schedule);
     resize?.observe(bar);
-    // The reader's study panel (the «تحديد» column) is a side page too: it
-    // mounts after hydration and fills or empties with the selection, so the
-    // zone is measured again whenever its column changes.
-    let study: HTMLElement | null = null;
-    const watch = typeof MutationObserver === "undefined" ? null : new MutationObserver(() => {
-      const slot = document.getElementById(STUDY_SLOT_ID);
-      if (slot && slot !== study) {
-        study = slot;
-        resize?.observe(slot);
-      }
-      schedule();
-    });
-    const canvas = reading ? document.querySelector(".qb-canvas") : null;
-    if (canvas) watch?.observe(canvas, { childList: true, subtree: true });
     return () => {
       cancelAnimationFrame(frame);
       resize?.disconnect();
-      watch?.disconnect();
     };
   }, [mode, wide, reading]);
 
   return (
     <div ref={barRef} className={`qb-topbar qb-topbar-web${reading ? " has-tools" : ""}${mode === "home" ? " is-home" : ""}`}>
-      {/* On the reader the zone shows only over the study panel (shell.web.css). */}
-      <div className="qb-topbar-page">
-        <div id="qb-topbar-slot" className="qb-topbar-slot" />
-        {mode === "search" || mode === "home" ? <CommandBar /> : null}
-        <div id="qb-topbar-actions" className="qb-topbar-actions" />
-      </div>
+      {reading ? null : (
+        <div className="qb-topbar-page">
+          <div id="qb-topbar-slot" className="qb-topbar-slot" />
+          {mode === "search" || mode === "home" ? <CommandBar /> : null}
+          <div id="qb-topbar-actions" className="qb-topbar-actions" />
+        </div>
+      )}
       <div id={TOP_BAR_READER_ID} className="qb-topbar-reader" />
     </div>
   );

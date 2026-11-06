@@ -1159,5 +1159,8 @@
  "قراءة تستعين بالتفاسير، مع التنبيه عليها.": "Tafsirlarga tayanadigan va buni ko'rsatadigan o'qish.",
  "كيف تبدأ كل دراسة جديدة؛ تغيّرها لكل سؤال من صفحة الدراسة.": "Har bir yangi tadqiqot qanday boshlanishi; tadqiqot sahifasida har bir savol uchun o'zgartirish mumkin.",
  "لوّن آيات مواضيعك في المصحف.": "Mavzularingiz oyatlarini Mus'hafda bo'yang.",
- "ابحث في الإعدادات…": "Sozlamalardan qidirish…"
+ "ابحث في الإعدادات…": "Sozlamalardan qidirish…",
+ "عرض التحديد في المصحف؟": "Tanlov Mushafda ko‘rsatilsinmi?",
+ "تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.": "Yon sahifa yopiladi va «{0}» tafsilotlari Mushaf yonida ochiladi.",
+ "انتقل إلى المصحف": "Mushafga o‘tish"
 }

@@ -1159,5 +1159,8 @@
  "قراءة تستعين بالتفاسير، مع التنبيه عليها.": "Tefsirlerden yararlanan ve bunu belirten bir okuma.",
  "كيف تبدأ كل دراسة جديدة؛ تغيّرها لكل سؤال من صفحة الدراسة.": "Her yeni çalışmanın nasıl başlayacağı; çalışma sayfasında her soru için değiştirilebilir.",
  "لوّن آيات مواضيعك في المصحف.": "Konularınızın ayetlerini Mushaf'ta renklendirin.",
- "ابحث في الإعدادات…": "Ayarlarda ara…"
+ "ابحث في الإعدادات…": "Ayarlarda ara…",
+ "عرض التحديد في المصحف؟": "Seçim Mushaf'ta gösterilsin mi?",
+ "تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.": "Yan sayfa kapanır ve «{0}» ayrıntıları Mushaf'ın yanında açılır.",
+ "انتقل إلى المصحف": "Mushaf'a git"
 }

@@ -17,15 +17,15 @@ import { t } from "@/lib/i18n";
 
 /**
  * The study panel's extras (web design): where the selected word's root lives
- * across the 114 surahs, and the verse's meaning in the reader's chosen
- * translations. Shown inside the selection bar on the desktop web.
+ * across the 114 surahs (one word), or the verse's meaning in the reader's
+ * chosen translations (a verse). Shown inside the selection bar on the desktop web.
  */
 export function StudyExtras({ selection, mushafId }: { selection: WordSelection; mushafId: number }) {
   const single = selection.keys.length === 1;
   return (
     <div className="qb-study-extras">
-      {single ? <RootSpread selection={selection} mushafId={mushafId} /> : null}
-      <Meaning selection={selection} />
+      {/* One word: its root across the Mushaf; a verse: its meaning. */}
+      {single ? <RootSpread selection={selection} mushafId={mushafId} /> : <Meaning selection={selection} />}
     </div>
   );
 }
