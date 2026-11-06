@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject, type CSSProperties } from "react";
 
 import { Icon } from "@/components/icon";
 import { setShowHighlights, useShowHighlights } from "@/features/themes/ayah-marks";
@@ -25,8 +25,28 @@ function FontSizeSlider({ value, disabled, onCommit }: { value: number; disabled
   const [draft, setDraft] = useState(value);
   const frame = useRef(0);
   const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const draftRef = useRef(value);
+  draftRef.current = draft;
+  const changeRef = useRef<(size: number) => void>(() => {});
 
   useEffect(() => setDraft(value), [value]);
+
+  // The wheel moves the size one step per notch, over the slider (a native,
+  // non-passive listener so the page under it doesn't scroll as well).
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    function onWheel(event: WheelEvent) {
+      if (!input || input.disabled || event.ctrlKey || event.deltaY === 0) return;
+      event.preventDefault();
+      const step = event.deltaY < 0 ? 1 : -1;
+      const next = Math.min(FONT_MAX, Math.max(FONT_MIN, draftRef.current + step));
+      if (next !== draftRef.current) changeRef.current(next);
+    }
+    input.addEventListener("wheel", onWheel, { passive: false });
+    return () => input.removeEventListener("wheel", onWheel);
+  }, []);
   useEffect(
     () => () => {
       cancelAnimationFrame(frame.current);
@@ -36,6 +56,7 @@ function FontSizeSlider({ value, disabled, onCommit }: { value: number; disabled
   );
 
   function change(size: number) {
+    draftRef.current = size;
     setDraft(size);
     cancelAnimationFrame(frame.current);
     frame.current = requestAnimationFrame(() => {
@@ -45,8 +66,11 @@ function FontSizeSlider({ value, disabled, onCommit }: { value: number; disabled
     settle.current = setTimeout(() => onCommit(size), 220);
   }
 
+  changeRef.current = change;
+
   return (
     <input
+      ref={inputRef}
       type="range"
       min={FONT_MIN}
       max={FONT_MAX}
@@ -54,6 +78,8 @@ function FontSizeSlider({ value, disabled, onCommit }: { value: number; disabled
       value={draft}
       disabled={disabled}
       aria-label={t("حجم خطّ الآيات")}
+      // The filled share of the track (the web design paints it in gold).
+      style={{ "--fill": `${((draft - FONT_MIN) / (FONT_MAX - FONT_MIN)) * 100}%` } as CSSProperties}
       onChange={(event) => change(Number(event.target.value))}
     />
   );

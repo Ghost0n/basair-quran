@@ -80,3 +80,55 @@
    language: in a left-to-right interface the pair keeps the Arabic order
    (next ‹ on the left, previous › on the right), like the turning wings. */
 html.qb-web:not([dir="rtl"]) .qb-reader-bar .pager { flex-direction: row-reverse; }
+
+/* The text-size slider in «العرض»: a fine track filled in gold up to the
+   value, and a round gold handle — no native grey bar or square thumb.
+   (Each engine's pseudo-elements stay in rules of their own: one unknown
+   selector would void a whole list.) */
+.qb-web .qb-display-strip .size input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  cursor: pointer;
+}
+.qb-web .qb-display-strip .size input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--gold-400) var(--fill, 50%), var(--border-strong) var(--fill, 50%));
+}
+html.qb-web[dir="rtl"] .qb-display-strip .size input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to left, var(--gold-400) var(--fill, 50%), var(--border-strong) var(--fill, 50%));
+}
+.qb-web .qb-display-strip .size input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
+  border: 2px solid var(--bg-elev-1);
+  border-radius: 50%;
+  background: var(--btn-grad);
+  box-shadow: 0 0 0 1px var(--gold-line), 0 2px 8px -2px var(--shade);
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+.qb-web .qb-display-strip .size input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.08); }
+.qb-web .qb-display-strip .size input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 1px var(--gold-line), 0 0 0 6px var(--gold-soft); }
+.qb-web .qb-display-strip .size input[type="range"]::-moz-range-track { height: 4px; border-radius: 999px; background: var(--border-strong); }
+.qb-web .qb-display-strip .size input[type="range"]::-moz-range-progress { height: 4px; border-radius: 999px; background: var(--gold-400); }
+.qb-web .qb-display-strip .size input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--bg-elev-1);
+  border-radius: 50%;
+  background: var(--btn-grad);
+  box-shadow: 0 0 0 1px var(--gold-line), 0 2px 8px -2px var(--shade);
+}
+.qb-web .qb-display-strip .size input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 1px var(--gold-line), 0 0 0 6px var(--gold-soft); }
+.qb-web .qb-display-strip .size input[type="range"]:disabled { opacity: 0.45; cursor: default; }

@@ -418,3 +418,26 @@ html.qb-web[lang="ur"] .qb-reader-bar .identity .meta { line-height: 2.3; paddin
   box-shadow: inset 0 0 0 1px var(--border);
 }
 .qb-web .qb-cmd-chakl.on { color: var(--gold-text); background: var(--gold-soft); box-shadow: inset 0 0 0 1px var(--gold-line); }
+
+/* ---------- Nothing is selectable ---------- */
+/* The app reads like an object, not a document: a drag or a double-click
+   never paints a selection (over the Mushaf above all). Only what you type
+   into — fields and the research editor — keeps its text selection. The
+   public site (.qb-site) is left as a page. */
+html.qb-web body:not(:has(.qb-site)) {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+html.qb-web body input,
+html.qb-web body textarea,
+html.qb-web body [contenteditable="true"],
+html.qb-web body [contenteditable=""],
+html.qb-web body [contenteditable="plaintext-only"],
+html.qb-web body [contenteditable="true"] *,
+html.qb-web body .qb-selectable,
+html.qb-web body .qb-selectable * {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
