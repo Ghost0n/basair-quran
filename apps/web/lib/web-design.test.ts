@@ -3,7 +3,6 @@ import path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { PHONE_QUERY } from "./phone-query";
 import { WEB_DESIGN_INIT_SCRIPT, isWebDesign } from "./web-design";
 
 const webRoot = path.resolve(__dirname, "..");
@@ -48,16 +47,25 @@ function selectors(css: string): string[] {
 }
 
 describe("web design gate", () => {
-  it("applies on the web, not in the native app nor on phones", () => {
-    expect(isWebDesign(false, false)).toBe(true);
-    expect(isWebDesign(true, false)).toBe(false);
-    expect(isWebDesign(false, true)).toBe(false);
-    expect(isWebDesign(true, true)).toBe(false);
+  it("applies at every width and in the native app", () => {
+    expect(isWebDesign()).toBe(true);
   });
 
-  it("decides before paint with the same phone query as the phone layout", () => {
-    expect(WEB_DESIGN_INIT_SCRIPT).toContain(JSON.stringify(PHONE_QUERY));
-    expect(WEB_DESIGN_INIT_SCRIPT).toContain("qb-web");
+  it("adds qb-web before paint, on a phone and in the app alike", () => {
+    const classes = new Set<string>();
+    const document = {
+      documentElement: {
+        classList: {
+          add: (c: string) => classes.add(c),
+          remove: (c: string) => classes.delete(c),
+          toggle: (c: string, on?: boolean) => (on === false ? classes.delete(c) : classes.add(c)),
+        },
+      },
+    };
+    const phone = { matches: true, addEventListener: () => {} };
+    const window = { matchMedia: () => phone };
+    new Function("window", "document", WEB_DESIGN_INIT_SCRIPT)(window, document);
+    expect([...classes]).toEqual(["qb-web"]);
   });
 
   it("scopes every web-design rule under .qb-web, so phones and the app are untouched", () => {
