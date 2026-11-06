@@ -14,3 +14,27 @@
   justify-content: center;
   border-radius: 50%;
 }
+
+/* Page turning (pointer screens): the whole space on each side of the page is
+   its turn zone — under the page, so the page itself keeps every click — with
+   no glow; the pointer becomes an arrow pointing where the page goes.
+   RTL book: the next page lies to the left. */
+@media (hover: hover) and (pointer: fine) {
+  .qb-web .qb-reader-surface { isolation: isolate; }
+  .qb-web .qb-turn-zone {
+    width: 50%;
+    z-index: -1;
+    opacity: 1;
+    background: none;
+    border-radius: 0;
+    outline: none;
+    transition: none;
+  }
+  .qb-web .qb-turn-zone.next { cursor: url("/cursors/turn-next.svg") 16 16, w-resize; }
+  .qb-web .qb-turn-zone.prev { cursor: url("/cursors/turn-prev.svg") 16 16, e-resize; }
+  .qb-web .qb-turn-zone:disabled { cursor: default; }
+}
+
+/* The surah name opens «انتقل»: no press scale — the name and the page line
+   under it stay put (app/motion.css presses every other button). */
+.qb-web .qb-reader-bar .identity:active { transform: none; }

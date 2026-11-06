@@ -4,6 +4,7 @@ import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, use
 import type { KeyboardEvent } from "react";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { goTo } from "@/features/shell/navigation";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type {
@@ -259,7 +260,7 @@ export function useSearchWorkspace() {
     sp.set("mode", "search");
     sp.set("q", reflectedQuery);
     sp.set("sm", reflectedMode);
-    router.replace(`/?${sp.toString()}`, { scroll: false });
+    goTo(router, `/?${sp.toString()}`, true);
   }
 
   // Hydrate a search from ?q=&sm= once on first load (shared/bookmarked link).

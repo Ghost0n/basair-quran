@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { SavedPageEntry, SurahListItem } from "@q-basair/shared";
@@ -93,6 +93,10 @@ export function NavigateSheet({
   const { remove: removeSaved } = useSavedPages();
   const savedPages: SavedPageEntry[] = [...(preferences.saved_pages ?? [])].sort((a, b) => (b.saved_at ?? 0) - (a.saved_at ?? 0));
   const [tab, setTab] = useState<Tab>(() => initialTab ?? (savedPages.length ? "saved" : "surah"));
+  // Opened again on another tab (the reader's surah name while the page shows): follow it.
+  useEffect(() => {
+    if (initialTab) setTab(initialTab);
+  }, [initialTab]);
   const [query, setQuery] = useState("");
   const [pageDraft, setPageDraft] = useState(currentPage ? String(currentPage) : "");
 
@@ -218,7 +222,8 @@ export function NavigateSheet({
           </div>
         )}
 
-        {field}
+        {/* Web top bar: the field goes up into the bar, the tabs stay with the list. */}
+        {topSlots ? createPortal(field, topSlots.start) : field}
 
         {command ? (
           <button type="button" className="command" onClick={runCommand}>
@@ -227,7 +232,7 @@ export function NavigateSheet({
           </button>
         ) : null}
 
-        {topSlots ? createPortal(tabStrip, topSlots.start) : tabStrip}
+        {tabStrip}
 
         <div className="body">
           {/* «المحفوظة»: the pages bookmarked in the reader, latest first. */}

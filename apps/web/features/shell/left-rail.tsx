@@ -57,8 +57,10 @@ export function LeftRail() {
           {group.filter((item) => !(web && item.id === "index")).map((item) => (
             <RailButton
               key={item.id}
-              icon={item.icon}
-              label={item.label}
+              // Web design: Saved opens the Index on its saved pages, beside
+              // the Mushaf — the place to go somewhere in it: «انتقل».
+              icon={web && item.id === "saved" ? "compass" : item.icon}
+              label={web && item.id === "saved" ? t("انتقل") : item.label}
               active={item.owns.includes(mode)}
               world={item.world}
               notebook={item.id === "notebook"}

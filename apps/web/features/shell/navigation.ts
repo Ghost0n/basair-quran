@@ -45,7 +45,9 @@ function settled(timeoutMs = 450): Promise<void> {
 export function transition(navigate: () => void, motion: NavMotion = "fade"): void {
   const doc = typeof document === "undefined" ? null : (document as ViewTransitionDocument);
   const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  if (!doc || typeof doc.startViewTransition !== "function" || reduce) {
+  // The web design keeps its shell in place and only swaps the page: a
+  // whole-window cross-fade would read as a reload.
+  if (!doc || typeof doc.startViewTransition !== "function" || reduce || isWebDesign()) {
     navigate();
     return;
   }
@@ -63,6 +65,27 @@ export function transition(navigate: () => void, motion: NavMotion = "fade"): vo
     delete root.dataset.nav;
     navigate();
   }
+}
+
+/** The web design (html.qb-web, lib/use-web-design.ts). */
+function isWebDesign(): boolean {
+  return typeof document !== "undefined" && document.documentElement.classList.contains("qb-web");
+}
+
+/**
+ * Move between screens of the shell. Every screen is the same route with a
+ * different query, rendered on the client, so the web design changes the URL
+ * in place (Next keeps useSearchParams in step with history.pushState) instead
+ * of asking the server for a payload it already has. The app keeps the router.
+ */
+export function goTo(router: { push: (href: string, options?: { scroll?: boolean }) => void; replace: (href: string, options?: { scroll?: boolean }) => void }, href: string, replace = false): void {
+  if (isWebDesign()) {
+    if (replace) window.history.replaceState(null, "", href);
+    else window.history.pushState(null, "", href);
+    return;
+  }
+  if (replace) router.replace(href, { scroll: false });
+  else router.push(href, { scroll: false });
 }
 
 // ---------- The back stack ----------

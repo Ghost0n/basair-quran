@@ -6,6 +6,7 @@ import "./community.web.css";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
+import { goTo } from "@/features/shell/navigation";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type { PostSummary, SurahListItem, TagCount } from "@q-basair/shared";
@@ -67,7 +68,7 @@ export function CommunityScreen() {
       const sp = new URLSearchParams(window.location.search);
       if (next === "feed") sp.delete("tab");
       else sp.set("tab", next);
-      router.replace(`/?${sp.toString()}`, { scroll: false });
+      goTo(router, `/?${sp.toString()}`, true);
     },
     [router],
   );

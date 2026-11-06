@@ -2,6 +2,7 @@
 
 import "./reading.css";
 
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
@@ -27,7 +28,11 @@ import { t } from "@/lib/i18n";
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 /** «المحفوظة» (the reading world): the mushaf pages the reader saved, latest first. */
+const NAVIGATE_TABS: readonly NavigateTab[] = ["saved", "surah", "juz", "hizb", "page"];
+const navigateTab = (value: string | null): NavigateTab => (NAVIGATE_TABS as readonly string[]).includes(value ?? "") ? (value as NavigateTab) : "saved";
+
 export function SavedPagesScreen() {
+  const params = useSearchParams();
   const { preferences } = usePreferences();
   const mushaf = useMushaf();
   const { setMode } = useShellMode();
@@ -38,7 +43,7 @@ export function SavedPagesScreen() {
 
   // Web design, desktop: Saved is the Index opened on its saved pages, so the
   // top bar's tabs move between the bookmarks, the surahs, the juz…
-  if (topSlots) return <IndexScreen initialTab="saved" />;
+  if (topSlots) return <IndexScreen initialTab={navigateTab(params.get("tab"))} />;
 
   function open(entry: SavedPageEntry) {
     void mushaf.loadPage(entry.mushaf_id || DEFAULT_MUSHAF_ID, entry.page, { persist: true });
@@ -114,7 +119,9 @@ export function IndexScreen({ initialTab }: { initialTab?: NavigateTab } = {}) {
       const { start } = divisionRange("hizb", target.hizb);
       void mushaf.loadBySurah(mushafId, start.surah, start.ayah);
     } else void mushaf.loadPage(mushafId, target.page, { persist: true });
-    setMode("reading");
+    // Web design, desktop: the Mushaf is beside the index (and Saved) — the page
+    // opens there and the list stays open.
+    if (!topSlots) setMode("reading");
   }
 
   return (

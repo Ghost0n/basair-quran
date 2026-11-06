@@ -197,7 +197,7 @@ export function MushafStage() {
   // Entering the reader. Phones and narrow windows show it as its own
   // screen, so every entry counts; wide screens keep the mushaf beside every
   // panel, so only the launch does.
-  const { mode: shellMode } = useShellMode();
+  const { mode: shellMode, setMode: setShellMode } = useShellMode();
   const ownScreen = useIsMobile(1000);
   const entering = ownScreen ? shellMode === "reading" : true;
   const enteredRef = useRef(false);
@@ -214,10 +214,7 @@ export function MushafStage() {
     const entry = takeReaderEntry();
     // Home's «الفهرس» / «المحفوظة» open the reader on its «انتقل» sheet.
     const sheetTab = takeReaderSheet();
-    if (sheetTab) {
-      setNavTab(sheetTab);
-      setSheet("navigate");
-    }
+    if (sheetTab) openNavigateRef.current(sheetTab);
     resumeRef.current = entry === "resume";
     openAttemptRef.current = 0;
     freshPageRef.current = null;
@@ -374,6 +371,19 @@ export function MushafStage() {
   // Web design: the printed page always shows at its default size (pages mode
   // keeps no size of its own; the «العرض» size applies to verse by verse).
   const webDesign = useWebDesign();
+  // «انتقل»: the web design (desktop) opens the side page beside the Mushaf —
+  // the same one as the rail's «انتقل», on the tab asked for — instead of a
+  // sheet over the page; phones and narrow windows keep the sheet.
+  const openNavigate = (tab?: NavigateTab) => {
+    if (webDesign && !ownScreen) {
+      setShellMode("saved", { params: { tab: tab ?? "surah" } });
+      return;
+    }
+    setNavTab(tab);
+    setSheet("navigate");
+  };
+  const openNavigateRef = useRef(openNavigate);
+  openNavigateRef.current = openNavigate;
   const ayahMode = readerMode === "ayah";
   // The verse-by-verse reader is continuous (a windowing engine): prev/next
   // become a smooth in-place scroll rather than a page swap.
@@ -1026,7 +1036,7 @@ export function MushafStage() {
         onPrev={goPrev}
         onNext={goNext}
         ayahMode={ayahMode}
-        onOpenNavigate={() => setSheet("navigate")}
+        onOpenNavigate={() => openNavigate("surah")}
         displayOpen={displayOpen}
         onToggleDisplay={() => setDisplayOpen((open) => !open)}
         onCloseDisplay={() => setDisplayOpen(false)}

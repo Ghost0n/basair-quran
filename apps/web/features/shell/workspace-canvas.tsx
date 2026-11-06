@@ -32,7 +32,7 @@ const COMPACT_WORKSPACE = 1000;
  * Compact (≤1000px) & mobile: a single column — the active surface fills the
  * canvas; the Mushaf recedes rather than being squeezed to a sliver.
  */
-export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
+export function WorkspaceCanvas({ mode, companion }: { mode: ShellMode; companion?: ReactNode }) {
   const isCompact = useIsMobile(COMPACT_WORKSPACE);
   // Web design: the panel can widen over the whole canvas (features/shell/room.tsx).
   useRoomReset(mode);
@@ -41,17 +41,21 @@ export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
 
   const panel =
     mode === "search" ? <ConcordancePanel /> : mode === "studio" ? <OnlineOnly><StudioPanel /></OnlineOnly> : null;
+  const kind = companion ? " qb-companion-canvas" : "";
 
   if (isCompact) {
-    return <div className="qb-workspace-canvas">{panel ?? <MushafStage />}</div>;
+    return <div className={`qb-workspace-canvas${kind}`}>{companion ?? panel ?? <MushafStage />}</div>;
   }
 
   // "The mushaf is the room": when a panel is summoned beside it, the reader
   // settles back (scale + dim) so the panel reads as layered above it.
   const panelOpen = mode === "search" || mode === "studio";
 
+  // One tree for every page beside the Mushaf (reading, search, studio and the
+  // companions): each slot keeps its place, so moving between them swaps the
+  // panel and never remounts the Mushaf.
   return (
-    <div className={`qb-workspace-canvas${panelOpen ? " has-panel" : ""}${panelOpen && wide ? " is-wide" : ""}`}>
+    <div className={`qb-workspace-canvas${kind}${panelOpen ? " has-panel" : ""}${(panelOpen || companion) && wide ? " is-wide" : ""}`}>
       {/* Every panel opens on the same side — inline-start (the right in RTL),
           next to the rail that summoned it; the mushaf keeps the rest. */}
       {mode === "search" ? <ConcordancePanel /> : null}
@@ -60,6 +64,7 @@ export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
           <StudioPanel />
         </OnlineOnly>
       ) : null}
+      {companion ? <div className="qb-companion-panel">{companion}</div> : null}
       {/* Web design: the study panel's column — the «تحديد» bar portals here
           (tools/selection-bar.tsx). Empty, it takes no room; filled, the page
           re-fits beside it as it does beside the search panel. Like every
@@ -72,26 +77,3 @@ export function WorkspaceCanvas({ mode }: { mode: ShellMode }) {
 
 /** Where the web design's study panel mounts (features/shell/workspace-canvas.tsx). */
 export const STUDY_SLOT_ID = "qb-study-slot";
-
-/**
- * U5 — CompanionCanvas: shows a companion screen (Bookmarks, History, Roots,
- * Settings, Audio) in a side panel alongside the always-visible Mushaf.
- * On mobile the companion fills the full width and the Mushaf is hidden.
- */
-export function CompanionCanvas({ children }: { children: ReactNode }) {
-  const isCompact = useIsMobile(COMPACT_WORKSPACE);
-  const { mode } = useShellMode();
-  useRoomReset(mode);
-  const [wide] = useRoomWide();
-
-  if (isCompact) {
-    return <div className="qb-workspace-canvas qb-companion-canvas">{children}</div>;
-  }
-
-  return (
-    <div className={`qb-workspace-canvas qb-companion-canvas${wide ? " is-wide" : ""}`}>
-      <div className="qb-companion-panel">{children}</div>
-      <MushafStage />
-    </div>
-  );
-}

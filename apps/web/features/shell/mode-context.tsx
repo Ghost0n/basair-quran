@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect } from "react";
 
-import { canGoBackInApp, markReplace, noteReaderOpening, notifyNavigationSettled, previousScreen, readerBackLeadsHome, recordScreen, transition } from "./navigation";
+import { canGoBackInApp, goTo, markReplace, noteReaderOpening, notifyNavigationSettled, previousScreen, readerBackLeadsHome, recordScreen, transition } from "./navigation";
 
 export const SHELL_MODES = [
   "home",
@@ -98,7 +98,7 @@ export function useGoBack(): { canGoBack: boolean; goBack: (options?: { beforeUp
       if (mode === "reading" && readerBackLeadsHome() && previousScreen() !== "") {
         transition(() => {
           options?.beforeUpdate?.();
-          router.push("/", { scroll: false });
+          goTo(router, "/");
         }, motion);
         return;
       }
@@ -113,7 +113,7 @@ export function useGoBack(): { canGoBack: boolean; goBack: (options?: { beforeUp
       transition(() => {
         options?.beforeUpdate?.();
         markReplace();
-        router.replace(query ? `/?${query}` : "/", { scroll: false });
+        goTo(router, query ? `/?${query}` : "/", true);
       }, motion);
     },
     [mode, router],
@@ -134,7 +134,7 @@ export function useBackToNotebook(tab: string): () => void {
       transition(() => router.back(), "back");
       return;
     }
-    transition(() => router.push(`/?mode=notebook&tab=${tab}`, { scroll: false }), "back");
+    transition(() => goTo(router, `/?mode=notebook&tab=${tab}`), "back");
   }, [router, tab]);
 }
 
@@ -177,12 +177,8 @@ export function useShellMode(): {
       // `replace` for implicit/derived switches (e.g. results auto-opening
       // Search) so Back isn't clogged with entries the user didn't choose.
       const navigate = () => {
-        if (options?.replace) {
-          markReplace();
-          router.replace(href, { scroll: false });
-        } else {
-          router.push(href, { scroll: false });
-        }
+        if (options?.replace) markReplace();
+        goTo(router, href, options?.replace);
       };
       // A view transition carries the change (navigation.ts): entering the
       // reader splits the tab bar into its back button and dock.

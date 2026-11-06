@@ -25,7 +25,7 @@ import { createThemeBoard, useThemeBoards, type BoardListing } from "@/features/
 import { useStickyState } from "@/lib/use-sticky-state";
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { useShellMode } from "@/features/shell/mode-context";
-import { markReplace } from "@/features/shell/navigation";
+import { goTo, markReplace } from "@/features/shell/navigation";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { THEME_PALETTE } from "@/features/themes/palette";
 import { deleteTheme, updateTheme, useThemes } from "@/features/themes/themes-store";
@@ -91,7 +91,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
     else sp.delete("focus");
     // A tab change replaces the screen in the back stack (back leaves the notebook).
     markReplace();
-    router.replace(`/?${sp.toString()}`, { scroll: false });
+    goTo(router, `/?${sp.toString()}`, true);
   }
 
   function openRootInsights(rootText: string) {
@@ -109,7 +109,9 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
     } else {
       void mushaf.loadByAyah(item.mushaf_id || state.selectedMushaf, item.ayah_id, []);
     }
-    setMode("reading");
+    // Web design, desktop: the Mushaf is beside the notebook — the verse opens
+    // there and the notebook stays open.
+    if (!topSlots) setMode("reading");
   }
 
   const { themes, byId: themeById } = useThemes();

@@ -70,8 +70,13 @@
   flex-basis: 70px;
   justify-content: space-between;
   padding-inline: 28px;
-  background: linear-gradient(180deg, var(--bg) 62%, transparent);
+  /* A solid band with one hairline under it: the panels' dividers and the
+     reading progress meet a crisp edge (a fade smeared over the lighter panel). */
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
 }
+/* Home keeps the soft fade into its hero. */
+.qb-web .qb-topbar-web.is-home { background: linear-gradient(180deg, var(--bg) 62%, transparent); border-bottom: 0; }
 .qb-web .qb-topbar-web .qb-cmd {
   flex: 0 1 440px;
   margin: 0;
@@ -110,16 +115,15 @@
   box-shadow: none;
   animation: none;
 }
-.qb-web .qb-side-panel { width: 560px; flex-basis: 560px; }
-.qb-web .qb-side-panel.qb-side-panel-wide { width: 600px; flex-basis: 600px; }
-.qb-web .qb-companion-panel { width: 560px; flex-basis: 560px; }
-.qb-web .qb-room-toggle { flex: none; }
-
+/* One width for every side page (search, study, notebook, index, saved), so
+   the Mushaf and the top bar's zones stay put from one page to the next. */
+html.qb-web { --qb-panel: 560px; }
 @media (max-width: 1280px) {
-  .qb-web .qb-side-panel,
-  .qb-web .qb-side-panel.qb-side-panel-wide,
-  .qb-web .qb-companion-panel { width: 460px; flex-basis: 460px; }
+  html.qb-web { --qb-panel: 460px; }
 }
+.qb-web .qb-side-panel,
+.qb-web .qb-side-panel.qb-side-panel-wide,
+.qb-web .qb-companion-panel { width: var(--qb-panel); min-width: var(--qb-panel); max-width: var(--qb-panel); flex: 0 0 var(--qb-panel); }
 
 /* ---------- Recitation bar (desktop media bar) ---------- */
 .qb-web .qb-media-bar {
@@ -156,7 +160,7 @@
 /* Search: the command bar takes what the root and the actions leave. */
 .qb-web .qb-topbar-web:not(.is-home) .qb-topbar-page .qb-cmd { flex: 1 1 260px; }
 /* The reader zone: the reader bar's tools, flat — no capsule of their own. */
-.qb-web .qb-topbar-reader { flex: 1; min-width: 0; display: flex; align-items: center; }
+.qb-web .qb-topbar-reader { position: relative; align-self: stretch; flex: 1; min-width: 0; display: flex; align-items: center; }
 .qb-web .qb-topbar-reader:empty { display: none; }
 .qb-web .qb-topbar-web:not(.has-tools) .qb-topbar-reader { padding-inline-start: 22px; }
 .qb-web .qb-topbar-reader .qb-reader-head { flex: 1; min-width: 0; }
@@ -169,7 +173,10 @@
   background: none;
   box-shadow: none;
 }
-.qb-web .qb-topbar-reader .qb-reader-bar .progress { inset-inline: 0; bottom: -12px; }
+/* The reading progress lies on the bar's hairline, across the Mushaf's column
+   (the zone, not the bar inside it, is its box). */
+.qb-web .qb-topbar-reader .qb-reader-bar { position: static; }
+.qb-web .qb-topbar-reader .qb-reader-bar .progress { inset-inline: 0; bottom: -1px; border-radius: 0; }
 /* Focus mode hides the bar with the rest of the chrome (it no longer lives in the stage). */
 html.qb-web.qb-immersive .qb-topbar-web { display: none; }
 
@@ -241,21 +248,6 @@ html.qb-web.qb-immersive .qb-topbar-web { display: none; }
 .qb-web .qb-topbar-slot > .qb-aux-h .kicker { margin: 0; font-size: 12px; color: var(--fg-3); white-space: nowrap; }
 .qb-web .qb-topbar-slot > .qb-aux-h h2 { margin: 0; font-family: var(--font-arabic-heading); font-size: 20px; line-height: var(--lh-heading, 1.6); color: var(--gold-text); white-space: nowrap; }
 .qb-web .qb-topbar-slot > .qb-aux-h .sub { margin: 0; font-size: 12.5px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-/* Settings: a link per section (settings-screen.tsx). */
-.qb-web .qb-settings-links { display: flex; gap: 6px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
-.qb-web .qb-settings-links button {
-  flex: none;
-  height: 34px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid var(--border-strong);
-  background: transparent;
-  color: var(--fg-2);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-.qb-web .qb-settings-links button:hover { border-color: var(--gold-line); color: var(--gold-text); background: var(--gold-soft); }
 /* Community: its segmented tabs keep their own width (the share button closes the row). */
 .qb-web .qb-topbar-slot > .qb-community-tabs { flex: 0 1 auto; }
 .qb-web .qb-topbar-page:has(> .qb-topbar-slot > .qb-community-tabs) { justify-content: space-between; }
