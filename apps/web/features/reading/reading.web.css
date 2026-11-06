@@ -30,8 +30,13 @@
     outline: none;
     transition: none;
   }
-  .qb-web .qb-turn-zone.next { cursor: url("/cursors/turn-next.svg") 16 16, w-resize; }
-  .qb-web .qb-turn-zone.prev { cursor: url("/cursors/turn-prev.svg") 16 16, e-resize; }
+  /* A bare gold arrow, no disc, no band: the base rules' gold gradient on each
+     side is dropped whatever the stylesheet order. */
+  .qb-web .qb-turn-zone.next,
+  .qb-web .qb-turn-zone.prev,
+  .qb-web .qb-turn-zone:hover:not(:disabled) { background: none; box-shadow: none; border-radius: 0; }
+  .qb-web .qb-turn-zone.next { cursor: url("/cursors/turn-next.svg?v=2") 16 16, w-resize; }
+  .qb-web .qb-turn-zone.prev { cursor: url("/cursors/turn-prev.svg?v=2") 16 16, e-resize; }
   .qb-web .qb-turn-zone:disabled { cursor: default; }
   /* The stage is a centred column: each zone reaches out over its side margin
      to the canvas edge (clipped there), and the panels beside the Mushaf stay
@@ -47,3 +52,16 @@
 /* The surah name opens «انتقل»: no press scale — the name and the page line
    under it stay put (app/motion.css presses every other button). */
 .qb-web .qb-reader-bar .identity:active { transform: none; }
+
+/* The surah's name leads the bar: larger and brighter, with room for its
+   marks; the page line beside it stays quiet. */
+.qb-web .qb-topbar-reader .qb-reader-bar .identity .name {
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.75;
+  padding-bottom: 0;
+  color: var(--gold-text-bright);
+}
+.qb-web .qb-topbar-reader .qb-reader-bar .identity:hover .name,
+.qb-web .qb-topbar-reader .qb-reader-bar .identity:focus-visible .name { color: var(--gold-glow); }
+.qb-web .qb-topbar-reader .qb-reader-bar .identity { align-items: baseline; gap: 12px; }
