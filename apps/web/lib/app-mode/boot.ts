@@ -18,6 +18,7 @@
  */
 import { createQBasairApiClient } from "@q-basair/api-client";
 
+import { installAppBack } from "@/lib/app-back";
 import { API_BASE_URL } from "@/lib/config";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { lastReadPage, warmQuranPage } from "@/features/reading/mushaf-context";
@@ -123,6 +124,10 @@ export function bootApp({ onboarded }: { onboarded: boolean }): Promise<void> {
   if (started || typeof window === "undefined") return splashLifted;
   started = true;
   window.setTimeout(() => void hideSplash(), SAFETY_MS);
+
+  // Android's back button: the open sheet, then the screen before, then out (lib/app-back.ts).
+  const platform = (window as Window & { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.();
+  if (platform === "android") void installAppBack().catch(() => undefined);
 
   const fonts = loadFonts();
   const databases = appRuntime();

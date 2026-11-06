@@ -12,6 +12,7 @@ import type { CommentItem, GuidelineRule, PostDetail, SurahListItem } from "@q-b
 
 import { Icon } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
+import { useDialog } from "@/lib/use-dialog";
 import { useNumerals } from "@/lib/preferences-context";
 import { BoardView } from "@/features/board/board-view";
 import { relativeAge } from "@/features/companions/use-companions";
@@ -376,10 +377,11 @@ export function PostScreen() {
 function ReportSheet({ onClose, onSend }: { onClose: () => void; onSend: (rule: GuidelineRule, note: string) => void }) {
   const [rule, setRule] = useState<GuidelineRule>("other");
   const [note, setNote] = useState("");
+  const panelRef = useDialog<HTMLDivElement>(onClose);
   return (
     <div className="qb-rsheet" role="dialog" aria-modal="true" aria-label={t("إبلاغ")}>
       <div className="backdrop" onClick={onClose} aria-hidden />
-      <div className="panel" tabIndex={-1}>
+      <div className="panel" tabIndex={-1} ref={panelRef}>
         <div className="grip" aria-hidden />
         <div className="head">
           <h2>{t("إبلاغ المشرفين")}</h2>

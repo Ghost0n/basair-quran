@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode, type RefObject } from "react";
+import { type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
 import "./sheet.web.css";
 
 import { useBand } from "@/lib/bands";
-import { sheetStack } from "@/lib/sheet-stack";
 import { useDialog } from "@/lib/use-dialog";
 
 type SheetProps = {
@@ -49,13 +48,10 @@ export function SheetFrame({
 /**
  * A bottom sheet on a phone: a menu or a confirmation rises from the bottom
  * edge. Escape, the focus trap and swipe-down to close come from useDialog;
- * Android's back button closes it through sheetStack.
+ * Android's back button closes it through sheetStack (registered by useDialog).
  */
 export function Sheet(props: SheetProps) {
   const panelRef = useDialog<HTMLDivElement>(props.onClose);
-  const closeRef = useRef(props.onClose);
-  closeRef.current = props.onClose;
-  useEffect(() => sheetStack.push(() => closeRef.current()), []);
   if (typeof document === "undefined") return null;
   return createPortal(<SheetFrame {...props} panelRef={panelRef} />, document.body);
 }
