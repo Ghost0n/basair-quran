@@ -4,6 +4,8 @@ import { useRef, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactP
 
 import { isBackEdgeTouch } from "@/features/shell/edge-swipe-back";
 
+import { haptic } from "@/lib/haptics";
+
 // A swipe must travel this far horizontally, clearly more than vertically, and
 // quickly — so a vertical scroll or a slow drag never turns the page.
 const SWIPE_MIN_PX = 56;
@@ -106,6 +108,8 @@ export function useReaderGestures({ swipeEnabled, onNext, onPrev, onTap, mouseTa
       Math.abs(dx) >= SWIPE_MIN_PX &&
       Math.abs(dx) >= Math.abs(dy) * SWIPE_DOMINANCE
     ) {
+      // A swipe that turns the page answers with a light tap.
+      haptic("light");
       if (dx > 0) onNext();
       else onPrev();
       return;

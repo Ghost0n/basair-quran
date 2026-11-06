@@ -11,6 +11,7 @@ import type { ResearchAgentResponse, TafssirDepth } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { Sheet, usePhoneSheets } from "@/components/sheet";
+import { haptic } from "@/lib/haptics";
 import { drawEvidenceThread } from "@/lib/draw-evidence-thread";
 import { MiniRibbon } from "@/components/ribbon";
 import { useWebDesign } from "@/lib/use-web-design";
@@ -383,6 +384,7 @@ export function StudioPanel() {
                 className="primary"
                 disabled={converting}
                 onClick={() => {
+                  haptic("success");
                   void convertToDocument();
                 }}
               >

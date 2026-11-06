@@ -7,6 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, type PointerEvent as R
 
 import { BrandMark } from "@/components/brand-mark";
 import { Icon } from "@/components/icon";
+import { haptic } from "@/lib/haptics";
 
 import { useShellMode } from "./mode-context";
 import { PHONE_TABS, useOpenDestination } from "./worlds";
@@ -34,7 +35,12 @@ import { t } from "@/lib/i18n";
  */
 export function MobileTabBar() {
   const { mode } = useShellMode();
-  const open = useOpenDestination();
+  const openDestination = useOpenDestination();
+  // A tab change answers with a light tap (the app, and Chrome on Android).
+  const open: typeof openDestination = (item) => {
+    haptic("light");
+    openDestination(item);
+  };
   useKeyboardInset();
   const navRef = useRef<HTMLElement | null>(null);
   const lensRef = useRef<HTMLSpanElement | null>(null);
