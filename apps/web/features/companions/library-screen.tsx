@@ -402,7 +402,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
             {companions.roots.map((root) => (
               // The whole row opens the root's insights (its spread over the
               // mushaf); the row is role=button so the removal stays a real button.
-              <SwipeRow key={root.id} label={tt("إزالة الجذر من المحفوظات")} onDelete={() => void companions.unfollowRoot(root.id)}>
+              <SwipeRow key={root.id} label={tt("إزالة")} onDelete={() => void companions.unfollowRoot(root.id)}>
               <div
                 className="qb-aux-row is-link"
                 role="button"
@@ -427,7 +427,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                 <button
                   type="button"
                   className="row-action delete"
-                  aria-label={tt("إزالة الجذر من المحفوظات")}
+                  aria-label={tt("إزالة")}
                   onClick={(event) => {
                     event.stopPropagation();
                     void companions.unfollowRoot(root.id);

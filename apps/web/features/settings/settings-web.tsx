@@ -242,6 +242,13 @@ export function SettingsWeb() {
             topSlots.start,
           )
         : null}
+      {topSlots ? null : (
+        // No top bar to carry the page on a phone: its own heading, as before.
+        <div className="qb-settings-h">
+          <div className="kicker">{t("الإعدادات")}</div>
+          <h2>{t("التفضيلات")}</h2>
+        </div>
+      )}
       <nav className="qb-settings-index" aria-label={t("الإعدادات")}>
         {SECTIONS.filter((item) => present.includes(item.id) && (!matching || matching.includes(item.id))).map((item) => (
           <button

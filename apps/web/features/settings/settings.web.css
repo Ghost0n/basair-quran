@@ -202,3 +202,80 @@ html.qb-web[dir="rtl"] .qb-switch-row[aria-checked="true"] .qb-switch::after { t
 .qb-web .qb-settings-search input::-webkit-search-cancel-button { display: none; }
 .qb-web .qb-settings.is-web [data-filtered-out] { display: none !important; }
 .qb-web .qb-settings-empty { margin: 40px 0 0; font-size: 15px; color: var(--fg-3); }
+
+/* Phones: one column. The sections' index is a row of chips that stays at the
+   top while the page scrolls; each setting's control goes under its name. */
+@media (max-width: 768px) {
+  /* Block, not a one-column grid: in a grid of fixed height the scrolling
+     chip row's track collapsed and the first section slid under it. */
+  .qb-web .qb-settings.is-web {
+    display: block;
+    padding-block: 18px var(--page-bottom, 96px);
+    padding-inline: 16px;
+    /* A section jumped to lands under the chip row, not behind it. */
+    scroll-padding-top: 76px;
+  }
+  .qb-web .qb-settings.is-web .qb-settings-h {
+    margin: 0 0 6px;
+  }
+  .qb-web .qb-settings-index {
+    z-index: 2;
+    flex-direction: row;
+    gap: 8px;
+    margin-inline: -16px;
+    padding: 10px 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .qb-web .qb-settings-index::-webkit-scrollbar {
+    display: none;
+  }
+  .qb-web .qb-settings-index button {
+    flex: none;
+    height: 44px;
+    gap: 8px;
+    padding: 0 16px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .qb-web .qb-settings-index button.active {
+    border-color: var(--gold-line);
+  }
+  .qb-web .qb-settings.is-web .qb-settings-grid {
+    padding-top: 4px;
+  }
+  .qb-web .qb-settings.is-web .qb-setting-card {
+    padding: 22px 0 14px;
+  }
+  .qb-web .qb-setting-row.is-split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .qb-web .qb-setting-row.is-split .ctl {
+    justify-content: flex-start;
+  }
+  .qb-web .qb-setting-row.is-split .qb-setting-menu {
+    min-width: 0;
+    width: 100%;
+  }
+  /* A choice takes the row's width; a long option wraps inside its pill
+     rather than running off the screen. */
+  .qb-web .qb-setting-row.is-split .qb-seg {
+    display: flex;
+    width: 100%;
+  }
+  .qb-web .qb-setting-row.is-split .qb-seg button {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: auto;
+    min-height: 40px;
+    padding: 6px 10px;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.35;
+    white-space: normal;
+  }
+}
