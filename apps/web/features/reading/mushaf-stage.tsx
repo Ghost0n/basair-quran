@@ -121,13 +121,18 @@ export function MushafStage() {
   // closed: every tool closes, verse taps do nothing, and on phones a tap on
   // the page only switches the view (the clear page ↔ the bars).
   const sessionActive = useRecitation().active;
+  // The web design (desktop) keeps the reader's tools live while the reciter
+  // is open, playing or paused: only phones and narrow windows lock them.
+  const webDesk = useWebDesign();
+  const narrowCanvas = useIsMobile(1000);
+  const readerLocked = sessionActive && !(webDesk && !narrowCanvas);
   // While reciting, the recited verse is the only lit one: the resume/selected
   // verse steps back so the two blocks never stack.
   const selectedAyahId = sessionActive ? null : mushaf.selectedAyahId;
   const phone = usePhoneLayout();
   const portrait = useIsMobile();
   useEffect(() => {
-    if (!sessionActive) return;
+    if (!readerLocked) return;
     setSelection(null);
     setMorphTarget(null);
     setFocusAyahId(null);
@@ -135,7 +140,7 @@ export function MushafStage() {
     setDisplayOpen(false);
     if (phone && !portrait) setImmersive(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionActive]);
+  }, [readerLocked]);
 
   // Focus mode hides the shell chrome too (top bar, rail, tab bar) — a class on
   // <html> lets shell.css react without threading state through the shell.
@@ -472,7 +477,7 @@ export function MushafStage() {
 
   // «تظليل» hover: the verse under the pointer lights whole (mouse only).
   function onSurfaceHover(event: React.PointerEvent<HTMLDivElement>) {
-    if (sessionActive || tool !== "highlight" || event.pointerType !== "mouse") return;
+    if (readerLocked || tool !== "highlight" || event.pointerType !== "mouse") return;
     const target = event.target as Element;
     const verse = target.closest<HTMLElement>("[data-aid], [data-ayah-id]");
     // Between two words of a line: keep the current verse (no flicker).
@@ -483,7 +488,7 @@ export function MushafStage() {
 
   // Glyph readers: build the ayah payload from the ornament + catalog.
   function handleGlyphSave(target: GlyphSaveTarget) {
-    if (sessionActive) return;
+    if (readerLocked) return;
     const surahName = surahs.find((item) => item.id === target.surahId)?.name ?? `${target.surahId}`;
     activateVerse({
       ayah_id: target.ayahId,
@@ -496,7 +501,7 @@ export function MushafStage() {
   }
 
   function handleAyahSave(ayah: QuranPageAyah) {
-    if (sessionActive) return;
+    if (readerLocked) return;
     activateVerse({
       ayah_id: ayah.ayah_id,
       mushaf_id: ayah.mushaf_id,
@@ -697,7 +702,7 @@ export function MushafStage() {
   // text, and the bars stay (a recitation locks the tools, so it reads too).
   function onPageTap() {
     if (sessionActive && phone && !portrait) toggleRevealed();
-    else if (tool === "read" || sessionActive) setImmersive((value) => !value);
+    else if (tool === "read" || readerLocked) setImmersive((value) => !value);
     // «تحديد»: a tap beside the words lets the selection go.
     else if (tool === "select") setSelection(null);
   }
@@ -925,7 +930,7 @@ export function MushafStage() {
 
   // One entry point for pointer + keyboard word activation, routed by tool.
   function activateWord(surah: number, ayah: number, element: HTMLElement, ayahText?: string) {
-    if (sessionActive || tool === "read") {
+    if (readerLocked || tool === "read") {
       // The verse doesn't react (no focus ring left on the tapped word): on
       // phones the tap shows or hides the bars, as on the page around it.
       element.blur();
@@ -1041,7 +1046,7 @@ export function MushafStage() {
         onToggleDisplay={() => setDisplayOpen((open) => !open)}
         onCloseDisplay={() => setDisplayOpen(false)}
         onToggleImmersive={() => setImmersive((value) => !value)}
-        locked={sessionActive}
+        locked={readerLocked}
         recitedAway={recitedAway}
         onShowRecited={showRecited}
       />
