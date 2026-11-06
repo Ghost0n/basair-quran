@@ -14,7 +14,6 @@ import type { NotebookItem, ThemeColor, ThemeSummary } from "@q-basair/shared";
 import { Icon } from "@/components/icon";
 import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
 import { citedSurahCounts } from "@/features/studio/cited-surahs";
-import { RoomWideToggle } from "@/features/shell/room";
 import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { useWebDesign } from "@/lib/use-web-design";
 import { useIsMobile } from "@/lib/use-is-mobile";
@@ -160,10 +159,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
   return (
     <div className="qb-aux">
       {topSlots ? (
-        <>
-          {createPortal(tabStrip, topSlots.start)}
-          {web && !compact ? createPortal(<RoomWideToggle />, topSlots.end) : null}
-        </>
+        createPortal(tabStrip, topSlots.start)
       ) : (
         <>
           <div className="qb-aux-h">
@@ -179,7 +175,6 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                 ].join(tt("، "))}
               </div>
             </div>
-            {web && !compact ? <RoomWideToggle /> : null}
           </div>
           {tabStrip}
         </>

@@ -10,7 +10,6 @@ import type { SearchVerse } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
-import { RoomWideToggle } from "@/features/shell/room";
 import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { useRootSpread } from "@/lib/use-root-spread";
@@ -241,7 +240,6 @@ export function ConcordancePanel() {
   );
   const headActions = (
     <div className="qb-side-head-actions">
-      {web && !isCompact ? <RoomWideToggle /> : null}
       {primary ? (
         <button
           type="button"
@@ -253,9 +251,12 @@ export function ConcordancePanel() {
           <Icon name="history" size={15} />
         </button>
       ) : null}
-      <button type="button" className="close dismiss" title={t("إغلاق")} aria-label={t("إغلاق لوحة المطابقة")} onClick={() => setMode("reading")}>
-        <Icon name="close" size={16} />
-      </button>
+      {/* The web design leaves the panel through the rail, like every page: no close. */}
+      {web ? null : (
+        <button type="button" className="close dismiss" title={t("إغلاق")} aria-label={t("إغلاق لوحة المطابقة")} onClick={() => setMode("reading")}>
+          <Icon name="close" size={16} />
+        </button>
+      )}
     </div>
   );
 

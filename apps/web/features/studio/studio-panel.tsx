@@ -12,7 +12,6 @@ import type { ResearchAgentResponse, TafssirDepth } from "@q-basair/shared";
 import { Icon } from "@/components/icon";
 import { drawEvidenceThread } from "@/lib/draw-evidence-thread";
 import { MiniRibbon } from "@/components/ribbon";
-import { RoomWideToggle } from "@/features/shell/room";
 import { useWebDesign } from "@/lib/use-web-design";
 import { useIsMobile } from "@/lib/use-is-mobile";
 
@@ -213,7 +212,6 @@ export function StudioPanel() {
   );
   const headActions = (
     <>
-      {webDesign && !compactCanvas ? <RoomWideToggle /> : null}
       {hasMessages ? (
         <button
           type="button"
@@ -246,15 +244,18 @@ export function StudioPanel() {
       >
         <Icon name="settings" size={16} />
       </button>
-      <button
-        type="button"
-        className="close desk-only"
-        title={t("إغلاق")}
-        aria-label={t("إغلاق لوحة الدراسة")}
-        onClick={() => setShellMode("reading")}
-      >
-        <Icon name="close" size={16} />
-      </button>
+      {/* The web design leaves the panel through the rail, like every page: no close. */}
+      {webDesign ? null : (
+        <button
+          type="button"
+          className="close desk-only"
+          title={t("إغلاق")}
+          aria-label={t("إغلاق لوحة الدراسة")}
+          onClick={() => setShellMode("reading")}
+        >
+          <Icon name="close" size={16} />
+        </button>
+      )}
     </>
   );
 

@@ -2,8 +2,6 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 
-import { Icon } from "@/components/icon";
-import { t } from "@/lib/i18n";
 
 /**
  * "The Mushaf is the room" (web design): a panel opens beside the Mushaf and
@@ -48,15 +46,4 @@ export function useRoomReset(mode: string): void {
   useEffect(() => {
     resetRoomFor(mode);
   }, [mode]);
-}
-
-/** The panel-header button: widen the panel, or bring the Mushaf back. */
-export function RoomWideToggle() {
-  const [isWide, setWide] = useRoomWide();
-  const label = isWide ? t("أظهر المصحف بجانب اللوحة") : t("وسّع اللوحة");
-  return (
-    <button type="button" className="qb-icon-btn qb-room-toggle" onClick={() => setWide(!isWide)} title={label} aria-label={label} aria-pressed={isWide}>
-      <Icon name={isWide ? "book" : "expand"} size={16} />
-    </button>
-  );
 }
