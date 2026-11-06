@@ -12,13 +12,13 @@ import { useIsMobile } from "@/lib/use-is-mobile";
 import { useNativeTabBar } from "@/lib/native-tab-bar";
 
 import { useShellMode } from "./mode-context";
-import { PHONE_TABS, useOpenDestination } from "./worlds";
+import { PHONE_TABS, rememberResearch, researchTarget, useOpenDestination, type Destination } from "./worlds";
 
 import { t } from "@/lib/i18n";
 
 /**
  * The phone's bottom navigation bar: the same five destinations (Home ·
- * المصحف · البحث · الدراسة · الدفتر), in the same place, on every screen,
+ * المصحف · البحث (search and study) · الدفتر · المجتمع), in the same place, on every screen,
  * each with its label (docs/mobile-ergonomics.md). A second tap on the
  * current tab scrolls back to the top. Hidden on desktop (the rail lists
  * every destination there).
@@ -42,10 +42,15 @@ export function MobileTabBar() {
   const { mode } = useShellMode();
   const openDestination = useOpenDestination();
   // A tab change answers with a light tap (the app, and Chrome on Android).
-  const open: typeof openDestination = (item) => {
+  // The research tab reopens search or study, whichever was used last.
+  const open = (item: Destination) => {
     haptic("light");
-    openDestination(item);
+    openDestination(item.id === "search" ? researchTarget() : item);
   };
+  useEffect(() => rememberResearch(mode), [mode]);
+  // A tap on the current tab, on its own page, scrolls it back to the top
+  // (search and study both count as the research tab's own page).
+  const isOwnPage = (item: Destination) => item.mode === mode || (item.id === "search" && mode === "studio");
   useKeyboardInset();
   const narrow = useIsMobile(768);
   const activeId = PHONE_TABS.find((item) => item.owns.includes(mode))?.id ?? "";
@@ -57,7 +62,7 @@ export function MobileTabBar() {
     onSelect: (id) => {
       const item = PHONE_TABS.find((tab) => tab.id === id);
       if (!item) return;
-      if (item.owns.includes(mode) && item.mode === mode) scrollCanvasToTop();
+      if (item.owns.includes(mode) && isOwnPage(item)) scrollCanvasToTop();
       else open(item);
     },
   });
@@ -162,7 +167,7 @@ export function MobileTabBar() {
             aria-label={brand ? item.label : undefined}
             onClick={() => {
               if (suppressClickRef.current) return;
-              if (current && item.mode === mode) {
+              if (current && isOwnPage(item)) {
                 // A second tap on the current tab: back to its top.
                 scrollCanvasToTop();
                 return;
@@ -188,6 +193,7 @@ const NATIVE_SYMBOLS: Record<string, string> = {
   search: "magnifyingglass",
   study: "sparkles",
   notebook: "note.text",
+  community: "person.3",
 };
 
 /** Every scrolled region of the page goes back to its top. */

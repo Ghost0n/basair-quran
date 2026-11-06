@@ -173,3 +173,57 @@ html.qb-web[dir="rtl"] .qb-verse-row.selected {
   .qb-web .qb-heat-cell:hover,
   .qb-web .qb-heat-cell:focus-visible { transform: none; }
 }
+
+/* Phones: the summary in less room. The page header already names the term
+   and its counts, so the summary keeps the gloss, the spread graph full width,
+   and the two actions side by side under it. */
+@media (max-width: 768px) {
+  html.qb-web .qb-root-summary {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 0 0 14px;
+    margin-bottom: 8px;
+  }
+
+  html.qb-web .qb-root-summary > * {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  /* The term's header and the summary read as one block. */
+  html.qb-web:root[data-shell-mode="search"] .qb-side-panel:not(.qb-side-panel-wide) > .qb-side-head {
+    padding-bottom: 4px;
+  }
+
+  html.qb-web:root[data-shell-mode="search"] .qb-side-panel:not(.qb-side-panel-wide) > .qb-side-body {
+    padding-top: 4px;
+  }
+
+  html.qb-web .qb-root-summary > .root-disp,
+  html.qb-web .qb-root-summary > .root-stats {
+    display: none;
+  }
+
+  html.qb-web .qb-root-summary > .qb-conc-ribbon {
+    order: 1;
+    margin-top: 0;
+  }
+
+  html.qb-web .qb-root-summary > .qb-conc-filter {
+    order: 2;
+    flex: 0 0 auto;
+  }
+
+  html.qb-web .qb-root-summary > .qb-follow-root {
+    order: 3;
+    flex: 1 1 0;
+    justify-content: center;
+    min-height: 40px;
+    margin-top: 0 !important;
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+}

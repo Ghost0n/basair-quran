@@ -29,6 +29,8 @@
 .qb-web .qb-aux-row:hover { background: var(--gold-soft); }
 .qb-web .qb-aux-row .icon-tile { border-radius: 10px; background: var(--gold-soft); color: var(--gold-text); border: 0; box-shadow: none; }
 .qb-web .qb-aux-row .title { font-family: var(--font-arabic-heading); font-size: 16px; line-height: 1.7; }
+/* Board names in the notebook: room for Arabic marks under an ellipsis. */
+.qb-web .qb-board-item .title { line-height: 1.7; }
 .qb-web .qb-aux-row .root-disp { font-family: var(--font-arabic-heading); letter-spacing: 0.22em; color: var(--gold-text); }
 .qb-web .qb-aux-row .row-action { border-radius: 50%; }
 

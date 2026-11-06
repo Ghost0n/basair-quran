@@ -27,6 +27,7 @@ import { usePhoneLayout } from "@/lib/use-phone-layout";
 import { EdgeSwipeBack } from "./edge-swipe-back";
 import { LeftRail } from "./left-rail";
 import { MobileTabBar } from "./mobile-tab-bar";
+import { ResearchSwitch } from "./research-switch";
 import { useShellMode } from "./mode-context";
 import { ShortcutsModal } from "./shortcuts-modal";
 import { ThemeSweep } from "./theme-sweep";
@@ -80,6 +81,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <div className="qb-frame">
               <LeftRail />
               <div className="qb-main">
+                <ResearchSwitch />
                 <TopBar />
                 <div className="qb-canvas">{children}</div>
                 {phone ? null : <RecitationBar />}

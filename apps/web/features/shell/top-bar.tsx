@@ -44,7 +44,7 @@ export function TopBar() {
   // The web design: one top bar on every page (WebTopBar). On a phone a page
   // draws its own compact header (no top-bar slots there) and the reader its
   // own bar, so the top bar stays only where it carries the command bar.
-  if (web && phone && mode !== "search" && mode !== "home") return null;
+  if (web && phone && mode !== "search") return null;
   if (web) return <WebTopBar mode={mode} />;
   // The command bar is Search's own surface: elsewhere it would only cost a
   // row of height (the reader bar carries a search button; Home has its hero

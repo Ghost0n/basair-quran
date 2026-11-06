@@ -65,15 +65,34 @@ export const COMMUNITY = destination(
 /**
  * The phone's five tabs (thumb reach: 3–5 labelled destinations, R7 in
  * docs/mobile-ergonomics.md). The reader's tab also lights on its index and
- * saved pages; Home on Settings. Community is one tap away from Home.
+ * saved pages; Home on Settings. Search and study share one research tab (a
+ * switch at the top moves between them, research-switch.tsx), which leaves
+ * room for Community at the far end, opposite Home.
  */
 export const PHONE_TABS: readonly Destination[] = [
   owning(HOME, ["home", "settings"]),
   owning(READER, ["reading", "saved", "index"]),
-  SEARCH,
-  STUDY,
+  owning(SEARCH, ["search", "heatmap", "studio"]),
   NOTEBOOK,
+  COMMUNITY,
 ];
+
+/** The two pages behind the phone's research tab. */
+export const RESEARCH_PAGES: readonly Destination[] = [SEARCH, STUDY];
+
+// The research tab reopens the page used last (search or study), for this session.
+let lastResearch: "search" | "study" = "search";
+
+/** Notes the research page the reader is on (other pages leave it as it was). */
+export function rememberResearch(mode: ShellMode): void {
+  if (SEARCH.owns.includes(mode)) lastResearch = "search";
+  else if (STUDY.owns.includes(mode)) lastResearch = "study";
+}
+
+/** Where the phone's research tab leads: the research page used last. */
+export function researchTarget(): Destination {
+  return lastResearch === "study" ? STUDY : SEARCH;
+}
 
 /** The same destination lighting on more pages (its label stays live, never copied). */
 function owning(base: Destination, owns: readonly ShellMode[]): Destination {

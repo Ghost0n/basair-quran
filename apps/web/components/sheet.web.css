@@ -135,11 +135,27 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 14px;
+    gap: 12px;
     border: 0;
     background: none;
     box-shadow: none;
     animation: none;
+  }
+
+  /* As a column the size row must not keep its desktop flex basis (200px tall),
+     and the highlight toggle is a labelled pill, not a full-width bar. */
+  html.qb-web .qb-sheet.is-display .qb-display-strip .size {
+    flex: none;
+  }
+
+  html.qb-web .qb-sheet.is-display .qb-display-strip .toggle {
+    align-self: flex-start;
+    width: auto;
+    padding: 0 14px;
+  }
+
+  html.qb-web .qb-sheet.is-display .qb-display-strip .toggle span {
+    display: inline;
   }
 
   /* A menu's options: full-width rows, the chosen one with a gold check. */
