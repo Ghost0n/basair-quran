@@ -21,6 +21,7 @@ import { HomeSettings } from "./home-settings";
 import { LanguageSelect } from "./language-select";
 import { TranslationsSettings } from "./translations-settings";
 
+import { TAFSSIR_ENABLED } from "@/lib/features";
 import { t } from "@/lib/i18n";
 
 const NUMERALS: { value: NumeralScript; label: () => string }[] = [
@@ -363,7 +364,9 @@ export function SettingsWeb() {
           </section>,
         )}
 
-        {section(
+        {/* «الدراسة» holds only the explanatory reading's choices: it exists
+            only in a build that has that reading (lib/features.ts). */}
+        {TAFSSIR_ENABLED && section(
           "study",
           <section className="qb-setting-card">
             <h3>{t("الدراسة")}</h3>

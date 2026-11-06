@@ -1183,5 +1183,10 @@
  "ابحث في الإعدادات…": "Pretraži postavke…",
  "عرض التحديد في المصحف؟": "Prikazati odabir u Mushafu?",
  "تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.": "Bočna stranica se zatvara, a detalji za «{0}» otvaraju se pored Mushafa.",
- "انتقل إلى المصحف": "Idi na Mushaf"
+ "انتقل إلى المصحف": "Idi na Mushaf",
+ "إخفاء الجلسات": "Sakrij sesije",
+ "إظهار الجلسات": "Prikaži sesije",
+ "اطرح سؤالك…": "Postavite pitanje…",
+ "سؤالك": "Vaše pitanje",
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter za slanje, Shift+Enter za novi red"
 }

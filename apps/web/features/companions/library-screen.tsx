@@ -33,6 +33,7 @@ import { createDocumentUrl } from "@/features/documents/open-document";
 
 import { relativeAge, useCompanions } from "./use-companions";
 
+import { TAFSSIR_ENABLED } from "@/lib/features";
 import { t as tt, tn } from "@/lib/i18n";
 
 type LibraryTab = "verses" | "boards" | "documents" | "sessions" | "roots";
@@ -126,7 +127,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
     (item) => !(item.theme_ids ?? []).some((themeId) => themeById(themeId) != null),
   );
   const visibleSessions = companions.sessions.filter(
-    (s) => sessionFilter === "all" || s.mode === sessionFilter,
+    (s) => !TAFSSIR_ENABLED || sessionFilter === "all" || s.mode === sessionFilter,
   );
 
   const savedCounts = citedSurahCounts(companions.notebook.map((item) => ({ surah_id: item.surah_id ?? 0 })));
@@ -347,13 +348,16 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
       {/* ---- Sessions ---- */}
       {tab === "sessions" && !companions.loading ? (
         <>
-          <div className="qb-form-tabs" style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-            {SESSION_FILTERS.map((option) => (
-              <button key={option.value} type="button" className={`qb-pill${sessionFilter === option.value ? " active" : ""}`} onClick={() => setSessionFilter(option.value)}>
-                {option.label}
-              </button>
-            ))}
-          </div>
+          {/* Sessions sort by reading kind only where the explanatory reading exists. */}
+          {TAFSSIR_ENABLED ? (
+            <div className="qb-form-tabs" style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+              {SESSION_FILTERS.map((option) => (
+                <button key={option.value} type="button" className={`qb-pill${sessionFilter === option.value ? " active" : ""}`} onClick={() => setSessionFilter(option.value)}>
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
           {visibleSessions.length === 0 ? (
             <div className="qb-aux-state">{tt("لا توجد جلسات محفوظة في هذا التصنيف.")}</div>
           ) : (

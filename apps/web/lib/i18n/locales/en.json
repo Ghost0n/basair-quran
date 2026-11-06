@@ -1162,5 +1162,10 @@
  "ابحث في الإعدادات…": "Search settings…",
  "عرض التحديد في المصحف؟": "Show the selection in the Mushaf?",
  "تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.": "The side page closes and the details of «{0}» open beside the Mushaf.",
- "انتقل إلى المصحف": "Go to the Mushaf"
+ "انتقل إلى المصحف": "Go to the Mushaf",
+ "إخفاء الجلسات": "Hide sessions",
+ "إظهار الجلسات": "Show sessions",
+ "اطرح سؤالك…": "Ask your question…",
+ "سؤالك": "Your question",
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter to send, Shift+Enter for a new line"
 }

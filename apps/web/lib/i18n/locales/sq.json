@@ -1162,5 +1162,10 @@
  "ابحث في الإعدادات…": "Kërko te cilësimet…",
  "عرض التحديد في المصحف؟": "Të shfaqet përzgjedhja në Mus'haf?",
  "تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.": "Faqja anësore mbyllet dhe hollësitë e «{0}» hapen pranë Mus'hafit.",
- "انتقل إلى المصحف": "Shko te Mus'hafi"
+ "انتقل إلى المصحف": "Shko te Mus'hafi",
+ "إخفاء الجلسات": "Fshih seancat",
+ "إظهار الجلسات": "Shfaq seancat",
+ "اطرح سؤالك…": "Bëni pyetjen tuaj…",
+ "سؤالك": "Pyetja juaj",
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter për ta dërguar, Shift+Enter për rresht të ri"
 }

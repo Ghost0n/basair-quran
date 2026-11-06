@@ -27,6 +27,7 @@ import { PostCard, type PostCardActions } from "./post-card";
 import { sharePostLink } from "./share-link";
 import { useCommunityAccess } from "./use-community-access";
 
+import { TAFSSIR_ENABLED } from "@/lib/features";
 import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
@@ -352,26 +353,29 @@ export function CommunityScreen() {
                 options={surahOptions}
                 onChange={(value) => setFilter("surah", value ? Number(value) : null)}
               />
-              <div className="qb-segmented qb-fit-track" data-autofit="1" suppressHydrationWarning role="radiogroup" aria-label={t("نوع البحث")}>
-                {(
-                  [
-                    [null, t("الكل")],
-                    ["strict", t("القرآن وحدَه")],
-                    ["tafssir", t("تفسيرية")],
-                  ] as const
-                ).map(([value, label]) => (
-                  <button
-                    key={label}
-                    type="button"
-                    role="radio"
-                    aria-checked={filters.mode === value}
-                    className={filters.mode === value ? (value === "tafssir" ? "on copper" : "on") : ""}
-                    onClick={() => setFilter("mode", value)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              {/* The reading kind: only in a build with the explanatory reading (lib/features.ts). */}
+              {TAFSSIR_ENABLED ? (
+                <div className="qb-segmented qb-fit-track" data-autofit="1" suppressHydrationWarning role="radiogroup" aria-label={t("نوع البحث")}>
+                  {(
+                    [
+                      [null, t("الكل")],
+                      ["strict", t("القرآن وحدَه")],
+                      ["tafssir", t("تفسيرية")],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={label}
+                      type="button"
+                      role="radio"
+                      aria-checked={filters.mode === value}
+                      className={filters.mode === value ? (value === "tafssir" ? "on copper" : "on") : ""}
+                      onClick={() => setFilter("mode", value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               <button
                 type="button"
                 className={`qb-chip toggle${filters.board ? " on" : ""}`}

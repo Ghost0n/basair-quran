@@ -1162,5 +1162,10 @@
  "ابحث في الإعدادات…": "Instellingen doorzoeken…",
  "عرض التحديد في المصحف؟": "De selectie in de Mushaf tonen?",
  "تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.": "De zijpagina sluit en de details van «{0}» openen naast de Mushaf.",
- "انتقل إلى المصحف": "Naar de Mushaf"
+ "انتقل إلى المصحف": "Naar de Mushaf",
+ "إخفاء الجلسات": "Sessies verbergen",
+ "إظهار الجلسات": "Sessies tonen",
+ "اطرح سؤالك…": "Stel je vraag…",
+ "سؤالك": "Je vraag",
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter om te verzenden, Shift+Enter voor een nieuwe regel"
 }

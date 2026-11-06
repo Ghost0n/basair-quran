@@ -1162,5 +1162,10 @@
  "ابحث في الإعدادات…": "Pesquisar nas definições…",
  "عرض التحديد في المصحف؟": "Mostrar a seleção no Mushaf?",
  "تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.": "A página lateral fecha-se e os detalhes de «{0}» abrem-se ao lado do Mushaf.",
- "انتقل إلى المصحف": "Ir para o Mushaf"
+ "انتقل إلى المصحف": "Ir para o Mushaf",
+ "إخفاء الجلسات": "Ocultar sessões",
+ "إظهار الجلسات": "Mostrar sessões",
+ "اطرح سؤالك…": "Faça a sua pergunta…",
+ "سؤالك": "A sua pergunta",
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter para enviar, Shift+Enter para nova linha"
 }

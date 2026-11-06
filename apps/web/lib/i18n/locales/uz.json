@@ -1162,5 +1162,10 @@
  "ابحث في الإعدادات…": "Sozlamalardan qidirish…",
  "عرض التحديد في المصحف؟": "Tanlov Mushafda ko‘rsatilsinmi?",
  "تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.": "Yon sahifa yopiladi va «{0}» tafsilotlari Mushaf yonida ochiladi.",
- "انتقل إلى المصحف": "Mushafga o‘tish"
+ "انتقل إلى المصحف": "Mushafga o‘tish",
+ "إخفاء الجلسات": "Sessiyalarni yashirish",
+ "إظهار الجلسات": "Sessiyalarni ko‘rsatish",
+ "اطرح سؤالك…": "Savolingizni bering…",
+ "سؤالك": "Savolingiz",
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Yuborish uchun Enter, yangi qator uchun Shift+Enter"
 }

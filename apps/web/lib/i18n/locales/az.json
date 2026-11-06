@@ -1162,5 +1162,10 @@
  "ابحث في الإعدادات…": "Ayarlarda axtar…",
  "عرض التحديد في المصحف؟": "Seçim Mushafda göstərilsin?",
  "تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.": "Yan səhifə bağlanır və «{0}» təfərrüatları Mushafın yanında açılır.",
- "انتقل إلى المصحف": "Mushafa keç"
+ "انتقل إلى المصحف": "Mushafa keç",
+ "إخفاء الجلسات": "Sessiyaları gizlət",
+ "إظهار الجلسات": "Sessiyaları göstər",
+ "اطرح سؤالك…": "Sualınızı verin…",
+ "سؤالك": "Sualınız",
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Göndərmək üçün Enter, yeni sətir üçün Shift+Enter"
 }

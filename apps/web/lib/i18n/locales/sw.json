@@ -1162,5 +1162,10 @@
  "ابحث في الإعدادات…": "Tafuta katika mipangilio…",
  "عرض التحديد في المصحف؟": "Onyesha uteuzi katika Msahafu?",
  "تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.": "Ukurasa wa pembeni unafungwa na maelezo ya «{0}» yanafunguka kando ya Msahafu.",
- "انتقل إلى المصحف": "Nenda kwenye Msahafu"
+ "انتقل إلى المصحف": "Nenda kwenye Msahafu",
+ "إخفاء الجلسات": "Ficha vipindi",
+ "إظهار الجلسات": "Onyesha vipindi",
+ "اطرح سؤالك…": "Uliza swali lako…",
+ "سؤالك": "Swali lako",
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter kutuma, Shift+Enter kwa mstari mpya"
 }

@@ -21,6 +21,8 @@ import { useNumerals } from "@/lib/preferences-context";
 import { renderHighlightedVerseText } from "@/lib/quran-ui";
 import { STUDIO_ASK_EVENT, drainStudioAsk, drainStudioOpenSession, type StudioAsk } from "@/lib/studio-prefill";
 import { useMushaf } from "@/features/reading/mushaf-context";
+import { TAFSSIR_ENABLED } from "@/lib/features";
+import { useStickyState } from "@/lib/use-sticky-state";
 import { useDialog } from "@/lib/use-dialog";
 import { saveClientResearchSettings } from "@/features/research/lib/research-client-settings";
 import { useShellMode } from "@/features/shell/mode-context";
@@ -92,6 +94,9 @@ export function StudioPanel() {
   // document, so a stray touch shouldn't. A failure says so in the banner.
   const [convertAsk, setConvertAsk] = useState<"closed" | "ask" | "failed">("closed");
   const [sessionsOpen, setSessionsOpen] = useState(false);
+  // Web design: the sessions sit in a side column, like every AI chat; it can
+  // be folded away to give the thread the whole width.
+  const [sideOpen, setSideOpen] = useStickyState<boolean>("qb.studio.sessionsSide", true);
 
   // «حوّل إلى بحث»: the session becomes an editable research document.
   async function convertToDocument() {
@@ -111,7 +116,8 @@ export function StudioPanel() {
   const threadRef = useRef<HTMLDivElement | null>(null);
 
   const active = studio.active;
-  const isTafssir = active?.mode === "tafssir";
+  // The explanatory reading exists only in a build that has it (lib/features.ts).
+  const isTafssir = TAFSSIR_ENABLED && active?.mode === "tafssir";
   const hasMessages = Boolean(active && active.messages.length > 0);
 
   // A question asked about one session never carries over to another.
@@ -177,8 +183,52 @@ export function StudioPanel() {
     saveClientResearchSettings(next);
   }
 
-  // Web design, desktop: the session tabs and the panel's actions live in the
-  // shell's top bar (top-bar-slots.ts); the panel then needs no heading.
+  // Web design, desktop: the open session's name and the panel's actions live
+  // in the shell's top bar (top-bar-slots.ts); the sessions are a side column.
+  const barTitle = (
+    <div className="qb-studio-bar">
+      <button
+        type="button"
+        className={`qb-studio-side-toggle${sideOpen ? " on" : ""}`}
+        aria-pressed={sideOpen}
+        aria-label={sideOpen ? t("إخفاء الجلسات") : t("إظهار الجلسات")}
+        title={sideOpen ? t("إخفاء الجلسات") : t("إظهار الجلسات")}
+        onClick={() => setSideOpen(!sideOpen)}
+      >
+        <Icon name="sidebar" size={17} />
+      </button>
+      <span className="qb-studio-bar-title" title={active?.title ?? t("جلسة جديدة")}>
+        {active?.title ?? t("جلسة جديدة")}
+      </span>
+    </div>
+  );
+  const sessionsSide = (
+    <nav className="qb-studio-side" aria-label={t("الجلسات")}>
+      <button type="button" className="qb-studio-new" onClick={studio.newSession}>
+        <Icon name="plus" size={15} />
+        <span>{t("جلسة جديدة")}</span>
+      </button>
+      <div className="qb-studio-side-label">{t("الجلسات")}</div>
+      <ul className="qb-studio-side-list">
+        {[...studio.sessions].reverse().map((session) => (
+          <li key={session.id} className={session.id === studio.activeId ? "active" : ""}>
+            <button
+              type="button"
+              className="open"
+              aria-current={session.id === studio.activeId ? "true" : undefined}
+              onClick={() => studio.setActiveId(session.id)}
+            >
+              <span className="name">{session.title}</span>
+              <span className="count">{tn("{0} رسالة", session.messages.length, { 0: formatNumber(session.messages.length) })}</span>
+            </button>
+            <button type="button" className="x" aria-label={t("إغلاق الجلسة")} title={t("إغلاق الجلسة")} onClick={() => studio.closeSession(session.id)}>
+              <Icon name="close" size={13} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
   const sessionTabs = (
     <div className="qb-studio-tabs">
       {studio.sessions.map((session) => (
@@ -261,11 +311,12 @@ export function StudioPanel() {
 
   return (
     <aside className="qb-side-panel qb-side-panel-wide" aria-label={t("لوحة الدراسة")}>
-      <div className="qb-studio">
+      <div className={`qb-studio${topSlots ? ` is-desk${sideOpen ? " has-side" : ""}` : ""}`}>
         {topSlots ? (
           <>
-            {createPortal(sessionTabs, topSlots.start)}
+            {createPortal(barTitle, topSlots.start)}
             {createPortal(headActions, topSlots.end)}
+            {sideOpen ? sessionsSide : null}
           </>
         ) : (
           <>
@@ -296,6 +347,9 @@ export function StudioPanel() {
           </>
         )}
 
+        {/* Desk: the thread and the composer beside the sessions; elsewhere the
+            wrapper is transparent to the panel's column layout. */}
+        <div className="qb-studio-main" style={topSlots ? undefined : { display: "contents" }}>
         {convertAsk !== "closed" && hasMessages ? (
           <div className="qb-studio-confirm" role={convertAsk === "failed" ? "alert" : "status"}>
             <p>
@@ -314,6 +368,9 @@ export function StudioPanel() {
           </div>
         ) : null}
 
+        {/* The Quran alone is the implicit way; a choice appears only in a build
+            with the explanatory reading (lib/features.ts). */}
+        {TAFSSIR_ENABLED ? (
         <div className="qb-mode-tabs" role="group" aria-label={t("وضع البحث")}>
           <button
             type="button"
@@ -332,6 +389,7 @@ export function StudioPanel() {
             <Icon name="feather" size={12} /> {t("قراءة تفسيرية")}
           </button>
         </div>
+        ) : null}
 
         {isTafssir ? <TafssirDisclaimer /> : null}
 
@@ -416,48 +474,64 @@ export function StudioPanel() {
           <div className="input-wrap">
             <textarea
               ref={textareaRef}
-              rows={2}
+              rows={1}
               value={draft}
-              placeholder={t("تابع البحث، أو اطرح سؤالاً جديداً…")}
+              placeholder={hasMessages ? t("تابع البحث، أو اطرح سؤالاً جديداً…") : t("اطرح سؤالك…")}
+              aria-label={t("سؤالك")}
               onChange={(event) => setDraft(event.target.value)}
               onKeyDown={handleKeyDown}
             />
             <div className="row">
-              <button
-                type="button"
-                className={`tool-chip${active?.mode === "strict" ? " active" : ""}`}
-                onClick={() => studio.setMode("strict")}
-              >
-                <Icon name="scale" size={10} /> {t("القرآن وحدَه")}
-              </button>
-              {/* Phones: the mode switch lives here, by the field (the
-                  segmented control above is hidden to give the thread room). */}
-              <button
-                type="button"
-                className={`tool-chip phone-only tafssir${isTafssir ? " active" : ""}`}
-                aria-pressed={isTafssir}
-                onClick={() => studio.setMode("tafssir")}
-              >
-                <Icon name="feather" size={10} /> {t("قراءة تفسيرية")}
-              </button>
-              {isTafssir
-                ? DEPTH_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={`tool-chip${active?.depth === option.value ? " active" : ""}`}
-                      onClick={() => studio.setDepth(option.value)}
-                    >
-                      <Icon name="layers" size={10} /> {option.label}
-                    </button>
-                  ))
-                : null}
+              {TAFSSIR_ENABLED ? (
+                <>
+                  <button
+                    type="button"
+                    className={`tool-chip${active?.mode === "strict" ? " active" : ""}`}
+                    onClick={() => studio.setMode("strict")}
+                  >
+                    <Icon name="scale" size={10} /> {t("القرآن وحدَه")}
+                  </button>
+                  {/* Phones: the mode switch lives here, by the field (the
+                      segmented control above is hidden to give the thread room). */}
+                  <button
+                    type="button"
+                    className={`tool-chip phone-only tafssir${isTafssir ? " active" : ""}`}
+                    aria-pressed={isTafssir}
+                    onClick={() => studio.setMode("tafssir")}
+                  >
+                    <Icon name="feather" size={10} /> {t("قراءة تفسيرية")}
+                  </button>
+                  {isTafssir
+                    ? DEPTH_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          className={`tool-chip${active?.depth === option.value ? " active" : ""}`}
+                          onClick={() => studio.setDepth(option.value)}
+                        >
+                          <Icon name="layers" size={10} /> {option.label}
+                        </button>
+                      ))
+                    : null}
+                </>
+              ) : topSlots ? (
+                <span className="hint">{t("Enter للإرسال، Shift+Enter لسطر جديد")}</span>
+              ) : null}
               <div className="grow" />
-              <button type="button" className="send" onClick={submit} disabled={studio.isResearching || !draft.trim()}>
-                <Icon name="send" size={11} /> {t("اسأل")}
+              <button
+                type="button"
+                className="send"
+                onClick={submit}
+                disabled={studio.isResearching || !draft.trim()}
+                aria-label={t("اسأل")}
+                title={t("اسأل")}
+              >
+                <Icon name={topSlots ? "arrowUp" : "send"} size={topSlots ? 17 : 11} />
+                <span className="lbl">{t("اسأل")}</span>
               </button>
             </div>
           </div>
+        </div>
         </div>
       </div>
 

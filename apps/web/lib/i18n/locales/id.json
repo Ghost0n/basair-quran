@@ -1141,5 +1141,10 @@
  "ابحث في الإعدادات…": "Cari pengaturan…",
  "عرض التحديد في المصحف؟": "Tampilkan pilihan di Mushaf?",
  "تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.": "Halaman samping ditutup dan rincian «{0}» terbuka di samping Mushaf.",
- "انتقل إلى المصحف": "Buka Mushaf"
+ "انتقل إلى المصحف": "Buka Mushaf",
+ "إخفاء الجلسات": "Sembunyikan sesi",
+ "إظهار الجلسات": "Tampilkan sesi",
+ "اطرح سؤالك…": "Ajukan pertanyaan Anda…",
+ "سؤالك": "Pertanyaan Anda",
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter untuk mengirim, Shift+Enter untuk baris baru"
 }

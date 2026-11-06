@@ -12,6 +12,7 @@ import type {
 } from "@q-basair/shared";
 
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { allowedStudyMode } from "@/lib/features";
 import { isTechnicalMessage, reportError } from "@/lib/error-report";
 import { usePreferences } from "@/lib/preferences-context";
 import {
@@ -76,7 +77,7 @@ function createSession(defaults?: {
     id: `studio-${Date.now()}-${sessionCounter}`,
     title: t("جلسة جديدة"),
     messages: [],
-    mode: defaults?.mode ?? "strict",
+    mode: allowedStudyMode(defaults?.mode ?? "strict"),
     depth: defaults?.depth ?? "balanced",
     focus: defaults?.focus ?? null,
     focusLabel: defaults?.focusLabel,
@@ -105,11 +106,11 @@ export function useStudioSessions() {
   // read fresh prefs; the initial session is seeded from prefs available at mount.
   const { preferences } = usePreferences();
   const researchDefaultsRef = useRef<{ mode: StudioMode; depth: TafssirDepth }>({
-    mode: preferences.research.default_mode,
+    mode: allowedStudyMode(preferences.research.default_mode),
     depth: preferences.research.depth,
   });
   researchDefaultsRef.current = {
-    mode: preferences.research.default_mode,
+    mode: allowedStudyMode(preferences.research.default_mode),
     depth: preferences.research.depth,
   };
 
@@ -186,7 +187,7 @@ export function useStudioSessions() {
 
   const setMode = useCallback(
     (mode: StudioMode) => {
-      if (active) patchSession(active.id, { mode });
+      if (active) patchSession(active.id, { mode: allowedStudyMode(mode) });
     },
     [active, patchSession],
   );
@@ -242,8 +243,10 @@ export function useStudioSessions() {
             mushaf: Number.isFinite(mushaf) && mushaf > 0 ? Math.trunc(mushaf) : 1,
             max_results: 8,
             answer_language: "auto",
-            response_mode: target.mode,
-            tafssir_depth: target.mode === "tafssir" ? target.depth : undefined,
+            // A session saved in the explanatory mode continues from the Quran
+            // alone when this build leaves that mode out (lib/features.ts).
+            response_mode: allowedStudyMode(target.mode),
+            tafssir_depth: allowedStudyMode(target.mode) === "tafssir" ? target.depth : undefined,
             focus: target.focus ?? undefined,
           },
           { headers: buildResearchHeaders(clientSettings) },
@@ -308,7 +311,7 @@ export function useStudioSessions() {
       if (!(await ensureAuth())) return;
       const session = createSession({
         ...researchDefaultsRef.current,
-        ...(options.mode ? { mode: options.mode } : {}),
+        ...(options.mode ? { mode: allowedStudyMode(options.mode) } : {}),
         focus: options.focus ?? null,
         focusLabel: options.focusLabel,
       });
