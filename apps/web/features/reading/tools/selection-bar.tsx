@@ -7,6 +7,7 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type { SurahListItem, TextCountResponse, TextCountScopes } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { useBand } from "@/lib/bands";
 import { API_BASE_URL } from "@/lib/config";
 import { useNumerals } from "@/lib/preferences-context";
 import { queueStudioAsk } from "@/lib/studio-prefill";
@@ -15,7 +16,6 @@ import { useWorkspace } from "@/features/shell/workspace-context";
 
 import { useMorphology } from "../use-morphology";
 import { useWebDesign } from "@/lib/use-web-design";
-import { useIsMobile } from "@/lib/use-is-mobile";
 
 import { StudyExtras } from "./study-extras";
 import "./tools.web.css";
@@ -54,7 +54,7 @@ export function SelectionBar({
   // commit, so the panel follows it when the page changes; elsewhere (other
   // pages, a compact canvas) the reader keeps today's bar.
   const web = useWebDesign();
-  const compact = useIsMobile(1000);
+  const compact = useBand() !== "wide";
   const study = web && !compact;
   const [slot, setSlot] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {

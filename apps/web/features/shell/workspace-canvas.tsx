@@ -8,21 +8,19 @@ import { ConcordancePanel } from "@/features/concordance/concordance-panel";
 import { MushafStage } from "@/features/reading/mushaf-stage";
 import { OnlineOnly } from "@/features/app-mode/online-only";
 import { StudioPanel } from "@/features/studio/studio-panel";
-import { useIsMobile } from "@/lib/use-is-mobile";
+import { useBand } from "@/lib/bands";
 import { useWebDesign } from "@/lib/use-web-design";
 
 import { useShellMode, type ShellMode } from "./mode-context";
 import { useRoomReset, useRoomWide } from "./room";
 
 /**
- * Below this width the scholar's desk (a panel beside the Mushaf) stops being
+ * Below the wide band (WIDE_MIN, lib/bands.ts) the scholar's desk (a panel beside the Mushaf) stops being
  * viable: one 440px panel plus the 84px rail would crush the Mushaf under
  * ~480px. So from here down we fall to FOCUS MODE — the active surface takes
  * the whole canvas and the Mushaf is one rail-tap away — the same single-column
- * behaviour the mobile layout already uses, just at an honest threshold. The
- * rail/tab-bar switch stays independent at 768px (see shell.css).
+ * behaviour the phone band uses; the rail gives way to the tab bar in the phone band.
  */
-const COMPACT_WORKSPACE = 1000;
 
 /**
  * The mode-aware workspace canvas.
@@ -33,7 +31,7 @@ const COMPACT_WORKSPACE = 1000;
  * canvas; the Mushaf recedes rather than being squeezed to a sliver.
  */
 export function WorkspaceCanvas({ mode, companion }: { mode: ShellMode; companion?: ReactNode }) {
-  const isCompact = useIsMobile(COMPACT_WORKSPACE);
+  const isCompact = useBand() !== "wide";
   // Web design: the panel can widen over the whole canvas (features/shell/room.tsx).
   useRoomReset(mode);
   const [wide] = useRoomWide();
@@ -44,7 +42,7 @@ export function WorkspaceCanvas({ mode, companion }: { mode: ShellMode; companio
   const kind = companion ? " qb-companion-canvas" : "";
 
   if (isCompact) {
-    return <div className={`qb-workspace-canvas${kind}`}>{companion ?? panel ?? <MushafStage />}</div>;
+    return <div className={`qb-workspace-canvas is-single${kind}`}>{companion ?? panel ?? <MushafStage />}</div>;
   }
 
   // "The mushaf is the room": when a panel is summoned beside it, the reader

@@ -154,6 +154,18 @@ html.qb-web { --qb-panel: 560px; }
 .qb-web .qb-side-panel.qb-side-panel-wide,
 .qb-web .qb-companion-panel { width: var(--qb-panel); min-width: var(--qb-panel); max-width: var(--qb-panel); flex: 0 0 var(--qb-panel); }
 
+/* Medium and phone bands: one view at a time (workspace-canvas.tsx, is-single),
+   so the page takes the whole canvas instead of its side width beside a gap. */
+.qb-web .qb-workspace-canvas.is-single > .qb-side-panel,
+.qb-web .qb-workspace-canvas.is-single > .qb-side-panel.qb-side-panel-wide,
+.qb-web .qb-workspace-canvas.is-single > .qb-companion-panel {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  flex: 1 1 auto;
+  border-inline-end: 0;
+}
+
 /* ---------- Recitation bar (desktop media bar) ---------- */
 .qb-web .qb-media-bar {
   border-radius: 0;

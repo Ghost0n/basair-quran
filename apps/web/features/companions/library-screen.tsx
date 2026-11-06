@@ -16,7 +16,6 @@ import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
 import { citedSurahCounts } from "@/features/studio/cited-surahs";
 import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { useWebDesign } from "@/lib/use-web-design";
-import { useIsMobile } from "@/lib/use-is-mobile";
 import { SwipeRow } from "@/components/swipe-row";
 import { useNumerals } from "@/lib/preferences-context";
 import { queueStudioOpenSession } from "@/lib/studio-prefill";
@@ -73,7 +72,6 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
   const formatNumber = useNumerals();
   // Web design: where the saved verses sit across the surahs, and a panel that can widen.
   const web = useWebDesign();
-  const compact = useIsMobile(1000);
   const topSlots = useTopBarSlots();
   const router = useRouter();
 

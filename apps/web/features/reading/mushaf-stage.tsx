@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type { QuranPageAyah, SurahListItem } from "@q-basair/shared";
 
+import { useBand } from "@/lib/bands";
 import { API_BASE_URL } from "@/lib/config";
 import { ErrorState } from "@/components/error-state";
 import { useShellMode } from "@/features/shell/mode-context";
@@ -124,7 +125,7 @@ export function MushafStage() {
   // The web design (desktop) keeps the reader's tools live while the reciter
   // is open, playing or paused: only phones and narrow windows lock them.
   const webDesk = useWebDesign();
-  const narrowCanvas = useIsMobile(1000);
+  const narrowCanvas = useBand() !== "wide";
   const readerLocked = sessionActive && !(webDesk && !narrowCanvas);
   // While reciting, the recited verse is the only lit one: the resume/selected
   // verse steps back so the two blocks never stack.
@@ -203,7 +204,7 @@ export function MushafStage() {
   // screen, so every entry counts; wide screens keep the mushaf beside every
   // panel, so only the launch does.
   const { mode: shellMode, setMode: setShellMode } = useShellMode();
-  const ownScreen = useIsMobile(1000);
+  const ownScreen = useBand() !== "wide";
   const entering = ownScreen ? shellMode === "reading" : true;
   const enteredRef = useRef(false);
   const recitationNow = useRecitation();

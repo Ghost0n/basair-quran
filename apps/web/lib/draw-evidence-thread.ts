@@ -1,3 +1,5 @@
+import { WIDE_MIN } from "./bands";
+
 /**
  * Evidence thread: when a Studio evidence citation ﴿n﴾ is clicked, a fine gold
  * line draws from the citation to the ayah it lands on in the reader — tying the
@@ -13,12 +15,11 @@
  *
  * Guards:
  *  • Co-visibility — the reader and the studio panel only sit side-by-side above
- *    1000px (below that the workspace is single-surface), so there's nothing to
+ *    the wide band (WIDE_MIN; below it the workspace is single-surface), so there's nothing to
  *    connect; skip. The bloom on the target ayah still fires either way.
  *  • Reduced motion — no thread (transforms/draw collapse); the bloom remains.
  */
 
-const COMPACT_MAX = 1000; // matches COMPACT_WORKSPACE — below this, single surface
 const POLL_BUDGET_MS = 1500; // give the page load + settle time to render the ayah
 const START_DELAY_MS = 420; // let the page arrive (and any travel wash reveal) first
 
@@ -36,7 +37,7 @@ function cssVar(name: string, fallback: string): string {
 export function drawEvidenceThread(sourceEl: HTMLElement | null, ayahId: number): void {
   if (typeof window === "undefined" || !sourceEl) return;
   // Co-visibility: nothing to connect on a single-surface layout.
-  if (window.innerWidth <= COMPACT_MAX) return;
+  if (window.innerWidth < WIDE_MIN) return;
   const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
   if (reduce) return;
 

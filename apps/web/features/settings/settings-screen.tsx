@@ -13,10 +13,10 @@ import { DownloadsSettings } from "@/features/app-mode/downloads-settings";
 
 import { HomeSettings } from "./home-settings";
 import { TranslationsSettings } from "./translations-settings";
+import { useBand } from "@/lib/bands";
 import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
 import { usePreferences } from "@/lib/preferences-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
-import { useIsMobile } from "@/lib/use-is-mobile";
 import { useWebDesign } from "@/lib/use-web-design";
 
 import { SettingsWeb } from "./settings-web";
@@ -49,10 +49,11 @@ const NUMERAL_OPTIONS: { value: NumeralScript; label: string }[] = [
  * the mushaf edition) persist via PreferencesProvider.updateAccount.
  */
 export function SettingsScreen() {
-  // The web design on a desktop: the sections' index beside the page (settings-web.tsx).
+  // The web design: the sections' index beside the page (settings-web.tsx),
+  // on a desktop and a tablet alike; phones keep the single column for now.
   const web = useWebDesign();
-  const compact = useIsMobile(1000);
-  return web && !compact ? <SettingsWeb /> : <SettingsPage />;
+  const phone = useBand() === "phone";
+  return web && !phone ? <SettingsWeb /> : <SettingsPage />;
 }
 
 function SettingsPage() {

@@ -11,6 +11,7 @@ import type { SearchVerse } from "@q-basair/shared";
 import { Icon } from "@/components/icon";
 import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
 import { useTopBarSlots } from "@/features/shell/top-bar-slots";
+import { useBand } from "@/lib/bands";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { useRootSpread } from "@/lib/use-root-spread";
 import { useWebDesign } from "@/lib/use-web-design";
@@ -18,7 +19,6 @@ import { useWebDesign } from "@/lib/use-web-design";
 import "./concordance.web.css";
 import { API_BASE_URL } from "@/lib/config";
 import { useNotebookSync } from "@/lib/notebook-sync";
-import { useIsMobile } from "@/lib/use-is-mobile";
 import { useNumerals } from "@/lib/preferences-context";
 import { getVerseSelectionKey, renderHighlightedVerseText } from "@/lib/quran-ui";
 import { useRecitation } from "@/features/recitation/recitation-context";
@@ -66,7 +66,7 @@ export function ConcordancePanel() {
   // At ≤1000 px the reader isn't mounted beside the results, so a verse tap must
   // switch the shell to the reader surface (Back returns to the results). At wide
   // widths the reader is already visible beside the panel — no mode switch needed.
-  const isCompact = useIsMobile(1000);
+  const isCompact = useBand() !== "wide";
   // Web design, desktop: the panel's heading lives in the shell's top bar — the
   // root and its counts before the command bar, the panel's actions after it.
   const topSlots = useTopBarSlots(shellMode === "search");

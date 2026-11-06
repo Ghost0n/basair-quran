@@ -14,6 +14,7 @@ import { useGoBack, useShellMode } from "@/features/shell/mode-context";
 import { readerBackLeadsHome } from "@/features/shell/navigation";
 import { useRoomWide } from "@/features/shell/room";
 import { TOP_BAR_READER_ID } from "@/features/shell/top-bar-slots";
+import { useBand } from "@/lib/bands";
 import { useExclusiveOverlay } from "@/lib/exclusive-overlay";
 import { modKey } from "@/lib/platform";
 import { useNumerals } from "@/lib/preferences-context";
@@ -22,6 +23,7 @@ import { useWebDesign } from "@/lib/use-web-design";
 import { TOTAL_PAGES } from "@/lib/quran-nav";
 
 import { DisplayStrip } from "./display-strip";
+import { readerBarInTopBar } from "../reader-bar-place";
 import { ToolPicker } from "../tools/tool-picker";
 import { useSavedPages } from "../use-saved-pages";
 import { useCompactReader } from "../use-wide-screen";
@@ -124,9 +126,9 @@ export function ReaderBar({
   // notebook…) unless the panel is widened over it — leaving the stage's
   // height to the Mushaf. The slot is found after commit (features/shell/top-bar.tsx).
   const web = useWebDesign();
-  const narrowCanvas = useIsMobile(1000);
+  const band = useBand();
   const [roomWide] = useRoomWide();
-  const inTopBar = web && !narrowCanvas && (mode === "reading" || !roomWide);
+  const inTopBar = web && readerBarInTopBar(band, mode, roomWide);
   const [topSlot, setTopSlot] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {
     setTopSlot(inTopBar ? document.getElementById(TOP_BAR_READER_ID) : null);
