@@ -47,10 +47,6 @@
   "one": "{0} wortel",
   "other": "{0} wortels"
  },
- "{0} جذر مُتابَع": {
-  "one": "{0} gevolgde wortel",
-  "other": "{0} gevolgde wortels"
- },
  "{0} جلسة": {
   "one": "{0} sessie",
   "other": "{0} sessies"
@@ -293,7 +289,6 @@
  "إلغاء الإعجاب": "Niet meer leuk",
  "إلغاء التحديد": "Selectie wissen",
  "إلغاء التحديد (Esc)": "Selectie wissen (Esc)",
- "إلغاء المتابعة": "Niet meer volgen",
  "أُلغي الضمّ — بقيت محفوظات الضيف محليّةً على هذا الجهاز": "Samenvoegen ongedaan gemaakt — de opgeslagen items van de gast bleven lokaal op dit apparaat",
  "ألف": "Alif",
  "القائمة الجانبية": "Zijmenu",
@@ -395,7 +390,6 @@
  "تابِع الجلسة ←": "Ga verder met de sessie →",
  "تابع القراءة": "Verder lezen",
  "تابِع من حيث توقّفت": "Ga verder waar je gebleven was",
- "تابِع هذا الجذر": "Deze wortel volgen",
  "تأكيد": "Bevestigen",
  "تأكيد الوضع الافتراضي": "Standaardmodus bevestigen",
  "تأكيد حذف الحساب": "Verwijdering van het account bevestigen",
@@ -502,7 +496,6 @@
  "جذر · ابحث": "Wortel · zoeken",
  "جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة.": "Een wortel of woord, ‘Al-An‘am 104’, of een vraag — de balk begrijpt wat je bedoelt en toont het als label.",
  "جذر قرآني": "Koranische wortel",
- "جذر مُتابَع": "Gevolgde wortel",
  "جرّب": "Probeer",
  "جلسة الدراسة": "Studiesessie",
  "جلسة جديدة": "Nieuwe sessie",
@@ -679,7 +672,6 @@
  "لا بلاغات مفتوحة.": "Geen openstaande meldingen.",
  "لا ترجمات مثبّتة على هذا الخادم بعد.": "Er zijn nog geen vertalingen op deze server geïnstalleerd.",
  "لا توجد آيات محفوظة بعد. احفظ آية من القراءة أو من نتائج البحث.": "Nog geen opgeslagen verzen. Sla een vers op tijdens het lezen of vanuit de zoekresultaten.",
- "لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.": "Nog geen gevolgde wortels. Volg een wortel vanuit het concordantiepaneel.",
  "لا توجد جلسات محفوظة في هذا التصنيف.": "Geen opgeslagen sessies in deze categorie.",
  "لا توجد سورة بهذا الاسم.": "Er is geen soera met deze naam.",
  "لا توجد مواضع لهذا الجذر.": "Geen vindplaatsen voor deze wortel.",
@@ -1167,5 +1159,17 @@
  "إظهار الجلسات": "Sessies tonen",
  "اطرح سؤالك…": "Stel je vraag…",
  "سؤالك": "Je vraag",
- "Enter للإرسال، Shift+Enter لسطر جديد": "Enter om te verzenden, Shift+Enter voor een nieuwe regel"
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter om te verzenden, Shift+Enter voor een nieuwe regel",
+ "احفظ هذا الجذر": "Deze wortel bewaren",
+ "جذر محفوظ": "Bewaarde wortel",
+ "إزالة الجذر من المحفوظات": "Wortel uit bewaard verwijderen",
+ "لا توجد جذور محفوظة بعد. احفظ جذراً من لوحة المطابقة.": "Nog geen bewaarde wortels. Bewaar een wortel vanuit het concordantiepaneel.",
+ "{0} جذر محفوظ": {
+  "one": "{0} bewaarde wortel",
+  "other": "{0} bewaarde wortels"
+ },
+ "طريقة البحث": "Zoeken op",
+ "العبارة تُبحث كلمةً كلمة": "Een zinsdeel wordt woord voor woord gezocht",
+ "إضافة التشكيل": "Klinkertekens toevoegen",
+ "إزالة التشكيل": "Klinkertekens verwijderen"
 }

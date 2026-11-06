@@ -274,7 +274,23 @@ export function CommunityScreen() {
           <div className="kicker">{t("المجتمع")}</div>
           <h1>{t("أبحاث يتشاركها المتدبّرون")}</h1>
           <p>
-            {t("كل بحث هنا مرّ بفحص نصوص الآيات ومراجعة وفق")} <a href="#guidelines">{t("إرشادات المجتمع")}</a>{t(". القرآن هو الدليل، وما سواه فهمٌ يُناقش.")}
+            {t("كل بحث هنا مرّ بفحص نصوص الآيات ومراجعة وفق")} <a
+              href="#guidelines"
+              onClick={
+                web
+                  ? (event) => {
+                      // The guidelines close the page, under the feed: glide there.
+                      const target = document.getElementById("guidelines");
+                      if (!target) return;
+                      event.preventDefault();
+                      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                      target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+                    }
+                  : undefined
+              }
+            >
+              {t("إرشادات المجتمع")}
+            </a>{t(". القرآن هو الدليل، وما سواه فهمٌ يُناقش.")}
           </p>
         </div>
         {topSlots ? null : shareButton}
@@ -502,7 +518,8 @@ export function CommunityScreen() {
   );
 
   // The web design: the page spans the screen like Home — a hero band over the
-  // rosette carrying the surah ribbon, then the feed beside the guidelines.
+  // rosette carrying the surah ribbon, then the feed, and the guidelines close
+  // the page under it (the hero's link jumps there).
   if (web) {
     return (
       <div className="qb-community qb-community-web qb-page-enter">
@@ -515,8 +532,8 @@ export function CommunityScreen() {
         </section>
         <div className="qbc-grid">
           <div className="qbc-main">{body}</div>
-          <aside className="qbc-aside">{guidelines}</aside>
         </div>
+        <aside className="qbc-aside">{guidelines}</aside>
       </div>
     );
   }

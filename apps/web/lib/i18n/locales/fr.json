@@ -47,10 +47,6 @@
   "one": "{0} racine",
   "other": "{0} racines"
  },
- "{0} جذر مُتابَع": {
-  "one": "{0} racine suivie",
-  "other": "{0} racines suivies"
- },
  "{0} جلسة": {
   "one": "{0} session",
   "other": "{0} sessions"
@@ -293,7 +289,6 @@
  "إلغاء الإعجاب": "Je n'aime plus",
  "إلغاء التحديد": "Annuler la sélection",
  "إلغاء التحديد (Esc)": "Annuler la sélection (Échap)",
- "إلغاء المتابعة": "Ne plus suivre",
  "أُلغي الضمّ — بقيت محفوظات الضيف محليّةً على هذا الجهاز": "Fusion annulée — les éléments de l'invité restent sur cet appareil",
  "ألف": "Alif",
  "القائمة الجانبية": "Menu latéral",
@@ -395,7 +390,6 @@
  "تابِع الجلسة ←": "Reprendre la session →",
  "تابع القراءة": "Reprendre la lecture",
  "تابِع من حيث توقّفت": "Reprenez là où vous vous êtes arrêté",
- "تابِع هذا الجذر": "Suivre cette racine",
  "تأكيد": "Confirmer",
  "تأكيد الوضع الافتراضي": "Confirmer le mode par défaut",
  "تأكيد حذف الحساب": "Confirmer la suppression du compte",
@@ -502,7 +496,6 @@
  "جذر · ابحث": "Racine · chercher",
  "جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة.": "Une racine ou un mot, « Al-An‘am 104 », ou une question — la barre comprend votre intention et l'affiche en badge.",
  "جذر قرآني": "Racine coranique",
- "جذر مُتابَع": "Racine suivie",
  "جرّب": "Essayer",
  "جلسة الدراسة": "Session d'étude",
  "جلسة جديدة": "Nouvelle session",
@@ -679,7 +672,6 @@
  "لا بلاغات مفتوحة.": "Aucun signalement ouvert.",
  "لا ترجمات مثبّتة على هذا الخادم بعد.": "Aucune traduction n'est encore installée sur ce serveur.",
  "لا توجد آيات محفوظة بعد. احفظ آية من القراءة أو من نتائج البحث.": "Aucun verset enregistré. Enregistrez un verset pendant la lecture ou depuis les résultats de recherche.",
- "لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.": "Aucune racine suivie. Suivez une racine depuis le panneau de concordance.",
  "لا توجد جلسات محفوظة في هذا التصنيف.": "Aucune session enregistrée dans cette catégorie.",
  "لا توجد سورة بهذا الاسم.": "Aucune sourate ne porte ce nom.",
  "لا توجد مواضع لهذا الجذر.": "Aucune occurrence pour cette racine.",
@@ -1167,5 +1159,17 @@
  "إظهار الجلسات": "Afficher les sessions",
  "اطرح سؤالك…": "Posez votre question…",
  "سؤالك": "Votre question",
- "Enter للإرسال، Shift+Enter لسطر جديد": "Entrée pour envoyer, Maj+Entrée pour aller à la ligne"
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Entrée pour envoyer, Maj+Entrée pour aller à la ligne",
+ "احفظ هذا الجذر": "Enregistrer cette racine",
+ "جذر محفوظ": "Racine enregistrée",
+ "إزالة الجذر من المحفوظات": "Retirer la racine des enregistrements",
+ "لا توجد جذور محفوظة بعد. احفظ جذراً من لوحة المطابقة.": "Aucune racine enregistrée. Enregistrez une racine depuis le panneau de concordance.",
+ "{0} جذر محفوظ": {
+  "one": "{0} racine enregistrée",
+  "other": "{0} racines enregistrées"
+ },
+ "طريقة البحث": "Rechercher par",
+ "العبارة تُبحث كلمةً كلمة": "Une expression se cherche mot à mot",
+ "إضافة التشكيل": "Ajouter les voyelles",
+ "إزالة التشكيل": "Retirer les voyelles"
 }

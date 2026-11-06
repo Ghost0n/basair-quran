@@ -70,13 +70,13 @@
 .qb-web .qbc-hero .qb-community-hero p { max-width: 640px; margin-inline: auto; }
 .qb-web .qbc-hero .qb-community-ribbon { max-width: 1240px; margin: 26px auto 0; }
 
-/* Below: the feed beside the guidelines, on Home's grid. */
+/* Below: the feed, across Home's width. */
 .qb-web .qbc-grid {
   max-width: 1240px;
   margin: 0 auto;
   padding: 30px 28px 0;
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 48px;
   align-items: start;
 }
@@ -88,8 +88,16 @@
 .qb-web .qbc-main .qb-feed .qb-empty { border: 0; background: none; padding-block: 56px; }
 .qb-web .qbc-main .qb-feed .more { margin-top: 18px; }
 
-/* The guidelines: Home's quiet list, beside the feed as it scrolls. */
-.qb-web .qbc-aside { position: sticky; top: 24px; }
+/* The guidelines: Home's quiet list, closing the page under the feed; the
+   hero's «إرشادات المجتمع» link lands here. */
+.qb-web .qbc-aside {
+  max-width: 1240px;
+  margin: 56px auto 0;
+  padding: 32px 28px 64px;
+  border-top: 1px solid var(--border);
+  scroll-margin-top: 24px;
+}
+.qb-web .qbc-aside .qb-guidelines { max-width: 760px; scroll-margin-top: 24px; }
 .qb-web .qbc-aside .qb-guidelines { margin: 0; padding: 0; background: none; border: 0; border-radius: 0; }
 .qb-web .qbc-aside .qb-guidelines h2 { margin: 0 0 6px; font-size: 22px; color: var(--fg-1); }
 .qb-web .qbc-aside .qb-guidelines ul { list-style: none; padding: 0; gap: 0; }
@@ -98,8 +106,7 @@
 .qb-web .qbc-aside .qb-guidelines .fine { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--border); }
 
 @media (max-width: 1080px) {
-  .qb-web .qbc-grid { grid-template-columns: minmax(0, 1fr); }
-  .qb-web .qbc-aside { position: static; }
+  .qb-web .qbc-aside { margin-top: 40px; }
 }
 
 /* Under the web top bar (which carries the tabs and «شارك بحثاً»), the rail

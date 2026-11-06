@@ -47,10 +47,6 @@
   "one": "{0} kök",
   "other": "{0} kök"
  },
- "{0} جذر مُتابَع": {
-  "one": "{0} izlənilən kök",
-  "other": "{0} izlənilən kök"
- },
  "{0} جلسة": {
   "one": "{0} sessiya",
   "other": "{0} sessiya"
@@ -293,7 +289,6 @@
  "إلغاء الإعجاب": "Bəyənməni geri al",
  "إلغاء التحديد": "Seçimi təmizlə",
  "إلغاء التحديد (Esc)": "Seçimi təmizlə (Esc)",
- "إلغاء المتابعة": "İzləməni dayandır",
  "أُلغي الضمّ — بقيت محفوظات الضيف محليّةً على هذا الجهاز": "Birləşdirmə geri alındı — qonağın saxladıqları bu cihazda qaldı",
  "ألف": "Əlif",
  "القائمة الجانبية": "Yan menyu",
@@ -395,7 +390,6 @@
  "تابِع الجلسة ←": "Sessiyanı davam etdir →",
  "تابع القراءة": "Oxumağa davam et",
  "تابِع من حيث توقّفت": "Qaldığınız yerdən davam edin",
- "تابِع هذا الجذر": "Bu kökü izlə",
  "تأكيد": "Təsdiqlə",
  "تأكيد الوضع الافتراضي": "Standart rejimi təsdiqlə",
  "تأكيد حذف الحساب": "Hesabın silinməsini təsdiqlə",
@@ -502,7 +496,6 @@
  "جذر · ابحث": "Kök · axtar",
  "جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة.": "Kök və ya söz, «Ənam 104», ya da sual — zolaq nə demək istədiyinizi anlayır və nişan kimi göstərir.",
  "جذر قرآني": "Quran kökü",
- "جذر مُتابَع": "İzlənilən kök",
  "جرّب": "Sınayın",
  "جلسة الدراسة": "Öyrənmə sessiyası",
  "جلسة جديدة": "Yeni sessiya",
@@ -679,7 +672,6 @@
  "لا بلاغات مفتوحة.": "Açıq şikayət yoxdur.",
  "لا ترجمات مثبّتة على هذا الخادم بعد.": "Bu serverdə hələ tərcümə quraşdırılmayıb.",
  "لا توجد آيات محفوظة بعد. احفظ آية من القراءة أو من نتائج البحث.": "Hələ saxlanılmış ayə yoxdur. Oxuyarkən və ya axtarış nəticələrindən ayə saxlayın.",
- "لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.": "Hələ izlənilən kök yoxdur. Konkordans panelindən kök izləyin.",
  "لا توجد جلسات محفوظة في هذا التصنيف.": "Bu kateqoriyada saxlanılmış sessiya yoxdur.",
  "لا توجد سورة بهذا الاسم.": "Bu adda surə yoxdur.",
  "لا توجد مواضع لهذا الجذر.": "Bu kök üçün heç bir yer yoxdur.",
@@ -1167,5 +1159,17 @@
  "إظهار الجلسات": "Sessiyaları göstər",
  "اطرح سؤالك…": "Sualınızı verin…",
  "سؤالك": "Sualınız",
- "Enter للإرسال، Shift+Enter لسطر جديد": "Göndərmək üçün Enter, yeni sətir üçün Shift+Enter"
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Göndərmək üçün Enter, yeni sətir üçün Shift+Enter",
+ "احفظ هذا الجذر": "Bu kökü yadda saxla",
+ "جذر محفوظ": "Yadda saxlanmış kök",
+ "إزالة الجذر من المحفوظات": "Kökü yadda saxlananlardan sil",
+ "لا توجد جذور محفوظة بعد. احفظ جذراً من لوحة المطابقة.": "Hələ yadda saxlanmış kök yoxdur. Uyğunluq panelindən kök yadda saxlayın.",
+ "{0} جذر محفوظ": {
+  "one": "{0} yadda saxlanmış kök",
+  "other": "{0} yadda saxlanmış kök"
+ },
+ "طريقة البحث": "Axtarış üsulu",
+ "العبارة تُبحث كلمةً كلمة": "İfadə söz-söz axtarılır",
+ "إضافة التشكيل": "Hərəkələri əlavə et",
+ "إزالة التشكيل": "Hərəkələri sil"
 }

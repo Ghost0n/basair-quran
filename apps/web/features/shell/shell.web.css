@@ -376,3 +376,45 @@ html.qb-web[lang="ur"] .qb-reader-bar .identity .meta { line-height: 2.3; paddin
   outline-offset: 2px;
   border-radius: 6px;
 }
+
+/* ---------- The search's switches (command-bar.tsx) ---------- */
+/* «كلمة / جذر» as a small segmented pair, and «التشكيل» shown by its own
+   sign: the word «حركة» bare, then vowelled once the marks are on. */
+.qb-web .qb-cmd-switches { flex: none; display: inline-flex; align-items: center; gap: 6px; }
+.qb-web .qb-cmd-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--bg-elev-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.qb-web .qb-cmd-seg button,
+.qb-web .qb-cmd-chakl {
+  height: 28px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-3);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.6;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 140ms ease, background-color 140ms ease;
+}
+.qb-web .qb-cmd-seg button:hover:not(:disabled),
+.qb-web .qb-cmd-chakl:hover { color: var(--fg-1); }
+.qb-web .qb-cmd-seg button.on { color: var(--gold-text); background: var(--gold-soft); box-shadow: inset 0 0 0 1px var(--gold-line); }
+.qb-web .qb-cmd-seg button:disabled { opacity: 0.45; cursor: default; }
+.qb-web .qb-cmd-chakl {
+  height: 32px;
+  padding: 0 10px;
+  font-family: var(--font-arabic-display);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.9;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.qb-web .qb-cmd-chakl.on { color: var(--gold-text); background: var(--gold-soft); box-shadow: inset 0 0 0 1px var(--gold-line); }

@@ -81,7 +81,7 @@ export function MergeToast() {
   const summary = [
     result.notebook_moved ? tn("{0} آية مُثبَّتة", result.notebook_moved, { 0: formatNumber(result.notebook_moved) }) : null,
     result.sessions_moved ? tn("{0} جلسة بحث", result.sessions_moved, { 0: formatNumber(result.sessions_moved) }) : null,
-    result.roots_moved ? tn("{0} جذر مُتابَع", result.roots_moved, { 0: formatNumber(result.roots_moved) }) : null,
+    result.roots_moved ? tn("{0} جذر محفوظ", result.roots_moved, { 0: formatNumber(result.roots_moved) }) : null,
   ]
     .filter(Boolean)
     .join(" · ");

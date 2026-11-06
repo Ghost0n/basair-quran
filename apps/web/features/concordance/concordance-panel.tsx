@@ -132,7 +132,10 @@ export function ConcordancePanel() {
   }
 
   const [pinnedAyahIds, setPinnedAyahIds] = useState<Set<number>>(new Set());
-  const [rootFollowed, setRootFollowed] = useState(false);
+  // The searched root's bookmark (its id among the saved roots), or null.
+  const [rootBookmark, setRootBookmark] = useState<number | null>(null);
+  const [bookmarkBusy, setBookmarkBusy] = useState(false);
+  const rootFollowed = rootBookmark != null;
   const results = state.results;
   const primary = results[0];
   const totalOccurrences = results.reduce((sum, r) => sum + r.total_occurrences, 0);
@@ -164,16 +167,16 @@ export function ConcordancePanel() {
   const { counts: spreadCounts } = useRootSpread(web && primary?.search_type === "root" ? primary.root : null, DEFAULT_MUSHAF_ID);
   useEffect(() => {
     if (!primaryRoot) {
-      setRootFollowed(false);
+      setRootBookmark(null);
       return;
     }
     let cancelled = false;
-    setRootFollowed(false);
+    setRootBookmark(null);
     api
       .getRoots()
       .then((roots) => {
         if (cancelled) return;
-        setRootFollowed(roots.some((r) => r.root_text === primaryRoot));
+        setRootBookmark(roots.find((r) => r.root_text === primaryRoot)?.id ?? null);
       })
       .catch(() => {});
     return () => {
@@ -213,17 +216,26 @@ export function ConcordancePanel() {
     });
   }
 
-  async function followRoot() {
-    if (!primary || rootFollowed) return;
-    setRootFollowed(true);
+  // «احفظ هذا الجذر»: a bookmark that toggles — a saved root is removed again.
+  async function toggleRootBookmark() {
+    if (!primary || bookmarkBusy) return;
+    setBookmarkBusy(true);
     try {
-      await api.followRoot({
-        root_text: primary.root,
-        root_id: primary.root_id ?? undefined,
-        occurrences: totalOccurrences,
-      });
+      if (rootBookmark != null) {
+        await api.unfollowRoot(rootBookmark);
+        setRootBookmark(null);
+      } else {
+        const saved = await api.followRoot({
+          root_text: primary.root,
+          root_id: primary.root_id ?? undefined,
+          occurrences: totalOccurrences,
+        });
+        setRootBookmark(saved.id);
+      }
     } catch {
-      setRootFollowed(false);
+      // Nothing changed: the button keeps the state it showed.
+    } finally {
+      setBookmarkBusy(false);
     }
   }
 
@@ -350,11 +362,13 @@ export function ConcordancePanel() {
             <button
               type="button"
               className={`qb-follow-root${rootFollowed ? " on" : ""}`}
-              onClick={() => void followRoot()}
-              disabled={rootFollowed}
+              aria-pressed={rootFollowed}
+              title={rootFollowed ? t("إزالة الجذر من المحفوظات") : undefined}
+              onClick={() => void toggleRootBookmark()}
+              disabled={bookmarkBusy}
             >
-              <Icon name={rootFollowed ? "check" : "tree"} size={12} />
-              {rootFollowed ? t("جذر مُتابَع") : t("تابِع هذا الجذر")}
+              <Icon name={rootFollowed ? "bookmarkFilled" : "bookmark"} size={13} />
+              {rootFollowed ? t("جذر محفوظ") : t("احفظ هذا الجذر")}
             </button>
             {web && spreadCounts ? (
               <>

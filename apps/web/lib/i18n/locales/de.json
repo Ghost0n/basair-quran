@@ -47,10 +47,6 @@
   "one": "{0} Wurzel",
   "other": "{0} Wurzeln"
  },
- "{0} جذر مُتابَع": {
-  "one": "{0} verfolgte Wurzel",
-  "other": "{0} verfolgte Wurzeln"
- },
  "{0} جلسة": {
   "one": "{0} Sitzung",
   "other": "{0} Sitzungen"
@@ -293,7 +289,6 @@
  "إلغاء الإعجاب": "Gefällt mir nicht mehr",
  "إلغاء التحديد": "Auswahl aufheben",
  "إلغاء التحديد (Esc)": "Auswahl aufheben (Esc)",
- "إلغاء المتابعة": "Nicht mehr folgen",
  "أُلغي الضمّ — بقيت محفوظات الضيف محليّةً على هذا الجهاز": "Zusammenführung rückgängig — Gastdaten bleiben auf diesem Gerät",
  "ألف": "Alif",
  "القائمة الجانبية": "Seitenmenü",
@@ -395,7 +390,6 @@
  "تابِع الجلسة ←": "Sitzung fortsetzen →",
  "تابع القراءة": "Weiterlesen",
  "تابِع من حيث توقّفت": "Dort weitermachen, wo Sie aufgehört haben",
- "تابِع هذا الجذر": "Dieser Wurzel folgen",
  "تأكيد": "Bestätigen",
  "تأكيد الوضع الافتراضي": "Standardmodus bestätigen",
  "تأكيد حذف الحساب": "Kontolöschung bestätigen",
@@ -502,7 +496,6 @@
  "جذر · ابحث": "Wurzel · suchen",
  "جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة.": "Eine Wurzel oder ein Wort, „Al-An‘am 104“ oder eine Frage — die Leiste versteht Ihr Anliegen und zeigt es als Plakette.",
  "جذر قرآني": "Koranische Wurzel",
- "جذر مُتابَع": "Verfolgte Wurzel",
  "جرّب": "Ausprobieren",
  "جلسة الدراسة": "Studiensitzung",
  "جلسة جديدة": "Neue Sitzung",
@@ -679,7 +672,6 @@
  "لا بلاغات مفتوحة.": "Keine offenen Meldungen.",
  "لا ترجمات مثبّتة على هذا الخادم بعد.": "Auf diesem Server sind noch keine Übersetzungen installiert.",
  "لا توجد آيات محفوظة بعد. احفظ آية من القراءة أو من نتائج البحث.": "Noch keine gespeicherten Verse. Speichern Sie einen Vers beim Lesen oder aus den Suchergebnissen.",
- "لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.": "Noch keine verfolgten Wurzeln. Folgen Sie einer Wurzel aus der Konkordanz.",
  "لا توجد جلسات محفوظة في هذا التصنيف.": "Keine gespeicherten Sitzungen in dieser Kategorie.",
  "لا توجد سورة بهذا الاسم.": "Keine Sure mit diesem Namen.",
  "لا توجد مواضع لهذا الجذر.": "Keine Vorkommen für diese Wurzel.",
@@ -1167,5 +1159,17 @@
  "إظهار الجلسات": "Sitzungen einblenden",
  "اطرح سؤالك…": "Stellen Sie Ihre Frage…",
  "سؤالك": "Ihre Frage",
- "Enter للإرسال، Shift+Enter لسطر جديد": "Enter zum Senden, Umschalt+Enter für eine neue Zeile"
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter zum Senden, Umschalt+Enter für eine neue Zeile",
+ "احفظ هذا الجذر": "Diese Wurzel merken",
+ "جذر محفوظ": "Gemerkte Wurzel",
+ "إزالة الجذر من المحفوظات": "Wurzel aus den Merklisten entfernen",
+ "لا توجد جذور محفوظة بعد. احفظ جذراً من لوحة المطابقة.": "Noch keine gemerkten Wurzeln. Merken Sie eine Wurzel im Konkordanz-Bereich.",
+ "{0} جذر محفوظ": {
+  "one": "{0} gemerkte Wurzel",
+  "other": "{0} gemerkte Wurzeln"
+ },
+ "طريقة البحث": "Suchen nach",
+ "العبارة تُبحث كلمةً كلمة": "Eine Wortfolge wird Wort für Wort gesucht",
+ "إضافة التشكيل": "Vokalzeichen hinzufügen",
+ "إزالة التشكيل": "Vokalzeichen entfernen"
 }

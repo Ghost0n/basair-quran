@@ -398,13 +398,13 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
       {/* ---- Roots ---- */}
       {tab === "roots" && !companions.loading ? (
         companions.roots.length === 0 ? (
-          <div className="qb-aux-state">{tt("لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.")}</div>
+          <div className="qb-aux-state">{tt("لا توجد جذور محفوظة بعد. احفظ جذراً من لوحة المطابقة.")}</div>
         ) : (
           <div className="qb-aux-list">
             {companions.roots.map((root) => (
               // The whole row opens the root's insights (its spread over the
-              // mushaf); the row is role=button so the unfollow stays a real button.
-              <SwipeRow key={root.id} label={tt("إلغاء المتابعة")} onDelete={() => void companions.unfollowRoot(root.id)}>
+              // mushaf); the row is role=button so the removal stays a real button.
+              <SwipeRow key={root.id} label={tt("إزالة الجذر من المحفوظات")} onDelete={() => void companions.unfollowRoot(root.id)}>
               <div
                 className="qb-aux-row is-link"
                 role="button"
@@ -418,7 +418,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                   }
                 }}
               >
-                <span className="icon-tile"><Icon name="tree" size={18} /></span>
+                <span className="icon-tile"><Icon name="bookmarkFilled" size={18} /></span>
                 <div className="grow">
                   <div className="root-disp">{root.root_text}</div>
                   <div className="meta">
@@ -429,7 +429,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                 <button
                   type="button"
                   className="row-action delete"
-                  aria-label={tt("إلغاء المتابعة")}
+                  aria-label={tt("إزالة الجذر من المحفوظات")}
                   onClick={(event) => {
                     event.stopPropagation();
                     void companions.unfollowRoot(root.id);

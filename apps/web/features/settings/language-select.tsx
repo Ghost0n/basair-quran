@@ -25,7 +25,7 @@ export function LanguageSelect({ className = "" }: { className?: string }) {
         className={className}
         ariaLabel={t("لغة الواجهة")}
         value={locale}
-        options={LOCALES.map((item) => ({ value: item.code, label: item.reviewed ? item.native : `${item.native} · β` }))}
+        options={LOCALES.map((item) => ({ value: item.code, label: item.native }))}
         onChange={(code) => {
           if (APP_MODE) {
             setFailed(false);

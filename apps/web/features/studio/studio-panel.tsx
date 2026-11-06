@@ -94,9 +94,9 @@ export function StudioPanel() {
   // document, so a stray touch shouldn't. A failure says so in the banner.
   const [convertAsk, setConvertAsk] = useState<"closed" | "ask" | "failed">("closed");
   const [sessionsOpen, setSessionsOpen] = useState(false);
-  // Web design: the sessions sit in a side column, like every AI chat; it can
-  // be folded away to give the thread the whole width.
-  const [sideOpen, setSideOpen] = useStickyState<boolean>("qb.studio.sessionsSide", true);
+  // Web design: the sessions are a pane laid over the thread, like every AI
+  // chat; it never splits the page, and folds away once a question is sent.
+  const [sideOpen, setSideOpen] = useStickyState<boolean>("qb.studio.sessionsPane", false);
 
   // «حوّل إلى بحث»: the session becomes an editable research document.
   async function convertToDocument() {
@@ -119,6 +119,10 @@ export function StudioPanel() {
   // The explanatory reading exists only in a build that has it (lib/features.ts).
   const isTafssir = TAFSSIR_ENABLED && active?.mode === "tafssir";
   const hasMessages = Boolean(active && active.messages.length > 0);
+  // The history: the sessions that hold a conversation, newest first. An
+  // empty session is not history; with none, there is no pane to open.
+  const history = [...studio.sessions].reverse().filter((session) => session.messages.length > 0);
+  const paneOpen = sideOpen && history.length > 0;
 
   // A question asked about one session never carries over to another.
   useEffect(() => setConvertAsk("closed"), [active?.id]);
@@ -136,6 +140,7 @@ export function StudioPanel() {
     // Auth-gate first so a guest keeps their draft when the modal appears.
     if (!(await studio.ensureAuth())) return;
     setDraft("");
+    setSideOpen(false);
     void studio.submit(content, state.selectedMushaf);
   }
 
@@ -187,30 +192,42 @@ export function StudioPanel() {
   // in the shell's top bar (top-bar-slots.ts); the sessions are a side column.
   const barTitle = (
     <div className="qb-studio-bar">
-      <button
-        type="button"
-        className={`qb-studio-side-toggle${sideOpen ? " on" : ""}`}
-        aria-pressed={sideOpen}
-        aria-label={sideOpen ? t("إخفاء الجلسات") : t("إظهار الجلسات")}
-        title={sideOpen ? t("إخفاء الجلسات") : t("إظهار الجلسات")}
-        onClick={() => setSideOpen(!sideOpen)}
-      >
-        <Icon name="sidebar" size={17} />
-      </button>
+      {history.length > 0 ? (
+        <button
+          type="button"
+          className={`qb-studio-side-toggle${paneOpen ? " on" : ""}`}
+          aria-pressed={paneOpen}
+          aria-label={paneOpen ? t("إخفاء الجلسات") : t("إظهار الجلسات")}
+          title={paneOpen ? t("إخفاء الجلسات") : t("إظهار الجلسات")}
+          onClick={() => setSideOpen(!paneOpen)}
+        >
+          <Icon name="sidebar" size={17} />
+        </button>
+      ) : null}
       <span className="qb-studio-bar-title" title={active?.title ?? t("جلسة جديدة")}>
         {active?.title ?? t("جلسة جديدة")}
       </span>
     </div>
   );
   const sessionsSide = (
-    <nav className="qb-studio-side" aria-label={t("الجلسات")}>
-      <button type="button" className="qb-studio-new" onClick={studio.newSession}>
-        <Icon name="plus" size={15} />
-        <span>{t("جلسة جديدة")}</span>
-      </button>
+    <nav
+      className={`qb-studio-side${paneOpen ? " open" : ""}`}
+      aria-label={t("الجلسات")}
+      inert={!paneOpen}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") setSideOpen(false);
+      }}
+    >
+      {/* A new session only makes sense once the open one holds a question. */}
+      {hasMessages ? (
+        <button type="button" className="qb-studio-new" onClick={studio.newSession}>
+          <Icon name="plus" size={15} />
+          <span>{t("جلسة جديدة")}</span>
+        </button>
+      ) : null}
       <div className="qb-studio-side-label">{t("الجلسات")}</div>
       <ul className="qb-studio-side-list">
-        {[...studio.sessions].reverse().map((session) => (
+        {history.map((session) => (
           <li key={session.id} className={session.id === studio.activeId ? "active" : ""}>
             <button
               type="button"
@@ -311,12 +328,12 @@ export function StudioPanel() {
 
   return (
     <aside className="qb-side-panel qb-side-panel-wide" aria-label={t("لوحة الدراسة")}>
-      <div className={`qb-studio${topSlots ? ` is-desk${sideOpen ? " has-side" : ""}` : ""}`}>
+      <div className={`qb-studio${topSlots ? ` is-desk${paneOpen ? " has-side" : ""}` : ""}`}>
         {topSlots ? (
           <>
             {createPortal(barTitle, topSlots.start)}
             {createPortal(headActions, topSlots.end)}
-            {sideOpen ? sessionsSide : null}
+            {history.length > 0 ? sessionsSide : null}
           </>
         ) : (
           <>

@@ -47,10 +47,6 @@
   "one": "{0} root",
   "other": "{0} roots"
  },
- "{0} جذر مُتابَع": {
-  "one": "{0} followed root",
-  "other": "{0} followed roots"
- },
  "{0} جلسة": {
   "one": "{0} session",
   "other": "{0} sessions"
@@ -293,7 +289,6 @@
  "إلغاء الإعجاب": "Unlike",
  "إلغاء التحديد": "Clear selection",
  "إلغاء التحديد (Esc)": "Clear selection (Esc)",
- "إلغاء المتابعة": "Unfollow",
  "أُلغي الضمّ — بقيت محفوظات الضيف محليّةً على هذا الجهاز": "Merge undone — the guest's saved items stayed local on this device",
  "ألف": "Alif",
  "القائمة الجانبية": "Side menu",
@@ -395,7 +390,6 @@
  "تابِع الجلسة ←": "Continue the session →",
  "تابع القراءة": "Continue reading",
  "تابِع من حيث توقّفت": "Pick up where you left off",
- "تابِع هذا الجذر": "Follow this root",
  "تأكيد": "Confirm",
  "تأكيد الوضع الافتراضي": "Confirm default mode",
  "تأكيد حذف الحساب": "Confirm account deletion",
@@ -502,7 +496,6 @@
  "جذر · ابحث": "Root · search",
  "جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة.": "A root or word, “Al-An‘am 104”, or a question — the bar understands what you mean and shows it as a badge.",
  "جذر قرآني": "Quranic root",
- "جذر مُتابَع": "Followed root",
  "جرّب": "Try",
  "جلسة الدراسة": "Study session",
  "جلسة جديدة": "New session",
@@ -679,7 +672,6 @@
  "لا بلاغات مفتوحة.": "No open reports.",
  "لا ترجمات مثبّتة على هذا الخادم بعد.": "No translations are installed on this server yet.",
  "لا توجد آيات محفوظة بعد. احفظ آية من القراءة أو من نتائج البحث.": "No saved verses yet. Save a verse while reading or from the search results.",
- "لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.": "No followed roots yet. Follow a root from the concordance panel.",
  "لا توجد جلسات محفوظة في هذا التصنيف.": "No saved sessions in this category.",
  "لا توجد سورة بهذا الاسم.": "There is no surah with this name.",
  "لا توجد مواضع لهذا الجذر.": "No occurrences for this root.",
@@ -1167,5 +1159,17 @@
  "إظهار الجلسات": "Show sessions",
  "اطرح سؤالك…": "Ask your question…",
  "سؤالك": "Your question",
- "Enter للإرسال، Shift+Enter لسطر جديد": "Enter to send, Shift+Enter for a new line"
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter to send, Shift+Enter for a new line",
+ "احفظ هذا الجذر": "Bookmark this root",
+ "جذر محفوظ": "Bookmarked root",
+ "إزالة الجذر من المحفوظات": "Remove the root from bookmarks",
+ "لا توجد جذور محفوظة بعد. احفظ جذراً من لوحة المطابقة.": "No bookmarked roots yet. Bookmark a root from the concordance panel.",
+ "{0} جذر محفوظ": {
+  "one": "{0} bookmarked root",
+  "other": "{0} bookmarked roots"
+ },
+ "طريقة البحث": "Search by",
+ "العبارة تُبحث كلمةً كلمة": "A phrase is searched word by word",
+ "إضافة التشكيل": "Add vowel marks",
+ "إزالة التشكيل": "Remove vowel marks"
 }

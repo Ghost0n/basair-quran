@@ -47,10 +47,6 @@
   "one": "{0} raiz",
   "other": "{0} raízes"
  },
- "{0} جذر مُتابَع": {
-  "one": "{0} raiz seguida",
-  "other": "{0} raízes seguidas"
- },
  "{0} جلسة": {
   "one": "{0} sessão",
   "other": "{0} sessões"
@@ -293,7 +289,6 @@
  "إلغاء الإعجاب": "Descurtir",
  "إلغاء التحديد": "Cancelar seleção",
  "إلغاء التحديد (Esc)": "Cancelar seleção (Esc)",
- "إلغاء المتابعة": "Deixar de seguir",
  "أُلغي الضمّ — بقيت محفوظات الضيف محليّةً على هذا الجهاز": "Fusão desfeita — os itens do convidado ficaram neste aparelho",
  "ألف": "Alif",
  "القائمة الجانبية": "Menu lateral",
@@ -395,7 +390,6 @@
  "تابِع الجلسة ←": "Continuar a sessão →",
  "تابع القراءة": "Continuar lendo",
  "تابِع من حيث توقّفت": "Continue de onde parou",
- "تابِع هذا الجذر": "Seguir esta raiz",
  "تأكيد": "Confirmar",
  "تأكيد الوضع الافتراضي": "Confirmar modo padrão",
  "تأكيد حذف الحساب": "Confirmar exclusão da conta",
@@ -502,7 +496,6 @@
  "جذر · ابحث": "Raiz · pesquisar",
  "جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة.": "Uma raiz ou palavra, «Al-An‘am 104», ou uma pergunta — a barra entende sua intenção e a mostra num selo.",
  "جذر قرآني": "Raiz corânica",
- "جذر مُتابَع": "Raiz seguida",
  "جرّب": "Experimente",
  "جلسة الدراسة": "Sessão de estudo",
  "جلسة جديدة": "Nova sessão",
@@ -679,7 +672,6 @@
  "لا بلاغات مفتوحة.": "Nenhuma denúncia aberta.",
  "لا ترجمات مثبّتة على هذا الخادم بعد.": "Ainda não há traduções instaladas neste servidor.",
  "لا توجد آيات محفوظة بعد. احفظ آية من القراءة أو من نتائج البحث.": "Ainda sem versículos salvos. Salve um versículo ao ler ou pelos resultados da pesquisa.",
- "لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.": "Ainda sem raízes seguidas. Siga uma raiz pelo painel de concordância.",
  "لا توجد جلسات محفوظة في هذا التصنيف.": "Nenhuma sessão salva nesta categoria.",
  "لا توجد سورة بهذا الاسم.": "Não há surata com esse nome.",
  "لا توجد مواضع لهذا الجذر.": "Nenhuma ocorrência para esta raiz.",
@@ -1167,5 +1159,17 @@
  "إظهار الجلسات": "Mostrar sessões",
  "اطرح سؤالك…": "Faça a sua pergunta…",
  "سؤالك": "A sua pergunta",
- "Enter للإرسال، Shift+Enter لسطر جديد": "Enter para enviar, Shift+Enter para nova linha"
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter para enviar, Shift+Enter para nova linha",
+ "احفظ هذا الجذر": "Guardar esta raiz",
+ "جذر محفوظ": "Raiz guardada",
+ "إزالة الجذر من المحفوظات": "Remover a raiz dos guardados",
+ "لا توجد جذور محفوظة بعد. احفظ جذراً من لوحة المطابقة.": "Ainda não há raízes guardadas. Guarde uma raiz a partir do painel de concordância.",
+ "{0} جذر محفوظ": {
+  "one": "{0} raiz guardada",
+  "other": "{0} raízes guardadas"
+ },
+ "طريقة البحث": "Pesquisar por",
+ "العبارة تُبحث كلمةً كلمة": "Uma frase pesquisa-se palavra a palavra",
+ "إضافة التشكيل": "Adicionar vogais",
+ "إزالة التشكيل": "Remover vogais"
 }

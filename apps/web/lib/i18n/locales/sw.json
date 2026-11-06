@@ -47,10 +47,6 @@
   "one": "mzizi {0}",
   "other": "mizizi {0}"
  },
- "{0} جذر مُتابَع": {
-  "one": "mzizi {0} unaofuatiliwa",
-  "other": "mizizi {0} inayofuatiliwa"
- },
  "{0} جلسة": {
   "one": "kikao {0}",
   "other": "vikao {0}"
@@ -293,7 +289,6 @@
  "إلغاء الإعجاب": "Acha kupenda",
  "إلغاء التحديد": "Ondoa uteuzi",
  "إلغاء التحديد (Esc)": "Ondoa uteuzi (Esc)",
- "إلغاء المتابعة": "Acha kufuatilia",
  "أُلغي الضمّ — بقيت محفوظات الضيف محليّةً على هذا الجهاز": "Kuunganisha kumeghairiwa — vilivyohifadhiwa na mgeni vimebaki kwenye kifaa hiki",
  "ألف": "Alif",
  "القائمة الجانبية": "Menyu ya pembeni",
@@ -395,7 +390,6 @@
  "تابِع الجلسة ←": "Endelea na kikao →",
  "تابع القراءة": "Endelea kusoma",
  "تابِع من حيث توقّفت": "Endelea ulipoishia",
- "تابِع هذا الجذر": "Fuatilia mzizi huu",
  "تأكيد": "Thibitisha",
  "تأكيد الوضع الافتراضي": "Thibitisha hali chaguo-msingi",
  "تأكيد حذف الحساب": "Thibitisha kufuta akaunti",
@@ -502,7 +496,6 @@
  "جذر · ابحث": "Mzizi · tafuta",
  "جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة.": "Mzizi au neno, “Al-An'am 104”, au swali — upau unaelewa unachokusudia na kukionyesha kwa beji.",
  "جذر قرآني": "Mzizi wa Qur'ani",
- "جذر مُتابَع": "Mzizi unaofuatiliwa",
  "جرّب": "Jaribu",
  "جلسة الدراسة": "Kikao cha masomo",
  "جلسة جديدة": "Kikao kipya",
@@ -679,7 +672,6 @@
  "لا بلاغات مفتوحة.": "Hakuna ripoti zilizo wazi.",
  "لا ترجمات مثبّتة على هذا الخادم بعد.": "Bado hakuna tafsiri zilizosakinishwa kwenye seva hii.",
  "لا توجد آيات محفوظة بعد. احفظ آية من القراءة أو من نتائج البحث.": "Bado hakuna aya zilizohifadhiwa. Hifadhi aya unaposoma au kutoka kwenye matokeo ya utafutaji.",
- "لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.": "Bado hakuna mizizi inayofuatiliwa. Fuatilia mzizi kutoka paneli ya ulinganisho.",
  "لا توجد جلسات محفوظة في هذا التصنيف.": "Hakuna vikao vilivyohifadhiwa katika kundi hili.",
  "لا توجد سورة بهذا الاسم.": "Hakuna sura yenye jina hili.",
  "لا توجد مواضع لهذا الجذر.": "Mzizi huu hauna mahali.",
@@ -1167,5 +1159,17 @@
  "إظهار الجلسات": "Onyesha vipindi",
  "اطرح سؤالك…": "Uliza swali lako…",
  "سؤالك": "Swali lako",
- "Enter للإرسال، Shift+Enter لسطر جديد": "Enter kutuma, Shift+Enter kwa mstari mpya"
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter kutuma, Shift+Enter kwa mstari mpya",
+ "احفظ هذا الجذر": "Hifadhi mzizi huu",
+ "جذر محفوظ": "Mzizi uliohifadhiwa",
+ "إزالة الجذر من المحفوظات": "Ondoa mzizi kwenye vilivyohifadhiwa",
+ "لا توجد جذور محفوظة بعد. احفظ جذراً من لوحة المطابقة.": "Bado hakuna mizizi iliyohifadhiwa. Hifadhi mzizi kutoka paneli ya ulinganifu.",
+ "{0} جذر محفوظ": {
+  "one": "mzizi {0} uliohifadhiwa",
+  "other": "mizizi {0} iliyohifadhiwa"
+ },
+ "طريقة البحث": "Tafuta kwa",
+ "العبارة تُبحث كلمةً كلمة": "Kifungu hutafutwa neno kwa neno",
+ "إضافة التشكيل": "Ongeza irabu",
+ "إزالة التشكيل": "Ondoa irabu"
 }

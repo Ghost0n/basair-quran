@@ -65,3 +65,18 @@
 .qb-web .qb-topbar-reader .qb-reader-bar .identity:hover .name,
 .qb-web .qb-topbar-reader .qb-reader-bar .identity:focus-visible .name { color: var(--gold-glow); }
 .qb-web .qb-topbar-reader .qb-reader-bar .identity { align-items: baseline; gap: 12px; }
+
+/* Opening pages (al-Fatiha and the start of al-Baqara): as in the printed
+   Madani mushaf, each line sits centred at its natural width rather than
+   being stretched word to word. Only the alignment changes; the type size
+   and the lines stay as laid out. */
+.qb-web .qb-print-page.is-opening .qb-print-row.qb-glyph-ayah {
+  text-align: center;
+  text-align-last: center;
+  word-spacing: 0.22em;
+}
+
+/* The page arrows follow the Mushaf, which turns right to left in every
+   language: in a left-to-right interface the pair keeps the Arabic order
+   (next ‹ on the left, previous › on the right), like the turning wings. */
+html.qb-web:not([dir="rtl"]) .qb-reader-bar .pager { flex-direction: row-reverse; }

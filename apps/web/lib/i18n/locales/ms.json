@@ -42,9 +42,6 @@
  "{0} جذر": {
   "other": "{0} akar"
  },
- "{0} جذر مُتابَع": {
-  "other": "{0} akar diikuti"
- },
  "{0} جلسة": {
   "other": "{0} sesi"
  },
@@ -278,7 +275,6 @@
  "إلغاء الإعجاب": "Batal suka",
  "إلغاء التحديد": "Batal pilihan",
  "إلغاء التحديد (Esc)": "Batal pilihan (Esc)",
- "إلغاء المتابعة": "Nyahikut",
  "أُلغي الضمّ — بقيت محفوظات الضيف محليّةً على هذا الجهاز": "Gabungan dibatalkan — simpanan tetamu kekal pada peranti ini",
  "ألف": "Alif",
  "القائمة الجانبية": "Menu sisi",
@@ -380,7 +376,6 @@
  "تابِع الجلسة ←": "Teruskan sesi →",
  "تابع القراءة": "Teruskan membaca",
  "تابِع من حيث توقّفت": "Sambung dari tempat anda berhenti",
- "تابِع هذا الجذر": "Ikuti akar ini",
  "تأكيد": "Sahkan",
  "تأكيد الوضع الافتراضي": "Sahkan mod lalai",
  "تأكيد حذف الحساب": "Sahkan pemadaman akaun",
@@ -487,7 +482,6 @@
  "جذر · ابحث": "Akar · cari",
  "جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة.": "Akar atau perkataan, “al-An'am 104”, atau soalan — bar memahami maksud anda dan memaparkannya sebagai lencana.",
  "جذر قرآني": "Akar al-Quran",
- "جذر مُتابَع": "Akar diikuti",
  "جرّب": "Cuba",
  "جلسة الدراسة": "Sesi kajian",
  "جلسة جديدة": "Sesi baharu",
@@ -660,7 +654,6 @@
  "لا بلاغات مفتوحة.": "Tiada laporan terbuka.",
  "لا ترجمات مثبّتة على هذا الخادم بعد.": "Belum ada terjemahan dipasang pada pelayan ini.",
  "لا توجد آيات محفوظة بعد. احفظ آية من القراءة أو من نتائج البحث.": "Belum ada ayat disimpan. Simpan ayat semasa membaca atau daripada hasil carian.",
- "لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.": "Belum ada akar diikuti. Ikuti akar daripada panel konkordans.",
  "لا توجد جلسات محفوظة في هذا التصنيف.": "Tiada sesi disimpan dalam kategori ini.",
  "لا توجد سورة بهذا الاسم.": "Tiada surah dengan nama ini.",
  "لا توجد مواضع لهذا الجذر.": "Tiada tempat bagi akar ini.",
@@ -1146,5 +1139,16 @@
  "إظهار الجلسات": "Tunjukkan sesi",
  "اطرح سؤالك…": "Tanya soalan anda…",
  "سؤالك": "Soalan anda",
- "Enter للإرسال، Shift+Enter لسطر جديد": "Enter untuk hantar, Shift+Enter untuk baris baharu"
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter untuk hantar, Shift+Enter untuk baris baharu",
+ "احفظ هذا الجذر": "Simpan akar ini",
+ "جذر محفوظ": "Akar disimpan",
+ "إزالة الجذر من المحفوظات": "Buang akar daripada simpanan",
+ "لا توجد جذور محفوظة بعد. احفظ جذراً من لوحة المطابقة.": "Belum ada akar disimpan. Simpan akar daripada panel konkordans.",
+ "{0} جذر محفوظ": {
+  "other": "{0} akar disimpan"
+ },
+ "طريقة البحث": "Cari mengikut",
+ "العبارة تُبحث كلمةً كلمة": "Frasa dicari perkataan demi perkataan",
+ "إضافة التشكيل": "Tambah baris",
+ "إزالة التشكيل": "Buang baris"
 }

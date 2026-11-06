@@ -47,10 +47,6 @@
   "one": "{0} radice",
   "other": "{0} radici"
  },
- "{0} جذر مُتابَع": {
-  "one": "{0} radice seguita",
-  "other": "{0} radici seguite"
- },
  "{0} جلسة": {
   "one": "{0} sessione",
   "other": "{0} sessioni"
@@ -293,7 +289,6 @@
  "إلغاء الإعجاب": "Non mi piace più",
  "إلغاء التحديد": "Annulla la selezione",
  "إلغاء التحديد (Esc)": "Annulla la selezione (Esc)",
- "إلغاء المتابعة": "Smetti di seguire",
  "أُلغي الضمّ — بقيت محفوظات الضيف محليّةً على هذا الجهاز": "Unione annullata — gli elementi salvati dell'ospite sono rimasti su questo dispositivo",
  "ألف": "Alif",
  "القائمة الجانبية": "Menu laterale",
@@ -395,7 +390,6 @@
  "تابِع الجلسة ←": "Continua la sessione →",
  "تابع القراءة": "Continua a leggere",
  "تابِع من حيث توقّفت": "Riprendi da dove avevi lasciato",
- "تابِع هذا الجذر": "Segui questa radice",
  "تأكيد": "Conferma",
  "تأكيد الوضع الافتراضي": "Conferma la modalità predefinita",
  "تأكيد حذف الحساب": "Conferma l'eliminazione dell'account",
@@ -502,7 +496,6 @@
  "جذر · ابحث": "Radice · cerca",
  "جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة.": "Una radice o una parola, «Al-An‘am 104», o una domanda — la barra capisce cosa intendi e lo mostra come etichetta.",
  "جذر قرآني": "Radice coranica",
- "جذر مُتابَع": "Radice seguita",
  "جرّب": "Prova",
  "جلسة الدراسة": "Sessione di studio",
  "جلسة جديدة": "Nuova sessione",
@@ -679,7 +672,6 @@
  "لا بلاغات مفتوحة.": "Nessuna segnalazione aperta.",
  "لا ترجمات مثبّتة على هذا الخادم بعد.": "Nessuna traduzione è ancora installata su questo server.",
  "لا توجد آيات محفوظة بعد. احفظ آية من القراءة أو من نتائج البحث.": "Ancora nessun versetto salvato. Salva un versetto durante la lettura o dai risultati di ricerca.",
- "لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.": "Ancora nessuna radice seguita. Segui una radice dal pannello delle concordanze.",
  "لا توجد جلسات محفوظة في هذا التصنيف.": "Nessuna sessione salvata in questa categoria.",
  "لا توجد سورة بهذا الاسم.": "Non esiste una sura con questo nome.",
  "لا توجد مواضع لهذا الجذر.": "Nessuna occorrenza per questa radice.",
@@ -1167,5 +1159,17 @@
  "إظهار الجلسات": "Mostra sessioni",
  "اطرح سؤالك…": "Fai la tua domanda…",
  "سؤالك": "La tua domanda",
- "Enter للإرسال، Shift+Enter لسطر جديد": "Invio per inviare, Maiusc+Invio per andare a capo"
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Invio per inviare, Maiusc+Invio per andare a capo",
+ "احفظ هذا الجذر": "Salva questa radice",
+ "جذر محفوظ": "Radice salvata",
+ "إزالة الجذر من المحفوظات": "Rimuovi la radice dai salvati",
+ "لا توجد جذور محفوظة بعد. احفظ جذراً من لوحة المطابقة.": "Nessuna radice salvata. Salva una radice dal pannello delle concordanze.",
+ "{0} جذر محفوظ": {
+  "one": "{0} radice salvata",
+  "other": "{0} radici salvate"
+ },
+ "طريقة البحث": "Cerca per",
+ "العبارة تُبحث كلمةً كلمة": "Una frase si cerca parola per parola",
+ "إضافة التشكيل": "Aggiungi le vocali",
+ "إزالة التشكيل": "Rimuovi le vocali"
 }

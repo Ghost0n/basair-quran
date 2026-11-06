@@ -55,8 +55,8 @@ const FONT_MAX = 48;
 /** The settings' sections, in the order of the page and of its index. */
 const SECTIONS: { id: string; icon: IconName; label: () => string }[] = [
   { id: "appearance", icon: "sun", label: () => t("العرض") },
-  { id: "reading", icon: "book", label: () => t("القراءة والمصحف") },
   { id: "translations", icon: "globe", label: () => t("ترجمة المعاني") },
+  { id: "reading", icon: "book", label: () => t("القراءة والمصحف") },
   { id: "recitation", icon: "volume", label: () => t("التلاوة") },
   { id: "study", icon: "sparkles", label: () => t("الدراسة") },
   { id: "home", icon: "home", label: () => t("الرئيسية") },
@@ -289,6 +289,8 @@ export function SettingsWeb() {
           </section>,
         )}
 
+        {section("translations", <TranslationsSettings />)}
+
         {section(
           "reading",
           <section className="qb-setting-card">
@@ -340,8 +342,6 @@ export function SettingsWeb() {
             </Row>
           </section>,
         )}
-
-        {section("translations", <TranslationsSettings />)}
 
         {section(
           "recitation",

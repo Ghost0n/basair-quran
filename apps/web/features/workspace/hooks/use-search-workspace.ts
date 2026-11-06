@@ -20,7 +20,9 @@ import {
   clampPage,
   getSuggestionTypeLabel,
   getVerseSelectionKey,
+  hasArabicDiacritics,
   isPhraseInputValue,
+  removeChakl,
   ITEMS_PER_PAGE,
 } from "@/lib/quran-ui";
 import { generateArabicQueryCandidates } from "@/lib/arabic-transliteration";
@@ -707,6 +709,66 @@ export function useSearchWorkspace() {
     }
   }
 
+  // «كلمة / جذر»: search the word as written, or every form of its root. A
+  // phrase is always searched word by word. An open search re-runs at once.
+  function chooseSearchMode(nextMode: SearchMode) {
+    const trimmedQuery = query.trim();
+    if (nextMode === searchMode && searchModeInitialized) return;
+    if (nextMode === "root" && (!trimmedQuery || isPhraseInputValue(trimmedQuery))) return;
+    setPreviewValue(null);
+    setSearchMode(nextMode);
+    setSearchModeInitialized(true);
+    setSuggestionsWithChakl(false);
+    setSuggestions([]);
+    setSuggestionsOpen(false);
+    setActiveSuggestionIndex(-1);
+    if (workspaceVisible && trimmedQuery) {
+      void runSearch(trimmedQuery, nextMode);
+    }
+  }
+
+  // «التشكيل»: a written word with vowel marks loses them; a bare one offers
+  // its vowelled forms (the backend's suggestions with chakl).
+  async function toggleChakl() {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery || searchMode !== "exact") return;
+
+    if (hasArabicDiacritics(trimmedQuery)) {
+      const plainQuery = removeChakl(trimmedQuery);
+      commitInputValue(plainQuery, "exact");
+      if (inputRef.current) inputRef.current.value = plainQuery;
+      setSearchModeInitialized(true);
+      setSuggestionsWithChakl(false);
+      setSuggestions([]);
+      setSuggestionsOpen(false);
+      inputRef.current?.focus();
+      return;
+    }
+
+    if (suggestionsWithChakl) {
+      setSuggestionsWithChakl(false);
+      setSuggestions([]);
+      setSuggestionsOpen(false);
+      return;
+    }
+
+    setSuggestionsWithChakl(true);
+    setIsInputFocused(true);
+    inputRef.current?.focus();
+    try {
+      const items = isPhraseInputValue(trimmedQuery)
+        ? await buildPhraseSuggestionItems(trimmedQuery, { withChakl: true })
+        : await api.getSuggestions(trimmedQuery, "exact", selectedMushaf, true);
+      const uniqueItems = dedupeSuggestionItems(items);
+      setSuggestions(uniqueItems.slice(0, MAX_SUGGESTIONS));
+      setSuggestionsOpen(uniqueItems.length > 0);
+      setActiveSuggestionIndex(-1);
+    } catch {
+      setSuggestions([]);
+      setSuggestionsOpen(false);
+    }
+  }
+
   function resetSearch(options?: { toReading?: boolean }) {
     // `toReading` (the brand/logo) does ONE clean navigation to the reading
     // root — never a second router call racing setMode (that race left the
@@ -843,6 +905,10 @@ export function useSearchWorkspace() {
       theme,
       inputValue,
       searchMode,
+      /** The mode has been chosen (by the reader or the search), not guessed. */
+      searchModeInitialized,
+      /** The typed words carry vowel marks, or their vowelled forms are offered. */
+      chaklOn: hasArabicDiacritics(query) || suggestionsWithChakl,
       edition,
       selectedMushaf,
       suggestions,
@@ -874,6 +940,8 @@ export function useSearchWorkspace() {
       applySuggestion,
       applyDidYouMean,
       runQuickExample,
+      chooseSearchMode,
+      toggleChakl,
       revertSuggestionPreview,
       handleInputKeyDown,
       openSuggestions() {

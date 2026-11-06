@@ -47,10 +47,6 @@
   "one": "{0} raíz",
   "other": "{0} raíces"
  },
- "{0} جذر مُتابَع": {
-  "one": "{0} raíz seguida",
-  "other": "{0} raíces seguidas"
- },
  "{0} جلسة": {
   "one": "{0} sesión",
   "other": "{0} sesiones"
@@ -293,7 +289,6 @@
  "إلغاء الإعجاب": "Ya no me gusta",
  "إلغاء التحديد": "Cancelar selección",
  "إلغاء التحديد (Esc)": "Cancelar selección (Esc)",
- "إلغاء المتابعة": "Dejar de seguir",
  "أُلغي الضمّ — بقيت محفوظات الضيف محليّةً على هذا الجهاز": "Fusión deshecha — lo guardado como invitado quedó en este dispositivo",
  "ألف": "Alif",
  "القائمة الجانبية": "Menú lateral",
@@ -395,7 +390,6 @@
  "تابِع الجلسة ←": "Continuar la sesión →",
  "تابع القراءة": "Seguir leyendo",
  "تابِع من حيث توقّفت": "Continúa donde lo dejaste",
- "تابِع هذا الجذر": "Seguir esta raíz",
  "تأكيد": "Confirmar",
  "تأكيد الوضع الافتراضي": "Confirmar modo predeterminado",
  "تأكيد حذف الحساب": "Confirmar eliminación de la cuenta",
@@ -502,7 +496,6 @@
  "جذر · ابحث": "Raíz · buscar",
  "جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة.": "Una raíz o palabra, «Al-An‘am 104», o una pregunta — la barra entiende tu intención y la muestra como etiqueta.",
  "جذر قرآني": "Raíz coránica",
- "جذر مُتابَع": "Raíz seguida",
  "جرّب": "Prueba",
  "جلسة الدراسة": "Sesión de estudio",
  "جلسة جديدة": "Nueva sesión",
@@ -679,7 +672,6 @@
  "لا بلاغات مفتوحة.": "No hay denuncias abiertas.",
  "لا ترجمات مثبّتة على هذا الخادم بعد.": "Aún no hay traducciones instaladas en este servidor.",
  "لا توجد آيات محفوظة بعد. احفظ آية من القراءة أو من نتائج البحث.": "Aún no hay aleyas guardadas. Guarda una aleya al leer o desde los resultados de búsqueda.",
- "لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.": "Aún no sigues ninguna raíz. Sigue una desde el panel de concordancia.",
  "لا توجد جلسات محفوظة في هذا التصنيف.": "No hay sesiones guardadas en esta categoría.",
  "لا توجد سورة بهذا الاسم.": "No hay ninguna sura con ese nombre.",
  "لا توجد مواضع لهذا الجذر.": "No hay apariciones de esta raíz.",
@@ -1167,5 +1159,17 @@
  "إظهار الجلسات": "Mostrar sesiones",
  "اطرح سؤالك…": "Haz tu pregunta…",
  "سؤالك": "Tu pregunta",
- "Enter للإرسال، Shift+Enter لسطر جديد": "Enter para enviar, Mayús+Enter para una nueva línea"
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter para enviar, Mayús+Enter para una nueva línea",
+ "احفظ هذا الجذر": "Guardar esta raíz",
+ "جذر محفوظ": "Raíz guardada",
+ "إزالة الجذر من المحفوظات": "Quitar la raíz de guardados",
+ "لا توجد جذور محفوظة بعد. احفظ جذراً من لوحة المطابقة.": "Aún no hay raíces guardadas. Guarda una raíz desde el panel de concordancia.",
+ "{0} جذر محفوظ": {
+  "one": "{0} raíz guardada",
+  "other": "{0} raíces guardadas"
+ },
+ "طريقة البحث": "Buscar por",
+ "العبارة تُبحث كلمةً كلمة": "Una frase se busca palabra por palabra",
+ "إضافة التشكيل": "Añadir vocales",
+ "إزالة التشكيل": "Quitar vocales"
 }

@@ -47,10 +47,6 @@
   "one": "{0} rrënjë",
   "other": "{0} rrënjë"
  },
- "{0} جذر مُتابَع": {
-  "one": "{0} rrënjë e ndjekur",
-  "other": "{0} rrënjë të ndjekura"
- },
  "{0} جلسة": {
   "one": "{0} seancë",
   "other": "{0} seanca"
@@ -293,7 +289,6 @@
  "إلغاء الإعجاب": "Hiq pëlqimin",
  "إلغاء التحديد": "Pastro përzgjedhjen",
  "إلغاء التحديد (Esc)": "Pastro përzgjedhjen (Esc)",
- "إلغاء المتابعة": "Mos e ndiq më",
  "أُلغي الضمّ — بقيت محفوظات الضيف محليّةً على هذا الجهاز": "Bashkimi u zhbë — sendet e ruajtura të mysafirit mbetën në këtë pajisje",
  "ألف": "Elif",
  "القائمة الجانبية": "Menuja anësore",
@@ -395,7 +390,6 @@
  "تابِع الجلسة ←": "Vazhdo seancën →",
  "تابع القراءة": "Vazhdo leximin",
  "تابِع من حيث توقّفت": "Vazhdoni nga ku e latë",
- "تابِع هذا الجذر": "Ndiq këtë rrënjë",
  "تأكيد": "Konfirmo",
  "تأكيد الوضع الافتراضي": "Konfirmo mënyrën e parazgjedhur",
  "تأكيد حذف الحساب": "Konfirmo fshirjen e llogarisë",
@@ -502,7 +496,6 @@
  "جذر · ابحث": "Rrënja · kërko",
  "جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة.": "Një rrënjë ose fjalë, «El-Enam 104», ose një pyetje — shiriti kupton çfarë doni dhe e shfaq si distinktiv.",
  "جذر قرآني": "Rrënjë kuranore",
- "جذر مُتابَع": "Rrënjë e ndjekur",
  "جرّب": "Provoni",
  "جلسة الدراسة": "Seancë studimi",
  "جلسة جديدة": "Seancë e re",
@@ -679,7 +672,6 @@
  "لا بلاغات مفتوحة.": "Asnjë raport i hapur.",
  "لا ترجمات مثبّتة على هذا الخادم بعد.": "Ende nuk ka përkthime të instaluara në këtë server.",
  "لا توجد آيات محفوظة بعد. احفظ آية من القراءة أو من نتائج البحث.": "Ende pa ajete të ruajtura. Ruani një ajet gjatë leximit ose nga rezultatet e kërkimit.",
- "لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.": "Ende pa rrënjë të ndjekura. Ndiqni një rrënjë nga paneli i konkordancës.",
  "لا توجد جلسات محفوظة في هذا التصنيف.": "Asnjë seancë e ruajtur në këtë kategori.",
  "لا توجد سورة بهذا الاسم.": "Nuk ka sure me këtë emër.",
  "لا توجد مواضع لهذا الجذر.": "Asnjë shfaqje për këtë rrënjë.",
@@ -1167,5 +1159,17 @@
  "إظهار الجلسات": "Shfaq seancat",
  "اطرح سؤالك…": "Bëni pyetjen tuaj…",
  "سؤالك": "Pyetja juaj",
- "Enter للإرسال، Shift+Enter لسطر جديد": "Enter për ta dërguar, Shift+Enter për rresht të ri"
+ "Enter للإرسال، Shift+Enter لسطر جديد": "Enter për ta dërguar, Shift+Enter për rresht të ri",
+ "احفظ هذا الجذر": "Ruaje këtë rrënjë",
+ "جذر محفوظ": "Rrënjë e ruajtur",
+ "إزالة الجذر من المحفوظات": "Hiq rrënjën nga të ruajturat",
+ "لا توجد جذور محفوظة بعد. احفظ جذراً من لوحة المطابقة.": "Ende s’ka rrënjë të ruajtura. Ruani një rrënjë nga paneli i konkordancës.",
+ "{0} جذر محفوظ": {
+  "one": "{0} rrënjë e ruajtur",
+  "other": "{0} rrënjë të ruajtura"
+ },
+ "طريقة البحث": "Kërko sipas",
+ "العبارة تُبحث كلمةً كلمة": "Një frazë kërkohet fjalë për fjalë",
+ "إضافة التشكيل": "Shto zanoret",
+ "إزالة التشكيل": "Hiq zanoret"
 }
