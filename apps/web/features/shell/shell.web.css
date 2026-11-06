@@ -153,7 +153,20 @@ html.qb-web { --qb-panel: 560px; }
 /* The page zone: the page's heading/tabs/field, the command bar, its actions.
    Beside the Mushaf it takes the panel's measured width (--qb-panel-w). */
 .qb-web .qb-topbar-page { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 10px; }
-.qb-web .qb-topbar-web:has(.qb-topbar-reader:not(:empty)) .qb-topbar-page { flex: 0 0 var(--qb-panel-w, 40%); }
+/* Over a side page the zone is the top of the page itself: the panel's surface
+   from the bar's edge to the panel's divider, over the hairline, so the page's
+   tools and the page read as one piece (the hairline stays over the Mushaf). */
+.qb-web .qb-topbar-web:has(.qb-topbar-reader:not(:empty)) .qb-topbar-page {
+  flex: 0 0 calc(var(--qb-panel-w, 40%) + 28px);
+  align-self: stretch;
+  margin-inline-start: -28px;
+  margin-block-end: -1px;
+  padding-inline: 28px 16px;
+  background: var(--bg-elev-1);
+  border-inline-end: 1px solid var(--border-strong);
+  position: relative;
+  z-index: 1;
+}
 .qb-web .qb-topbar-slot { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px; }
 .qb-web .qb-topbar-page:not(:has(.qb-cmd)) .qb-topbar-slot { flex: 1 1 auto; }
 .qb-web .qb-topbar-slot:empty { display: none; }
