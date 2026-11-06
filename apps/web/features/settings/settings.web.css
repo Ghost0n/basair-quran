@@ -35,10 +35,13 @@
 .qb-web .qb-settings.is-web {
   display: grid;
   grid-template-columns: 232px minmax(0, 780px);
-  justify-content: center;
+  /* On the reading-start side (the right in Arabic, the left in English),
+     next to the rail, like the side pages — not centred in the window. */
+  justify-content: start;
   align-items: start;
-  gap: clamp(32px, 5vw, 88px);
-  padding: 0 clamp(28px, 4vw, 72px) 30vh;
+  gap: clamp(32px, 4vw, 64px);
+  padding-block: 0 30vh;
+  padding-inline: clamp(24px, 3vw, 48px) clamp(28px, 4vw, 72px);
   scroll-padding-top: 28px;
 }
 .qb-web .qb-settings-index {
@@ -146,11 +149,33 @@
 .qb-web .qb-stepper button:disabled { opacity: 0.35; cursor: default; }
 .qb-web .qb-stepper .value { min-width: 3ch; text-align: center; font-variant-numeric: tabular-nums; }
 
-/* A lone switch (the rows of Home have theirs in the row). */
-.qb-web .qb-switch-btn { padding: 0; border: 0; background: none; cursor: pointer; border-radius: 14px; }
-.qb-web .qb-switch-btn[aria-checked="true"] .qb-switch { background: var(--gold-500); }
-.qb-web .qb-switch-btn[aria-checked="true"] .qb-switch::after { transform: translateX(18px); }
-html.qb-web[dir="rtl"] .qb-switch-btn[aria-checked="true"] .qb-switch::after { transform: translateX(-18px); }
+/* Switches (Home's rows and the lone ones): off is a quiet track with a grey
+   knob at the start, on is the gold track with the knob at the end — legible
+   at a glance on both themes. */
+.qb-web .qb-switch-btn { display: inline-flex; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 14px; }
+.qb-web .qb-switch {
+  display: inline-block;
+  width: 46px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--bg-elev-2);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.qb-web .qb-switch::after {
+  top: 4px;
+  inset-inline-start: 4px;
+  width: 18px;
+  height: 18px;
+  background: var(--fg-3);
+  box-shadow: none;
+}
+.qb-web :is(.qb-switch-btn, .qb-switch-row)[aria-checked="true"] .qb-switch {
+  background: var(--gold-400);
+  box-shadow: none;
+}
+.qb-web :is(.qb-switch-btn, .qb-switch-row)[aria-checked="true"] .qb-switch::after { background: var(--bg); transform: translateX(20px); }
+html.qb-web[dir="rtl"] :is(.qb-switch-btn, .qb-switch-row)[aria-checked="true"] .qb-switch::after { transform: translateX(-20px); }
+.qb-web :is(.qb-switch-row, .qb-switch-btn)[aria-checked="false"]:hover .qb-switch { box-shadow: inset 0 0 0 1px var(--gold-line); }
 .qb-web .qb-switch-btn:focus-visible { outline: 2px solid var(--gold-line); outline-offset: 2px; }
 
 /* The settings' search in the top bar, and what it hides. */
@@ -172,4 +197,3 @@ html.qb-web[dir="rtl"] .qb-switch-btn[aria-checked="true"] .qb-switch::after { t
 .qb-web .qb-settings-search input::-webkit-search-cancel-button { display: none; }
 .qb-web .qb-settings.is-web [data-filtered-out] { display: none !important; }
 .qb-web .qb-settings-empty { margin: 40px 0 0; font-size: 15px; color: var(--fg-3); }
-.qb-web .qb-topbar-slot:has(> .qb-settings-search) { justify-content: center; }
