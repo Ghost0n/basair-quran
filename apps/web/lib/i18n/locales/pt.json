@@ -1324,5 +1324,11 @@
  "وصلت رسالتك. شكراً لك.": "Recebemos sua mensagem. Obrigado.",
  "يراجع الاعتراضَ مشرفٌ غير صاحب القرار.": "O recurso é analisado por um moderador diferente de quem tomou a decisão.",
  "يراجع مشرفٌ بحثك قبل ظهوره في المجتمع.": "Um moderador revisa sua pesquisa antes de ela aparecer na comunidade.",
- "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Sua pesquisa é verificada automaticamente em cerca de quinze minutos; depois aparece ou um moderador a revisa."
+ "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Sua pesquisa é verificada automaticamente em cerca de quinze minutos; depois aparece ou um moderador a revisa.",
+ "حسابك في بصائر": "A sua conta Basair",
+ "الدخول بالبريد أو بحساب Apple أو Google أو Meta، على صفحة دخول بصائر الآمنة.": "Entre com o seu e-mail ou com a sua conta Apple, Google ou Meta, na página de acesso segura do Basair.",
+ "أُلغي الدخول.": "Acesso cancelado.",
+ "هذا البريد مرتبط بحساب آخر؛ أكِّده أولاً ثم أعد المحاولة.": "Este e-mail pertence a outra conta; confirme-o primeiro e tente novamente.",
+ "هذا الحساب موقوف.": "Esta conta está suspensa.",
+ "تعذّر تسجيل الدخول. حاول مرة أخرى.": "Não foi possível entrar. Tente novamente."
 }

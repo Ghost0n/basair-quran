@@ -541,3 +541,31 @@
 .qb-auth-card > .forgot:hover {
   color: var(--gold-text);
 }
+
+/* Keycloak mode (docs/keycloak.md): two links to its sign-in page. */
+.qb-auth-provider a {
+  text-decoration: none;
+}
+
+.qb-auth-provider-note {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.8;
+  color: var(--fg-3);
+  text-align: center;
+}
+
+.qb-auth-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 11px;
+  border: 1px solid var(--glass-rim);
+  border-radius: var(--r-md);
+  background: var(--glass-tint-soft);
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-size: 14px;
+  font-weight: 700;
+}

@@ -1324,5 +1324,11 @@
  "وصلت رسالتك. شكراً لك.": "Ujumbe wako umepokelewa. Asante.",
  "يراجع الاعتراضَ مشرفٌ غير صاحب القرار.": "Rufaa hukaguliwa na msimamizi asiye yule aliyefanya uamuzi.",
  "يراجع مشرفٌ بحثك قبل ظهوره في المجتمع.": "Msimamizi hukagua utafiti wako kabla haujaonekana kwenye jumuiya.",
- "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Utafiti wako utakaguliwa kiotomatiki ndani ya takriban robo saa, kisha utaonekana au msimamizi ataukagua."
+ "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Utafiti wako utakaguliwa kiotomatiki ndani ya takriban robo saa, kisha utaonekana au msimamizi ataukagua.",
+ "حسابك في بصائر": "Akaunti yako ya Basair",
+ "الدخول بالبريد أو بحساب Apple أو Google أو Meta، على صفحة دخول بصائر الآمنة.": "Ingia kwa barua pepe yako au akaunti yako ya Apple, Google au Meta, kwenye ukurasa salama wa kuingia wa Basair.",
+ "أُلغي الدخول.": "Kuingia kumeghairiwa.",
+ "هذا البريد مرتبط بحساب آخر؛ أكِّده أولاً ثم أعد المحاولة.": "Barua pepe hii ni ya akaunti nyingine; ithibitishe kwanza, kisha ujaribu tena.",
+ "هذا الحساب موقوف.": "Akaunti hii imesimamishwa.",
+ "تعذّر تسجيل الدخول. حاول مرة أخرى.": "Imeshindwa kuingia. Tafadhali jaribu tena."
 }

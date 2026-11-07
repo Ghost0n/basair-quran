@@ -9,7 +9,7 @@ import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-
 import { Icon } from "@/components/icon";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
 import { useAuthSession } from "@/lib/auth-session-context";
-import { clearGuestChoice } from "@/features/auth/identity-flow";
+import { clearGuestChoice, signOutEverywhere } from "@/features/auth/identity-flow";
 import { useNumerals } from "@/lib/preferences-context";
 
 import "./account-settings.css";
@@ -186,13 +186,8 @@ export function AccountSettings() {
   }
 
   async function signOut() {
-    try {
-      await api.logout({ suppressAuthRedirect: true });
-    } catch {
-      /* ignore */
-    }
     clearGuestChoice();
-    window.location.assign("/");
+    await signOutEverywhere("/");
   }
 
   async function deleteAccount() {

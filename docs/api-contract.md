@@ -429,6 +429,15 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
 
 ## Authentication notes
 
+- **Keycloak** (`QBASAIR_AUTH_PROVIDER=keycloak`, `docs/keycloak.md`): `GET /api/auth/session` also
+  answers `provider: "keycloak"`, `login_url`, `signup_url` (append `return_to`, `locale`) and
+  `account_url` (Keycloak's account console); `GET /api/auth/oidc/login` and
+  `GET /api/auth/oidc/callback` run the code flow with PKCE and open the session cookie;
+  `POST /api/auth/logout` also answers `logout_url` (visit it to end Keycloak's session); Bearer
+  tokens may be Keycloak access tokens (audience `qbasair-api`); the password routes (`login`,
+  `signup`, `forgot-password`, `reset-password`) answer `409 {code: "use_identity_provider"}`.
+  `AuthSessionResponse.provider` is `"local"` otherwise.
+
 - Authentication is controlled by `QBASAIR_AUTH_ENABLED`.
 - **Hybrid gating.** When enabled, reading + search + the notebook (companions) stay **open to guests**
   (`user_id=0`); only the Studio/research surface (`GET /api/research-agent/settings`, `POST /api/research-agent`)

@@ -1324,5 +1324,11 @@
  "وصلت رسالتك. شكراً لك.": "Je bericht is ontvangen. Dank je.",
  "يراجع الاعتراضَ مشرفٌ غير صاحب القرار.": "Het bezwaar wordt beoordeeld door een andere moderator dan degene die besliste.",
  "يراجع مشرفٌ بحثك قبل ظهوره في المجتمع.": "Een moderator beoordeelt je onderzoek voordat het in de gemeenschap verschijnt.",
- "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Je onderzoek wordt binnen ongeveer een kwartier automatisch gecontroleerd; daarna verschijnt het of beoordeelt een moderator het."
+ "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Je onderzoek wordt binnen ongeveer een kwartier automatisch gecontroleerd; daarna verschijnt het of beoordeelt een moderator het.",
+ "حسابك في بصائر": "Je Basair-account",
+ "الدخول بالبريد أو بحساب Apple أو Google أو Meta، على صفحة دخول بصائر الآمنة.": "Log in met je e-mail of je Apple-, Google- of Meta-account, op de beveiligde inlogpagina van Basair.",
+ "أُلغي الدخول.": "Inloggen geannuleerd.",
+ "هذا البريد مرتبط بحساب آخر؛ أكِّده أولاً ثم أعد المحاولة.": "Dit e-mailadres hoort bij een ander account; bevestig het eerst en probeer het opnieuw.",
+ "هذا الحساب موقوف.": "Dit account is geschorst.",
+ "تعذّر تسجيل الدخول. حاول مرة أخرى.": "Inloggen mislukt. Probeer het opnieuw."
 }

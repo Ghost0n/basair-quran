@@ -2,18 +2,15 @@
 
 import "@/features/reading/reading.css";
 
-import { createQBasairApiClient } from "@q-basair/api-client";
-
 import { Icon } from "@/components/icon";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { useAuthSession } from "@/lib/auth-session-context";
-import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { AUTH_ENABLED } from "@/lib/config";
 import { useDialog } from "@/lib/use-dialog";
+import { signOutEverywhere } from "@/features/auth/identity-flow";
 
 import { t } from "@/lib/i18n";
-
-const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 /**
  * Account and settings, opened from Home's corner button (they left the tab
@@ -33,12 +30,7 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
   }
 
   async function signOut() {
-    try {
-      await api.logout({ suppressAuthRedirect: true });
-    } catch {
-      /* signed out locally anyway */
-    }
-    window.location.assign("/");
+    await signOutEverywhere("/");
   }
 
   return (

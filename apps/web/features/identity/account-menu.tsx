@@ -9,7 +9,7 @@ import { Icon } from "@/components/icon";
 import { Sheet, usePhoneSheets } from "@/components/sheet";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
 import { useAuthSession } from "@/lib/auth-session-context";
-import { clearGuestChoice } from "@/features/auth/identity-flow";
+import { clearGuestChoice, signOutEverywhere } from "@/features/auth/identity-flow";
 
 import "./account-menu.css";
 
@@ -70,13 +70,8 @@ export function AccountMenu({ onOpenSettings }: AccountMenuProps) {
   }
 
   async function signOut() {
-    try {
-      await api.logout({ suppressAuthRedirect: true });
-    } catch {
-      /* ignore */
-    }
     clearGuestChoice();
-    window.location.assign("/");
+    await signOutEverywhere("/");
   }
 
   return (

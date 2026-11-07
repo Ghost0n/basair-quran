@@ -20,9 +20,11 @@ export function middleware(request: NextRequest) {
   // the app, where the client-side ShellGate shows the Landing (create account /
   // sign in / continue as guest); the backend hard-gates only the Studio surface.
   // One courtesy redirect remains: an already-authenticated visitor who lands on
-  // /login is sent straight to the workspace.
+  // /login is sent straight to the workspace — except on the way back from
+  // Keycloak (`from=idp`), where the login page finishes signing in (onboarding,
+  // guest data, then `next`; docs/keycloak.md).
   const hasSessionCookie = Boolean(request.cookies.get(sessionCookieName)?.value);
-  if (hasSessionCookie && pathname === "/login") {
+  if (hasSessionCookie && pathname === "/login" && request.nextUrl.searchParams.get("from") !== "idp") {
     return NextResponse.redirect(new URL("/", request.url));
   }
 

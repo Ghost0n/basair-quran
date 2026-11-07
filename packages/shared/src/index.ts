@@ -51,6 +51,15 @@ export interface AuthSessionResponse {
   user?: AuthUserInfo | null;
   /** Set only for native (bearer) clients; the web app uses the httpOnly cookie. */
   token?: string | null;
+  /** Who holds the credentials: email + password here, or Keycloak (docs/keycloak.md). */
+  provider?: "local" | "keycloak";
+  /** Keycloak: where «دخول» / «إنشاء حساب» send the browser (append `return_to`). */
+  login_url?: string | null;
+  signup_url?: string | null;
+  /** Keycloak's account console: password, 2FA, linked accounts, sessions. */
+  account_url?: string | null;
+  /** After sign-out with Keycloak: its end-session page, to end its session too. */
+  logout_url?: string | null;
 }
 
 export interface AuthOkResponse {

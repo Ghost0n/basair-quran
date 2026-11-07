@@ -1324,5 +1324,11 @@
  "وصلت رسالتك. شكراً لك.": "Your message was received. Thank you.",
  "يراجع الاعتراضَ مشرفٌ غير صاحب القرار.": "The appeal is reviewed by a moderator other than the one who made the decision.",
  "يراجع مشرفٌ بحثك قبل ظهوره في المجتمع.": "A moderator reviews your research before it appears in the community.",
- "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Your research is checked automatically within about a quarter of an hour, then it appears or a moderator reviews it."
+ "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Your research is checked automatically within about a quarter of an hour, then it appears or a moderator reviews it.",
+ "حسابك في بصائر": "Your Basair account",
+ "الدخول بالبريد أو بحساب Apple أو Google أو Meta، على صفحة دخول بصائر الآمنة.": "Sign in with your email or your Apple, Google or Meta account, on Basair's secure sign-in page.",
+ "أُلغي الدخول.": "Sign-in cancelled.",
+ "هذا البريد مرتبط بحساب آخر؛ أكِّده أولاً ثم أعد المحاولة.": "This email belongs to another account; verify it first, then try again.",
+ "هذا الحساب موقوف.": "This account is suspended.",
+ "تعذّر تسجيل الدخول. حاول مرة أخرى.": "Couldn't sign in. Please try again."
 }
