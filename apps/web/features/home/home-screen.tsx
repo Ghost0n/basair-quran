@@ -20,8 +20,10 @@ import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { useAuthSession } from "@/lib/auth-session-context";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { queueStudioOpenSession } from "@/lib/studio-prefill";
+import { useWebDesign } from "@/lib/use-web-design";
 
 import { AccountSheet } from "./account-sheet";
+import { WebHome } from "./home-web";
 import { greetingFor, readLastVisit, rememberVisit } from "./greeting";
 
 import { t, tn } from "@/lib/i18n";
@@ -37,12 +39,12 @@ export const COMMUNITY_SEEN_KEY = "qb.community.seen";
 // numeral preference. Any addition must be exact Uthmani text, 2–6 words,
 // owner-reviewed.
 // i18n-ignore — Quran text and its surah names stay as they are.
-const ROTATING_AYAHS: { text: string; surah: string; ayah: number }[] = [
-  { text: "ٱللَّهُ نُورُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ", surah: "النور", ayah: 35 },
-  { text: "وَقُل رَّبِّ زِدْنِى عِلْمًا", surah: "طه", ayah: 114 },
-  { text: "إِنَّ مَعَ ٱلْعُسْرِ يُسْرًا", surah: "الشرح", ayah: 6 },
-  { text: "فَٱذْكُرُونِىٓ أَذْكُرْكُمْ", surah: "البقرة", ayah: 152 },
-  { text: "وَبَشِّرِ ٱلصَّٰبِرِينَ", surah: "البقرة", ayah: 155 },
+const ROTATING_AYAHS: { text: string; surah: string; surahNo: number; ayah: number }[] = [
+  { text: "ٱللَّهُ نُورُ ٱلسَّمَٰوَٰتِ وَٱلْأَرْضِ", surah: "النور", surahNo: 24, ayah: 35 },
+  { text: "وَقُل رَّبِّ زِدْنِى عِلْمًا", surah: "طه", surahNo: 20, ayah: 114 },
+  { text: "إِنَّ مَعَ ٱلْعُسْرِ يُسْرًا", surah: "الشرح", surahNo: 94, ayah: 6 },
+  { text: "فَٱذْكُرُونِىٓ أَذْكُرْكُمْ", surah: "البقرة", surahNo: 2, ayah: 152 },
+  { text: "وَبَشِّرِ ٱلصَّٰبِرِينَ", surah: "البقرة", surahNo: 2, ayah: 155 },
 ];
 
 const ROTATE_MS = 9000;
@@ -88,6 +90,7 @@ export function HomeScreen() {
   const [newPosts, setNewPosts] = useState(0);
   const [lastVisit] = useState(readLastVisit);
   const [ayahIndex, setAyahIndex] = useState(0);
+  const web = useWebDesign();
 
   // The app always opens on Home (never straight into the reader): «تابع»
   // resumes the last reading from here.
@@ -210,6 +213,79 @@ export function HomeScreen() {
   const shows = (id: HomeSectionId) => !hiddenSections.includes(id);
   const tiles = shortcuts.filter((item) => shows(item.id));
 
+  // Account and settings: on a phone the rail (and its account menu) is gone,
+  // so Home's corner opens them as a sheet.
+  const accountButton = (
+    <button
+      ref={accountBtn}
+      type="button"
+      className="qb-home-account"
+      onClick={() => setAccountOpen(true)}
+      aria-haspopup="dialog"
+      aria-label={t("الحساب والإعدادات")}
+    >
+      <Icon name="user" size={20} />
+    </button>
+  );
+  const accountSheet =
+    accountOpen && typeof document !== "undefined"
+      ? createPortal(
+          <AccountSheet
+            onClose={() => {
+              setAccountOpen(false);
+              accountBtn.current?.focus({ preventScroll: true });
+            }}
+          />,
+          document.body,
+        )
+      : null;
+
+  // The web design (desktop web): same data and actions, its own layout (home-web.tsx).
+  if (web) {
+    return (
+      <WebHome
+        corner={accountButton}
+        overlay={accountSheet}
+        formatNumber={formatNumber}
+        greeting={shows("greeting") ? { line: greeting.line, sub: greeting.sub } : null}
+        verse={
+          shows("verse")
+            ? {
+                text: ayah.text,
+                surah: ayah.surah,
+                ayah: ayah.ayah,
+                key: ayahIndex,
+                onRead: () => {
+                  void mushaf.loadBySurah(DEFAULT_MUSHAF_ID, ayah.surahNo, ayah.ayah);
+                  setMode("reading");
+                },
+                onListen: () => {
+                  void mushaf.loadBySurah(DEFAULT_MUSHAF_ID, ayah.surahNo, ayah.ayah);
+                  recitation.playAyah(ayah.surahNo, ayah.ayah);
+                  setMode("reading");
+                },
+              }
+            : null
+        }
+        reading={
+          shows("continue")
+            ? {
+                eyebrow: reading.eyebrow,
+                title: reading.title,
+                meta: reading.meta,
+                page: page ?? null,
+                surah: position?.surah ?? null,
+                action: reading.action,
+                onAction: reading.onAction,
+                onListen: reading.onListen,
+              }
+            : null
+        }
+        rows={tiles.map((item) => ({ ...item, dot: item.id === "community" && newPosts > 0 }))}
+      />
+    );
+  }
+
   return (
     <div className="qb-home">
       {/* Phones: the greeting opens the screen, beside the account button
@@ -222,16 +298,7 @@ export function HomeScreen() {
           </div>
         ) : null}
         {/* Phones only: the desktop rail carries the account menu. */}
-        <button
-          ref={accountBtn}
-          type="button"
-          className="qb-home-account"
-          onClick={() => setAccountOpen(true)}
-          aria-haspopup="dialog"
-          aria-label={t("الحساب والإعدادات")}
-        >
-          <Icon name="user" size={20} />
-        </button>
+        {accountButton}
       </header>
 
       {/* Wide screens: the verse holds the seat of honour. No aria-live — a
@@ -291,17 +358,7 @@ export function HomeScreen() {
         ) : null}
       </div>
 
-      {accountOpen && typeof document !== "undefined"
-        ? createPortal(
-            <AccountSheet
-              onClose={() => {
-                setAccountOpen(false);
-                accountBtn.current?.focus({ preventScroll: true });
-              }}
-            />,
-            document.body,
-          )
-        : null}
+      {accountSheet}
     </div>
   );
 }

@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import type { SavedPageEntry, SurahListItem } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
+import { useWebDesign } from "@/lib/use-web-design";
 import { SwipeRow } from "@/components/swipe-row";
 import { canHover } from "@/lib/can-hover";
 import { relativeAge } from "@/features/companions/use-companions";
@@ -12,8 +15,12 @@ import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { parseNavCommand, surahMatches, toAsciiDigits, TOTAL_PAGES } from "@/lib/quran-nav";
 import { divisionRange, DIVISION_COUNT } from "@/lib/quran-ranges";
 import { useDialog } from "@/lib/use-dialog";
+import type { TopBarSlots } from "@/features/shell/top-bar-slots";
 
 import { useSavedPages } from "../use-saved-pages";
+import { surahLengths, surahsOfKind, type SurahKind } from "../surah-filter";
+
+import "./navigate-sheet.web.css";
 
 import { t, tn } from "@/lib/i18n";
 
@@ -62,6 +69,7 @@ export function NavigateSheet({
   onClose,
   inline = false,
   initialTab,
+  topSlots = null,
 }: {
   surahs: SurahListItem[];
   currentSurahId?: number;
@@ -75,6 +83,8 @@ export function NavigateSheet({
   inline?: boolean;
   /** The tab to open on; by default the saved pages when there are some, else the surahs. */
   initialTab?: NavigateTab;
+  /** The web top bar's slots, for the Index and Saved pages: the tabs go up there and the heading is dropped. */
+  topSlots?: TopBarSlots | null;
 }) {
   const formatNumber = useNumerals();
   const panelRef = useDialog<HTMLDivElement>(onClose, { enabled: !inline });
@@ -83,11 +93,33 @@ export function NavigateSheet({
   const { remove: removeSaved } = useSavedPages();
   const savedPages: SavedPageEntry[] = [...(preferences.saved_pages ?? [])].sort((a, b) => (b.saved_at ?? 0) - (a.saved_at ?? 0));
   const [tab, setTab] = useState<Tab>(() => initialTab ?? (savedPages.length ? "saved" : "surah"));
+  // Opened again on another tab (the reader's surah name while the page shows): follow it.
+  useEffect(() => {
+    if (initialTab) setTab(initialTab);
+  }, [initialTab]);
   const [query, setQuery] = useState("");
   const [pageDraft, setPageDraft] = useState(currentPage ? String(currentPage) : "");
 
   const command = parseNavCommand(query);
-  const filtered = useMemo(() => surahs.filter((surah) => surahMatches(query, surah)), [surahs, query]);
+  // Web design: the surahs' lengths as a ribbon, filtered by Meccan / Medinan.
+  const web = useWebDesign();
+  const [kind, setKind] = useState<SurahKind>("all");
+  const listRef = useRef<HTMLUListElement>(null);
+  const ofKind = useMemo(() => surahsOfKind(surahs, kind), [surahs, kind]);
+  const lengths = useMemo(() => surahLengths(surahs), [surahs]);
+  const filtered = useMemo(
+    () => surahs.filter((surah) => surahMatches(query, surah) && (!web || ofKind.has(surah.id))),
+    [surahs, query, web, ofKind],
+  );
+  function showSurah(index: number | null) {
+    if (index == null) return;
+    const row = listRef.current?.querySelector<HTMLElement>(`[data-surah="${index + 1}"]`);
+    if (!row) return;
+    row.scrollIntoView({ block: "center", behavior: "smooth" });
+    row.classList.remove("is-flash");
+    void row.offsetWidth;
+    row.classList.add("is-flash");
+  }
 
   function go(target: NavigateTarget) {
     onNavigate(target);
@@ -121,6 +153,51 @@ export function NavigateSheet({
   const pageNumber = Number(toAsciiDigits(pageDraft));
   const pageValid = Number.isInteger(pageNumber) && pageNumber >= 1 && pageNumber <= TOTAL_PAGES;
 
+  const field = (
+    <div className="field">
+      <Icon name="search" size={16} />
+      <input
+        type="search"
+        value={query}
+        onChange={(event) => {
+          setQuery(event.target.value);
+          setTab("surah");
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            // Closing returns focus to the «انتقل» button; without this the
+            // same Enter would activate it and reopen the sheet.
+            event.preventDefault();
+            runCommand();
+          }
+        }}
+        placeholder={formatNumber(t("اسم السورة أو رقمها · ٢:٢٥٥ · صفحة ٥٠"))}
+        // Type-to-filter on desktop; on touch screens don't pop the keyboard
+        // over the list — the user may just scroll and tap.
+        autoFocus={hover}
+        aria-label={t("ابحث عن سورة أو اكتب مرجعاً")}
+        enterKeyHint="go"
+      />
+    </div>
+  );
+
+  const tabStrip = (
+    <div className="tabs qb-fit-choice" data-autofit="2" suppressHydrationWarning role="tablist" aria-label={t("طريقة التنقل")}>
+      {TABS.map((item) => (
+        <button
+          key={item.value}
+          type="button"
+          role="tab"
+          aria-selected={tab === item.value}
+          className={tab === item.value ? "active" : ""}
+          onClick={() => setTab(item.value)}
+        >
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div
       className={`qb-rsheet qb-nav-sheet${inline ? " is-inline" : ""}`}
@@ -131,40 +208,22 @@ export function NavigateSheet({
       {inline ? null : <div className="backdrop" onClick={onClose} aria-hidden />}
       <div className="panel" ref={panelRef} tabIndex={-1}>
         <div className="grip" aria-hidden />
-        <div className="head">
-          <h2>{inline ? t("الفهرس") : t("انتقل")}</h2>
-          {inline ? null : (
-            <button type="button" className="close" onClick={onClose} aria-label={t("إغلاق")}>
-              <Icon name="close" size={18} />
-            </button>
-          )}
-        </div>
+        {/* As a page under the web top bar (the Index, Saved), the rail names the
+            page and its tabs — saved pages, surahs, juz… — go up into the bar
+            (shell/top-bar-slots.ts). */}
+        {topSlots ? null : (
+          <div className="head">
+            <h2>{inline ? t("الفهرس") : t("انتقل")}</h2>
+            {inline ? null : (
+              <button type="button" className="close" onClick={onClose} aria-label={t("إغلاق")}>
+                <Icon name="close" size={18} />
+              </button>
+            )}
+          </div>
+        )}
 
-        <div className="field">
-          <Icon name="search" size={16} />
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setTab("surah");
-            }}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                // Closing returns focus to the «انتقل» button; without this the
-                // same Enter would activate it and reopen the sheet.
-                event.preventDefault();
-                runCommand();
-              }
-            }}
-            placeholder={formatNumber(t("اسم السورة أو رقمها · ٢:٢٥٥ · صفحة ٥٠"))}
-            // Type-to-filter on desktop; on touch screens don't pop the keyboard
-            // over the list — the user may just scroll and tap.
-            autoFocus={hover}
-            aria-label={t("ابحث عن سورة أو اكتب مرجعاً")}
-            enterKeyHint="go"
-          />
-        </div>
+        {/* Web top bar: the field goes up into the bar, the tabs stay with the list. */}
+        {topSlots ? createPortal(field, topSlots.start) : field}
 
         {command ? (
           <button type="button" className="command" onClick={runCommand}>
@@ -173,20 +232,7 @@ export function NavigateSheet({
           </button>
         ) : null}
 
-        <div className="tabs qb-fit-choice" data-autofit="2" suppressHydrationWarning role="tablist" aria-label={t("طريقة التنقل")}>
-          {TABS.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              aria-selected={tab === item.value}
-              className={tab === item.value ? "active" : ""}
-              onClick={() => setTab(item.value)}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
+        {tabStrip}
 
         <div className="body">
           {/* «المحفوظة»: the pages bookmarked in the reader, latest first. */}
@@ -220,11 +266,42 @@ export function NavigateSheet({
             )
           ) : null}
 
+          {tab === "surah" && web ? (
+            <div className="qb-nav-ribbon">
+              <div className="kinds" role="group" aria-label={t("نوع السورة")}>
+                {(
+                  [
+                    ["all", t("الكل"), surahs.length],
+                    ["meccan", t("مكّيّة"), surahsOfKind(surahs, "meccan").size],
+                    ["medinan", t("مدنيّة"), surahsOfKind(surahs, "medinan").size],
+                  ] as const
+                ).map(([value, label, count]) => (
+                  <button key={value} type="button" aria-pressed={kind === value} onClick={() => setKind(value)}>
+                    {label}
+                    <span>{formatNumber(count)}</span>
+                  </button>
+                ))}
+              </div>
+              <Ribbon
+                counts={lengths.map((length, i) => (ofKind.has(i + 1) ? length : 0))}
+                label={t("أطوال السور")}
+                here={currentSurahId ? currentSurahId - 1 : null}
+                height={56}
+                readout={(i) => {
+                  const surah = surahs.find((item) => item.id === i + 1);
+                  return surah ? `${SURAH_NAMES[i]}: ${tn("{0} آية", surah.ayah_count, { 0: formatNumber(surah.ayah_count) })}` : SURAH_NAMES[i];
+                }}
+                restReadout={tn("{0} آية", 6236, { 0: formatNumber(6236) })}
+                onPick={showSurah}
+              />
+            </div>
+          ) : null}
+
           {tab === "surah" ? (
             filtered.length ? (
-              <ul className="surahs">
+              <ul className="surahs" ref={listRef}>
                 {filtered.map((surah) => (
-                  <li key={surah.id}>
+                  <li key={surah.id} data-surah={surah.id}>
                     <button
                       type="button"
                       className={surah.id === currentSurahId ? "current" : ""}

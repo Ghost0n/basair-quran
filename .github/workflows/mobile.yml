@@ -29,6 +29,9 @@ on:
       - "pnpm-lock.yaml"
       - ".github/workflows/mobile.yml"
 
+permissions:
+  contents: write
+
 concurrency:
   group: mobile-${{ github.ref }}
   cancel-in-progress: true
@@ -107,21 +110,16 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: App bundle (static export + bundled core)
         run: pnpm --filter @q-basair/web build:app
-      - uses: actions/upload-artifact@v4
+      # Test branch only: the bundle goes through the Actions cache because the
+      # artifact storage quota is full.
+      - uses: actions/cache/save@v4
         with:
-          name: app-bundle
           path: apps/web/out/
-          retention-days: 3
-          if-no-files-found: error
-      - name: Offline packs (for the server's /api/offline)
-        uses: actions/upload-artifact@v4
-        with:
-          name: basair-offline-packs-${{ env.VERSION_NAME }}
-          path: build/offline/
-          retention-days: 14
+          key: app-bundle-${{ github.run_id }}
 
   android:
     name: Android (APK / AAB)
+    if: false
     needs: bundle
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -215,14 +213,22 @@ jobs:
           cache: pnpm
       - name: Node dependencies
         run: pnpm install --frozen-lockfile
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache/restore@v4
         with:
-          name: app-bundle
           path: apps/web/out/
+          key: app-bundle-${{ github.run_id }}
+          fail-on-cache-miss: true
       - name: Capacitor sync
         run: pnpm --filter @q-basair/mobile exec cap sync ios
+      # The newest Xcode 26 on the runner: built against the iOS 26 SDK, the
+      # app takes the system's Liquid Glass (Apple's tab bar included); with
+      # an older SDK, iOS 26 draws it in the older, solid style.
       - name: Xcode
-        run: xcodebuild -version
+        run: |
+          latest=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)
+          if [ -n "$latest" ]; then sudo xcode-select -s "$latest/Contents/Developer"; fi
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i iphoneos || true
 
       - name: Simulator build (runs in the iOS Simulator, no signing)
         run: |
@@ -281,11 +287,13 @@ jobs:
             -authenticationKeyIssuerID "$APPSTORE_API_ISSUER_ID"
           if [ "$destination" = upload ]; then echo "::notice::Uploaded to App Store Connect (TestFlight)."; fi
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: basair-ios-${{ env.VERSION_NAME }}
-          path: |
-            ${{ runner.temp }}/Basair-simulator.zip
-            ${{ runner.temp }}/Basair-unsigned.ipa
-            ${{ runner.temp }}/export/*.ipa
-          if-no-files-found: error
+      # Test branch only: a pre-release instead of an artifact (storage is full).
+      - name: Test pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "iphone-test-$VERSION_NAME" --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "iPhone test build $VERSION_NAME (Q-Basair-52, native phone feel)" \
+            --notes "Unsigned test build of $GITHUB_REF_NAME. Re-sign it before installing." \
+            "$RUNNER_TEMP/Basair-unsigned.ipa" "$RUNNER_TEMP/Basair-simulator.zip"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { QuranPageResponse, SurahListItem } from "@q-basair/shared";
@@ -12,13 +12,18 @@ import { useRecitation } from "@/features/recitation/recitation-context";
 import { RecitationSheet } from "@/features/recitation/recitation-sheet";
 import { useGoBack, useShellMode } from "@/features/shell/mode-context";
 import { readerBackLeadsHome } from "@/features/shell/navigation";
+import { useRoomWide } from "@/features/shell/room";
+import { TOP_BAR_READER_ID } from "@/features/shell/top-bar-slots";
+import { useBand } from "@/lib/bands";
 import { useExclusiveOverlay } from "@/lib/exclusive-overlay";
 import { modKey } from "@/lib/platform";
 import { useNumerals } from "@/lib/preferences-context";
 import { useIsMobile } from "@/lib/use-is-mobile";
+import { useWebDesign } from "@/lib/use-web-design";
 import { TOTAL_PAGES } from "@/lib/quran-nav";
 
 import { DisplayStrip } from "./display-strip";
+import { readerBarInTopBar } from "../reader-bar-place";
 import { ToolPicker } from "../tools/tool-picker";
 import { useSavedPages } from "../use-saved-pages";
 import { useCompactReader } from "../use-wide-screen";
@@ -115,7 +120,19 @@ export function ReaderBar({
   const dockSwapped = useRef(false);
   if (dockView !== firstDockView.current) dockSwapped.current = true;
   const swapClass = dockSwapped.current ? " swap" : "";
-  const { setMode } = useShellMode();
+  const { mode, setMode } = useShellMode();
+  // Web design, wide screens: the bar lives in the shell's top bar wherever the
+  // Mushaf shows — the reading page, and beside a panel (search, study, the
+  // notebook…) unless the panel is widened over it — leaving the stage's
+  // height to the Mushaf. The slot is found after commit (features/shell/top-bar.tsx).
+  const web = useWebDesign();
+  const band = useBand();
+  const [roomWide] = useRoomWide();
+  const inTopBar = web && readerBarInTopBar(band, mode, roomWide);
+  const [topSlot, setTopSlot] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setTopSlot(inTopBar ? document.getElementById(TOP_BAR_READER_ID) : null);
+  }, [inTopBar, mode]);
   const savedPages = useSavedPages();
 
   const firstAyah = pageData.ayahs[0];
@@ -175,10 +192,13 @@ export function ReaderBar({
             <Icon name="search" size={17} />
           </button>
         )}
-        <button type="button" className="act labelled go-btn" onClick={onOpenNavigate} aria-label={t("انتقل")} title={t("انتقل (سورة · آية · جزء · صفحة)")}>
-          <Icon name="compass" size={18} />
-          <span className="lbl">{t("انتقل")}</span>
-        </button>
+        {/* Web design: the surah name is the one way into «انتقل» (no second button). */}
+        {web ? null : (
+          <button type="button" className="act labelled go-btn" onClick={onOpenNavigate} aria-label={t("انتقل")} title={t("انتقل (سورة · آية · جزء · صفحة)")}>
+            <Icon name="compass" size={18} />
+            <span className="lbl">{t("انتقل")}</span>
+          </button>
+        )}
         <button
           type="button"
           className={`act labelled display-btn${displayOpen ? " on" : ""}`}
@@ -261,12 +281,14 @@ export function ReaderBar({
   const strip = displayOpen ? <DisplayStrip onClose={onCloseDisplay} headRef={headRef} /> : null;
 
   if (!compact) {
-    return (
+    const wideHead = (
       <div className="qb-reader-head" ref={headRef}>
         {bar}
         {strip}
       </div>
     );
+    if (inTopBar) return topSlot ? createPortal(wideHead, topSlot) : null;
+    return wideHead;
   }
   const bookmark = (
     <button
@@ -299,7 +321,9 @@ export function ReaderBar({
     const back = (
       <button
         type="button"
-        className="qb-reader-back"
+        // The Home mark (is-home) when the reader was opened from Home, an
+        // arrow back otherwise: the round half of the split bar.
+        className={`qb-reader-back${!reciteView && backHome ? " is-home" : ""}`}
         onClick={() => {
           if (!reciteView) {
             goBack();
@@ -387,7 +411,7 @@ export function ReaderBar({
 
   // Phones on their side: the bookmark floats on its own beside the bar
   // (same glass, same height), red once the page is saved.
-  return (
+  const head = (
     <div className="qb-reader-head" ref={headRef}>
     <div className="qb-reader-row">
       {bar}
@@ -396,4 +420,6 @@ export function ReaderBar({
     {strip}
     </div>
   );
+  if (inTopBar) return topSlot ? createPortal(head, topSlot) : null;
+  return head;
 }

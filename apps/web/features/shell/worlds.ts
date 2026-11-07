@@ -65,15 +65,47 @@ export const COMMUNITY = destination(
 /**
  * The phone's five tabs (thumb reach: 3–5 labelled destinations, R7 in
  * docs/mobile-ergonomics.md). The reader's tab also lights on its index and
- * saved pages; Home on Settings. Community is one tap away from Home.
+ * saved pages; Home on Settings. Search and study share one research tab (a
+ * switch at the top moves between them, research-switch.tsx), which leaves
+ * room for Community at the far end, opposite Home.
  */
 export const PHONE_TABS: readonly Destination[] = [
   owning(HOME, ["home", "settings"]),
   owning(READER, ["reading", "saved", "index"]),
-  SEARCH,
-  STUDY,
+  owning(SEARCH, ["search", "heatmap", "studio"]),
   NOTEBOOK,
+  COMMUNITY,
 ];
+
+/** The two pages behind the phone's research tab. */
+export const RESEARCH_PAGES: readonly Destination[] = [SEARCH, STUDY];
+
+// The research tab reopens the page used last (search or study), for this session.
+let lastResearch: "search" | "study" = "search";
+
+/** Notes the research page the reader is on (other pages leave it as it was). */
+export function rememberResearch(mode: ShellMode): void {
+  if (SEARCH.owns.includes(mode)) lastResearch = "search";
+  else if (STUDY.owns.includes(mode)) lastResearch = "study";
+}
+
+/** Where the phone's research tab leads: the research page used last. */
+export function researchTarget(): Destination {
+  return lastResearch === "study" ? STUDY : SEARCH;
+}
+
+/**
+ * What a tap on a phone tab does from the page shown: on the tab's own main
+ * page it scrolls back to the top ("top"); from one of its sub-pages (a board
+ * in the notebook, a post in community, Settings under Home) it comes back
+ * to the tab's main page ("main"); from another tab it opens this one where
+ * it was left ("open": the notebook resumes its last board).
+ */
+export function tabTap(item: Destination, mode: ShellMode): "top" | "main" | "open" {
+  if (!item.owns.includes(mode)) return "open";
+  const ownPage = item.mode === mode || (item.id === SEARCH.id && STUDY.owns.includes(mode));
+  return ownPage ? "top" : "main";
+}
 
 /** The same destination lighting on more pages (its label stays live, never copied). */
 function owning(base: Destination, owns: readonly ShellMode[]): Destination {
@@ -156,5 +188,14 @@ export function useWorldSync(): WorldId {
 /** Open a destination. */
 export function useOpenDestination() {
   const { setMode } = useShellMode();
-  return (item: Destination) => setMode(item.mode, { resume: item.resume, viaTab: true, params: { tab: null, ...item.params } });
+  return (item: Destination, options?: { main?: boolean }) =>
+    setMode(item.mode, {
+      // Its main page: no resumed place, and a sub-page's own parameters dropped.
+      resume: options?.main ? false : item.resume,
+      viaTab: true,
+      params: { tab: null, ...(options?.main ? SUB_PAGE_PARAMS : {}), ...item.params },
+    });
 }
+
+/** The query parameters that name a sub-page (a board, a post, a focused item). */
+const SUB_PAGE_PARAMS: Record<string, null> = { id: null, board: null, tag: null, focus: null };

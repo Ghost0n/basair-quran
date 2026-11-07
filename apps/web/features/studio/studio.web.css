@@ -1,0 +1,382 @@
+/* Study (الدراسة) in the web design (desktop web): a typeset thread, not chat
+   bubbles; gold for the Quran-only reading, copper for the experimental
+   Tafssir. Source: design/prototype-web-full/screens/study.* */
+
+.qb-web .qb-studio-head .kicker { color: var(--world); font-weight: 700; }
+.qb-web .qb-studio-title { font-family: var(--font-arabic-heading); }
+
+/* Session tabs: a quiet row with a gold underline on the open session. */
+.qb-web .qb-studio-tabs { border-bottom: 1px solid var(--border); background: none; }
+.qb-web .qb-studio-tab { border-radius: 0; background: none; box-shadow: none; border: 0; border-bottom: 2px solid transparent; }
+.qb-web .qb-studio-tab.active { color: var(--fg-1); border-bottom-color: var(--gold-400); background: none; }
+
+/* The question: a gold rule and the words, no bubble. */
+.qb-web .qb-msg.user {
+  background: none;
+  border: 0;
+  border-inline-start: 2px solid var(--gold-400);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 2px 14px;
+}
+.qb-web .qb-msg.user p { font-family: var(--font-arabic-heading); font-size: 19px; line-height: var(--lh-heading, 1.6); }
+
+/* The answer: typeset text. */
+.qb-web .qb-msg.bot { background: none; border: 0; box-shadow: none; padding: 4px 2px; }
+.qb-web .qb-msg.bot .lbl { color: var(--world); font-weight: 700; }
+.qb-web .qb-msg.bot.tafssir .lbl { color: var(--copper); }
+.qb-web .qb-msg.bot p { font-size: 15px; line-height: 1.95; color: var(--fg-1); }
+.qb-web .qb-msg.bot .section h5 { font-family: var(--font-arabic-heading); font-size: 17px; color: var(--copper); }
+
+/* Evidence: numbered citations, hairline rows, verse in Amiri Quran. */
+.qb-web .qb-msg.bot .evidence { border-top: 1px solid var(--border); padding-top: 14px; background: none; }
+.qb-web .qb-msg.bot .ev-row {
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+}
+.qb-web .qb-msg.bot .ev-row:hover { background: var(--gold-soft); }
+.qb-web .qb-msg.bot .ev-row .num { background: var(--gold-soft); color: var(--gold-text); border: 0; }
+.qb-web .qb-msg.bot .ev-row .ev-meta { font-family: var(--font-arabic-heading); color: var(--gold-text); }
+.qb-web .qb-msg.bot .ev-spread { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; font-size: 11.5px; color: var(--fg-3); }
+
+/* Mode tabs: gold for «القرآن وحدَه», copper for «قراءة تفسيرية». */
+.qb-web .qb-mode-tabs { background: var(--bg-elev-2); border: 0; box-shadow: none; border-radius: var(--r-ctl); }
+
+/* Composer: a flat field with the gold «اسأل». */
+.qb-web .qb-composer { background: var(--bg-elev-1); border: 1px solid var(--border-strong); box-shadow: none; border-radius: 14px; }
+.qb-web .qb-composer:focus-within { border-color: var(--gold-line); }
+
+/* ---------- Desk: sessions in a side column, like every AI chat ---------- */
+.qb-web .qb-studio.is-desk { position: relative; container-type: inline-size; }
+.qb-web .qb-studio.is-desk > .qb-studio-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The top bar: fold the sessions, then the open session's name. */
+.qb-web .qb-studio-bar { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.qb-web .qb-studio-side-toggle {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+.qb-web .qb-studio-side-toggle:hover { color: var(--fg-1); background: var(--gold-soft); }
+.qb-web .qb-studio-side-toggle.on { color: var(--gold-text); }
+.qb-web .qb-studio-bar-title {
+  min-width: 0;
+  font-family: var(--font-arabic-heading);
+  font-size: 17px;
+  line-height: 1.8;
+  color: var(--fg-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The study page sits on the deepest ground, and the top bar over it is
+   darker still: a smoke that thins into the thread instead of ending on a
+   line. */
+.qb-web .qb-side-panel:has(.qb-studio.is-desk) { background: var(--bg); }
+html.qb-web .qb-topbar-web:has(.qb-topbar-reader:not(:empty)) .qb-topbar-page:has(.qb-studio-bar),
+html.qb-web .qb-topbar-web.qb-topbar-web:has(.qb-studio-bar):not(:has(.qb-topbar-reader:not(:empty))) {
+  background: linear-gradient(180deg, var(--shade), color-mix(in srgb, var(--shade) 45%, transparent)), var(--bg);
+}
+.qb-web .qb-studio.is-desk::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 56px;
+  z-index: 5;
+  pointer-events: none;
+  background:
+    radial-gradient(42% 70% at 22% 0, color-mix(in srgb, var(--shade) 30%, transparent), transparent),
+    radial-gradient(38% 60% at 74% 0, color-mix(in srgb, var(--shade) 26%, transparent), transparent),
+    linear-gradient(180deg, color-mix(in srgb, var(--shade) 45%, transparent), transparent);
+}
+
+/* The sessions: a pane laid over the thread (never a split), frosted, that
+   slides in from the bar's toggle; the question field stays above it. */
+.qb-web .qb-studio-side {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  z-index: 3;
+  width: min(280px, 80%);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 22px 12px 140px;
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  box-shadow: 0 0 60px -24px var(--shade);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(-14px);
+  transition: opacity 220ms ease, transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s linear 280ms;
+}
+html.qb-web[dir="rtl"] .qb-studio-side { transform: translateX(14px); }
+/* The one frosted surface of the web design (web-design.css turns blur off
+   everywhere else): the thread blurs softly behind the sessions. */
+html.qb-web body .qb-studio.is-desk > .qb-studio-side {
+  -webkit-backdrop-filter: blur(32px) saturate(1.2) !important;
+  backdrop-filter: blur(32px) saturate(1.2) !important;
+}
+html.qb-web .qb-studio-side.open {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  transition: opacity 220ms ease, transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .qb-web .qb-studio-side,
+  html.qb-web .qb-studio-side.open { transition: none; }
+}
+.qb-web .qb-studio-new {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding-inline: 14px;
+  border: 1px solid var(--gold-line);
+  border-radius: 12px;
+  background: transparent;
+  color: var(--gold-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.6;
+  cursor: pointer;
+}
+.qb-web .qb-studio-new:hover { background: var(--gold-soft); }
+.qb-web .qb-studio-side-label { margin: 16px 10px 4px; font-size: 11.5px; line-height: 1.6; color: var(--fg-3); }
+.qb-web .qb-studio-side-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.qb-web .qb-studio-side-list li { position: relative; display: flex; align-items: center; border-radius: 10px; }
+.qb-web .qb-studio-side-list li:hover { background: color-mix(in srgb, var(--gold-400) 6%, transparent); }
+.qb-web .qb-studio-side-list li.active { background: var(--gold-soft); }
+.qb-web .qb-studio-side-list .open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 7px 10px;
+  padding-inline-end: 34px;
+  border: 0;
+  background: none;
+  color: var(--fg-2);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+/* A session's name wraps rather than being cut. */
+.qb-web .qb-studio-side-list .name {
+  max-width: 100%;
+  font-size: 13.5px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+.qb-web .qb-studio-side-list li.active .name { color: var(--gold-text); font-weight: 700; }
+.qb-web .qb-studio-side-list .count { font-size: 11px; line-height: 1.6; color: var(--fg-3); }
+.qb-web .qb-studio-side-list .x {
+  position: absolute;
+  inset-inline-end: 6px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fg-3);
+  cursor: pointer;
+  opacity: 0;
+}
+.qb-web .qb-studio-side-list li:hover .x,
+.qb-web .qb-studio-side-list li.active .x,
+.qb-web .qb-studio-side-list .x:focus-visible { opacity: 1; }
+.qb-web .qb-studio-side-list .x:hover { color: var(--fg-1); background: var(--gold-soft); }
+
+/* The thread: one readable column in the middle of the room. */
+.qb-web .qb-studio.is-desk .qb-thread { padding: 18px clamp(20px, 4%, 48px) 24px; gap: 22px; }
+.qb-web .qb-studio.is-desk .qb-thread > *,
+.qb-web .qb-studio.is-desk .qb-studio-focus,
+.qb-web .qb-studio.is-desk .qb-studio-error,
+.qb-web .qb-studio.is-desk .qb-studio-confirm {
+  /* The full readable column, not shrunk to the words (auto margins in a
+     flex column would shrink-wrap each message). */
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 760px;
+  margin-inline: auto;
+  align-self: center;
+}
+.qb-web .qb-studio.is-desk .qb-studio-state { gap: 14px; font-size: 14.5px; line-height: 1.9; max-width: 460px; margin-inline: auto; }
+.qb-web .qb-studio.is-desk .qb-studio-state .qb-icon { color: var(--gold-text); }
+
+/* The composer: one field, no box around the box — it grows with the
+   question, rings softly in gold when you type, and sends with a round
+   gold arrow. */
+.qb-web .qb-studio.is-desk .qb-composer {
+  position: relative;
+  z-index: 4;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 6px clamp(20px, 4%, 48px) 22px;
+}
+.qb-web .qb-studio.is-desk .qb-composer .input-wrap {
+  max-width: 760px;
+  width: 100%;
+  margin-inline: auto;
+  gap: 6px;
+  padding: 12px 14px 10px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 22px;
+  background: var(--bg-elev-2);
+  box-shadow: 0 18px 40px -28px var(--shade);
+  transition: border-color 180ms ease, box-shadow 180ms ease;
+}
+.qb-web .qb-studio.is-desk .qb-composer .input-wrap:focus-within { border-color: var(--gold-line); }
+.qb-web .qb-studio.is-desk .qb-composer textarea {
+  field-sizing: content;
+  min-height: 30px;
+  max-height: 40vh;
+  padding: 2px 4px;
+  font-size: 16px;
+  line-height: 1.9;
+}
+.qb-web .qb-studio.is-desk .qb-composer textarea::placeholder { font-size: 15px; line-height: 1.9; color: var(--fg-3); }
+.qb-web .qb-studio.is-desk .qb-composer .hint { padding-inline: 4px; font-size: 11.5px; line-height: 1.6; color: var(--fg-3); }
+.qb-web .qb-studio.is-desk .qb-composer .send {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--btn-grad);
+  box-shadow: none;
+  color: var(--on-gold);
+  transition: filter 160ms ease, background-color 160ms ease;
+}
+.qb-web .qb-studio.is-desk .qb-composer .send:hover:not(:disabled) { filter: brightness(1.08); }
+.qb-web .qb-studio.is-desk .qb-composer .send:disabled { opacity: 1; background: var(--bg-elev-3); color: var(--fg-3); }
+.qb-web .qb-studio.is-desk .qb-composer .send .lbl {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.qb-web .qb-studio.is-desk .qb-composer .row { flex-wrap: nowrap; }
+
+/* A narrow study page: the sessions column slims down, and the keyboard hint
+   steps aside rather than wrap or be cut. */
+@container (max-width: 660px) {
+  .qb-web .qb-studio.is-desk .qb-composer .hint { display: none; }
+}
+
+.qb-web .qb-studio-side-label:first-child { margin-top: 4px; }
+
+/* A failed answer: said right on top of the question field, where the eye
+   already is — the column's width, never clipped by the bar's fade. */
+.qb-web .qb-studio.is-desk .qb-composer .qb-studio-error.is-docked {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 auto 10px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.qb-web .qb-studio.is-desk .qb-composer .qb-studio-error.is-docked .qb-icon { flex: none; margin-top: 4px; color: var(--copper); }
+
+/* ---------- The composer floats over the thread, in glass ----------
+   The thread scrolls under it to the screen's end; the stage publishes the
+   composer's height (--qb-composer-h, studio-panel.tsx) so the newest
+   message still scrolls clear of it. Up the history, a round arrow above
+   the composer brings the newest message back. */
+.qb-web .qb-studio-stage {
+  --qb-composer-gap: 6px;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.qb-web .qb-studio-stage > .qb-thread {
+  padding-bottom: calc(var(--qb-composer-h, 120px) + var(--qb-composer-gap) + 16px);
+  scroll-padding-bottom: calc(var(--qb-composer-h, 120px) + var(--qb-composer-gap) + 16px);
+}
+.qb-web .qb-studio-stage > .qb-composer {
+  position: absolute;
+  z-index: 4;
+  inset-inline: 10px;
+  bottom: var(--qb-composer-gap);
+  border-radius: 22px;
+  border-color: var(--border-strong);
+  background-color: var(--lg-tint-strong);
+  box-shadow: var(--lg-depth), var(--lg-shadow);
+}
+/* A blur exception (the web design has none, app/web-design.css): the
+   thread scrolls under the composer and its arrow. */
+html.qb-web body .qb-studio-stage > .qb-composer,
+html.qb-web body .qb-studio-stage > .qb-thread-latest {
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) !important;
+  backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) !important;
+}
+.qb-web .qb-studio.is-desk .qb-studio-stage {
+  --qb-composer-gap: 0px;
+}
+.qb-web .qb-studio.is-desk .qb-studio-stage > .qb-composer {
+  inset-inline: 0;
+  bottom: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.qb-web .qb-thread-latest {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: calc(var(--qb-composer-h, 120px) + var(--qb-composer-gap) + 12px);
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background-color: var(--lg-tint-strong);
+  box-shadow: var(--lg-depth), var(--lg-shadow);
+  color: var(--gold-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.qb-web .qb-thread-latest:active {
+  transform: translateX(-50%) scale(var(--press-scale, 0.94));
+}
+.qb-web .qb-thread-latest:focus:not(:focus-visible) {
+  outline: none;
+}

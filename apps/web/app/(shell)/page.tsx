@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { useShellMode } from "@/features/shell/mode-context";
-import { WorkspaceCanvas, CompanionCanvas } from "@/features/shell/workspace-canvas";
+import { WorkspaceCanvas } from "@/features/shell/workspace-canvas";
 import { HomeScreen } from "@/features/home/home-screen";
 import { LibraryScreen, libraryTab } from "@/features/companions/library-screen";
 import { HeatmapScreen } from "@/features/concordance/heatmap-screen";
@@ -34,15 +34,11 @@ function WorkspacePage() {
     // screen on the matching tab so old links keep working.
     case "notebook":
     case "bookmarks":
-      return (
-        <CompanionCanvas>
-          <LibraryScreen initialTab={libraryTab(params.get("tab"))} />
-        </CompanionCanvas>
-      );
+      return <WorkspaceCanvas mode={mode} companion={<LibraryScreen initialTab={libraryTab(params.get("tab"))} />} />;
     case "history":
-      return <CompanionCanvas><LibraryScreen initialTab="sessions" /></CompanionCanvas>;
+      return <WorkspaceCanvas mode={mode} companion={<LibraryScreen initialTab="sessions" />} />;
     case "roots":
-      return <CompanionCanvas><LibraryScreen initialTab="roots" /></CompanionCanvas>;
+      return <WorkspaceCanvas mode={mode} companion={<LibraryScreen initialTab="roots" />} />;
     // Settings is a full-width page (like the heatmap), not a companion beside
     // the Mushaf: its multi-column card grid was designed for the wide canvas,
     // and you don't read while configuring.
@@ -50,9 +46,9 @@ function WorkspacePage() {
       return <SettingsScreen />;
     // The reading world's pages, beside the mushaf on wide screens.
     case "saved":
-      return <CompanionCanvas><SavedPagesScreen /></CompanionCanvas>;
+      return <WorkspaceCanvas mode={mode} companion={<SavedPagesScreen />} />;
     case "index":
-      return <CompanionCanvas><IndexScreen /></CompanionCanvas>;
+      return <WorkspaceCanvas mode={mode} companion={<IndexScreen />} />;
     case "heatmap":
       return <HeatmapScreen />;
     // A theme's graph board — full width: it's a canvas, not a companion.

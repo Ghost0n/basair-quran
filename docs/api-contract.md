@@ -64,6 +64,11 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/search`
 - `GET /api/search-v2`
 - `GET /api/search-result-page`
+  - Both take an optional `surah` (1–114): only that surah's verses are returned, and each card's
+    `total_occurrences`, `total_verses`, `total_surahs` and `total_pages` then describe that surah.
+    A card whose root or word has no verse there is left out; nothing found gives `found: false`
+    without a spelling suggestion. Out-of-range values are rejected (422). The concordance's surah
+    ribbon uses it; the on-device engine (`packages/offline-engine`) answers it the same way.
 - `GET /api/research-agent/settings`
 - `POST /api/research-agent`
 - `GET /api/ayah-reader`

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
 import { Icon } from "@/components/icon";
+import { Sheet, usePhoneSheets } from "@/components/sheet";
 import { swallowNextClick, useExclusiveOverlay } from "@/lib/exclusive-overlay";
 
 import "./tools.css";
@@ -26,6 +27,8 @@ export function ToolPicker({ compact }: { compact: boolean }) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   // One menu at a time: opening this closes «العرض» (and vice versa).
   useExclusiveOverlay(open, () => setOpen(false));
+  // A phone: the tools rise in a bottom sheet, which closes itself.
+  const asSheet = usePhoneSheets();
 
   // The menu is portaled (the bar sits in transformed/clipped ancestors) and
   // placed from the button: upward when the bar is at the bottom (phones),
@@ -50,7 +53,7 @@ export function ToolPicker({ compact }: { compact: boolean }) {
   }
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || asSheet) return;
     function onDown(event: PointerEvent) {
       const target = event.target as Node;
       if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return;
@@ -67,7 +70,7 @@ export function ToolPicker({ compact }: { compact: boolean }) {
       document.removeEventListener("pointerdown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, asSheet]);
 
   if (!compact) {
     return (
@@ -107,7 +110,33 @@ export function ToolPicker({ compact }: { compact: boolean }) {
         <Icon name={current.icon} size={18} />
         <span className="lbl">{current.label}</span>
       </button>
-      {open
+      {open && asSheet ? (
+        <Sheet label={t("أداة القراءة")} onClose={() => setOpen(false)} className="is-menu">
+          <div role="menu" aria-label={t("أداة القراءة")}>
+            {READER_TOOLS.map((tool) => (
+              <button
+                key={tool.id}
+                type="button"
+                role="menuitemradio"
+                aria-checked={active === tool.id}
+                className="qb-sheet-opt"
+                onClick={() => {
+                  setReaderTool(tool.id);
+                  setOpen(false);
+                }}
+              >
+                <Icon name={tool.icon} size={20} />
+                <span className="lbl">
+                  {tool.label}
+                  <small>{tool.hint}</small>
+                </span>
+                <span className="check">{active === tool.id ? <Icon name="check" size={18} /> : null}</span>
+              </button>
+            ))}
+          </div>
+        </Sheet>
+      ) : null}
+      {open && !asSheet
         ? createPortal(
             <div
               className="qb-toolbox-menu"

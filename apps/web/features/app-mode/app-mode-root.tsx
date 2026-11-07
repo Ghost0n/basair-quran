@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 
 import { APP_MODE } from "@/lib/app-mode/config";
 import { installFetchRouter } from "@/lib/app-mode/fetch-router";
 import { bootApp } from "@/lib/app-mode/boot";
 import { startAccountSync } from "@/lib/app-mode/sync";
 
+import { LaunchSplash } from "./launch-splash";
 import { Onboarding } from "./onboarding";
 
 // Before any screen fetches: /api goes to the device (see lib/app-mode/fetch-router.ts).
@@ -31,9 +32,17 @@ export function AppModeRoot({ children }: { children: ReactNode }) {
  * replay the launch — it used to send the reader back to Home from Settings.
  */
 let launched: { onboarded: boolean } | null = null;
+/** The launch splash plays once per run of the app (same reason). */
+let splashDone = false;
 
 function AppModeGate({ children }: { children: ReactNode }) {
   const [onboarded, setOnboarded] = useState<boolean | null>(launched?.onboarded ?? null);
+  // In the exported page from the first paint: the native launch colour hands over to it.
+  const [splash, setSplash] = useState(() => !splashDone);
+  const endSplash = useCallback(() => {
+    splashDone = true;
+    setSplash(false);
+  }, []);
 
   useEffect(() => {
     if (launched) return;
@@ -56,21 +65,30 @@ function AppModeGate({ children }: { children: ReactNode }) {
     if (onboarded) startAccountSync();
   }, [onboarded]);
 
-  if (onboarded === null) return null;
+  const launchSplash = splash ? <LaunchSplash onGone={endSplash} /> : null;
+  if (onboarded === null) return launchSplash;
   if (!onboarded) {
     return (
-      <Onboarding
-        onDone={() => {
-          try {
-            window.localStorage.setItem(ONBOARDED_KEY, "1");
-          } catch {
-            /* the choice still applies for this session */
-          }
-          launched = { onboarded: true };
-          setOnboarded(true);
-        }}
-      />
+      <>
+        <Onboarding
+          onDone={() => {
+            try {
+              window.localStorage.setItem(ONBOARDED_KEY, "1");
+            } catch {
+              /* the choice still applies for this session */
+            }
+            launched = { onboarded: true };
+            setOnboarded(true);
+          }}
+        />
+        {launchSplash}
+      </>
     );
   }
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {launchSplash}
+    </>
+  );
 }
