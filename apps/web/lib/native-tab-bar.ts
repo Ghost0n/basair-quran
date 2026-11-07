@@ -130,9 +130,15 @@ export function nativeTabBarDrawnHeight(): number {
     : 0;
 }
 
-let pluginPromise: Promise<NativeTabBarPlugin> | null = null;
-function plugin(): Promise<NativeTabBarPlugin> {
-  pluginPromise ??= import("@capacitor/core").then(({ registerPlugin }) => registerPlugin<NativeTabBarPlugin>(PLUGIN));
+/**
+ * The plugin, wrapped: Capacitor's plugin is a Proxy that answers every
+ * property with a native call, `then` included, so a promise resolved with
+ * it bare takes it for a promise, calls a native `then` that never answers,
+ * and waits forever (the iPhone app's bar never showed).
+ */
+let pluginPromise: Promise<{ bar: NativeTabBarPlugin }> | null = null;
+function plugin(): Promise<{ bar: NativeTabBarPlugin }> {
+  pluginPromise ??= import("@capacitor/core").then(({ registerPlugin }) => ({ bar: registerPlugin<NativeTabBarPlugin>(PLUGIN) }));
   return pluginPromise;
 }
 
@@ -191,7 +197,7 @@ export function useNativeTabBar(options: {
     let removeListener: (() => void) | null = null;
     let cancelled = false;
     void plugin()
-      .then((bar) => bar.addListener("tabSelected", ({ id }) => onSelectRef.current(id)))
+      .then(({ bar }) => bar.addListener("tabSelected", ({ id }) => onSelectRef.current(id)))
       .then((handle) => {
         if (cancelled) void handle.remove();
         else removeListener = () => void handle.remove();
@@ -204,7 +210,7 @@ export function useNativeTabBar(options: {
       root.style.removeProperty(NATIVE_TABBAR_HEIGHT);
       shownRef.current = { shown: false, active: null };
       void plugin()
-        .then((bar) => bar.hide())
+        .then(({ bar }) => bar.hide())
         .catch(() => undefined);
     };
   }, [available]);
@@ -231,7 +237,7 @@ export function useNativeTabBar(options: {
       drawnRef.current = { key: tabsKeyRef.current, tint: drawing.tint, look: `${drawing.look.dir}:${drawing.look.style}` };
     }
     void plugin()
-      .then((bar) => {
+      .then(({ bar }) => {
         if (action.kind === "show") {
           return drawing
             ? bar.show({ tabs: tabsRef.current, active: options.active, tint: drawing.tint, ...drawing.look }).then(onShown)
@@ -260,7 +266,7 @@ export function useNativeTabBar(options: {
       if (drawn && drawn.key === tabsKey && drawn.tint === tint && drawn.look === lookKey) return;
       drawnRef.current = { key: tabsKey, tint, look: lookKey };
       void plugin()
-        .then((bar) => bar.show({ tabs: tabsRef.current, active, tint, ...look }))
+        .then(({ bar }) => bar.show({ tabs: tabsRef.current, active, tint, ...look }))
         .then(onShown)
         .catch(onShowFailed);
     };

@@ -9,7 +9,16 @@ const bar = vi.hoisted(() => ({
   hide: vi.fn(async () => undefined),
   addListener: vi.fn(async () => ({ remove: async () => undefined })),
 }));
-vi.mock("@capacitor/core", () => ({ registerPlugin: () => bar }));
+// As Capacitor's own: the plugin is a Proxy that answers every property with
+// a native call, `then` included (that call never answers). Resolving a
+// promise with it waited forever, and the iPhone app's bar never showed.
+vi.mock("@capacitor/core", () => ({
+  registerPlugin: () =>
+    new Proxy(bar, {
+      get: (target, prop) =>
+        prop in target ? target[prop as keyof typeof target] : () => new Promise(() => undefined),
+    }),
+}));
 
 import { useNativeTabBar } from "./native-tab-bar";
 
