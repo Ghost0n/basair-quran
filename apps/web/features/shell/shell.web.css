@@ -364,6 +364,11 @@ html.qb-web.qb-immersive .qb-topbar-web { display: none; }
 .qb-web .qb-topbar-web .qb-cmd:has(input:not(:placeholder-shown)) .qb-cmd-kbd,
 .qb-web .qb-topbar-web .qb-cmd:focus-within .qb-cmd-kbd { display: none; }
 .qb-web .qb-topbar-web .qb-cmd input { min-width: 6ch; flex: 1 1 auto; text-overflow: clip; }
+/* The Quran face's natural line box (Amiri Quran: 44px at 18px) is taller than
+   the 42px bar, so the field stood out of it and a long query's marks crossed
+   its border: the field fills the bar's inside exactly and clips there, its
+   text centred in it as before. */
+.qb-web .qb-topbar-web .qb-cmd input { align-self: stretch; height: auto; max-height: 100%; }
 
 /* ---------- No cropped text ---------- */
 /* One-line labels that clip their overflow get a line box tall enough for
