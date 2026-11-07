@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { Icon } from "@/components/icon";
+import { canHover } from "@/lib/can-hover";
 import { modKey } from "@/lib/platform";
+import { isPhraseInputValue } from "@/lib/quran-ui";
+import { useWebDesign } from "@/lib/use-web-design";
 import { looksLikeQuestion, queueStudioAsk } from "@/lib/studio-prefill";
 import { useMushaf } from "@/features/reading/mushaf-context";
 
@@ -65,17 +68,27 @@ function detectIntent(raw: string): CommandIntent | null {
  * Phase 2+ will teach the input to parse intent (root vs word vs ayah
  * jump vs research question) and dispatch accordingly.
  */
+// «التشكيل» is shown by its own sign, the Arabic word for a vowel mark, bare
+// or vowelled (a glyph, not a label: it reads the same in every language).
+const CHAKL_SIGN_OFF = "حركة";
+const CHAKL_SIGN_ON = "حَرَكَة";
+
 export function CommandBar() {
   const { state, actions, refs, helpers } = useWorkspace();
+  const web = useWebDesign();
   const { mode, setMode } = useShellMode();
   const mushaf = useMushaf();
 
   // When the user starts typing or runs a search, surface the Search mode.
   // Use `replace` so this derived switch doesn't add a history entry.
+  // Only a change counts: the web design mounts the bar on every page (top-bar.tsx),
+  // and mounting while a search is active must not pull the page into Search.
+  const wasActive = useRef(state.workspaceActive);
   useEffect(() => {
-    if (state.workspaceActive) {
+    if (state.workspaceActive && !wasActive.current) {
       setMode("search", { replace: true });
     }
+    wasActive.current = state.workspaceActive;
     // we only react to workspaceActive becoming true
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.workspaceActive]);
@@ -122,7 +135,11 @@ export function CommandBar() {
     actions.handleInputKeyDown(event);
   }
 
-  const placeholder = t("ابحث · انتقل · اسأل  —  /");
+  // The "/" shortcut is a keyboard's: touch screens get the plain invitation
+  // (known after mount, so the server's render matches the first client one).
+  const [pointer, setPointer] = useState(false);
+  useEffect(() => setPointer(canHover()), []);
+  const placeholder = pointer ? t("ابحث · انتقل · اسأل  —  /") : t("ابحث بكلمة أو جذر، أو اطرح سؤالاً");
   const listboxOpen = state.suggestionsOpen && state.suggestions.length > 0;
   const activeOptionId =
     listboxOpen && state.activeSuggestionIndex >= 0
@@ -191,7 +208,7 @@ export function CommandBar() {
           {INTENT_LABEL[intent]}
         </span>
       ) : null}
-      {state.searchPrefix ? <span className="qb-cmd-mode">{state.searchPrefix}</span> : null}
+      {state.searchPrefix && !web ? <span className="qb-cmd-mode">{state.searchPrefix}</span> : null}
       <input
         id="searchInput"
         ref={refs.inputRef}
@@ -217,6 +234,46 @@ export function CommandBar() {
       <span className="qb-sr-only" role="status" aria-live="polite">
         {liveMessage}
       </span>
+      {/* Web: the search's own switches, once something is typed — «كلمة /
+          جذر» (a phrase is always word by word) and «التشكيل» (add or remove
+          the vowel marks; words only). mousedown keeps the field focused. */}
+      {web && state.inputValue.trim() ? (
+        <span className="qb-cmd-switches">
+          <span className="qb-cmd-seg" role="group" aria-label={t("طريقة البحث")}>
+            {(["exact", "root"] as const).map((mode) => {
+              const on = state.searchMode === mode;
+              const phrase = isPhraseInputValue(state.inputValue);
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  className={on ? "on" : ""}
+                  aria-pressed={on}
+                  disabled={mode === "root" && phrase}
+                  title={mode === "root" && phrase ? t("العبارة تُبحث كلمةً كلمة") : undefined}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => actions.chooseSearchMode(mode)}
+                >
+                  {mode === "root" ? t("جذر") : phrase ? t("عبارة") : t("كلمة")}
+                </button>
+              );
+            })}
+          </span>
+          {state.searchMode === "exact" ? (
+            <button
+              type="button"
+              className={`qb-cmd-chakl${state.chaklOn ? " on" : ""}`}
+              aria-pressed={state.chaklOn}
+              aria-label={state.chaklOn ? t("إزالة التشكيل") : t("إضافة التشكيل")}
+              title={state.chaklOn ? t("إزالة التشكيل") : t("إضافة التشكيل")}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => void actions.toggleChakl()}
+            >
+              <span aria-hidden="true">{state.chaklOn ? CHAKL_SIGN_ON : CHAKL_SIGN_OFF}</span>
+            </button>
+          ) : null}
+        </span>
+      ) : null}
       {/* U2: platform-aware modifier key — suppressHydrationWarning covers SSR→client delta */}
       <span className="qb-cmd-kbd" aria-hidden suppressHydrationWarning>
         <kbd suppressHydrationWarning>{modKey()}</kbd>

@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import { createPortal } from "react-dom";
 
 import { Icon } from "@/components/icon";
+import { Sheet, usePhoneSheets } from "@/components/sheet";
 import { SelectMenu } from "@/components/select-menu";
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { useNumerals } from "@/lib/preferences-context";
@@ -42,6 +43,8 @@ export function RangePicker() {
   const mushaf = useMushaf();
   const formatNumber = useNumerals();
   const [open, setOpen] = useState(false);
+  // A phone: the range rises in a bottom sheet, which closes itself.
+  const asSheet = usePhoneSheets();
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   // The panel is portaled to <body>: inside the media bar (itself a blurred
@@ -49,7 +52,7 @@ export function RangePicker() {
   // stayed sharp. At the page level it frosts the page into a soft glow.
   const [place, setPlace] = useState<CSSProperties | null>(null);
   useLayoutEffect(() => {
-    if (!open) return;
+    if (!open || asSheet) return;
     const locate = () => {
       const chip = rootRef.current?.getBoundingClientRect();
       if (!chip) return;
@@ -71,7 +74,7 @@ export function RangePicker() {
     locate();
     window.addEventListener("resize", locate);
     return () => window.removeEventListener("resize", locate);
-  }, [open]);
+  }, [open, asSheet]);
 
   // Where "here" is: the verse being recited, else the reader's page.
   const pageAyahs = mushaf.pageData?.ayahs ?? [];
@@ -99,7 +102,7 @@ export function RangePicker() {
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || asSheet) return;
     function onPointer(event: PointerEvent) {
       const target = event.target as Element;
       // The surah menus portal their lists to <body>.
@@ -115,7 +118,7 @@ export function RangePicker() {
       document.removeEventListener("pointerdown", onPointer);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, asSheet]);
 
   const pageRange: VerseRange | null = pageAyahs.length
     ? {
@@ -153,6 +156,70 @@ export function RangePicker() {
   const active = recitation.range;
   const chipLabel = active ? `${ref(active.start)} – ${ref(active.end)}` : t("نطاق التلاوة");
 
+  const panelBody = (
+    <>
+      <div className="head">
+        <h3>{t("نطاق التلاوة")}</h3>
+        <button type="button" className="close" onClick={() => setOpen(false)} aria-label={t("إغلاق")}>
+          <Icon name="close" size={16} />
+        </button>
+      </div>
+
+      <div className="seg" role="tablist" aria-label={t("نطاق التلاوة")}>
+        {SCOPES.map((item) => (
+          <button
+            key={item.scope}
+            type="button"
+            role="tab"
+            aria-selected={scope === item.scope}
+            className={scope === item.scope ? "active" : ""}
+            disabled={item.scope === "page" && !pageRange}
+            onClick={() => setScope(item.scope)}
+          >
+            {item.label()}
+          </button>
+        ))}
+      </div>
+
+      {scope === "surah" || scope === "juz" || scope === "hizb" ? (
+        <div className="field">
+          <span className="label">{scope === "surah" ? t("السورة") : scope === "juz" ? t("الجزء") : t("الحزب")}</span>
+          {scope === "surah" ? (
+            <SelectMenu className="qb-range-select" ariaLabel={t("السورة")} value={String(surah)} options={surahOptions} onChange={(value) => setSurah(Number(value))} />
+          ) : scope === "juz" ? (
+            <SelectMenu className="qb-range-select" ariaLabel={t("الجزء")} value={String(juz)} options={numberOptions(DIVISION_COUNT.juz)} onChange={(value) => setJuz(Number(value))} />
+          ) : (
+            <SelectMenu className="qb-range-select" ariaLabel={t("الحزب")} value={String(hizb)} options={numberOptions(DIVISION_COUNT.hizb)} onChange={(value) => setHizb(Number(value))} />
+          )}
+        </div>
+      ) : null}
+      {scope === "custom" ? (
+        <>
+          <VerseField label={t("من")} value={from} onChange={setFrom} surahOptions={surahOptions} />
+          <VerseField label={t("إلى")} value={to} onChange={setTo} surahOptions={surahOptions} />
+        </>
+      ) : null}
+
+      {chosen ? <p className="summary">{t("من {0} إلى {1}", { 0: ref(chosen.start), 1: ref(chosen.end) })}</p> : null}
+
+      <div className="opts">
+        <button type="button" className={`opt${repeat ? " on" : ""}`} aria-pressed={repeat} onClick={() => setRepeat(!repeat)}>
+          <Icon name="repeat" size={15} />
+          <span>{t("تكرار النطاق")}</span>
+        </button>
+      </div>
+
+      <button type="button" className="go" onClick={play} disabled={!chosen}>
+        <Icon name="play" size={15} /> {t("تلاوة النطاق")}
+      </button>
+      {active ? (
+        <button type="button" className="clear" onClick={() => recitation.clearRange()}>
+          {t("إلغاء النطاق")}
+        </button>
+      ) : null}
+    </>
+  );
+
   return (
     <div className="qb-range" ref={rootRef}>
       <button
@@ -167,67 +234,16 @@ export function RangePicker() {
         <span className="lbl">{chipLabel}</span>
       </button>
 
-      {open && place && typeof document !== "undefined" ? createPortal(
+      {open && asSheet ? (
+        <Sheet label={t("نطاق التلاوة")} onClose={() => setOpen(false)} className="is-range">
+          <div className="qb-range-panel is-sheet" ref={panelRef}>
+            {panelBody}
+          </div>
+        </Sheet>
+      ) : null}
+      {open && !asSheet && place && typeof document !== "undefined" ? createPortal(
         <div className="qb-range-panel" ref={panelRef} style={place} role="dialog" aria-label={t("نطاق التلاوة")}>
-          <div className="head">
-            <h3>{t("نطاق التلاوة")}</h3>
-            <button type="button" className="close" onClick={() => setOpen(false)} aria-label={t("إغلاق")}>
-              <Icon name="close" size={16} />
-            </button>
-          </div>
-
-          <div className="seg" role="tablist" aria-label={t("نطاق التلاوة")}>
-            {SCOPES.map((item) => (
-              <button
-                key={item.scope}
-                type="button"
-                role="tab"
-                aria-selected={scope === item.scope}
-                className={scope === item.scope ? "active" : ""}
-                disabled={item.scope === "page" && !pageRange}
-                onClick={() => setScope(item.scope)}
-              >
-                {item.label()}
-              </button>
-            ))}
-          </div>
-
-          {scope === "surah" || scope === "juz" || scope === "hizb" ? (
-            <div className="field">
-              <span className="label">{scope === "surah" ? t("السورة") : scope === "juz" ? t("الجزء") : t("الحزب")}</span>
-              {scope === "surah" ? (
-                <SelectMenu className="qb-range-select" ariaLabel={t("السورة")} value={String(surah)} options={surahOptions} onChange={(value) => setSurah(Number(value))} />
-              ) : scope === "juz" ? (
-                <SelectMenu className="qb-range-select" ariaLabel={t("الجزء")} value={String(juz)} options={numberOptions(DIVISION_COUNT.juz)} onChange={(value) => setJuz(Number(value))} />
-              ) : (
-                <SelectMenu className="qb-range-select" ariaLabel={t("الحزب")} value={String(hizb)} options={numberOptions(DIVISION_COUNT.hizb)} onChange={(value) => setHizb(Number(value))} />
-              )}
-            </div>
-          ) : null}
-          {scope === "custom" ? (
-            <>
-              <VerseField label={t("من")} value={from} onChange={setFrom} surahOptions={surahOptions} />
-              <VerseField label={t("إلى")} value={to} onChange={setTo} surahOptions={surahOptions} />
-            </>
-          ) : null}
-
-          {chosen ? <p className="summary">{t("من {0} إلى {1}", { 0: ref(chosen.start), 1: ref(chosen.end) })}</p> : null}
-
-          <div className="opts">
-            <button type="button" className={`opt${repeat ? " on" : ""}`} aria-pressed={repeat} onClick={() => setRepeat(!repeat)}>
-              <Icon name="repeat" size={15} />
-              <span>{t("تكرار النطاق")}</span>
-            </button>
-          </div>
-
-          <button type="button" className="go" onClick={play} disabled={!chosen}>
-            <Icon name="play" size={15} /> {t("تلاوة النطاق")}
-          </button>
-          {active ? (
-            <button type="button" className="clear" onClick={() => recitation.clearRange()}>
-              {t("إلغاء النطاق")}
-            </button>
-          ) : null}
+          {panelBody}
         </div>,
         document.body,
       ) : null}

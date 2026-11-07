@@ -3,6 +3,7 @@
 import { BrandMark } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
 import { AccountMenu } from "@/features/identity/account-menu";
+import { useWebDesign } from "@/lib/use-web-design";
 
 import { Fragment } from "react";
 
@@ -10,7 +11,7 @@ import "./worlds.css";
 
 import { useShellMode } from "./mode-context";
 import { useWorkspace } from "./workspace-context";
-import { RAIL_GROUPS, useOpenDestination, useWorldSync, type WorldId } from "./worlds";
+import { RAIL_GROUPS, tabTap, useOpenDestination, useWorldSync, type WorldId } from "./worlds";
 
 import { t } from "@/lib/i18n";
 
@@ -27,6 +28,7 @@ export function LeftRail() {
   useWorldSync();
   const open = useOpenDestination();
   const { actions } = useWorkspace();
+  const web = useWebDesign();
 
   const handleBrandClick = () => {
     // One clean navigation to the root (resetSearch handles the route); with the
@@ -36,7 +38,7 @@ export function LeftRail() {
   };
 
   return (
-    <aside className="qb-rail" data-autofit="3" aria-label={t("القائمة الجانبية")}>
+    <aside className="qb-rail" data-autofit="3" suppressHydrationWarning aria-label={t("القائمة الجانبية")}>
       <button
         type="button"
         className="qb-rail-brand-btn"
@@ -51,15 +53,19 @@ export function LeftRail() {
       {RAIL_GROUPS.map((group, index) => (
         <Fragment key={index}>
           <div className="qb-rail-divider" role="separator" />
-          {group.map((item) => (
+          {/* Web design: the Index opens from the reader's surah name, not the rail. */}
+          {group.filter((item) => !(web && item.id === "index")).map((item) => (
             <RailButton
               key={item.id}
-              icon={item.icon}
-              label={item.label}
+              // Web design: Saved opens the Index on its saved pages, beside
+              // the Mushaf — the place to go somewhere in it: «انتقل».
+              icon={web && item.id === "saved" ? "compass" : item.icon}
+              label={web && item.id === "saved" ? t("انتقل") : item.label}
               active={item.owns.includes(mode)}
               world={item.world}
               notebook={item.id === "notebook"}
-              onSelect={() => open(item)}
+              // From one of its sub-pages (a board…), back to its main page.
+              onSelect={() => open(item, { main: tabTap(item, mode) === "main" })}
             />
           ))}
         </Fragment>

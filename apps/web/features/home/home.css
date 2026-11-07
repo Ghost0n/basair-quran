@@ -170,6 +170,11 @@
   gap: 10px;
 }
 
+/* Tiles hidden in Settings: an odd last tile takes the whole row. */
+.qb-home-grid.is-odd > .qb-home-tile:last-child {
+  grid-column: 1 / -1;
+}
+
 .qb-home-tile {
   min-width: 0;
   display: flex;
@@ -343,7 +348,11 @@
   }
 
   .qb-home-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--tiles, 4), minmax(0, 1fr));
+  }
+
+  .qb-home-grid.is-odd > .qb-home-tile:last-child {
+    grid-column: auto;
   }
 
   .qb-home-tile {

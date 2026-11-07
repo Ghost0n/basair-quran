@@ -7,6 +7,10 @@ import { BrandMark } from "@/components/brand-mark";
 import { AUTH_ENABLED } from "@/lib/config";
 
 import "./auth.css";
+import "./auth.web.css";
+
+import { GirihPattern } from "@/components/girih";
+import { useWebDesign } from "@/lib/use-web-design";
 import { continueAsGuest, identityApi, routeAfterAuth, sanitizeNextPath } from "./identity-flow";
 
 import { t } from "@/lib/i18n";
@@ -150,6 +154,8 @@ export function LoginPageShell() {
     }
   }
 
+  const web = useWebDesign();
+
   if (checkingSession) {
     return (
       <div className="qb-auth">
@@ -162,6 +168,8 @@ export function LoginPageShell() {
 
   return (
     <div className="qb-auth">
+      {/* Web design: the landing's rosette, drawn once behind the form. */}
+      {web ? <GirihPattern className="qb-auth-girih" drawn /> : null}
       <div style={{ animation: "qbRise 500ms var(--motion-ease-settle) both" }}>
         <BrandMark size={66} />
       </div>
@@ -236,7 +244,7 @@ export function LoginPageShell() {
         onSubmit={handleSubmit}
         style={{ animation: "qbRise 500ms var(--motion-ease-settle) 160ms both" }}
       >
-        <div className="qb-auth-tabs qb-fit-choice" data-autofit="2" role="tablist">
+        <div className="qb-auth-tabs qb-fit-choice" data-autofit="2" suppressHydrationWarning role="tablist">
           <button
             type="button"
             role="tab"

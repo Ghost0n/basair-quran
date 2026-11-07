@@ -22,6 +22,8 @@ import { VerseOutlines } from "./verse-outlines";
 import { useMushafLayout } from "../use-mushaf-layout";
 import { useReaderWindow, type ScrollControls } from "../use-reader-window";
 import { useWordNav } from "../use-word-nav";
+import { useWheelAnywhere } from "../use-wheel-anywhere";
+import { useWebDesign } from "@/lib/use-web-design";
 import { useAyahTranslations, type AyahTranslation } from "../use-ayah-translations";
 
 import { t } from "@/lib/i18n";
@@ -226,6 +228,8 @@ export function AyahReader({
   const formatNumber = useNumerals();
   const { pages } = useReaderWindow({ mushafId, anchorData, totalPages, registerControls });
   useWordNav(mushaf.bodyRef);
+  // Web: the verses scroll from anywhere on the page, not only over the column.
+  useWheelAnywhere(mushaf.bodyRef, useWebDesign());
 
   return (
     <div

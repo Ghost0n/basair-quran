@@ -26,6 +26,8 @@ const squarePoints = (turn: number) =>
     return `${(50 + SQUARE_R * Math.cos(angle)).toFixed(2)},${(50 + SQUARE_R * Math.sin(angle)).toFixed(2)}`;
   }).join(" ");
 const SQUARES = [squarePoints(0), squarePoints(45)];
+/** The logo's geometry on its 100-unit square (lib/native-tab-icons.ts draws it too). */
+export const BRAND_GEOMETRY = { ring: { r: 46, width: 3.2 }, squares: SQUARES, squareWidth: 3.4, nuqta: { cx: 50, cy: 67, r: 4 } } as const;
 
 /**
  * BrandMark — the logo: the hizb star ۞ (two squares in a ring) whose centre

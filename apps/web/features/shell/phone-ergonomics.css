@@ -204,58 +204,174 @@
 
   /* ---------- 1c. In the reader the tab bar becomes the reader's dock ---------- */
 
-  /* The toolbox and a back arrow take the tab bar's place (same glass, same
-     spot); the bookmark floats in the top corner; focus mode hides all of it. */
+  /* The tab bar splits in two (app/motion.css animates it): a round glass back
+     button on the side the interface reads from (the right in Arabic, the
+     left in English), and beside it the dock — the surah (it opens «انتقل»)
+     and the toolbox, or the recitation's controls. The bookmark floats in the
+     top corner over the page with the surah named under it. Focus mode hides
+     all of it. */
   html:root[data-shell-mode="reading"] .qb-tabbar {
     display: none;
   }
 
+  html:root {
+    --dock-h: 62px;
+    --dock-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    --dock-side: calc(10px + env(safe-area-inset-left, 0px));
+  }
+
+  /* Physical sides from the interface's direction: the stage itself is
+     right-to-left (the mushaf's), so logical insets would put the dock
+     under the back button in left-to-right languages. */
   html:root .qb-mushaf-stage > .qb-reader-head.is-dock {
     position: fixed;
-    left: calc(10px + env(safe-area-inset-left, 0px));
-    right: calc(10px + env(safe-area-inset-right, 0px));
-    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    right: calc(var(--dock-side) + var(--dock-h) + 8px);
+    left: var(--dock-side);
+    bottom: var(--dock-bottom);
     z-index: 45;
     margin: 0;
     padding: 0;
   }
 
+  html:root[dir="ltr"] .qb-mushaf-stage > .qb-reader-head.is-dock {
+    right: var(--dock-side);
+    left: calc(var(--dock-side) + var(--dock-h) + 8px);
+  }
+
   html:root .qb-reader-head.is-dock .qb-display-strip {
     bottom: calc(100% + 8px);
+    left: 0;
+    right: calc(-1 * (var(--dock-h) + 8px));
+  }
+
+  html:root[dir="ltr"] .qb-reader-head.is-dock .qb-display-strip {
+    left: calc(-1 * (var(--dock-h) + 8px));
+    right: 0;
   }
 
   html:root .qb-reader-bar.qb-reader-dock {
-    height: 66px;
+    height: var(--dock-h);
+    min-height: 0;
     margin: 0;
-    padding: 0 6px;
-    border-radius: 24px;
-    background-color: var(--glass-tint-soft);
-    box-shadow: var(--glass-edge), var(--glass-shadow-lift);
+    padding: 0 4px;
+    border-radius: calc(var(--dock-h) / 2);
+    view-transition-name: qb-nav-dock;
   }
 
   html:root .qb-reader-dock .actions {
     flex: 1;
+    min-width: 0;
     justify-content: space-around;
   }
 
-  html:root .qb-reader-dock .act {
-    min-width: 56px;
+  /* Reading ⇄ recitation: the new controls settle in (reader-bar.tsx). */
+  html:root .qb-reader-dock .actions.swap {
+    animation: qbDockSwap 260ms var(--spring-soft, ease-out) both;
   }
 
-  /* The back arrow sits at the dock's far left, set off by a hairline. */
-  html:root .qb-reader-dock .act.back-btn {
-    flex-shrink: 0;
+  html:root .qb-reader-dock .act,
+  html:root .qb-reader-dock .act.labelled {
     min-width: 52px;
-    margin-inline-start: 4px;
-    border-inline-start: 1px solid var(--glass-rim);
-    border-radius: 0 12px 12px 0;
+    height: 52px;
+    border-radius: 26px;
   }
 
-  /* Reciting: previous · play · next, the reciter, close. */
+  /* The surah: its name is the label, so the way to «انتقل» reads as where you are. */
+  html:root .qb-reader-dock .surah-btn {
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 34%;
+  }
+
+  html:root .qb-reader-dock .surah-btn .lbl {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: var(--font-arabic-heading);
+    font-size: 12px;
+    color: var(--gold-text);
+  }
+
+  /* A recitation folded away («رجوع»): «تلاوة» keeps a live mark. */
+  html:root .qb-reader-dock .play-btn.is-live {
+    position: relative;
+    color: var(--gold-text);
+  }
+
+  html:root .qb-reader-dock .play-btn.is-live::after {
+    content: "";
+    position: absolute;
+    top: 8px;
+    inset-inline-end: 12px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--gold-400);
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.55);
+    animation: qbLivePulse 1.8s ease-out infinite;
+  }
+
+  /* Reciting: previous · play · next in the middle; «الآية المتلوّة» and the
+     settings on either side, as round icons the transport's size. */
+  html:root .qb-reader-dock .actions.recite {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 6px;
+    padding: 0 6px;
+  }
+
+  html:root .qb-reader-dock .actions.recite .flank {
+    display: flex;
+    min-width: 0;
+  }
+
+  html:root .qb-reader-dock .actions.recite .flank.start {
+    justify-content: flex-start;
+  }
+
+  html:root .qb-reader-dock .actions.recite .flank.end {
+    justify-content: flex-end;
+  }
+
+  html:root .qb-reader-dock .actions.recite .round {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--fg-2);
+    cursor: pointer;
+    transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
+  }
+
+  html:root .qb-reader-dock .actions.recite .round:active {
+    transform: scale(0.92);
+    background: rgba(212, 175, 55, 0.12);
+  }
+
+  html:root .qb-reader-dock .actions.recite .locate-btn {
+    color: var(--gold-text);
+    animation: qbPopIn 220ms var(--motion-ease-settle, ease-out) both;
+  }
+
+  html:root .qb-reader-dock .actions.recite .round .dot {
+    position: absolute;
+    top: 9px;
+    inset-inline-end: 9px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--gold-400);
+  }
+
   html:root .qb-reader-dock.is-reciting .qb-ptransport {
-    flex: 1;
     justify-content: center;
-    gap: 14px;
+    gap: 12px;
   }
 
   html:root .qb-reader-dock.is-reciting .qb-ptransport .nav {
@@ -266,6 +382,23 @@
   html:root .qb-reader-dock.is-reciting .qb-ptransport .play {
     width: 50px;
     height: 50px;
+  }
+
+  /* The back button: its own glass circle beside the dock. */
+  html:root .qb-reader-back {
+    position: fixed;
+    inset-inline-start: var(--dock-side);
+    bottom: var(--dock-bottom);
+    z-index: 45;
+    display: grid;
+    place-items: center;
+    width: var(--dock-h);
+    height: var(--dock-h);
+    padding: 0;
+    border-radius: 50%;
+    color: var(--fg-1);
+    cursor: pointer;
+    view-transition-name: qb-nav-lead;
   }
 
   /* The recitation's own player and capsule give way to the dock in the reader
@@ -281,27 +414,38 @@
     transform: none;
   }
 
-  html:root.qb-immersive .qb-mushaf-stage > .qb-reader-head.is-dock {
+  html:root.qb-immersive :is(.qb-mushaf-stage > .qb-reader-head.is-dock, .qb-reader-back, .qb-reader-corner) {
     display: none;
   }
 
-  /* The bookmark floats in the top-left corner, over the page's margin. */
-  html:root .qb-reader-bookmark {
+  /* The bookmark floats in the top-left corner, over the page. */
+  html:root .qb-reader-corner {
     position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 2px);
-    left: calc(6px + env(safe-area-inset-left, 0px));
+    top: calc(env(safe-area-inset-top, 0px) + 4px);
+    left: calc(8px + env(safe-area-inset-left, 0px));
     z-index: 44;
-    width: 40px;
-    height: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+  }
+
+  html:root .qb-reader-corner > * {
+    pointer-events: auto;
+  }
+
+  html:root .qb-reader-bookmark {
+    position: relative;
+    width: 42px;
+    height: 42px;
     margin: 0;
-    border-radius: var(--r-pill);
+    border-radius: 50%;
   }
 
-  html:root.qb-immersive .qb-reader-bookmark {
-    display: none;
-  }
-
-  /* …and the surah's name beside it opens «انتقل». */
+  /* Pages mode: the running head names the juz (top right) and the surah
+     (top left), alike and facing each other. The bookmark floats over the
+     surah's corner; focus mode, without it, shows the head whole. */
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-glyph-page.qb-print-page {
     padding-top: 6px;
   }
@@ -310,22 +454,41 @@
     min-height: 40px;
     align-items: center;
     padding: 0;
-    padding-inline-end: 44px;
   }
 
-  html:root .qb-print-head .surah {
-    cursor: pointer;
-  }
-
-  /* Verse by verse scrolls under the dock and the bookmark: room for its
-     first and last verses. */
+  /* Verse by verse: the verses are the whole screen and scroll under the
+     floating bookmark and dock (no band reserved for them), behind a soft
+     blur under the status bar; no scroll indicator. */
   html:root[data-shell-mode="reading"] .qb-main {
     padding-bottom: 0;
   }
 
   html:root .qb-mushaf-stage.is-ayah .qb-mushaf-page {
-    padding-top: 48px;
-    padding-bottom: calc(8px + 66px + 8px + 28px + env(safe-area-inset-bottom, 0px));
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    padding: calc(env(safe-area-inset-top, 0px) + 82px) calc(6px + env(safe-area-inset-right, 0px))
+      calc(var(--dock-h) + 8px + 40px + env(safe-area-inset-bottom, 0px)) calc(6px + env(safe-area-inset-left, 0px));
+    scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 82px);
+    scrollbar-width: none;
+  }
+
+  html:root .qb-mushaf-stage.is-ayah .qb-mushaf-page::-webkit-scrollbar {
+    display: none;
+  }
+
+  html:root .qb-mushaf-stage.is-ayah::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    height: calc(env(safe-area-inset-top, 0px) + 28px);
+    z-index: 3;
+    pointer-events: none;
+    background: linear-gradient(to bottom, var(--bg) 0%, color-mix(in srgb, var(--bg) 70%, transparent) 55%, transparent);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+    mask-image: linear-gradient(to bottom, #000 55%, transparent);
   }
 
   /* ---------- 2. Search: the field stays at the top, where typing is expected ---------- */
@@ -343,8 +506,92 @@
     min-height: 48px;
   }
 
+  /* The whole screen is the results' page: it scrolls under the search bar
+     (floating glass at the top) and under the tab bar, with a soft blur under
+     the status bar. While a recitation plays, its capsule takes the top and
+     the bar steps down under it. */
+  html:root[data-shell-mode="search"] {
+    --search-top: calc(env(safe-area-inset-top, 0px) + 6px);
+  }
+
+  html:root.qb-reciting[data-shell-mode="search"] {
+    --search-top: calc(env(safe-area-inset-top, 0px) + 6px + 50px);
+  }
+
   html:root[data-shell-mode="search"] .qb-main {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  html:root[data-shell-mode="search"] .qb-topbar {
+    position: fixed;
+    top: var(--search-top);
+    left: calc(10px + env(safe-area-inset-left, 0px));
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    z-index: 46;
+    height: 56px;
+    flex: none;
+    padding: 0;
+    background: none;
+    transition: top 280ms var(--spring-soft, ease-out);
+  }
+
+  html:root[data-shell-mode="search"] .qb-cmd {
+    height: 56px;
+    box-shadow: var(--lg-depth), var(--lg-shadow);
+  }
+
+  html:root[data-shell-mode="search"] .qb-cmd::before {
+    background-color: var(--lg-tint-strong);
+    -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(1.06);
+    backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(1.06);
+  }
+
+  html:root[data-shell-mode="search"] .qb-side-panel:not(.qb-side-panel-wide) {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    display: block;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: calc(var(--search-top) + 56px + 6px) 0 calc(8px + 66px + 24px + env(safe-area-inset-bottom, 0px));
+    scrollbar-width: none;
+  }
+
+  html:root[data-shell-mode="search"] .qb-side-panel::-webkit-scrollbar {
+    display: none;
+  }
+
+  html:root[data-shell-mode="search"] .qb-side-panel:not(.qb-side-panel-wide) > .qb-side-body {
+    overflow: visible;
+  }
+
+  html:root[data-shell-mode="search"] .qb-workspace-canvas::before {
+    content: "";
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: 1;
+    height: calc(var(--search-top) + 30px);
+    pointer-events: none;
+    background: linear-gradient(to bottom, var(--bg) 0%, color-mix(in srgb, var(--bg) 65%, transparent) 60%, transparent);
+  }
+
+  /* Before a search: only the line that says what to type and the
+     suggestions, right under the bar (no title, icon or watermark). */
+  html:root .qb-side-panel.is-empty .qb-side-head,
+  html:root .qb-side-panel.is-empty .qb-conc-empty-art,
+  html:root .qb-side-panel.is-empty .qb-conc-watermark {
+    display: none;
+  }
+
+  html:root .qb-side-panel.is-empty .qb-conc-empty {
+    padding: 22px 20px 12px;
+    gap: 16px;
+  }
+
+  html:root .qb-side-panel.is-empty .qb-conc-empty-lead {
+    max-width: 320px;
+    color: var(--fg-3);
   }
 
   /* The results are the page itself, like the notebook: no floating pane
@@ -417,8 +664,61 @@
 
   /* ---------- 3. Study: the conversation gets the room ---------- */
 
+  /* The page body already keeps the status bar clear (app/globals.css): no
+     second safe-area band above the session's title. */
   html:root[data-shell-mode="studio"] .qb-main {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: 0;
+  }
+
+  html:root .qb-studio .qb-studio-head {
+    padding-top: 4px !important;
+  }
+
+  /* Before the first question the guidance sits at the top, under the
+     session's title, not adrift in the middle of the screen. */
+  html:root .qb-studio .qb-studio-state {
+    flex: 1;
+    justify-content: flex-start;
+    padding: 28px 28px 16px;
+  }
+
+  /* ---------- 3a. The keyboard: the app stays in the part still visible ---------- */
+
+  /* iOS keeps the page's height when the keyboard opens and scrolls the
+     whole screen to show the field — the header went under the status bar
+     and a blank band opened above the composer. With the keyboard up the app
+     frame is pinned to the visible area instead (mobile-tab-bar.tsx
+     publishes it), so the composer sits on the keyboard and the header stays
+     (the study page pads its own top for the status bar). */
+  html:root[data-kb="open"][data-shell-mode="studio"] .qb-shell-root {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: var(--qb-vvtop, 0px);
+    height: var(--qb-vvh, 100dvh);
+    transform: translateZ(0);
+  }
+
+  html:root[data-kb="open"][data-shell-mode="studio"] .qb-main {
+    padding-bottom: 0;
+  }
+
+  /* ---------- 3b. Sheets close the way they open: by hand ---------- */
+
+  /* A bottom sheet is dragged down (lib/sheet-swipe.ts) or dismissed with a
+     tap beside it; its X would only repeat that. (Mouse and keyboard keep
+     the backdrop and Escape.) */
+  @media (pointer: coarse) {
+    html:root .qb-rsheet .head > .close {
+      display: none;
+    }
+
+    html:root .qb-rsheet .grip {
+      width: 44px;
+      height: 5px;
+      margin-top: 8px;
+      opacity: 0.8;
+    }
   }
 
   /* ---------- 4. A 44px floor for the small controls ---------- */
@@ -443,6 +743,31 @@
   html:root .qb-studio .tool-chip,
   html:root .qb-studio .send {
     min-height: 44px;
+  }
+}
+
+@keyframes qbDockSwap {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+    filter: blur(3px);
+  }
+}
+
+@keyframes qbLivePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.55);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px rgba(212, 175, 55, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:root .qb-reader-dock .actions,
+  html:root .qb-reader-dock .play-btn.is-live::after {
+    animation: none;
   }
 }
 

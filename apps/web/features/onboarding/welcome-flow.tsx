@@ -7,9 +7,11 @@ import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-
 import { AUTH_ENABLED } from "@/lib/config";
 
 import "@/features/auth/auth.css";
+import "@/features/auth/auth.web.css";
 import { identityApi, maybeMergeGuestData, sanitizeNextPath } from "@/features/auth/identity-flow";
 
 import { t } from "@/lib/i18n";
+import { useNumerals } from "@/lib/preferences-context";
 
 type Step = "avatar" | "onboard";
 
@@ -20,6 +22,7 @@ function isMotif(value: string | null | undefined): value is AvatarMotif {
 }
 
 export function WelcomeFlow() {
+  const formatNumber = useNumerals();
   const searchParams = useSearchParams();
   const nextPath = useMemo(() => sanitizeNextPath(searchParams.get("next")), [searchParams]);
 
@@ -87,7 +90,7 @@ export function WelcomeFlow() {
     return (
       <div className="qb-welcome">
         <div className="qb-welcome-step">
-          {t("الخطوة")} <strong>٢</strong> {t("من ٣ — اختر مداليتك")}
+          {t("الخطوة")} <strong>{formatNumber(2)}</strong> {formatNumber(t("من ٣ — اختر مداليتك"))}
         </div>
 
         <div className="qb-avatar-preview">
@@ -144,10 +147,10 @@ export function WelcomeFlow() {
           className="qb-onboard-card"
           style={{ animation: "qbRise var(--motion-dur-slow) var(--motion-ease-settle) 450ms both" }}
         >
-          <div className="num">١</div>
+          <div className="num">{formatNumber(1)}</div>
           <div className="card-title">{t("شريطٌ واحد لكل شيء")}</div>
           <div className="card-body">
-            {t("جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة.")}
+            {formatNumber(t("جذرٌ أو كلمة، «الأنعام ١٠٤»، أو سؤال — الشريط يفهم قصدك ويعلنه بشارة."))}
           </div>
         </div>
 
@@ -155,7 +158,7 @@ export function WelcomeFlow() {
           className="qb-onboard-card"
           style={{ animation: "qbRise var(--motion-dur-slow) var(--motion-ease-settle) 650ms both" }}
         >
-          <div className="num">٢</div>
+          <div className="num">{formatNumber(2)}</div>
           <div className="card-title">{t("المصحف هو الغرفة")}</div>
           <div className="card-body">
             {t("اللوحات تُستدعى جانباً ولا تغطّي النصّ أبداً؛ الصفحة تستقرّ للخلف وتبقى.")}
@@ -166,7 +169,7 @@ export function WelcomeFlow() {
           className="qb-onboard-card"
           style={{ animation: "qbRise var(--motion-dur-slow) var(--motion-ease-settle) 1150ms both" }}
         >
-          <div className="num">٣</div>
+          <div className="num">{formatNumber(3)}</div>
           <div className="card-title">{t("ذهبٌ ونحاس")}</div>
           <div className="card-body">
             {t("الذهبي دليلٌ من القرآن وحده؛ النحاسي قراءةٌ تفسيرية تجريبية.")}

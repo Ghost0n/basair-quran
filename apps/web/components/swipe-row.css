@@ -1,0 +1,78 @@
+/* Swipe a saved item aside to uncover its delete button (swipe-row.tsx). */
+.qb-swipe-row {
+  position: relative;
+  /* Clip the row as it slides, but keep its glow above and below. */
+  overflow-x: clip;
+  touch-action: pan-y;
+}
+
+.qb-swipe-content {
+  position: relative;
+  will-change: transform;
+}
+
+/* The button fills the space the row uncovers at its end (--swipe). The
+   child selectors outrank list styles such as `.qb-saved-pages button`. */
+.qb-swipe-row > .qb-swipe-delete {
+  position: absolute;
+  z-index: 2;
+  inset-block: 0;
+  inset-inline-end: 0;
+  width: max(0px, calc(var(--swipe, 0px) - 8px));
+  min-width: 0;
+  margin: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-lg, 16px);
+  background: #c0392b;
+  color: #fff;
+  font-family: var(--font-arabic-ui);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.qb-swipe-row.is-settling .qb-swipe-content {
+  transition: transform 260ms cubic-bezier(0.22, 1.1, 0.36, 1);
+}
+
+.qb-swipe-row.is-settling > .qb-swipe-delete {
+  transition: width 260ms cubic-bezier(0.22, 1.1, 0.36, 1);
+}
+
+.qb-swipe-row > .qb-swipe-delete:active {
+  filter: brightness(0.9);
+}
+
+/* Deleted: the row folds away. */
+.qb-swipe-row.is-removing {
+  animation: qbSwipeRemove 200ms ease-in forwards;
+}
+
+@keyframes qbSwipeRemove {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+/* Touch screens delete by swiping: the row's own trash button steps aside. */
+@media (hover: none) and (pointer: coarse) {
+  .qb-swipe-row .qb-swipe-content .row-action.delete {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-swipe-row.is-removing {
+    animation: none;
+  }
+}

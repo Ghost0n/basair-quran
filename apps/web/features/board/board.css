@@ -973,6 +973,12 @@
     font-size: 11px;
   }
 
+  /* The save state sits in the title row's end corner: the name keeps clear
+     of it (it was written over the board's name). */
+  .qb-board-bar:has(.save:not(:empty)) .title {
+    padding-inline-end: 64px;
+  }
+
   .qb-board-bar {
     position: relative;
   }
@@ -1194,6 +1200,9 @@
   .qb-board-bar .board-name {
     font-size: 18px;
     flex: 1 1 auto;
+    /* field-sizing isn't everywhere yet: the name takes the row, never more. */
+    width: 100%;
+    text-overflow: ellipsis;
   }
 
   .qb-board-bar .theme-name {

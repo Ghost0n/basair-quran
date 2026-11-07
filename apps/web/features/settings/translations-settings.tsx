@@ -12,6 +12,7 @@ import { usePreferences } from "@/lib/preferences-context";
 import { ensureScriptFont, fontStackFor } from "@/lib/script-fonts";
 
 import { activeLocale, t } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n/provider";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -42,6 +43,7 @@ export function languageLabel(code: string, uiLocale = "ar"): string {
  */
 export function TranslationsSettings() {
   const { preferences, updateAccount } = usePreferences();
+  const { locale } = useI18n();
   const [catalogue, setCatalogue] = useState<TranslationInfo[] | null>(null);
   const [language, setLanguage] = useState("");
   const chosen = preferences.translations ?? [];
@@ -57,7 +59,11 @@ export function TranslationsSettings() {
       .map((code) => ({ value: code, label: languageLabel(code, activeLocale()) }))
       .sort((a, b) => a.label.localeCompare(b.label, activeLocale()));
   }, [catalogue]);
-  const shownLanguage = language || languages[0]?.value || "";
+  // The language shown first is the interface's own (Arabic needs no
+  // translation, so it falls back to the list's first); it can be changed here
+  // independently of the interface.
+  const interfaceLanguage = locale !== "ar" && languages.some((entry) => entry.value === locale) ? locale : "";
+  const shownLanguage = language || interfaceLanguage || languages[0]?.value || "";
   const options = (catalogue ?? []).filter((item) => item.language === shownLanguage);
 
   useEffect(() => {

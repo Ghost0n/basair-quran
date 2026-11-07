@@ -773,6 +773,9 @@ export interface SavedPageEntry {
 /** Mushaf editions the reader offers (v1: the Madani mushaf only). */
 export type MushafEditionId = "madani-hafs";
 
+/** The Home screen's sections a reader can hide (preference `home_hidden`). */
+export type HomeSectionId = "greeting" | "verse" | "continue" | "index" | "saved" | "study" | "community" | "search";
+
 export interface UserPreferences {
   /** The reader's mushaf edition — fixes the riwāyah and how it is drawn. */
   mushaf_edition: MushafEditionId;
@@ -792,6 +795,8 @@ export interface UserPreferences {
   saved_pages?: SavedPageEntry[] | null;
   /** Translations of meanings shown under each ayah (keys from `GET /api/translations`, ≤3). */
   translations?: string[];
+  /** Home sections the reader hid (Settings «الرئيسية»); empty = all shown. */
+  home_hidden?: HomeSectionId[];
 }
 
 export interface RootDistributionSurah {
@@ -842,6 +847,7 @@ export interface UserPreferencesUpdate {
   last_position?: ReadingPosition | null;
   saved_pages?: SavedPageEntry[] | null;
   translations?: string[];
+  home_hidden?: HomeSectionId[];
 }
 
 /** An installed translation of the Quran's meanings, with its provenance. */

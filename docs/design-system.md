@@ -1,3 +1,67 @@
+# Design system
+
+Two design languages coexist while the redesign is rolled out:
+
+- **The web design (2026-10, Q-Basair-55)** for the desktop web: the language of the public landing
+  page carried into every screen. It is the target design.
+- **Liquid glass** for phones and the native apps, until their redesign is agreed (below, from
+  «Design system — liquid glass»).
+
+## The web design (desktop web)
+
+Source of truth: the approved prototype `design/prototype-web-full/` (open `local.html#<screen>`
+after `python -m http.server 3012` in that folder): `BUILDING.md` holds its rules, `INVENTORY.md`
+every production capability it covers. Plan: `docs/superpowers/plans/2026-10-21-refonte-design-web.md`.
+
+### Where it applies
+
+- `<html class="qb-web">` is set before first paint (`lib/use-web-design.ts`,
+  `WEB_DESIGN_INIT_SCRIPT`) when the build is not the native app (`APP_MODE`) and the screen is not
+  a phone (`PHONE_QUERY`). Components read it with `useWebDesign()`.
+- Every rule of the web design lives in a `*.web.css` file and is scoped under `.qb-web`; its tokens
+  are set on `html.qb-web body` and `html.qb-web body.light` (`app/web-design.css`). Existing CSS is
+  not edited, so phones and the native apps keep the liquid-glass look unchanged.
+
+### Principles
+
+- **The Mushaf is the room.** On wide screens the Mushaf stays; Search, Study, the Notebook, the
+  Index and Saved open as a panel beside it, which can widen to full width.
+- **The top bar carries tools, not names.** The rail already says where you are, so the top bar
+  never repeats the page's name. It has two zones over the columns below: over the panel, the
+  page's own tools (its tabs, field, root or section links, then its actions — pages portal them
+  through `features/shell/top-bar-slots.ts` and drop their own heading); over the Mushaf, the
+  reader's toolbox, wherever the Mushaf shows. Below 1000 px pages keep their own heading.
+- **Only the authentic Madani Mushaf.** Reader pages are the QCF V1 glyph pages (Hafs). The page
+  rendering, fit, spreads and turning are stabilized and are not part of the redesign; only the
+  chrome around the page is.
+- **Gold means "you" or "act".** Your place, your selection, matched words and primary actions.
+  Worlds tint small marks only (`--world`: gold for reading, teal for research, copper for
+  community); copper also marks Tafssir. Semantic `--ok/--warn/--bad/--info` are for state only.
+- **Quiet surfaces.** Flat `--bg-elev-*` surfaces, hairline borders, hairline lists instead of card
+  grids, one panel where a region is a separate object. Radii by role: controls 10px, panels 18px,
+  pills 999.
+- **Signature devices from the landing page.** The 114-bar surah ribbon (`components/ribbon.tsx`) is
+  the one instrument for "where in the Quran"; the rosette (`components/girih.tsx`) appears at most
+  once per screen; the word-by-word reveal is for a hero verse only.
+- **Type.** Amiri Quran for Quran text (never in a gradient), Amiri for headings, Cairo for UI.
+  Numbers go through the numerals preference.
+
+### Prototype → app
+
+| Prototype screen | App files |
+|---|---|
+| core (rail, top bar, room, dock, sheets, toasts) | `features/shell/*`, `features/recitation/recitation-bar.tsx` |
+| home | `features/home/*` |
+| reader (+ study panel) | reader chrome in `features/reading/*` (not the page itself) |
+| index / saved / «انتقل» | `features/reading/components/navigate-sheet.tsx`, `features/reading/reading-pages.tsx` |
+| search / heatmap | `features/concordance/*` |
+| study | `features/studio/*`, `features/export/*` |
+| notebook + save sheet | `features/companions/*`, `features/themes/*` |
+| board | `features/board/*` |
+| document | `features/documents/*` |
+| community / post | `features/community/*` |
+| settings / account | `features/settings/*`, `features/identity/*`, `features/auth/*`, `features/onboarding/*` |
+
 # Design system — liquid glass
 
 Q-Basair's UI is one material and a few primitives, defined once in `apps/web/app/glass.css`

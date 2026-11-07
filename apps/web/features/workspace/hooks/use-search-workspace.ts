@@ -4,6 +4,7 @@ import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, use
 import type { KeyboardEvent } from "react";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { goTo } from "@/features/shell/navigation";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type {
@@ -19,7 +20,9 @@ import {
   clampPage,
   getSuggestionTypeLabel,
   getVerseSelectionKey,
+  hasArabicDiacritics,
   isPhraseInputValue,
+  removeChakl,
   ITEMS_PER_PAGE,
 } from "@/lib/quran-ui";
 import { generateArabicQueryCandidates } from "@/lib/arabic-transliteration";
@@ -60,7 +63,8 @@ export function useSearchWorkspace() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [didYouMean, setDidYouMean] = useState<DidYouMeanSuggestion | null>(null);
   const [selectedVerseKey, setSelectedVerseKey] = useState<string | null>(null);
-  const [searchContext, setSearchContext] = useState<{ q: string; mode: SearchMode; mushaf: number } | null>(null);
+  // `surah`: the results are filtered to one surah (the concordance ribbon), null for all.
+  const [searchContext, setSearchContext] = useState<{ q: string; mode: SearchMode; mushaf: number; surah: number | null } | null>(null);
 
   // Quran-page reading state is owned by the shared MushafProvider so the
   // Reading mode and this search reader stay in sync.
@@ -258,7 +262,7 @@ export function useSearchWorkspace() {
     sp.set("mode", "search");
     sp.set("q", reflectedQuery);
     sp.set("sm", reflectedMode);
-    router.replace(`/?${sp.toString()}`, { scroll: false });
+    goTo(`/?${sp.toString()}`, true);
   }
 
   // Hydrate a search from ?q=&sm= once on first load (shared/bookmarked link).
@@ -619,7 +623,7 @@ export function useSearchWorkspace() {
 
       startTransition(() => {
         setResults(response.results);
-        setSearchContext({ q: effectiveQuery, mode: effectiveMode, mushaf: selectedMushaf });
+        setSearchContext({ q: effectiveQuery, mode: effectiveMode, mushaf: selectedMushaf, surah: null });
       });
       reflectSearchUrl(effectiveQuery, effectiveMode);
 
@@ -665,6 +669,7 @@ export function useSearchWorkspace() {
         resultKey,
         nextPage,
         ITEMS_PER_PAGE,
+        searchContext.surah,
       );
 
       startTransition(() => {
@@ -672,6 +677,95 @@ export function useSearchWorkspace() {
       });
     } catch (error) {
       setErrorMessage(toUserError("search:page", error, t("حدث خطأ في جلب الصفحة المطلوبة.")));
+    }
+  }
+
+  /** Keep only one surah's verses (null: every surah) for the current search. */
+  async function filterBySurah(surah: number | null) {
+    if (!searchContext || searchContext.surah === surah) return;
+    const context = searchContext;
+    const requestId = ++runSearchIdRef.current;
+    setIsSearching(true);
+    try {
+      const response = await api.searchV2(context.q, context.mode, context.mushaf, ITEMS_PER_PAGE, surah);
+      if (requestId !== runSearchIdRef.current) return;
+      if (!response.found) {
+        setErrorMessage(t("لا توجد نتائج لهذا البحث."));
+        return;
+      }
+      startTransition(() => {
+        setErrorMessage(null);
+        setResults(response.results);
+        setSearchContext({ ...context, surah });
+      });
+      const firstResult = response.results.find((result) => result.verses.length > 0);
+      const firstVerse = firstResult?.verses[0];
+      if (firstResult && firstVerse) await selectVerse(firstVerse, firstResult.result_key);
+    } catch (error) {
+      if (requestId !== runSearchIdRef.current) return;
+      setErrorMessage(toUserError("search:filter", error, t("حدث خطأ في الاتصال بالخادم.")));
+    } finally {
+      if (requestId === runSearchIdRef.current) setIsSearching(false);
+    }
+  }
+
+  // «كلمة / جذر»: search the word as written, or every form of its root. A
+  // phrase is always searched word by word. An open search re-runs at once.
+  function chooseSearchMode(nextMode: SearchMode) {
+    const trimmedQuery = query.trim();
+    if (nextMode === searchMode && searchModeInitialized) return;
+    if (nextMode === "root" && (!trimmedQuery || isPhraseInputValue(trimmedQuery))) return;
+    setPreviewValue(null);
+    setSearchMode(nextMode);
+    setSearchModeInitialized(true);
+    setSuggestionsWithChakl(false);
+    setSuggestions([]);
+    setSuggestionsOpen(false);
+    setActiveSuggestionIndex(-1);
+    if (workspaceVisible && trimmedQuery) {
+      void runSearch(trimmedQuery, nextMode);
+    }
+  }
+
+  // «التشكيل»: a written word with vowel marks loses them; a bare one offers
+  // its vowelled forms (the backend's suggestions with chakl).
+  async function toggleChakl() {
+    const trimmedQuery = query.trim();
+    if (!trimmedQuery || searchMode !== "exact") return;
+
+    if (hasArabicDiacritics(trimmedQuery)) {
+      const plainQuery = removeChakl(trimmedQuery);
+      commitInputValue(plainQuery, "exact");
+      if (inputRef.current) inputRef.current.value = plainQuery;
+      setSearchModeInitialized(true);
+      setSuggestionsWithChakl(false);
+      setSuggestions([]);
+      setSuggestionsOpen(false);
+      inputRef.current?.focus();
+      return;
+    }
+
+    if (suggestionsWithChakl) {
+      setSuggestionsWithChakl(false);
+      setSuggestions([]);
+      setSuggestionsOpen(false);
+      return;
+    }
+
+    setSuggestionsWithChakl(true);
+    setIsInputFocused(true);
+    inputRef.current?.focus();
+    try {
+      const items = isPhraseInputValue(trimmedQuery)
+        ? await buildPhraseSuggestionItems(trimmedQuery, { withChakl: true })
+        : await api.getSuggestions(trimmedQuery, "exact", selectedMushaf, true);
+      const uniqueItems = dedupeSuggestionItems(items);
+      setSuggestions(uniqueItems.slice(0, MAX_SUGGESTIONS));
+      setSuggestionsOpen(uniqueItems.length > 0);
+      setActiveSuggestionIndex(-1);
+    } catch {
+      setSuggestions([]);
+      setSuggestionsOpen(false);
     }
   }
 
@@ -811,6 +905,10 @@ export function useSearchWorkspace() {
       theme,
       inputValue,
       searchMode,
+      /** The mode has been chosen (by the reader or the search), not guessed. */
+      searchModeInitialized,
+      /** The typed words carry vowel marks, or their vowelled forms are offered. */
+      chaklOn: hasArabicDiacritics(query) || suggestionsWithChakl,
       edition,
       selectedMushaf,
       suggestions,
@@ -822,6 +920,8 @@ export function useSearchWorkspace() {
       workspaceVisible,
       workspaceActive,
       results,
+      /** The surah the results are filtered to (null: every surah). */
+      surahFilter: searchContext?.surah ?? null,
       selectedVerseKey,
       searchPrefix,
       resultsSummary,
@@ -835,10 +935,13 @@ export function useSearchWorkspace() {
       runSearch,
       selectVerse,
       loadResultPage,
+      filterBySurah,
       resetSearch,
       applySuggestion,
       applyDidYouMean,
       runQuickExample,
+      chooseSearchMode,
+      toggleChakl,
       revertSuggestionPreview,
       handleInputKeyDown,
       openSuggestions() {

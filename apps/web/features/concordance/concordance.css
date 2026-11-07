@@ -306,6 +306,11 @@
   color: var(--gold-text);
 }
 
+/* ▶ sits beside the pin, both at the row's end. */
+.qb-verse-row .vmeta .pin.listen + .pin {
+  margin-inline-start: 0;
+}
+
 .qb-verse-row .vtext {
   font-family: var(--font-arabic-display);
   direction: rtl;
@@ -602,4 +607,17 @@
 .qb-companion-canvas > .qb-world-page {
   flex: 1 1 auto;
   min-width: 0;
+}
+
+/* The root's insights page: a back arrow before its title. */
+.qb-aux-h.has-back {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.qb-aux-h.has-back .qb-aux-back {
+  flex-shrink: 0;
 }

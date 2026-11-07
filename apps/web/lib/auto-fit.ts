@@ -16,6 +16,12 @@
  * descendant marked `data-fit-watch` is (e.g. a surah name that would get an
  * ellipsis). Such descendants must clip (`overflow: hidden` / `clip`) so their
  * scroll width can be measured.
+ *
+ * Auto-fit starts from the language provider in the root layout, so it can
+ * set `data-fit` on server-rendered markup a Suspense boundary hasn't
+ * hydrated yet (the rail, inside the shell's boundary). Every
+ * `data-autofit` element therefore carries `suppressHydrationWarning`: the
+ * attribute is the script's, not React's, and React leaves it in place.
  */
 
 const SELECTOR = "[data-autofit]";

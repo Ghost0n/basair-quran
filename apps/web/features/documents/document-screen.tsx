@@ -1,8 +1,10 @@
 "use client";
 
 import "./documents.css";
+import "./documents.web.css";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
@@ -22,15 +24,16 @@ import { Icon } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
 import { useNumerals } from "@/lib/preferences-context";
 import { useMushaf } from "@/features/reading/mushaf-context";
-import { useShellMode } from "@/features/shell/mode-context";
+import { useBackToNotebook, useShellMode } from "@/features/shell/mode-context";
+import { useTopBarSlots } from "@/features/shell/top-bar-slots";
+import { useWebDesign } from "@/lib/use-web-design";
 import { TafssirDisclaimer } from "@/features/studio/tafssir-disclaimer";
 
 import { AyahPicker } from "./ayah-picker";
-import { documentToMarkdown } from "./convert";
 import { DocumentBoard } from "./document-board";
 import { parseBoardSource } from "@/features/board/board-model";
 import { PublishSheet } from "./publish-sheet";
-import { downloadBlob } from "./share-card";
+import { publicOrigin } from "@/lib/site";
 import { ShareStudio, type ShareArtifact } from "./share-studio";
 
 import { t, tn } from "@/lib/i18n";
@@ -96,6 +99,9 @@ export function DocumentScreen() {
   const params = useSearchParams();
   const documentId = params.get("id") ?? "";
   const { setMode } = useShellMode();
+  const web = useWebDesign();
+  const topSlots = useTopBarSlots();
+  const backToNotebook = useBackToNotebook("documents");
   const router = useRouter();
   const mushaf = useMushaf();
   const formatNumber = useNumerals();
@@ -253,18 +259,6 @@ export function DocumentScreen() {
     }
   }
 
-  function exportMarkdown() {
-    if (!doc) return;
-    const blob = new Blob([documentToMarkdown(doc, surahName)], { type: "text/markdown;charset=utf-8" });
-    downloadBlob(blob, `${doc.title.slice(0, 60) || "research"}.md`);
-  }
-
-  function exportJson() {
-    if (!doc) return;
-    const payload = { v: 1, ...doc, id: documentId, version: meta?.version };
-    downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), `${documentId}.json`);
-  }
-
   const ayahTotal = doc?.sections.reduce((sum, section) => sum + section.ayahs.length, 0) ?? 0;
 
   async function removeDocument() {
@@ -281,7 +275,7 @@ export function DocumentScreen() {
     return (
       <div className="qb-doc-state">
         <p>{status === "missing" ? t("لم يُعثر على هذا البحث.") : t("تعذّر تحميل البحث.")}</p>
-        <button type="button" onClick={() => setMode("notebook")}>{t("العودة إلى الدفتر")}</button>
+        <button type="button" onClick={backToNotebook}>{t("العودة إلى الدفتر")}</button>
       </div>
     );
   }
@@ -302,27 +296,35 @@ export function DocumentScreen() {
             ? t("محفوظ")
             : "";
 
-  return (
-    <div className="qb-doc">
-      <div className="qb-doc-bar">
-        <button type="button" className="back" onClick={() => setMode("notebook")} aria-label={t("العودة إلى الدفتر")}>
+  const barBack = (
+    <button type="button" className="back" onClick={backToNotebook} aria-label={t("العودة إلى الدفتر")}>
           <Icon name="chevRight" size={18} />
         </button>
-        <span className="kicker">
-          {t("بحث")}{doc.provenance.created_from === "studio" ? t("، من الدراسة") : doc.provenance.created_from === "board" ? t("، من لوحة موضوع") : ""}
-        </span>
-        <span className={`save ${saveState}`} role="status" aria-live="polite">
+  );
+  const barTitle = (
+    <div className="title">
+          <input
+            className="doc-name"
+            value={doc.title}
+            onChange={(event) => update({ title: event.target.value.slice(0, 200) })}
+            placeholder={t("عنوان البحث")}
+            aria-label={t("عنوان البحث")}
+            dir="auto"
+          />
+          <span className="kicker">
+            {t("بحث")}{doc.provenance.created_from === "studio" ? t("، من الدراسة") : doc.provenance.created_from === "board" ? t("، من لوحة موضوع") : ""}
+          </span>
+        </div>
+  );
+  const barSave = (
+    <span className={`save ${saveState}`} role="status" aria-live="polite">
           {saveLabel}
         </span>
-        <div className="acts">
+  );
+  const barActs = (
+    <div className="acts">
           <button type="button" onClick={() => setSharing({ artifact: "research" })}>
             <Icon name="share" size={15} /> <span className="lbl">{t("مشاركة")}</span>
-          </button>
-          <button type="button" onClick={exportMarkdown}>
-            <Icon name="download" size={15} /> <span className="lbl">Markdown</span>
-          </button>
-          <button type="button" onClick={exportJson}>
-            <Icon name="download" size={15} /> <span className="lbl">JSON</span>
           </button>
           <button type="button" onClick={() => void runAudit()}>
             <Icon name="shieldCheck" size={15} /> <span className="lbl">{t("جاهزية النشر")}</span>
@@ -331,19 +333,10 @@ export function DocumentScreen() {
             <Icon name="users" size={15} /> <span className="lbl">{t("نشر")}</span>
           </button>
         </div>
-      </div>
-
-      <div className="qb-doc-body">
-        {shareNote ? <div className="qb-doc-flash" role="status">{shareNote}</div> : null}
-
-        <input
-          className="title"
-          value={doc.title}
-          onChange={(event) => update({ title: event.target.value.slice(0, 200) })}
-          placeholder={t("عنوان البحث")}
-          aria-label={t("عنوان البحث")}
-        />
-        <textarea
+  );
+  const head = (
+    <>
+      <textarea
           className="summary"
           value={doc.summary ?? ""}
           onChange={(event) => update({ summary: event.target.value.slice(0, 1200) })}
@@ -359,8 +352,11 @@ export function DocumentScreen() {
         </div>
 
         {doc.provenance.mode === "tafssir" ? <TafssirDisclaimer /> : null}
-
-        {doc.provenance.created_from === "board" && parseBoardSource(doc.provenance.source_id) ? (
+    </>
+  );
+  const boardView = (
+    <>
+      {doc.provenance.created_from === "board" && parseBoardSource(doc.provenance.source_id) ? (
           <DocumentBoard
             source={parseBoardSource(doc.provenance.source_id)!}
             onOpenAyah={(item) => {
@@ -369,14 +365,16 @@ export function DocumentScreen() {
             }}
           />
         ) : null}
-
-        {verification && !verification.ok ? (
+    </>
+  );
+  const warnings = (
+    <>
+      {verification && !verification.ok ? (
           <div className="qb-doc-warn" role="alert">
             <Icon name="alert" size={15} /> {t("بعض النصوص المقتبسة لا تطابق نص المصحف — راجِعها في الأقسام المعلَّمة.")}
           </div>
         ) : null}
-
-        {audit ? (
+      {audit ? (
           <div className={`qb-doc-audit${audit.publishable ? " ok" : ""}`}>
             <div className="head">
               <strong>{audit.publishable ? t("البحث جاهز للنشر") : t("قبل النشر:")}</strong>
@@ -397,8 +395,11 @@ export function DocumentScreen() {
             </p>
           </div>
         ) : null}
-
-        <ol className="sections">
+    </>
+  );
+  const body = (
+    <>
+      <ol className="sections">
           {doc.sections.map((section, index) => {
             const issues = issuesBySection.get(section.id) ?? [];
             const isAi = section.kind === "ai_answer";
@@ -514,13 +515,17 @@ export function DocumentScreen() {
           <button type="button" onClick={() => addSection("note")}>{t("ملاحظة")}</button>
           <button type="button" onClick={() => addSection("question")}>{t("سؤال")}</button>
         </div>
-
-        <References
+    </>
+  );
+  const references = (
+    <References
           references={doc.references}
           onChange={(references) => update({ references })}
         />
-
-        {sharing ? (
+  );
+  const sheets = (
+    <>
+      {sharing ? (
           <ShareStudio
             research={{
               title: doc.title,
@@ -528,6 +533,9 @@ export function DocumentScreen() {
               mode: doc.provenance.mode ?? null,
               sections: doc.sections,
               aiSectionIds: doc.provenance.ai_sections,
+              // Not published: the card points to the app itself.
+              url: publicOrigin(),
+              urlIsApp: true,
             }}
             references={doc.references}
             surahName={surahName}
@@ -560,8 +568,10 @@ export function DocumentScreen() {
             onOpenPost={(postId) => router.push(`/?mode=post&id=${encodeURIComponent(postId)}`)}
           />
         ) : null}
-
-        <div className="danger-zone">
+    </>
+  );
+  const danger = (
+    <div className="danger-zone">
           {confirmDelete ? (
             <>
               <span>{t("حذف البحث نهائياً؟")}</span>
@@ -574,6 +584,56 @@ export function DocumentScreen() {
             </button>
           )}
         </div>
+  );
+
+  // The web design: the bar's name and actions live in the top bar, and the
+  // paper spans the canvas — the sections beside a column of the references
+  // and the publishing checks — instead of a narrow band that scrolls alone.
+  if (web) {
+    return (
+      <div className="qb-doc is-web">
+        {topSlots
+          ? <>
+              {createPortal(<div className="qb-doc-bar in-topbar">{barBack}{barTitle}</div>, topSlots.start)}
+              {createPortal(<div className="qb-doc-bar in-topbar">{barSave}{barActs}</div>, topSlots.end)}
+            </>
+          : <div className="qb-doc-bar">{barBack}{barTitle}{barSave}{barActs}</div>}
+        <div className="qb-doc-body">
+          {shareNote ? <div className="qb-doc-flash" role="status">{shareNote}</div> : null}
+          <header className="qb-doc-head">{head}</header>
+          {boardView}
+          <div className="qb-doc-grid">
+            <div className="qb-doc-main">{body}</div>
+            <aside className="qb-doc-aside">
+              {warnings}
+              {references}
+              {danger}
+            </aside>
+          </div>
+          {sheets}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="qb-doc">
+      <div className="qb-doc-bar">
+        {barBack}
+        {barTitle}
+        {barSave}
+        {barActs}
+      </div>
+
+      <div className="qb-doc-body">
+        {shareNote ? <div className="qb-doc-flash" role="status">{shareNote}</div> : null}
+        {head}
+        {boardView}
+        {warnings}
+        {body}
+        {references}
+        {sheets}
+        {danger}
       </div>
     </div>
   );
