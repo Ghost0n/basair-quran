@@ -321,8 +321,8 @@ export function ReaderBar({
     const back = (
       <button
         type="button"
-        // The Home mark (is-home): in the iPhone app the native bar's own Home
-        // tab stands below the dock, so this one gives way (reading.web.css).
+        // The Home mark (is-home) when the reader was opened from Home, an
+        // arrow back otherwise: the round half of the split bar.
         className={`qb-reader-back${!reciteView && backHome ? " is-home" : ""}`}
         onClick={() => {
           if (!reciteView) {

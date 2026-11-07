@@ -79,12 +79,15 @@ describe("barLook", () => {
 });
 
 describe("nativeBarHidden", () => {
-  it("keeps the bar in place on every page of a phone, the Mushaf included", () => {
-    expect(nativeBarHidden({ narrow: true, immersive: false })).toBe(false);
+  it("stays on every page of a phone outside the Mushaf", () => {
+    expect(nativeBarHidden({ narrow: true, reading: false })).toBe(false);
   });
 
-  it("steps aside in focus mode and where the side menu shows", () => {
-    expect(nativeBarHidden({ narrow: true, immersive: true })).toBe(true);
-    expect(nativeBarHidden({ narrow: false, immersive: false })).toBe(true);
+  it("gives its place to the reader's split dock in the Mushaf", () => {
+    expect(nativeBarHidden({ narrow: true, reading: true })).toBe(true);
+  });
+
+  it("steps aside where the side menu shows", () => {
+    expect(nativeBarHidden({ narrow: false, reading: false })).toBe(true);
   });
 });

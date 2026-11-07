@@ -240,38 +240,27 @@ html.qb-web[dir="rtl"] .qb-display-strip .size input[type="range"]::-webkit-slid
 
 }
 
-/* ---------- The iPhone app: Apple's tab bar stays in the Mushaf ---------- */
-/* The native bar (lib/native-tab-bar.ts) keeps its place on every page, so
-   the reader's dock rides just above it, with the page number in the strip
-   between them; the round Home mark gives way to the bar's own Home tab
-   (an arrow back, in the recitation's controls, stays). The page re-fits
-   above the dock through the same --dock-bottom as before. Focus mode puts
-   the bar away and everything returns to the edge. */
+/* ---------- The iPhone app: the reader's dock takes Apple's bar's place ---------- */
+/* In the Mushaf Apple's tab bar (lib/native-tab-bar.ts) splits in two, as
+   the web bar does: it fades out and the reader's round button (the Home
+   mark from Home, an arrow back otherwise) and its dock (the toolbox) stand
+   exactly where its capsule stood: 62pt tall like it, 21pt from the bottom
+   and from each side (measured on iOS 26). Only the dock moves: the page
+   keeps the stabilized --dock-bottom and its box, and the page number sits
+   in the strip between the page and the dock. Focus mode hides the dock and
+   the page number goes back under the page. */
 @media (max-width: 768px) {
-  html.qb-web.qb-native-tabbar:root:not(.qb-immersive) {
-    --dock-bottom: calc(var(--qb-native-tabbar-h, 83px) + 24px);
+  html.qb-web.qb-native-tabbar:root {
+    --qb-bar-inset: 21px;
+    --dock-side: calc(var(--qb-bar-inset) + env(safe-area-inset-left, 0px));
+  }
+
+  html.qb-web.qb-native-tabbar:root .qb-mushaf-stage > .qb-reader-head.is-dock,
+  html.qb-web.qb-native-tabbar:root .qb-reader-back {
+    bottom: var(--qb-bar-inset);
   }
 
   html.qb-web.qb-native-tabbar:root:not(.qb-immersive) .qb-page-number {
-    bottom: calc(var(--qb-native-tabbar-h, 83px) + 3px);
-  }
-
-  html.qb-web.qb-native-tabbar:root .qb-reader-back.is-home {
-    display: none;
-  }
-
-  html.qb-web.qb-native-tabbar:root:has(.qb-reader-back.is-home) .qb-mushaf-stage > .qb-reader-head.is-dock {
-    right: var(--dock-side);
-    left: var(--dock-side);
-  }
-
-  html.qb-web.qb-native-tabbar:root:has(.qb-reader-back.is-home) .qb-reader-head.is-dock .qb-display-strip {
-    right: 0;
-    left: 0;
-  }
-
-  /* Verse by verse: the last verse scrolls clear of the dock and the bar. */
-  html.qb-web.qb-native-tabbar:root:not(.qb-immersive) .qb-mushaf-stage.is-ayah .qb-mushaf-page {
-    padding-bottom: calc(var(--dock-bottom) + var(--dock-h) + 40px);
+    bottom: calc(var(--qb-bar-inset) + var(--dock-h) + 8px);
   }
 }
