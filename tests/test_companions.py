@@ -142,6 +142,23 @@ def test_user_preferences_saved_pages(api_client):
     assert cleared.json()["saved_pages"] == []
 
 
+def test_user_preferences_home_hidden(api_client):
+    # Every Home section shows by default.
+    assert api_client.get("/api/user/preferences").json()["home_hidden"] == []
+
+    patched = api_client.patch("/api/user/preferences", json={"home_hidden": ["verse", "community"]})
+    assert patched.status_code == 200
+    assert patched.json()["home_hidden"] == ["verse", "community"]
+    # Other preferences are untouched, and the list persists.
+    reread = api_client.get("/api/user/preferences").json()
+    assert reread["home_hidden"] == ["verse", "community"]
+    assert reread["saved_pages"] == []
+
+    # Unknown sections are rejected; an empty list shows everything again.
+    assert api_client.patch("/api/user/preferences", json={"home_hidden": ["sidebar"]}).status_code == 422
+    assert api_client.patch("/api/user/preferences", json={"home_hidden": []}).json()["home_hidden"] == []
+
+
 def test_mushaf_edition_preference_is_validated_and_falls_back(api_client):
     from src.app.services import app_data_service
 

@@ -814,3 +814,17 @@ html.qb-immersive .qb-tabbar {
     display: none;
   }
 }
+
+/* The back swipe (edge-swipe-back.tsx): the screen slides off over a shade. */
+.qb-edge-shade {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: #000;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+html.qb-edge-swiping .qb-frame {
+  will-change: transform;
+}

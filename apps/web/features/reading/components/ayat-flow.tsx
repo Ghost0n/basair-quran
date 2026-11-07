@@ -93,7 +93,7 @@ export function AyahTokens({
       className={`qb-ayah-tok${isSelected && !focus ? " selected" : ""}${highlight.className}${verseFocusClass(focus)}`}
       data-hl={highlight["data-hl"]}
       data-ayah-id={ayah.ayah_id}
-      data-vf={focus ? ayah.ayah_id : undefined}
+      data-vf={focus || isSelected || highlight["data-hl"] ? ayah.ayah_id : undefined}
       data-page={ayah.page}
       // The ayah is a readable unit: a screen reader announces "آية" and then
       // reads the verse as prose (the words below are plain text, not buttons).

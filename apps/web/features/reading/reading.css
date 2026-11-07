@@ -282,14 +282,8 @@
   background: rgba(212, 175, 55, 0.04);
 }
 
-.qb-ayah-row.is-selected {
-  background: rgba(212, 175, 55, 0.1);
-  /* The fading divider image would repaint the gold edge. */
-  border-image: none;
-  border-inline-start: 2px solid var(--border-focus);
-  box-shadow: 0 0 22px rgba(212, 175, 55, 0.08);
-  padding-inline-start: 9px;
-}
+/* The opened verse is lit by the outline layer (one block that glows and
+   fades, tools.css), not by its row. */
 
 /* The leading verse-number chip. */
 .qb-ayah-row-num {
@@ -784,6 +778,13 @@
   outline-offset: 1px;
 }
 
+/* A finger's tap focuses the word too: no ring left on it (keyboards keep theirs). */
+@media (hover: none) and (pointer: coarse) {
+  :is(.qb-glyph-word, .qb-word, .qb-verse-mark):focus:not(:focus-visible) {
+    outline: none;
+  }
+}
+
 /* A selected ayah's consecutive words on a line render as one solid block,
    covering the justified gaps between them. */
 .qb-glyph-sel {
@@ -814,9 +815,7 @@
   border-radius: 0;
 }
 
-.qb-ayah-row.is-glyph.is-selected {
-  border-radius: var(--r-md);
-}
+
 
 /* Save-ayah affordance in the glyph reader — parity with the simple reader.
    Anchored to each completed ayah's end marker; absolutely positioned so it

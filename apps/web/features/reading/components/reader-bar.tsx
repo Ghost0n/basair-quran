@@ -1,22 +1,29 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import type { QuranPageResponse, SurahListItem } from "@q-basair/shared";
 
+import { BrandMark } from "@/components/brand-mark";
 import { Icon } from "@/components/icon";
 import { Transport } from "@/features/recitation/phone-player";
 import { useRecitation } from "@/features/recitation/recitation-context";
 import { RecitationSheet } from "@/features/recitation/recitation-sheet";
-import { lastScreenBeforeReader, useShellMode } from "@/features/shell/mode-context";
+import { useGoBack, useShellMode } from "@/features/shell/mode-context";
+import { readerBackLeadsHome } from "@/features/shell/navigation";
+import { useRoomWide } from "@/features/shell/room";
+import { TOP_BAR_READER_ID } from "@/features/shell/top-bar-slots";
+import { useBand } from "@/lib/bands";
+import { useExclusiveOverlay } from "@/lib/exclusive-overlay";
 import { modKey } from "@/lib/platform";
 import { useNumerals } from "@/lib/preferences-context";
 import { useIsMobile } from "@/lib/use-is-mobile";
+import { useWebDesign } from "@/lib/use-web-design";
 import { TOTAL_PAGES } from "@/lib/quran-nav";
 
 import { DisplayStrip } from "./display-strip";
+import { readerBarInTopBar } from "../reader-bar-place";
 import { ToolPicker } from "../tools/tool-picker";
 import { useSavedPages } from "../use-saved-pages";
 import { useCompactReader } from "../use-wide-screen";
@@ -54,6 +61,8 @@ export function ReaderBar({
   onCloseDisplay,
   onToggleImmersive,
   locked = false,
+  recitedAway = false,
+  onShowRecited,
 }: {
   pageData: QuranPageResponse;
   surahs: SurahListItem[];
@@ -74,6 +83,9 @@ export function ReaderBar({
   onToggleImmersive: () => void;
   /** A recitation is open: the reading tools are locked (dimmed, unreachable) until it is closed. */
   locked?: boolean;
+  /** The recited verse isn't on screen: the dock offers «الآية المتلوّة». */
+  recitedAway?: boolean;
+  onShowRecited?: () => void;
 }) {
   const headRef = useRef<HTMLDivElement | null>(null);
   const formatNumber = useNumerals();
@@ -81,8 +93,46 @@ export function ReaderBar({
   const compact = useCompactReader();
   const dock = useIsMobile();
   const [sheetOpen, setSheetOpen] = useState(false);
-  const router = useRouter();
-  const { setMode } = useShellMode();
+  useExclusiveOverlay(sheetOpen, () => setSheetOpen(false));
+  // The dock shows the recitation's controls from the moment one starts;
+  // the back button folds them into «تلاوة» (reciteOpen false).
+  const [reciteOpen, setReciteOpen] = useState(true);
+  const wasActive = useRef(recitation.active);
+  useEffect(() => {
+    if (recitation.active && !wasActive.current) setReciteOpen(true);
+    wasActive.current = recitation.active;
+  }, [recitation.active]);
+  const { goBack } = useGoBack();
+  // Where back leads, as its face: the app's logo when it returns Home (the
+  // reader opened from the tab bar, or from Home), an arrow when it returns to
+  // another page. Read after the back stack has recorded this screen.
+  // (Known from the first render on the way in, so the view transition
+  // captures the right face; a page load starts from the server's arrow.)
+  const [backHome, setBackHome] = useState(() => typeof window !== "undefined" && readerBackLeadsHome());
+  useEffect(() => {
+    setBackHome(readerBackLeadsHome());
+  }, []);
+  // The dock's contents animate only when they swap (reading ⇄ recitation),
+  // not as the reader opens: the way in belongs to the view transition, which
+  // would otherwise capture the dock empty, mid-fade.
+  const dockView = recitation.active && reciteOpen;
+  const firstDockView = useRef(dockView);
+  const dockSwapped = useRef(false);
+  if (dockView !== firstDockView.current) dockSwapped.current = true;
+  const swapClass = dockSwapped.current ? " swap" : "";
+  const { mode, setMode } = useShellMode();
+  // Web design, wide screens: the bar lives in the shell's top bar wherever the
+  // Mushaf shows — the reading page, and beside a panel (search, study, the
+  // notebook…) unless the panel is widened over it — leaving the stage's
+  // height to the Mushaf. The slot is found after commit (features/shell/top-bar.tsx).
+  const web = useWebDesign();
+  const band = useBand();
+  const [roomWide] = useRoomWide();
+  const inTopBar = web && readerBarInTopBar(band, mode, roomWide);
+  const [topSlot, setTopSlot] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setTopSlot(inTopBar ? document.getElementById(TOP_BAR_READER_ID) : null);
+  }, [inTopBar, mode]);
   const savedPages = useSavedPages();
 
   const firstAyah = pageData.ayahs[0];
@@ -114,16 +164,10 @@ export function ReaderBar({
     else recitation.playAyah(firstAyah.surah_id, firstAyah.ayah);
   }
 
-  // The dock's back arrow: the screen the reader was opened from (Home when none).
-  function goBack() {
-    const query = lastScreenBeforeReader();
-    router.push(query ? `/?${query}` : "/", { scroll: false });
-  }
-
   const progress = Math.min(100, Math.max(0, (displayPage / totalPages) * 100));
 
   const bar = (
-    <div className={`qb-reader-bar${locked ? " is-locked" : ""}`} data-autofit="7">
+    <div className={`qb-reader-bar${locked ? " is-locked" : ""}`} data-autofit="7" suppressHydrationWarning>
       <button type="button" className="identity" onClick={onOpenNavigate} aria-label={t("{0} — انتقل", { 0: surahName })}>
         <span className="name" data-fit-watch>{surahName}</span>
         <span className="meta" data-fit-watch>
@@ -148,10 +192,13 @@ export function ReaderBar({
             <Icon name="search" size={17} />
           </button>
         )}
-        <button type="button" className="act labelled go-btn" onClick={onOpenNavigate} aria-label={t("انتقل")} title={t("انتقل (سورة · آية · جزء · صفحة)")}>
-          <Icon name="compass" size={18} />
-          <span className="lbl">{t("انتقل")}</span>
-        </button>
+        {/* Web design: the surah name is the one way into «انتقل» (no second button). */}
+        {web ? null : (
+          <button type="button" className="act labelled go-btn" onClick={onOpenNavigate} aria-label={t("انتقل")} title={t("انتقل (سورة · آية · جزء · صفحة)")}>
+            <Icon name="compass" size={18} />
+            <span className="lbl">{t("انتقل")}</span>
+          </button>
+        )}
         <button
           type="button"
           className={`act labelled display-btn${displayOpen ? " on" : ""}`}
@@ -234,12 +281,14 @@ export function ReaderBar({
   const strip = displayOpen ? <DisplayStrip onClose={onCloseDisplay} headRef={headRef} /> : null;
 
   if (!compact) {
-    return (
+    const wideHead = (
       <div className="qb-reader-head" ref={headRef}>
         {bar}
         {strip}
       </div>
     );
+    if (inTopBar) return topSlot ? createPortal(wideHead, topSlot) : null;
+    return wideHead;
   }
   const bookmark = (
     <button
@@ -255,46 +304,83 @@ export function ReaderBar({
   );
 
   // Phones upright: the reader's bar is the dock that takes the tab bar's
-  // place — the toolbox, then a back arrow at the far left. While a
-  // recitation is open the toolbox gives way to its controls (previous ·
-  // play · next · reciter · end). The page names its surah (a tap on it
-  // opens «انتقل»), and the bookmark floats in the top corner. Focus mode
-  // hides all of it.
+  // place — a glass capsule (the surah, which opens «انتقل», then the
+  // toolbox) beside its own round back button, on the side the interface
+  // reads from. A recitation turns the capsule into its controls (previous ·
+  // play · next · reciter); the back button folds them away into «تلاوة»,
+  // which keeps a live mark and brings them back, while the audio plays on
+  // (paused, back ends the recitation; it also ends from the sheet). The
+  // bookmark floats in the top corner (over the printed page's running head,
+  // whose surah shows in focus mode). Focus mode hides all of it.
   if (dock) {
+    const reciteView = recitation.active && reciteOpen;
+    const live = recitation.active && !reciteView;
+    // Settings changed from their defaults (repeat, speed): a dot on the button.
+    const customised = recitation.repeatMode !== "off" || recitation.speed !== 1;
+    const corner = <div className="qb-reader-corner">{bookmark}</div>;
+    const back = (
+      <button
+        type="button"
+        // The Home mark (is-home) when the reader was opened from Home, an
+        // arrow back otherwise: the round half of the split bar.
+        className={`qb-reader-back${!reciteView && backHome ? " is-home" : ""}`}
+        onClick={() => {
+          if (!reciteView) {
+            goBack();
+            return;
+          }
+          // Paused: back ends the recitation; playing: it only folds the controls.
+          if (!recitation.isPlaying) recitation.stop();
+          setReciteOpen(false);
+        }}
+        aria-label={!reciteView && backHome ? t("الرئيسية") : t("رجوع")}
+      >
+        {!reciteView && backHome ? <BrandMark size={34} themed /> : <Icon name="arrowRight" size={20} />}
+      </button>
+    );
     return (
       <div className="qb-reader-head is-dock" ref={headRef}>
-        <div className={`qb-reader-bar qb-reader-dock${recitation.active ? " is-reciting" : ""}`}>
-          {recitation.active ? (
-            <>
+        <div className={`qb-reader-bar qb-reader-dock${reciteView ? " is-reciting" : ""}${locked ? " is-locked" : ""}`}>
+          {reciteView ? (
+            <div className={`actions recite${swapClass}`} key="recite">
+              {/* Flanking the transport, which stays centred: the way back to
+                  the recited verse (when it isn't on screen) and the settings. */}
+              <span className="flank start">
+                {recitedAway && onShowRecited ? (
+                  <button type="button" className="round locate-btn" onClick={onShowRecited} aria-label={t("الآية المتلوّة")} title={t("الآية المتلوّة")}>
+                    <Icon name="locate" size={19} />
+                  </button>
+                ) : null}
+              </span>
               <Transport />
-              <button
-                type="button"
-                className="act labelled reciter-btn"
-                onClick={() => setSheetOpen(true)}
-                aria-haspopup="dialog"
-                aria-label={t("إعدادات التلاوة")}
-              >
-                <Icon name="user" size={18} />
-                <span className="lbl">{t("القارئ")}</span>
-              </button>
-              <button type="button" className="act labelled stop-btn" onClick={recitation.stop} aria-label={t("إنهاء التلاوة")}>
-                <Icon name="close" size={18} />
-                <span className="lbl">{t("إغلاق")}</span>
-              </button>
-            </>
-          ) : (
-            <div className="actions">
-              <ToolPicker compact />
-              {ayahMode ? (
-                <button type="button" className="act labelled" onClick={onOpenNavigate} aria-label={t("انتقل")}>
-                  <Icon name="compass" size={18} />
-                  <span className="lbl">{t("انتقل")}</span>
+              <span className="flank end">
+                <button
+                  type="button"
+                  className="round reciter-btn"
+                  onClick={() => setSheetOpen(true)}
+                  aria-haspopup="dialog"
+                  aria-label={t("إعدادات التلاوة")}
+                  title={t("إعدادات التلاوة")}
+                >
+                  <Icon name="sliders" size={18} />
+                  {customised ? <span className="dot" aria-hidden="true" /> : null}
                 </button>
-              ) : null}
+              </span>
+            </div>
+          ) : (
+            <div className={`actions${swapClass}`} key="tools">
+              <button type="button" className="act labelled surah-btn" onClick={onOpenNavigate} aria-label={t("{0} — انتقل", { 0: surahName })}>
+                <Icon name="menu" size={18} />
+                <span className="lbl">{surahName}</span>
+              </button>
+              <span className="qb-tool-lock" inert={locked} title={locked ? t("الأدوات متوقفة أثناء التلاوة") : undefined}>
+                <ToolPicker compact />
+              </span>
               <button
                 type="button"
                 className={`act labelled display-btn${displayOpen ? " on" : ""}`}
                 onClick={onToggleDisplay}
+                disabled={locked}
                 aria-expanded={displayOpen}
                 aria-label={t("العرض")}
               >
@@ -303,22 +389,19 @@ export function ReaderBar({
               </button>
               <button
                 type="button"
-                className="act labelled play-btn"
-                onClick={togglePlay}
-                disabled={!playable}
-                aria-label={t("تلاوة الصفحة")}
+                className={`act labelled play-btn${live ? " is-live" : ""}`}
+                onClick={live ? () => setReciteOpen(true) : togglePlay}
+                disabled={!live && !playable}
+                aria-label={live ? t("التلاوة الجارية") : t("تلاوة الصفحة")}
               >
-                <Icon name="play" size={18} />
+                <Icon name={live && recitation.isPlaying ? "pause" : "play"} size={18} />
                 <span className="lbl">{t("تلاوة")}</span>
               </button>
             </div>
           )}
-          <button type="button" className="act back-btn" onClick={goBack} aria-label={t("رجوع")}>
-            <Icon name="arrowLeft" size={20} />
-          </button>
         </div>
         {strip}
-        {typeof document !== "undefined" ? createPortal(bookmark, document.body) : null}
+        {typeof document !== "undefined" ? createPortal(<>{back}{corner}</>, document.body) : null}
         {sheetOpen && typeof document !== "undefined"
           ? createPortal(<RecitationSheet onClose={() => setSheetOpen(false)} />, document.body)
           : null}
@@ -328,7 +411,7 @@ export function ReaderBar({
 
   // Phones on their side: the bookmark floats on its own beside the bar
   // (same glass, same height), red once the page is saved.
-  return (
+  const head = (
     <div className="qb-reader-head" ref={headRef}>
     <div className="qb-reader-row">
       {bar}
@@ -337,4 +420,6 @@ export function ReaderBar({
     {strip}
     </div>
   );
+  if (inTopBar) return topSlot ? createPortal(head, topSlot) : null;
+  return head;
 }

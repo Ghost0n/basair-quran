@@ -1,0 +1,526 @@
+/* =====================================================================
+   The shell in the web design (desktop web, under .qb-web): a flat rail
+   with a gold indicator, the page's name beside the command bar, and the
+   room — the Mushaf with a panel on its inline-end side that can widen.
+   Source: design/prototype-web-full/core.css.
+   ===================================================================== */
+
+/* One warm light from the top instead of the aurora fields. */
+.qb-web .qb-frame::before {
+  inset: 0;
+  background: radial-gradient(1000px 520px at 45% -10%, var(--light-a), transparent 70%);
+}
+
+/* ---------- Rail ---------- */
+.qb-web .qb-rail {
+  margin: 0;
+  border-radius: 0;
+  border: 0;
+  border-inline-end: 1px solid var(--border);
+  background: transparent;
+  box-shadow: none;
+  width: 88px;
+  flex-basis: 88px;
+  padding: 14px 0 16px;
+  gap: 4px;
+}
+.qb-web .qb-rail-brand-btn {
+  border-radius: 16px;
+  background: var(--gold-soft);
+  border-color: transparent;
+  margin-bottom: 12px;
+}
+.qb-web .qb-rail-brand-btn[aria-current="page"] {
+  background: var(--gold-soft);
+  border-color: var(--gold-line);
+  box-shadow: none;
+}
+.qb-web .qb-rail-divider { width: 30px; background: var(--border-strong); opacity: 1; }
+.qb-web .qb-rail-btn {
+  width: 76px;
+  min-height: 60px;
+  padding: 8px 3px 7px;
+  gap: 6px;
+  border-radius: 14px;
+  color: var(--fg-2);
+}
+.qb-web .qb-rail-btn:hover { color: var(--fg-1); background: var(--gold-soft); }
+/* Labels readable in every script: a real size, and a line box tall enough
+   for Arabic marks, Devanagari headstrokes and descenders (the base rule's
+   line-height 1 under overflow:hidden cut their tops). */
+.qb-web .qb-rail-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.45;
+  padding-block: 1px;
+  letter-spacing: 0;
+}
+.qb-web .qb-rail[data-fit="1"] .qb-rail-label,
+.qb-web .qb-rail[data-fit="2"] .qb-rail-label,
+.qb-web .qb-rail[data-fit="3"] .qb-rail-label { font-size: 10.5px; letter-spacing: 0; }
+.qb-web .qb-rail[data-fit="2"] .qb-rail-label,
+.qb-web .qb-rail[data-fit="3"] .qb-rail-label { line-height: 1.3; }
+/* Nastaliq (Urdu) rises and falls far beyond its em box. */
+html.qb-web[lang="ur"] .qb-rail-label { line-height: 2.1; padding-inline: 3px; margin-block: -4px; }
+.qb-web .qb-rail-btn:active { transform: none; }
+/* Active: gold text and a thin lit line at the rail's edge, no gel. */
+.qb-web .qb-rail-btn.active {
+  color: var(--gold-text);
+  font-weight: 700;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.qb-web .qb-rail-btn.active::after {
+  content: "";
+  position: absolute;
+  inset-inline-start: -7px;
+  top: 12px;
+  bottom: 12px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--gold-400);
+  box-shadow: 0 0 10px var(--gold-glow);
+}
+/* The page you are on is always lit in gold, whatever its world. */
+html.qb-web .qb-rail .qb-rail-btn.active,
+html.qb-web .qb-rail .qb-rail-btn.is-world.active,
+html.qb-web .qb-rail .qb-rail-btn.is-world.active .qb-icon { color: var(--gold-text); }
+/* Keyboard focus on the rail: a fine ring inside the tile, not a heavy gold frame. */
+.qb-web .qb-rail-btn:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--gold-line);
+  background: var(--gold-soft);
+}
+.qb-web .qb-rail-btn.active .qb-icon { animation: none; }
+
+/* ---------- Top bar: the page's tools over the panel, the reader's over the Mushaf ---------- */
+.qb-web .qb-topbar-web {
+  height: 70px;
+  flex-basis: 70px;
+  justify-content: space-between;
+  padding-inline: 28px;
+  /* Home's soft fade on every page: the bar dissolves into the frame's glow
+     instead of ending on a line. Over a side page its zone is the panel's own
+     surface (below), so the page and its tools stay one piece. */
+  background: linear-gradient(180deg, var(--bg) 62%, transparent);
+  border-bottom: 0;
+}
+.qb-web .qb-topbar-web .qb-cmd {
+  flex: 0 1 440px;
+  margin: 0;
+  height: 42px;
+  border-radius: var(--r-ctl);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev-1);
+  box-shadow: none;
+}
+.qb-web .qb-topbar-web .qb-cmd::before { display: none; }
+.qb-web .qb-topbar-web .qb-cmd:hover,
+.qb-web .qb-topbar-web .qb-cmd:focus-within,
+.qb-web .qb-topbar-web .qb-cmd.is-search-active { border-color: var(--gold-line); box-shadow: none; }
+/* Home has no page name: the search stands alone, in the middle. */
+.qb-web .qb-topbar-web.is-home .qb-topbar-page { justify-content: center; }
+.qb-web .qb-topbar-web.is-home .qb-cmd { flex-basis: 560px; }
+
+/* ---------- The room ---------- */
+/* A panel opens on the reading-start side of the Mushaf (beside the rail):
+   the right in Arabic, Persian and Urdu, the left in the other languages. */
+/* The Mushaf no longer recedes: the panel is a neighbour, not a layer. */
+.qb-web .qb-workspace-canvas.has-panel .qb-mushaf-stage { transform: none; opacity: 1; }
+/* Widened panel: the Mushaf steps aside until it is brought back. */
+.qb-web .qb-workspace-canvas.is-wide > .qb-mushaf-stage { display: none; }
+.qb-web .qb-workspace-canvas.is-wide > .qb-side-panel,
+.qb-web .qb-workspace-canvas.is-wide > .qb-companion-panel { flex: 1 1 auto; width: auto; }
+
+/* Panels: a flat column, no floating glass and no coloured line along the top. */
+.qb-web .qb-side-panel,
+.qb-web .qb-companion-panel {
+  margin: 0;
+  border-radius: 0;
+  border: 0;
+  border-inline-end: 1px solid var(--border-strong);
+  background: linear-gradient(180deg, var(--bg-elev-1), var(--bg) 40%);
+  box-shadow: none;
+  animation: none;
+}
+/* One width for every side page (search, study, notebook, index, saved), so
+   the Mushaf and the top bar's zones stay put from one page to the next. */
+html.qb-web { --qb-panel: 560px; }
+@media (max-width: 1280px) {
+  html.qb-web { --qb-panel: 460px; }
+}
+.qb-web .qb-side-panel,
+.qb-web .qb-side-panel.qb-side-panel-wide,
+.qb-web .qb-companion-panel { width: var(--qb-panel); min-width: var(--qb-panel); max-width: var(--qb-panel); flex: 0 0 var(--qb-panel); }
+
+/* Medium and phone bands: one view at a time (workspace-canvas.tsx, is-single),
+   so the page takes the whole canvas instead of its side width beside a gap. */
+.qb-web .qb-workspace-canvas.is-single > .qb-side-panel,
+.qb-web .qb-workspace-canvas.is-single > .qb-side-panel.qb-side-panel-wide,
+.qb-web .qb-workspace-canvas.is-single > .qb-companion-panel {
+  width: auto;
+  min-width: 0;
+  max-width: none;
+  flex: 1 1 auto;
+  border-inline-end: 0;
+}
+
+/* ---------- Recitation bar (desktop media bar) ---------- */
+.qb-web .qb-media-bar {
+  border-radius: 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--gold-line);
+  background: var(--bg-elev-1);
+  box-shadow: none;
+}
+.qb-web .qb-media-bar .play { background: var(--btn-grad); color: var(--on-gold); box-shadow: none; }
+.qb-web .qb-media-bar .chip { border: 1px solid var(--border-strong); background: transparent; border-radius: 999px; }
+.qb-web .qb-media-progress .fill { background: var(--gold-glow); }
+
+/* ---------- The study column (reading mode, a selection open) ---------- */
+.qb-web .qb-study-slot {
+  width: 400px;
+  flex: 0 0 400px;
+  min-height: 0;
+  overflow-y: auto;
+  /* Under the top bar, with no hard edge: no divider line, and the panel's
+     surface rises softly out of the bar's fade. */
+  border: 0;
+  background: linear-gradient(180deg, transparent, var(--bg-elev-1) 72px);
+}
+.qb-web .qb-study-slot:empty { display: none; }
+
+/* ---------- The two zones of the top bar (top-bar.tsx) ---------- */
+/* The page zone: the page's heading/tabs/field, the command bar, its actions.
+   Beside the Mushaf it takes the panel's measured width (--qb-panel-w). */
+.qb-web .qb-topbar-page { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 10px; }
+/* Over a side page the zone is the top of the page itself: the panel's surface
+   from the bar's edge to the panel's divider, over the hairline, so the page's
+   tools and the page read as one piece (the hairline stays over the Mushaf). */
+.qb-web .qb-topbar-web:has(.qb-topbar-reader:not(:empty)) .qb-topbar-page {
+  flex: 0 0 calc(var(--qb-panel-w, 40%) + 28px);
+  align-self: stretch;
+  margin-inline-start: -28px;
+  margin-block-end: -1px;
+  padding-inline: 28px 16px;
+  background: var(--bg-elev-1);
+  border-inline-end: 1px solid var(--border-strong);
+  position: relative;
+  z-index: 1;
+}
+.qb-web .qb-topbar-slot { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px; }
+.qb-web .qb-topbar-page:not(:has(.qb-cmd)) .qb-topbar-slot { flex: 1 1 auto; }
+.qb-web .qb-topbar-slot:empty { display: none; }
+/* Search: the command bar takes what the root and the actions leave. */
+.qb-web .qb-topbar-web:not(.is-home) .qb-topbar-page .qb-cmd { flex: 1 1 260px; }
+/* The reader zone: the reader bar's tools, flat — no capsule of their own. */
+.qb-web .qb-topbar-reader { position: relative; align-self: stretch; flex: 1; min-width: 0; display: flex; align-items: center; }
+.qb-web .qb-topbar-reader:empty { display: none; }
+.qb-web .qb-topbar-web:not(.has-tools) .qb-topbar-reader { padding-inline-start: 22px; }
+.qb-web .qb-topbar-reader .qb-reader-head { flex: 1; min-width: 0; }
+.qb-web .qb-topbar-reader .qb-reader-bar {
+  margin: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+/* The reading progress lies on the bar's hairline, across the Mushaf's column
+   (the zone, not the bar inside it, is its box). */
+.qb-web .qb-topbar-reader .qb-reader-bar { position: static; }
+/* It sits a little under the bar, a touch thicker, fading out at both ends
+   and glowing softly at its tip. */
+.qb-web .qb-topbar-reader .qb-reader-bar .progress {
+  inset-inline: 0;
+  bottom: -10px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--gold-a08);
+  overflow: visible;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+}
+.qb-web .qb-topbar-reader .qb-reader-bar .progress span {
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--gold-a18), var(--gold-400));
+  box-shadow: 0 0 10px var(--gold-a40);
+}
+html.qb-web[dir="rtl"] .qb-topbar-reader .qb-reader-bar .progress span {
+  background: linear-gradient(270deg, var(--gold-a18), var(--gold-400));
+}
+/* Focus mode hides the bar with the rest of the chrome (it no longer lives in the stage). */
+html.qb-web.qb-immersive .qb-topbar-web { display: none; }
+
+/* Search: the root and its counts, the panel's actions after the command bar
+   (concordance-panel.tsx portals both). */
+.qb-web .qb-topbar-slot .qb-conc-heading { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.qb-web .qb-topbar-slot .qb-conc-heading .kicker { display: none; }
+.qb-web .qb-topbar-slot .qb-conc-heading h3 {
+  margin: 0;
+  font-family: var(--font-arabic-heading);
+  font-size: 20px;
+  line-height: var(--lh-heading, 1.6);
+  color: var(--gold-text);
+  white-space: nowrap;
+}
+.qb-web .qb-topbar-slot .qb-conc-heading .meta { font-size: 12.5px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qb-web .qb-topbar-actions { display: flex; align-items: center; gap: 4px; flex: none; }
+.qb-web .qb-topbar-actions:empty { display: none; }
+@media (max-width: 1280px) {
+  .qb-web .qb-study-slot { width: 360px; flex-basis: 360px; }
+}
+.qb-web .qb-topbar-actions .close {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--r-ctl);
+  color: var(--fg-3);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qb-web .qb-topbar-actions .close:hover { color: var(--gold-text); background: var(--gold-soft); border-color: var(--border); }
+.qb-web .qb-topbar-actions .close.on { color: var(--gold-text); background: var(--gold-soft); border-color: var(--gold-line); }
+.qb-web .qb-topbar-actions .close:disabled { opacity: 0.4; cursor: default; }
+
+/* Pages' own pieces, once up in the top bar (top-bar-slots.ts). */
+/* The Index's field (navigate-sheet.tsx): the command bar's look. */
+.qb-web .qb-topbar-slot > .field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 14px;
+  border-radius: var(--r-ctl);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev-1);
+  color: var(--fg-3);
+}
+.qb-web .qb-topbar-slot > .field:focus-within { border-color: var(--gold-line); }
+.qb-web .qb-topbar-slot > .field input { flex: 1; min-width: 0; height: 100%; border: 0; outline: 0; background: none; color: var(--fg-1); font: inherit; font-size: 14px; }
+/* Tab strips (the notebook's, the study's sessions): a quiet row, scrolling when long. */
+.qb-web .qb-topbar-slot > .qb-lib-tabs,
+.qb-web .qb-topbar-slot > .qb-studio-tabs,
+.qb-web .qb-topbar-slot > .qb-community-tabs {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.qb-web .qb-topbar-slot > .qb-studio-tabs { border: 0; padding: 0; background: none; }
+/* Heatmap: back, the root and its counts (heatmap-screen.tsx). */
+.qb-web .qb-topbar-slot > .qb-aux-h { margin: 0; padding: 0; border: 0; display: flex; align-items: center; gap: 12px; min-width: 0; }
+.qb-web .qb-topbar-slot > .qb-aux-h > div { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.qb-web .qb-topbar-slot > .qb-aux-h .kicker { margin: 0; font-size: 12px; color: var(--fg-3); white-space: nowrap; }
+.qb-web .qb-topbar-slot > .qb-aux-h h2 { margin: 0; font-family: var(--font-arabic-heading); font-size: 20px; line-height: var(--lh-heading, 1.6); color: var(--gold-text); white-space: nowrap; }
+.qb-web .qb-topbar-slot > .qb-aux-h .sub { margin: 0; font-size: 12.5px; color: var(--fg-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Community: its segmented tabs keep their own width (the share button closes the row). */
+.qb-web .qb-topbar-slot > .qb-community-tabs { flex: 0 1 auto; }
+.qb-web .qb-topbar-page:has(> .qb-topbar-slot > .qb-community-tabs) { justify-content: space-between; }
+/* The Index and Saved (navigate-sheet.tsx): its pages — saved, surahs, juz,
+   hizb, page — as a segmented row in the bar. */
+.qb-web .qb-topbar-slot > .tabs {
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.qb-web .qb-topbar-slot > .tabs button {
+  flex: none;
+  height: 32px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.qb-web .qb-topbar-slot > .tabs button:hover { color: var(--gold-text); }
+.qb-web .qb-topbar-slot > .tabs button.active {
+  background: var(--gold-soft);
+  color: var(--gold-text);
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--gold-line);
+}
+
+/* The search field never cuts the query: once something is typed, the ⌘K hint
+   steps aside and the field takes the room. */
+.qb-web .qb-topbar-web .qb-cmd:has(input:not(:placeholder-shown)) .qb-cmd-kbd,
+.qb-web .qb-topbar-web .qb-cmd:focus-within .qb-cmd-kbd { display: none; }
+.qb-web .qb-topbar-web .qb-cmd input { min-width: 6ch; flex: 1 1 auto; text-overflow: clip; }
+/* The Quran face's natural line box (Amiri Quran: 44px at 18px) is taller than
+   the 42px bar, so the field stood out of it and a long query's marks crossed
+   its border: the field fills the bar's inside exactly and clips there, its
+   text centred in it as before. */
+.qb-web .qb-topbar-web .qb-cmd input { align-self: stretch; height: auto; max-height: 100%; }
+
+/* ---------- No cropped text ---------- */
+/* One-line labels that clip their overflow get a line box tall enough for
+   Arabic marks, Nastaliq and Indic scripts (found by the clipped-text audit). */
+.qb-web .qb-select-label { line-height: 1.6; padding-block: 1px; }
+.qb-web .qb-reader-bar .identity .meta { line-height: 1.7; padding-block: 1px; }
+html.qb-web[lang="ur"] .qb-select-label,
+html.qb-web[lang="ur"] .qb-reader-bar .identity .meta { line-height: 2.3; padding-block: 0; }
+
+/* ---------- No gold frame on click ---------- */
+/* A click or tap leaves no focus ring anywhere — on the Mushaf's words above
+   all; the keyboard keeps a fine ring so arrow-key walking still shows where
+   you are. */
+.qb-web :focus:not(:focus-visible) { outline: none; }
+.qb-web .qb-glyph-word:focus:not(:focus-visible),
+.qb-web .qb-word:focus:not(:focus-visible),
+.qb-web .qb-verse-mark:focus:not(:focus-visible) { outline: none; box-shadow: none; }
+.qb-web .qb-glyph-word:focus-visible,
+.qb-web .qb-word:focus-visible,
+.qb-web .qb-verse-mark:focus-visible {
+  outline: 1px solid var(--gold-line);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ---------- The search's switches (command-bar.tsx) ---------- */
+/* «كلمة / جذر» as a small segmented pair, and «التشكيل» shown by its own
+   sign: the word «حركة» bare, then vowelled once the marks are on. */
+.qb-web .qb-cmd-switches { flex: none; display: inline-flex; align-items: center; gap: 6px; }
+.qb-web .qb-cmd-seg {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  background: var(--bg-elev-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.qb-web .qb-cmd-seg button,
+.qb-web .qb-cmd-chakl {
+  height: 28px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-3);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  line-height: 1.6;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 140ms ease, background-color 140ms ease;
+}
+.qb-web .qb-cmd-seg button:hover:not(:disabled),
+.qb-web .qb-cmd-chakl:hover { color: var(--fg-1); }
+.qb-web .qb-cmd-seg button.on { color: var(--gold-text); background: var(--gold-soft); box-shadow: inset 0 0 0 1px var(--gold-line); }
+.qb-web .qb-cmd-seg button:disabled { opacity: 0.45; cursor: default; }
+.qb-web .qb-cmd-chakl {
+  height: 32px;
+  padding: 0 10px;
+  font-family: var(--font-arabic-display);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.9;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.qb-web .qb-cmd-chakl.on { color: var(--gold-text); background: var(--gold-soft); box-shadow: inset 0 0 0 1px var(--gold-line); }
+
+/* ---------- Nothing is selectable ---------- */
+/* The app reads like an object, not a document: a drag or a double-click
+   never paints a selection (over the Mushaf above all). Only what you type
+   into — fields and the research editor — keeps its text selection. The
+   public site (.qb-site) is left as a page. */
+html.qb-web body:not(:has(.qb-site)) {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+html.qb-web body input,
+html.qb-web body textarea,
+html.qb-web body [contenteditable="true"],
+html.qb-web body [contenteditable=""],
+html.qb-web body [contenteditable="plaintext-only"],
+html.qb-web body [contenteditable="true"] *,
+html.qb-web body .qb-selectable,
+html.qb-web body .qb-selectable * {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+/* ---------- Phones: the compact top bar ---------- */
+/* Only Home and Search keep a top bar on a phone (top-bar.tsx): the command
+   bar, 56px under the status bar, edge to edge with a small gutter. */
+@media (max-width: 768px) {
+  html.qb-web .qb-topbar-web {
+    height: calc(56px + env(safe-area-inset-top, 0px));
+    flex-basis: calc(56px + env(safe-area-inset-top, 0px));
+    padding: env(safe-area-inset-top, 0px) max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px));
+  }
+}
+
+/* ---------- Screen changes (navigation.ts, screenChange) ---------- */
+/* A phone: every page fills the screen, so the old page cross-fades into the
+   new one in a view transition; the tab bar (and the reader's dock it turns
+   into) carries its own name and holds still. Entering the reader the page
+   arrives from the side the reading goes towards; going back, from the
+   other side. No blur (the web design keeps blur off). */
+@keyframes qbWebPageOut {
+  to { opacity: 0; }
+}
+@keyframes qbWebPageIn {
+  from { opacity: 0; transform: translateY(8px); }
+}
+@keyframes qbWebPageForward {
+  from { opacity: 0; transform: translateX(calc(var(--qb-forward, -1) * 6%)); }
+}
+@keyframes qbWebPageBackward {
+  from { opacity: 0; transform: translateX(calc(var(--qb-forward, -1) * -6%)); }
+}
+@media (max-width: 768px) {
+  html.qb-web[data-nav]::view-transition-old(root) {
+    animation: qbWebPageOut 150ms var(--motion-ease-exit, ease-in) both;
+  }
+  html.qb-web[data-nav]::view-transition-new(root) {
+    animation: qbWebPageIn 280ms var(--motion-ease-settle, ease-out) both;
+  }
+  html.qb-web[data-nav="reader-in"]::view-transition-new(root) {
+    animation-name: qbWebPageForward;
+  }
+  html.qb-web[data-nav="reader-out"]::view-transition-new(root),
+  html.qb-web[data-nav="back"]::view-transition-new(root) {
+    animation-name: qbWebPageBackward;
+  }
+}
+/* A wider screen keeps the Mushaf beside its pages: only what appears
+   arrives — a full page, or a side page's content inside its column (the
+   column itself stays put). `backwards`, so nothing is left transformed
+   once it has arrived. */
+@keyframes qbWebArrive {
+  from { opacity: 0; transform: translateY(6px); }
+}
+@media (min-width: 769px) {
+  .qb-web .qb-canvas > *,
+  .qb-web .qb-side-panel > *,
+  .qb-web .qb-companion-panel > * {
+    animation: qbWebArrive 240ms var(--motion-ease-settle, ease-out) backwards;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qb-web .qb-canvas > *,
+  .qb-web .qb-side-panel > *,
+  .qb-web .qb-companion-panel > * {
+    animation: none;
+  }
+}

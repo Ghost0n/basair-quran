@@ -9,6 +9,8 @@ Writes:
   - the iOS app icon and splash images;
   - the web favicon (.ico), Apple touch icons, PWA icons and icon.svg
     (apps/web/public);
+  - the now-playing cover (apps/web/public/cover-*.png): a full square, no
+    rounded corners (the system rounds it), Home's rosette behind the logo;
   - the ب outline for the React BrandMark (apps/web/components/brand-glyph.generated.ts).
 
 Pillow draws the PNGs at 4x and downsamples; fontTools reads the glyph outline.
@@ -108,6 +110,57 @@ def render(size: int, *, background: bool, rounded: bool = False, circle: bool =
     return image.resize((size, size), Image.LANCZOS)
 
 
+# The cover: the logo on Home's rosette (components/girih.tsx: rings of two
+# interlaced squares, alternately turned by 22.5°, joined by sixteen rays).
+GIRIH_RADII = (64, 112, 172, 244, 328, 424)
+COVER_MARK = 0.44  # of the cover's side
+COVER_GIRIH_SCALE = 1.7  # girih units → cover units, on a 1024 square
+COVER_LINE = 2.4  # px on a 1024 square
+COVER_GIRIH_ALPHA = 0.42  # the web's stroke-opacity is 0.3 over a lighter page
+
+
+def render_cover(size: int) -> Image.Image:
+    """The now-playing artwork: a full square (the lock screen rounds it), the rosette fading out to the edges."""
+    big = size * SCALE
+    unit = big / 1024 * COVER_GIRIH_SCALE
+    centre = big / 2
+    width = max(1, round(COVER_LINE * big / 1024))
+
+    def point(radius: float, angle: float) -> tuple[float, float]:
+        a = math.radians(angle)
+        return centre + radius * unit * math.cos(a), centre + radius * unit * math.sin(a)
+
+    lines = Image.new("L", (big, big), 0)
+    pen = ImageDraw.Draw(lines)
+    for ring, radius in enumerate(GIRIH_RADII):
+        turn = 22.5 if ring % 2 else 0
+        for extra in (0, 45):
+            corners = [point(radius, angle + turn + extra) for angle in (0, 90, 180, 270)]
+            pen.line(corners + [corners[0]], fill=255, width=width, joint="curve")
+        r = radius * 0.78 * unit
+        pen.ellipse((centre - r, centre - r, centre + r, centre + r), outline=255, width=width)
+    for ray in range(16):
+        pen.line([point(64, ray * 22.5), point(470, ray * 22.5)], fill=255, width=width)
+
+    # Strongest around the logo, fading towards the corners; nothing inside the
+    # logo's ring, so the letter stays clean.
+    falloff = Image.radial_gradient("L").resize((big, big), Image.BILINEAR)  # 0 at the centre, 255 at the edge's middle
+    falloff = falloff.point(lambda v: round(255 * COVER_GIRIH_ALPHA * max(0.18, 1 - v / 255 * 0.82)))
+    clear = Image.new("L", (big, big), 255)
+    ring_r = big * COVER_MARK * RING_R / 100 + width * 2
+    ImageDraw.Draw(clear).ellipse((centre - ring_r, centre - ring_r, centre + ring_r, centre + ring_r), fill=0)
+    alpha = Image.composite(falloff, Image.new("L", (big, big), 0), clear)
+    alpha = Image.composite(alpha, Image.new("L", (big, big), 0), lines)
+
+    image = Image.new("RGBA", (big, big), BG)
+    gold = Image.new("RGBA", (big, big), GOLD)
+    gold.putalpha(alpha)
+    image.alpha_composite(gold)
+    side = big * COVER_MARK
+    draw_logo(image, (big - side) / 2, (big - side) / 2, side)
+    return image.resize((size, size), Image.LANCZOS).convert("RGB")
+
+
 def glyph_path() -> str:
     """The dotless ب as an SVG path on the logo's 100-unit square (like <text text-anchor=middle>)."""
     font = TTFont(str(FONT))
@@ -158,6 +211,8 @@ def main() -> None:
     favicon = render(256, background=True, rounded=True, mark=0.82)
     favicon.save(public / "favicon.ico", sizes=[(16, 16), (32, 32), (48, 48), (64, 64)])
     (public / "icon.svg").write_text(icon_svg(path), encoding="utf-8")
+    for size in (512, 1024):
+        render_cover(size).save(public / f"cover-{size}.png", optimize=True)
     print(f"web icons → {public.relative_to(ROOT)}")
 
     if RES.exists():

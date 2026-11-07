@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 
 import { canHover } from "./can-hover";
+import { sheetStack } from "./sheet-stack";
+import { attachSheetSwipe } from "./sheet-swipe";
 
 const FOCUSABLE_SELECTOR =
   'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -14,7 +16,9 @@ const isButtonLike = (item: HTMLElement) =>
  *  • traps Tab focus inside the dialog,
  *  • closes on Escape,
  *  • moves focus into the dialog on open and restores it to the previously
- *    focused element on close.
+ *    focused element on close,
+ *  • registers with sheetStack, so Android's back button closes the newest
+ *    open dialog before it leaves the page (lib/app-back.ts).
  *
  * Attach the returned ref to the dialog container and give it `tabIndex={-1}`
  * (fallback focus target) plus `role="dialog"` + `aria-modal="true"`.
@@ -38,10 +42,15 @@ export function useDialog<T extends HTMLElement>(onClose: () => void, { enabled 
       (focusables[0] ?? node)?.focus();
     }
 
+    // Registered with sheetStack below; Escape, like Android's back, closes
+    // only the newest dialog when one is open inside another.
+    const close = () => onCloseRef.current();
+
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        if (!sheetStack.isTop(close)) return;
         event.stopPropagation();
-        onCloseRef.current();
+        close();
         return;
       }
       if (event.key !== "Tab" || !node) return;
@@ -66,8 +75,15 @@ export function useDialog<T extends HTMLElement>(onClose: () => void, { enabled 
     }
 
     document.addEventListener("keydown", handleKeyDown, true);
+    // Bottom sheets (.qb-rsheet) close with a downward drag too.
+    const detachSwipe = node?.parentElement?.classList.contains("qb-rsheet")
+      ? attachSheetSwipe(node, () => onCloseRef.current())
+      : null;
+    const leaveStack = sheetStack.push(close);
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
+      detachSwipe?.();
+      leaveStack();
       previouslyFocused?.focus?.();
     };
   }, [enabled]);

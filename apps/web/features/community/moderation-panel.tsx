@@ -90,7 +90,7 @@ export function ModerationPanel({ surahName, onOpen }: { surahName: (surahId: nu
               <span className="meta">
                 {post.author_name}
                 {t("، ")}
-                {relativeAge(post.updated_at)}
+                {relativeAge(post.updated_at, formatNumber)}
               </span>
             </header>
             {post.excerpt ? (
@@ -150,7 +150,7 @@ export function ModerationPanel({ surahName, onOpen }: { surahName: (surahId: nu
         <article key={report.id} className="qb-mod-card qb-glass compact">
           <header>
             <span className="title">{report.target_type === "post" ? t("منشور") : t("تعليق")}: {RULE_LABEL[report.rule as keyof typeof RULE_LABEL] ?? report.rule}</span>
-            <span className="meta">{relativeAge(report.created_at)}</span>
+            <span className="meta">{relativeAge(report.created_at, formatNumber)}</span>
           </header>
           {report.target_preview ? <p className="excerpt">«{report.target_preview}»</p> : null}
           {report.note ? <p className="note">{report.note}</p> : null}
