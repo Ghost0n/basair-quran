@@ -87,4 +87,15 @@ describe("app start-up", () => {
     expect(getReciterDurations).toHaveBeenCalledWith("alafasy", 3);
     expect(lifted).toBe(true);
   });
+
+  it("lets the drawn splash replace the native one at once, while the start-up still runs", async () => {
+    readerPage = never();
+    await boot(true);
+    const { releaseNativeSplash } = await import("./boot");
+    hide.mockClear();
+    await releaseNativeSplash();
+    expect(hide).toHaveBeenCalledWith({ fadeOutDuration: 200 });
+    await after(10);
+    expect(lifted).toBe(false);
+  });
 });

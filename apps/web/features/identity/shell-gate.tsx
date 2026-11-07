@@ -6,13 +6,14 @@ import { APP_MODE } from "@/lib/app-mode/config";
 import { AUTH_ENABLED } from "@/lib/config";
 import { continueAsGuest, hasChosenGuest, identityApi } from "@/features/auth/identity-flow";
 
-import { Landing } from "./landing";
+import { SiteLanding } from "@/features/site/site-landing";
 
 type Decision = "loading" | "landing" | "enter";
 
 /**
  * ShellGate — the app's front door. When auth is enabled and the visitor is
- * neither signed in nor has chosen guest browsing, it shows the Landing page
+ * neither signed in nor has chosen guest browsing, it shows the landing page
+ * (features/site/site-landing.tsx, also served at /about)
  * instead of the workspace. Once they sign in or pick "continue as guest",
  * the workspace renders. With auth disabled it's a passthrough (legacy), and
  * so is the standalone app: it opens straight away, offline-first (onboarding
@@ -50,8 +51,8 @@ export function ShellGate({ children }: { children: ReactNode }) {
 
   if (decision === "landing") {
     return (
-      <Landing
-        onGuest={() => {
+      <SiteLanding
+        onEnter={() => {
           continueAsGuest();
           setDecision("enter");
         }}

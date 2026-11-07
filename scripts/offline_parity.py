@@ -53,7 +53,8 @@ def build_requests(db: Path, mushaf: int, sample: int, seed: int, has_translatio
     connection = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
     q = lambda sql, *params: connection.execute(sql, params).fetchall()  # noqa: E731
     words = q("SELECT DISTINCT word_simple, word_text FROM ayah_words WHERE mushaf_id = ? ORDER BY word_simple, word_text", mushaf)
-    roots = [row[0] for row in q("SELECT root_text FROM roots ORDER BY id")]
+    root_rows = q("SELECT id, root_text FROM roots ORDER BY id")
+    roots = [row[1] for row in root_rows]
     ayahs = q("SELECT id, surah_id, number_in_surah, page, juz, text_uthmani FROM ayahs WHERE mushaf_id = ? ORDER BY global_index", mushaf)
     tokens_by_ayah: dict[int, list[tuple[str, str]]] = {}
     for ayah_id, simple, text in q("SELECT ayah_id, word_simple, word_text FROM ayah_words WHERE mushaf_id = ? ORDER BY ayah_id, word_position", mushaf):
@@ -76,6 +77,9 @@ def build_requests(db: Path, mushaf: int, sample: int, seed: int, has_translatio
     for simple, text in pick(words, sample):
         get("/api/search-v2", q=simple, mode="exact", mushaf=m)
         get("/api/search-v2", q=simple, mode="root", mushaf=m, page_size=rng.choice([5, 10, 50]))
+        if rng.random() < 0.3:
+            # Results within one surah (the concordance's surah filter).
+            get("/api/search-v2", q=simple, mode=rng.choice(["root", "exact"]), mushaf=m, surah=rng.randint(1, 114))
         if rng.random() < 0.5:
             get("/api/search-v2", q=text, mode="exact", mushaf=m)
         if rng.random() < 0.25:
@@ -84,6 +88,7 @@ def build_requests(db: Path, mushaf: int, sample: int, seed: int, has_translatio
         get("/api/suggest", q=prefix, mode=rng.choice(["root", "exact"]), mushaf=m, with_chakl=rng.choice(["true", "false"]))
     for root in pick(roots, max(10, sample // 3)):
         get("/api/search-v2", q=root, mode="root", mushaf=m)
+        get("/api/search-v2", q=root, mode="root", mushaf=m, surah=rng.randint(1, 114), page_size=rng.choice([5, 10]))
         get("/api/root-distribution", root=root, mushaf=m)
         get("/api/suggest", q=root[:2], mode="root", mushaf=m)
 
@@ -96,6 +101,9 @@ def build_requests(db: Path, mushaf: int, sample: int, seed: int, has_translatio
         window = tokens[start : start + size]
         phrase = " ".join(simple for simple, _ in window)
         get("/api/search-v2", q=phrase, mode="exact", mushaf=m)
+        if rng.random() < 0.3:
+            surah_of_ayah = next((row[1] for row in ayahs if row[0] == ayah_id), 1)
+            get("/api/search-v2", q=phrase, mode="exact", mushaf=m, surah=rng.choice([surah_of_ayah, rng.randint(1, 114)]))
         if rng.random() < 0.3:
             get("/api/search-v2", q=" ".join(text for _, text in window), mode="exact", mushaf=m)
         last = window[-1][0]
@@ -156,7 +164,13 @@ def build_requests(db: Path, mushaf: int, sample: int, seed: int, has_translatio
         get("/api/translations/ayahs", keys="quranenc:english_saheeh", refs="2:1-300")
         get("/api/translations/ayahs", keys="quranenc:english_saheeh", refs="0:1")
 
+    # Follow-up pages within one surah.
+    for root_id, root_text in pick(root_rows, 6):
+        get("/api/search-result-page", q=root_text, mode="root", mushaf=m, result_key=f"root:{root_id}", page=rng.choice([1, 2]), page_size=3, surah=rng.randint(1, 114))
+
     # Validation and not-found answers (status must match).
+    get("/api/search-v2", q="رحم", surah=0)
+    get("/api/search-v2", q="رحم", surah=115)
     get("/api/search-v2", q="x" * 121)
     get("/api/search-v2", q="رحم", mode="bogus")
     get("/api/search-v2", q="رحم", page_size=0)

@@ -19,18 +19,30 @@ importers:
       '@capacitor/android':
         specifier: 8.5.2
         version: 8.5.2(@capacitor/core@8.5.2)
+      '@capacitor/app':
+        specifier: 8.1.2
+        version: 8.1.2(@capacitor/core@8.5.2)
       '@capacitor/core':
         specifier: 8.5.2
         version: 8.5.2
       '@capacitor/filesystem':
         specifier: 8.1.3
         version: 8.1.3(@capacitor/core@8.5.2)
+      '@capacitor/haptics':
+        specifier: 8.0.2
+        version: 8.0.2(@capacitor/core@8.5.2)
       '@capacitor/ios':
         specifier: 8.5.2
         version: 8.5.2(@capacitor/core@8.5.2)
+      '@capacitor/share':
+        specifier: 8.0.3
+        version: 8.0.3(@capacitor/core@8.5.2)
       '@capacitor/splash-screen':
         specifier: 8.0.2
         version: 8.0.2(@capacitor/core@8.5.2)
+      '@capgo/capacitor-media-session':
+        specifier: 8.0.32
+        version: 8.0.32(@capacitor/core@8.5.2)
     devDependencies:
       '@capacitor/cli':
         specifier: 8.5.2
@@ -41,15 +53,27 @@ importers:
       '@capacitor-community/sqlite':
         specifier: 8.1.1
         version: 8.1.1(@capacitor/core@8.5.2)
+      '@capacitor/app':
+        specifier: 8.1.2
+        version: 8.1.2(@capacitor/core@8.5.2)
       '@capacitor/core':
         specifier: 8.5.2
         version: 8.5.2
       '@capacitor/filesystem':
         specifier: 8.1.3
         version: 8.1.3(@capacitor/core@8.5.2)
+      '@capacitor/haptics':
+        specifier: 8.0.2
+        version: 8.0.2(@capacitor/core@8.5.2)
+      '@capacitor/share':
+        specifier: 8.0.3
+        version: 8.0.3(@capacitor/core@8.5.2)
       '@capacitor/splash-screen':
         specifier: 8.0.2
         version: 8.0.2(@capacitor/core@8.5.2)
+      '@capgo/capacitor-media-session':
+        specifier: 8.0.32
+        version: 8.0.32(@capacitor/core@8.5.2)
       '@q-basair/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
@@ -87,12 +111,15 @@ importers:
       '@types/sql.js':
         specifier: ^1.4.11
         version: 1.4.11
+      happy-dom:
+        specifier: 15.11.7
+        version: 15.11.7
       typescript:
         specifier: 5.8.3
         version: 5.8.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.15.3)
+        version: 2.1.9(@types/node@22.15.3)(happy-dom@15.11.7)
 
   packages/api-client:
     dependencies:
@@ -110,7 +137,7 @@ importers:
         version: 5.8.3
       vitest:
         specifier: ^2.1.9
-        version: 2.1.9(@types/node@22.15.3)
+        version: 2.1.9(@types/node@22.15.3)(happy-dom@15.11.7)
 
   packages/shared: {}
 
@@ -127,6 +154,11 @@ packages:
     peerDependencies:
       '@capacitor/core': ^8.5.0
 
+  '@capacitor/app@8.1.2':
+    resolution: {integrity: sha512-uKBlsrXH0IdvUn69e/KKYbZ32A06pcrUdG8LWuZ/6y33YMXZXLEEdNSwl+jKS/SrsTWqnePs8EqSWaiQM3mUGA==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
   '@capacitor/cli@8.5.2':
     resolution: {integrity: sha512-O2kpA5ZPJUAmliDCcmpMf8xnJwMezxlFPUrlyOAjbL3U9MFNY3l4ZpPI/UXwvyPmR8ETcVF9pFr+VdWq61rqTQ==}
     engines: {node: '>=22.0.0'}
@@ -140,10 +172,20 @@ packages:
     peerDependencies:
       '@capacitor/core': '>=8.0.0'
 
+  '@capacitor/haptics@8.0.2':
+    resolution: {integrity: sha512-c2hZzRR5Fk1tbTvhG1jhh2XBAf3EhnIerMIb2sl7Mt41Gxx1fhBJFDa0/BI1IbY4loVepyyuqNC9820/GZuoWQ==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
+
   '@capacitor/ios@8.5.2':
     resolution: {integrity: sha512-eOT2S67AfTFG7KN0T3oxwAajrJz4rSye+ODfvChiwrk0F/+kWufFM1qU6cDjGJUOfwdAoeuEpZyWHSwZlu4GFg==}
     peerDependencies:
       '@capacitor/core': ^8.5.0
+
+  '@capacitor/share@8.0.3':
+    resolution: {integrity: sha512-gnvZBV1NPu2B8vd1UKncR56G15ueHd0aZLqgDov++t3SmTBG9Q0VrAZ1VnHn5stxlmglVaTb4RwopMgbpLzroA==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   '@capacitor/splash-screen@8.0.2':
     resolution: {integrity: sha512-0C6rYScr13WfAE9nPl4ScOQynmjFv9NT3Th+RZkD4ezYHmER6mcl1/lDYsv7jg3Rj3FOvLrlTlmNkUrr83kZzQ==}
@@ -152,6 +194,11 @@ packages:
 
   '@capacitor/synapse@1.0.4':
     resolution: {integrity: sha512-/C1FUo8/OkKuAT4nCIu/34ny9siNHr9qtFezu4kxm6GY1wNFxrCFWjfYx5C1tUhVGz3fxBABegupkpjXvjCHrw==}
+
+  '@capgo/capacitor-media-session@8.0.32':
+    resolution: {integrity: sha512-HOuCieJAlsFYtfBCTkFp7Vey4JmVZvabrakOBhPDhYkpOYyPml8NFdYc9cVatXm0X2KaN/PJ9WdmWQp+JH54xQ==}
+    peerDependencies:
+      '@capacitor/core': '>=8.0.0'
 
   '@emnapi/runtime@1.10.0':
     resolution: {integrity: sha512-ewvYlk86xUoGI0zQRNq/mC+16R1QeDlKQy21Ki3oSYXNgLb45GV1P6A0M+/s6nyCuNDqe5VpaY84BzXGwVbwFA==}
@@ -951,6 +998,10 @@ packages:
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
 
+  entities@4.5.0:
+    resolution: {integrity: sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw==}
+    engines: {node: '>=0.12'}
+
   env-paths@2.2.1:
     resolution: {integrity: sha512-+h1lkLKhZMTYjog1VEpJNG7NZJWcuc2DDk/qsqSTRRCOXiLjeQ1d1/udrUGhqMxUgAlwKNZ0cf2uqan5GLuS2A==}
     engines: {node: '>=6'}
@@ -992,6 +1043,10 @@ packages:
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
+
+  happy-dom@15.11.7:
+    resolution: {integrity: sha512-KyrFvnl+J9US63TEzwoiJOQzZBJY7KgBushJA8X61DMbNsH+2ONkDuLDnCnwUiPTF42tLoEmrPyoqbenVA5zrg==}
+    engines: {node: '>=18.0.0'}
 
   immediate@3.0.6:
     resolution: {integrity: sha512-XXOFtyqDjNDAQxVfYxuF7g9Il/IbWmmlQg2MYKOH8ExIT1qg6xc4zyS3HaEEATgs1btfzxq15ciUiY7gjSXRGQ==}
@@ -1398,6 +1453,14 @@ packages:
       jsdom:
         optional: true
 
+  webidl-conversions@7.0.0:
+    resolution: {integrity: sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g==}
+    engines: {node: '>=12'}
+
+  whatwg-mimetype@3.0.0:
+    resolution: {integrity: sha512-nt+N2dzIutVRxARx1nghPKGv1xHikU7HKdfafKkLNLindmPU/ch3U31NOCGGA/dmPcmb1VlofO0vnKAcsm0o/Q==}
+    engines: {node: '>=12'}
+
   which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
     engines: {node: '>= 8'}
@@ -1461,6 +1524,10 @@ snapshots:
     dependencies:
       '@capacitor/core': 8.5.2
 
+  '@capacitor/app@8.1.2(@capacitor/core@8.5.2)':
+    dependencies:
+      '@capacitor/core': 8.5.2
+
   '@capacitor/cli@8.5.2':
     dependencies:
       '@ionic/cli-framework-output': 2.2.8
@@ -1493,7 +1560,15 @@ snapshots:
       '@capacitor/core': 8.5.2
       '@capacitor/synapse': 1.0.4
 
+  '@capacitor/haptics@8.0.2(@capacitor/core@8.5.2)':
+    dependencies:
+      '@capacitor/core': 8.5.2
+
   '@capacitor/ios@8.5.2(@capacitor/core@8.5.2)':
+    dependencies:
+      '@capacitor/core': 8.5.2
+
+  '@capacitor/share@8.0.3(@capacitor/core@8.5.2)':
     dependencies:
       '@capacitor/core': 8.5.2
 
@@ -1502,6 +1577,10 @@ snapshots:
       '@capacitor/core': 8.5.2
 
   '@capacitor/synapse@1.0.4': {}
+
+  '@capgo/capacitor-media-session@8.0.32(@capacitor/core@8.5.2)':
+    dependencies:
+      '@capacitor/core': 8.5.2
 
   '@emnapi/runtime@1.10.0':
     dependencies:
@@ -2140,6 +2219,8 @@ snapshots:
 
   emoji-regex@8.0.0: {}
 
+  entities@4.5.0: {}
+
   env-paths@2.2.1: {}
 
   es-module-lexer@1.7.0: {}
@@ -2203,6 +2284,12 @@ snapshots:
       path-scurry: 2.0.2
 
   graceful-fs@4.2.11: {}
+
+  happy-dom@15.11.7:
+    dependencies:
+      entities: 4.5.0
+      webidl-conversions: 7.0.0
+      whatwg-mimetype: 3.0.0
 
   immediate@3.0.6: {}
 
@@ -2597,7 +2684,7 @@ snapshots:
       '@types/node': 22.15.3
       fsevents: 2.3.3
 
-  vitest@2.1.9(@types/node@22.15.3):
+  vitest@2.1.9(@types/node@22.15.3)(happy-dom@15.11.7):
     dependencies:
       '@vitest/expect': 2.1.9
       '@vitest/mocker': 2.1.9(vite@5.4.21(@types/node@22.15.3))
@@ -2621,6 +2708,7 @@ snapshots:
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 22.15.3
+      happy-dom: 15.11.7
     transitivePeerDependencies:
       - less
       - lightningcss
@@ -2631,6 +2719,10 @@ snapshots:
       - sugarss
       - supports-color
       - terser
+
+  webidl-conversions@7.0.0: {}
+
+  whatwg-mimetype@3.0.0: {}
 
   which@2.0.2:
     dependencies:

@@ -1,6 +1,7 @@
 "use client";
 
 import "./community.css";
+import "./community.web.css";
 import "@/features/documents/documents.css";
 
 import { useEffect, useState } from "react";
@@ -11,6 +12,7 @@ import type { CommentItem, GuidelineRule, PostDetail, SurahListItem } from "@q-b
 
 import { Icon } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
+import { useDialog } from "@/lib/use-dialog";
 import { useNumerals } from "@/lib/preferences-context";
 import { BoardView } from "@/features/board/board-view";
 import { relativeAge } from "@/features/companions/use-companions";
@@ -135,7 +137,9 @@ export function PostScreen() {
 
   async function copyLink() {
     try {
-      await navigator.clipboard.writeText(postUrl(postId));
+      const url = postUrl(postId);
+      if (!url) throw new Error("no public address");
+      await navigator.clipboard.writeText(url);
       say(t("نُسخ الرابط."));
     } catch {
       say(t("تعذّر النسخ."));
@@ -243,7 +247,7 @@ export function PostScreen() {
             <span className="avatar" aria-hidden>{post.author_name.trim().charAt(0) || "ب"}</span>
             <span>
               <b>{post.author_name}</b>
-              <small>{relativeAge(post.published_at ?? post.updated_at)}{post.visibility === "unlisted" ? t("، برابط فقط") : ""}</small>
+              <small>{relativeAge(post.published_at ?? post.updated_at, formatNumber)}{post.visibility === "unlisted" ? t("، برابط فقط") : ""}</small>
             </span>
           </div>
           <h1>{post.title}</h1>
@@ -267,7 +271,7 @@ export function PostScreen() {
         {post.mode === "tafssir" ? <TafssirDisclaimer /> : null}
 
         {post.board ? (
-          <div className="qb-segmented qb-fit-track" data-autofit="1" role="tablist" aria-label={t("عرض المنشور")}>
+          <div className="qb-segmented qb-fit-track" data-autofit="1" suppressHydrationWarning role="tablist" aria-label={t("عرض المنشور")}>
             <button type="button" role="tab" aria-selected={view === "document"} className={view === "document" ? "on" : ""} onClick={() => setView("document")}>
               <Icon name="page" size={14} /> {t("البحث")}
             </button>
@@ -308,7 +312,7 @@ export function PostScreen() {
                 <span className="avatar" aria-hidden>{comment.author_name.trim().charAt(0) || "ب"}</span>
                 <div className="bubble">
                   <div className="meta">
-                    <b>{comment.author_name}</b> <small>{relativeAge(comment.created_at)}</small>
+                    <b>{comment.author_name}</b> <small>{relativeAge(comment.created_at, formatNumber)}</small>
                   </div>
                   <p>{comment.body}</p>
                 </div>
@@ -373,10 +377,11 @@ export function PostScreen() {
 function ReportSheet({ onClose, onSend }: { onClose: () => void; onSend: (rule: GuidelineRule, note: string) => void }) {
   const [rule, setRule] = useState<GuidelineRule>("other");
   const [note, setNote] = useState("");
+  const panelRef = useDialog<HTMLDivElement>(onClose);
   return (
     <div className="qb-rsheet" role="dialog" aria-modal="true" aria-label={t("إبلاغ")}>
       <div className="backdrop" onClick={onClose} aria-hidden />
-      <div className="panel" tabIndex={-1}>
+      <div className="panel" tabIndex={-1} ref={panelRef}>
         <div className="grip" aria-hidden />
         <div className="head">
           <h2>{t("إبلاغ المشرفين")}</h2>

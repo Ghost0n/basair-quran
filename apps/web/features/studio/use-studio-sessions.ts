@@ -12,6 +12,7 @@ import type {
 } from "@q-basair/shared";
 
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { allowedStudyMode } from "@/lib/features";
 import { isTechnicalMessage, reportError } from "@/lib/error-report";
 import { usePreferences } from "@/lib/preferences-context";
 import {
@@ -22,6 +23,8 @@ import {
 } from "@/features/research/lib/research-client-settings";
 
 import { t } from "@/lib/i18n";
+
+import { dropExtraBlanks, NEW_SESSION_PREFIX, placeNewSession, putSession } from "./session-reuse";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -73,10 +76,10 @@ function createSession(defaults?: {
 }): StudioSession {
   sessionCounter += 1;
   return {
-    id: `studio-${Date.now()}-${sessionCounter}`,
+    id: `${NEW_SESSION_PREFIX}${Date.now()}-${sessionCounter}`,
     title: t("جلسة جديدة"),
     messages: [],
-    mode: defaults?.mode ?? "strict",
+    mode: allowedStudyMode(defaults?.mode ?? "strict"),
     depth: defaults?.depth ?? "balanced",
     focus: defaults?.focus ?? null,
     focusLabel: defaults?.focusLabel,
@@ -105,11 +108,11 @@ export function useStudioSessions() {
   // read fresh prefs; the initial session is seeded from prefs available at mount.
   const { preferences } = usePreferences();
   const researchDefaultsRef = useRef<{ mode: StudioMode; depth: TafssirDepth }>({
-    mode: preferences.research.default_mode,
+    mode: allowedStudyMode(preferences.research.default_mode),
     depth: preferences.research.depth,
   });
   researchDefaultsRef.current = {
-    mode: preferences.research.default_mode,
+    mode: allowedStudyMode(preferences.research.default_mode),
     depth: preferences.research.depth,
   };
 
@@ -130,9 +133,11 @@ export function useStudioSessions() {
   useEffect(() => {
     const persisted = loadPersistedSessions();
     if (persisted) {
-      setSessions(persisted.sessions);
-      const validActive = persisted.sessions.some((session) => session.id === persisted.activeId);
-      setActiveId(validActive ? persisted.activeId : persisted.sessions[0]?.id ?? "");
+      // Tabs saved before the one-blank-session rule may hold several blank ones.
+      const restored = dropExtraBlanks(persisted.sessions, persisted.activeId);
+      setSessions(restored);
+      const validActive = restored.some((session) => session.id === persisted.activeId);
+      setActiveId(validActive ? persisted.activeId : restored[0]?.id ?? "");
     }
     hydratedRef.current = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -148,6 +153,23 @@ export function useStudioSessions() {
       /* sessionStorage unavailable/full — tabs just won't survive reload */
     }
   }, [sessions, activeId]);
+
+  // The latest tabs, for the actions that place a new session synchronously.
+  const sessionsRef = useRef(sessions);
+  sessionsRef.current = sessions;
+  const activeIdRef = useRef(activeId);
+  activeIdRef.current = activeId;
+
+  // A new session never doubles a blank one: that one is reused (session-reuse.ts).
+  const placeSession = useCallback((fresh: StudioSession): StudioSession => {
+    const placed = placeNewSession(sessionsRef.current, fresh, activeIdRef.current);
+    sessionsRef.current = placed.sessions;
+    activeIdRef.current = placed.session.id;
+    // Applied to the tabs as they are when React runs it, never a stale copy.
+    setSessions((current) => putSession(current, placed.session));
+    setActiveId(placed.session.id);
+    return placed.session;
+  }, []);
 
   const active = useMemo(
     () => sessions.find((session) => session.id === activeId) ?? sessions[0],
@@ -165,10 +187,8 @@ export function useStudioSessions() {
   }, []);
 
   const newSession = useCallback(() => {
-    const session = createSession(researchDefaultsRef.current);
-    setSessions((current) => [...current, session]);
-    setActiveId(session.id);
-  }, []);
+    placeSession(createSession(researchDefaultsRef.current));
+  }, [placeSession]);
 
   const closeSession = useCallback(
     (id: string) => {
@@ -186,7 +206,7 @@ export function useStudioSessions() {
 
   const setMode = useCallback(
     (mode: StudioMode) => {
-      if (active) patchSession(active.id, { mode });
+      if (active) patchSession(active.id, { mode: allowedStudyMode(mode) });
     },
     [active, patchSession],
   );
@@ -242,8 +262,10 @@ export function useStudioSessions() {
             mushaf: Number.isFinite(mushaf) && mushaf > 0 ? Math.trunc(mushaf) : 1,
             max_results: 8,
             answer_language: "auto",
-            response_mode: target.mode,
-            tafssir_depth: target.mode === "tafssir" ? target.depth : undefined,
+            // A session saved in the explanatory mode continues from the Quran
+            // alone when this build leaves that mode out (lib/features.ts).
+            response_mode: allowedStudyMode(target.mode),
+            tafssir_depth: allowedStudyMode(target.mode) === "tafssir" ? target.depth : undefined,
             focus: target.focus ?? undefined,
           },
           { headers: buildResearchHeaders(clientSettings) },
@@ -297,7 +319,7 @@ export function useStudioSessions() {
   );
 
   // A hand-off ask (command bar / Home) opens its own fresh session so it can't
-  // inherit an existing thread's mode or context. `submitInto` updates by id, so
+  // inherit an existing thread's mode or context (a blank one is reused, reset). `submitInto` updates by id, so
   // submitting before the state flush is safe.
   const askInNewSession = useCallback(
     async (
@@ -306,17 +328,17 @@ export function useStudioSessions() {
       options: { mode?: StudioMode; focus?: ResearchFocusAyah | null; focusLabel?: string } = {},
     ) => {
       if (!(await ensureAuth())) return;
-      const session = createSession({
-        ...researchDefaultsRef.current,
-        ...(options.mode ? { mode: options.mode } : {}),
-        focus: options.focus ?? null,
-        focusLabel: options.focusLabel,
-      });
-      setSessions((current) => [...current, session]);
-      setActiveId(session.id);
+      const session = placeSession(
+        createSession({
+          ...researchDefaultsRef.current,
+          ...(options.mode ? { mode: allowedStudyMode(options.mode) } : {}),
+          focus: options.focus ?? null,
+          focusLabel: options.focusLabel,
+        }),
+      );
       return submitInto(session, content, mushaf);
     },
-    [submitInto, ensureAuth],
+    [submitInto, ensureAuth, placeSession],
   );
 
   // Re-open a saved session (from Home / the history list) as a live tab: fetch

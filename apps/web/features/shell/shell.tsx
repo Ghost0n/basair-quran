@@ -1,12 +1,16 @@
 "use client";
 
 import { LocaleAccountSync } from "./locale-account-sync";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, type ReactNode } from "react";
 
 import "./shell.css";
 import "./phone-ergonomics.css";
+import "./shell.web.css";
 
 import { installGlobalErrorHooks } from "@/lib/error-report";
+import { closeExclusiveOverlay } from "@/lib/exclusive-overlay";
+import { settleReaderLoads } from "@/features/reading/reader-entry";
+import { resetReaderTool } from "@/features/reading/tools/use-reader-tool";
 
 import { MergeToast } from "@/features/identity/merge-toast";
 import { MushafProvider } from "@/features/reading/mushaf-context";
@@ -15,12 +19,15 @@ import { RecitationProvider } from "@/features/recitation/recitation-context";
 import { PhonePlayer } from "@/features/recitation/phone-player";
 import { RecitationBar } from "@/features/recitation/recitation-bar";
 import { RecitationSessionAttributes } from "@/features/recitation/session-view";
+import { RecitationMediaSession } from "@/features/recitation/media-session";
 import { AuthSessionProvider } from "@/lib/auth-session-context";
 import { PreferencesProvider } from "@/lib/preferences-context";
 import { usePhoneLayout } from "@/lib/use-phone-layout";
 
+import { EdgeSwipeBack } from "./edge-swipe-back";
 import { LeftRail } from "./left-rail";
 import { MobileTabBar } from "./mobile-tab-bar";
+import { ResearchSwitch } from "./research-switch";
 import { useShellMode } from "./mode-context";
 import { ShortcutsModal } from "./shortcuts-modal";
 import { ThemeSweep } from "./theme-sweep";
@@ -39,8 +46,19 @@ import { WorkspaceProvider } from "./workspace-context";
  *  pages scroll under the floating tab bar). */
 function ShellModeAttribute() {
   const { mode } = useShellMode();
-  useEffect(() => {
+  // Before paint: a screen's own layout (which element scrolls, what floats)
+  // is in place as soon as it shows.
+  useLayoutEffect(() => {
     document.documentElement.dataset.shellMode = mode;
+  }, [mode]);
+  useEffect(() => {
+    // Leaving the reader: it reopens in «قراءة», and no menu or sheet is left open.
+    if (mode !== "reading") {
+      resetReaderTool();
+      // Pages loaded from here on are a way into the reader (reader-entry.ts).
+      settleReaderLoads();
+    }
+    closeExclusiveOverlay();
   }, [mode]);
   return null;
 }
@@ -63,6 +81,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <div className="qb-frame">
               <LeftRail />
               <div className="qb-main">
+                <ResearchSwitch />
                 <TopBar />
                 <div className="qb-canvas">{children}</div>
                 {phone ? null : <RecitationBar />}
@@ -71,6 +90,8 @@ export function Shell({ children }: { children: ReactNode }) {
               {phone ? <PhonePlayer /> : null}
             </div>
             <RecitationSessionAttributes />
+            <RecitationMediaSession />
+            <EdgeSwipeBack />
             <ShellModeAttribute />
             <ShortcutsModal />
             <LocaleAccountSync />

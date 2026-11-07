@@ -3,6 +3,7 @@
 import { useEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import { Icon } from "@/components/icon";
+import { Sheet, usePhoneSheets } from "@/components/sheet";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { queueStudioAsk } from "@/lib/studio-prefill";
@@ -44,6 +45,8 @@ export type MorphTarget = {
  * in the Mushaf.
  */
 export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose: () => void }) {
+  // A phone: the word's analysis rises in a bottom sheet (Escape, backdrop, swipe).
+  const asSheet = usePhoneSheets();
   const { setMode } = useShellMode();
   const { state, actions } = useWorkspace();
   const { data, loading } = useMorphology(target.surah, target.ayah, state.selectedMushaf);
@@ -99,16 +102,17 @@ export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose
     data?.words.find((entry) => skeleton(entry.text) === skeleton(target.word)) ??
     null;
 
-  return (
+  const label = t("تحليل الكلمة: {0}", { 0: word?.text ?? target.word });
+  const pop = (
     <div
-      className="qb-morph-pop"
+      className={`qb-morph-pop${asSheet ? " is-sheet" : ""}`}
       ref={dialogRef}
-      role="dialog"
-      aria-modal="true"
-      aria-label={t("تحليل الكلمة: {0}", { 0: word?.text ?? target.word })}
+      role={asSheet ? undefined : "dialog"}
+      aria-modal={asSheet ? undefined : "true"}
+      aria-label={asSheet ? undefined : label}
       tabIndex={-1}
-      onKeyDown={trapTab}
-      style={{ top: target.top, insetInlineStart: target.left }}
+      onKeyDown={asSheet ? undefined : trapTab}
+      style={asSheet ? undefined : { top: target.top, insetInlineStart: target.left }}
     >
       {/* U11: flex header keeps word and close button in a clean row */}
       <div className="pop-head">
@@ -211,4 +215,12 @@ export function MorphPopover({ target, onClose }: { target: MorphTarget; onClose
       </div>
     </div>
   );
+  if (asSheet) {
+    return (
+      <Sheet label={label} onClose={onClose} className="is-morph">
+        {pop}
+      </Sheet>
+    );
+  }
+  return pop;
 }

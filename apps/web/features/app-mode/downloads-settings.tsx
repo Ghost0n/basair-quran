@@ -6,9 +6,11 @@ import type { SurahListItem } from "@q-basair/shared";
 
 import { SelectMenu } from "@/components/select-menu";
 import { downloadSurahAudio, downloadedAudio, removeReciterAudio, type AudioRegistry } from "@/lib/app-mode/audio";
+import { startReciterDownload, stopReciterDownload, useAudioJob } from "@/lib/app-mode/audio-jobs";
 import { APP_MODE } from "@/lib/app-mode/config";
 import type { InstalledPack, Manifest, PackEntry } from "@/lib/app-mode/packs";
 import { appRuntime } from "@/lib/app-mode/runtime";
+import { useNumerals } from "@/lib/preferences-context";
 import { activeLocale, t } from "@/lib/i18n";
 
 import { languageLabel } from "@/features/settings/translations-settings";
@@ -168,7 +170,7 @@ function Downloads() {
         </div>
       ) : null}
 
-      {reciters.length ? <Recitations reciters={reciters} audio={audio} busy={busy} act={act} /> : null}
+      {reciters.length ? <Recitations reciters={reciters} audio={audio} busy={busy} act={act} onChanged={refresh} /> : null}
     </section>
   );
 }
@@ -178,12 +180,18 @@ function Recitations({
   audio,
   busy,
   act,
+  onChanged,
 }: {
   reciters: PackEntry[];
   audio: AudioRegistry;
   busy: Busy;
   act: (id: string, action: (onPercent: (percent: number) => void) => Promise<void>) => Promise<void>;
+  onChanged: () => Promise<void>;
 }) {
+  const formatNumber = useNumerals();
+  // The whole recitation's download runs outside this screen (audio-jobs.ts).
+  const job = useAudioJob();
+  const [confirmRemove, setConfirmRemove] = useState(false);
   const [surahs, setSurahs] = useState<SurahListItem[]>([]);
   const [reciterId, setReciterId] = useState(reciters[0]?.reciter ?? "");
   const [surah, setSurah] = useState(1);
@@ -200,6 +208,22 @@ function Recitations({
   const bytes = useMemo(() => Object.values(audio[reciterId] ?? {}).reduce((total, value) => total + value, 0), [audio, reciterId]);
   const target = surahs.find((item) => item.id === surah);
   const id = `audio-${reciterId}-${surah}`;
+  const running = job?.status === "running";
+  const mine = job && job.reciterId === reciterId ? job : null;
+  const complete = surahs.length > 0 && saved >= surahs.length;
+  const percent = mine && mine.total ? Math.round((mine.done / mine.total) * 100) : 0;
+
+  // A finished, stopped or failed job: the list of saved surahs is read again.
+  useEffect(() => {
+    if (job && job.status !== "running") void onChanged();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.status]);
+  useEffect(() => setConfirmRemove(false), [reciterId]);
+
+  const downloadAll = () => {
+    if (!reciter?.audio_base || !surahs.length) return;
+    void startReciterDownload({ id: reciterId, audio_base: reciter.audio_base }, surahs);
+  };
 
   return (
     <div className="qb-downloads-group">
@@ -213,16 +237,75 @@ function Recitations({
           onChange={setReciterId}
         />
       </div>
+      {/* The whole recitation, for listening anywhere without a connection. */}
+      <div className="qb-download-row">
+        <div className="name">
+          <div>{t("التلاوة كاملة")}</div>
+          <Meta
+            parts={[
+              t("{0} من {1} سورة", { 0: formatNumber(saved), 1: formatNumber(surahs.length || 114) }),
+              formatSize(bytes),
+              mine?.status === "running" && mine.surah ? t("سورة {0}", { 0: formatNumber(mine.surah) }) : null,
+            ]}
+          />
+          {mine?.status === "failed" ? (
+            <div className="meta" role="alert">
+              {t("تعذّر التنزيل. تحقّق من الاتصال ثم أعد المحاولة.")}
+            </div>
+          ) : !complete && !running ? (
+            <div className="meta">{t("قد تبلغ التلاوة كاملة نحو غيغابايت حسب القارئ؛ يُفضَّل الاتصال بشبكة Wi‑Fi.")}</div>
+          ) : null}
+        </div>
+        {mine?.status === "running" ? (
+          <>
+            <div className="bar-wrap" role="status" aria-label={`${formatNumber(percent)}%`}>
+              <div className="qb-download-bar">
+                <span style={{ width: `${percent}%` }} />
+              </div>
+            </div>
+            <button type="button" className="qb-btn ghost sm" onClick={stopReciterDownload}>
+              {t("إيقاف")}
+            </button>
+          </>
+        ) : (
+          <>
+            {!complete ? (
+              <button type="button" className="qb-btn ghost sm" disabled={running || Boolean(busy) || !reciter?.audio_base || !surahs.length} onClick={downloadAll}>
+                {saved ? t("استئناف") : t("تنزيل الكل")}
+              </button>
+            ) : null}
+            {saved ? (
+              <button
+                type="button"
+                className="qb-btn ghost sm"
+                disabled={running || Boolean(busy)}
+                onClick={() => {
+                  // A whole recitation is large to fetch again: a second tap confirms.
+                  if (!confirmRemove) {
+                    setConfirmRemove(true);
+                    return;
+                  }
+                  setConfirmRemove(false);
+                  void act(`audio-${reciterId}-all`, () => removeReciterAudio(reciterId));
+                }}
+              >
+                {confirmRemove ? t("تأكيد الحذف") : t("حذف الكل")}
+              </button>
+            ) : null}
+          </>
+        )}
+      </div>
+
       <div className="qb-download-row">
         <div className="name">
           <SelectMenu
             className="qb-setting-menu"
             ariaLabel={t("السورة")}
             value={String(surah)}
-            options={surahs.map((item) => ({ value: String(item.id), label: `${item.id}. ${item.name}` }))}
+            options={surahs.map((item) => ({ value: String(item.id), label: `${formatNumber(item.id)}. ${item.name}` }))}
             onChange={(value) => setSurah(Number(value))}
           />
-          <Meta parts={[t("السور المحفوظة: {0}", { 0: String(saved) }), formatSize(bytes)]} />
+          <Meta parts={[t("سورة واحدة")]} />
         </div>
         {busy?.id === id ? (
           <div className="bar-wrap" role="status" aria-label={`${busy.percent}%`}>
@@ -231,14 +314,14 @@ function Recitations({
             </div>
           </div>
         ) : audio[reciterId]?.[surah] ? (
-          <button type="button" className="qb-btn ghost sm" disabled={Boolean(busy)} onClick={() => void act(id, () => removeReciterAudio(reciterId, surah))}>
+          <button type="button" className="qb-btn ghost sm" disabled={Boolean(busy) || running} onClick={() => void act(id, () => removeReciterAudio(reciterId, surah))}>
             {t("حذف")}
           </button>
         ) : (
           <button
             type="button"
             className="qb-btn ghost sm"
-            disabled={Boolean(busy) || !reciter?.audio_base || !target}
+            disabled={Boolean(busy) || running || !reciter?.audio_base || !target}
             onClick={() =>
               void act(id, (onPercent) =>
                 downloadSurahAudio({ id: reciterId, audio_base: reciter!.audio_base! }, surah, target!.ayah_count, (done, total) =>

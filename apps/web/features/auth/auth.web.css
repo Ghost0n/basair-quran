@@ -1,0 +1,30 @@
+/* Sign-in, sign-up, reset and the welcome steps in the web design (desktop web):
+   the landing's rosette drawn once behind a quiet form.
+   Source: design/prototype-web-full/screens/settings.* (account) */
+
+.qb-web .qb-auth { position: relative; isolation: isolate; overflow: hidden; }
+.qb-web .qb-auth-girih {
+  position: absolute;
+  width: 1100px;
+  height: 1100px;
+  left: 50%; /* centring is direction-neutral */
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+  -webkit-mask-image: radial-gradient(circle, #000 18%, transparent 60%);
+  mask-image: radial-gradient(circle, #000 18%, transparent 60%);
+}
+.qb-web .qb-auth-wordmark { font-family: var(--font-arabic-display); }
+.qb-web .qb-auth-card,
+.qb-web .qb-onboard-card {
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-panel);
+  box-shadow: 0 30px 60px -40px var(--shade);
+}
+.qb-web .qb-auth-input { border-radius: var(--r-ctl); border: 1px solid var(--border-strong); background: var(--bg); box-shadow: none; }
+.qb-web .qb-auth-input:focus { border-color: var(--gold-line); }
+.qb-web .qb-auth-tabs { background: var(--bg-elev-2); border: 0; box-shadow: none; border-radius: var(--r-ctl); }
+.qb-web .qb-auth-cta,
+.qb-web .qb-welcome-cta,
+.qb-web .qb-onboard-cta { background: var(--btn-grad); color: var(--on-gold); box-shadow: none; }

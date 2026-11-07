@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState, type RefObject } from "react";
+import { useEffect, useRef, useState, type RefObject, type CSSProperties } from "react";
 
 import { Icon } from "@/components/icon";
+import { Sheet, usePhoneSheets } from "@/components/sheet";
 import { setShowHighlights, useShowHighlights } from "@/features/themes/ayah-marks";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
+import { swallowNextClick, useExclusiveOverlay } from "@/lib/exclusive-overlay";
 import { useIsMobile } from "@/lib/use-is-mobile";
+import { useWebDesign } from "@/lib/use-web-design";
 
 import { READER_MODES, resolveReaderMode } from "../reader-modes";
 
@@ -23,8 +26,28 @@ function FontSizeSlider({ value, disabled, onCommit }: { value: number; disabled
   const [draft, setDraft] = useState(value);
   const frame = useRef(0);
   const settle = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const draftRef = useRef(value);
+  draftRef.current = draft;
+  const changeRef = useRef<(size: number) => void>(() => {});
 
   useEffect(() => setDraft(value), [value]);
+
+  // The wheel moves the size one step per notch, over the slider (a native,
+  // non-passive listener so the page under it doesn't scroll as well).
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    function onWheel(event: WheelEvent) {
+      if (!input || input.disabled || event.ctrlKey || event.deltaY === 0) return;
+      event.preventDefault();
+      const step = event.deltaY < 0 ? 1 : -1;
+      const next = Math.min(FONT_MAX, Math.max(FONT_MIN, draftRef.current + step));
+      if (next !== draftRef.current) changeRef.current(next);
+    }
+    input.addEventListener("wheel", onWheel, { passive: false });
+    return () => input.removeEventListener("wheel", onWheel);
+  }, []);
   useEffect(
     () => () => {
       cancelAnimationFrame(frame.current);
@@ -34,6 +57,7 @@ function FontSizeSlider({ value, disabled, onCommit }: { value: number; disabled
   );
 
   function change(size: number) {
+    draftRef.current = size;
     setDraft(size);
     cancelAnimationFrame(frame.current);
     frame.current = requestAnimationFrame(() => {
@@ -43,8 +67,11 @@ function FontSizeSlider({ value, disabled, onCommit }: { value: number; disabled
     settle.current = setTimeout(() => onCommit(size), 220);
   }
 
+  changeRef.current = change;
+
   return (
     <input
+      ref={inputRef}
       type="range"
       min={FONT_MIN}
       max={FONT_MAX}
@@ -52,6 +79,8 @@ function FontSizeSlider({ value, disabled, onCommit }: { value: number; disabled
       value={draft}
       disabled={disabled}
       aria-label={t("حجم خطّ الآيات")}
+      // The filled share of the track (the web design paints it in gold).
+      style={{ "--fill": `${((draft - FONT_MIN) / (FONT_MAX - FONT_MIN)) * 100}%` } as CSSProperties}
       onChange={(event) => change(Number(event.target.value))}
     />
   );
@@ -69,16 +98,27 @@ export function DisplayStrip({ onClose, headRef }: { onClose: () => void; headRe
   const formatNumber = useNumerals();
   const mode = resolveReaderMode(preferences.reader_layout);
   const showHighlights = useShowHighlights();
-  // Phones pin the printed page to the screen at one fixed size: the size
-  // control shows, inactive, until verse-by-verse mode.
-  const sizeLocked = useIsMobile() && mode === "pages";
+  // Phones — and the desktop web design — pin the printed page at one fixed
+  // size: the size control shows, inactive, until verse-by-verse mode.
+  const web = useWebDesign();
+  const phone = useIsMobile();
+  const sizeLocked = (phone || web) && mode === "pages";
+  useExclusiveOverlay(true, onClose);
+  // A phone: the choices rise in a bottom sheet, which closes itself (Escape,
+  // its backdrop, a swipe down).
+  const asSheet = usePhoneSheets();
 
   useEffect(() => {
+    if (asSheet) return;
     function onKey(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
     }
     function onPointer(event: PointerEvent) {
-      if (!headRef.current?.contains(event.target as Node)) onClose();
+      if (headRef.current?.contains(event.target as Node)) return;
+      onClose();
+      // Touch: the tap only closes the strip; the page under it doesn't react.
+      const target = event.target as Element | null;
+      if (event.pointerType !== "mouse" && !target?.closest?.(".qb-reader-back")) swallowNextClick();
     }
     document.addEventListener("keydown", onKey);
     document.addEventListener("pointerdown", onPointer, true);
@@ -86,9 +126,9 @@ export function DisplayStrip({ onClose, headRef }: { onClose: () => void; headRe
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("pointerdown", onPointer, true);
     };
-  }, [onClose, headRef]);
+  }, [onClose, headRef, asSheet]);
 
-  return (
+  const strip = (
     <div className="qb-display-strip" role="group" aria-label={t("العرض")}>
       <div className="modes" role="group" aria-label={t("طريقة القراءة (Shift+M)")}>
         {READER_MODES.map((item) => (
@@ -143,4 +183,12 @@ export function DisplayStrip({ onClose, headRef }: { onClose: () => void; headRe
       </button>
     </div>
   );
+  if (asSheet) {
+    return (
+      <Sheet label={t("العرض")} onClose={onClose} className="is-display">
+        {strip}
+      </Sheet>
+    );
+  }
+  return strip;
 }

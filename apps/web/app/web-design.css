@@ -1,0 +1,143 @@
+/* =====================================================================
+   Q-Basair — the web design (Q-Basair-55), desktop web only.
+   ---------------------------------------------------------------------
+   The landing page's language carried into the app: quiet flat surfaces,
+   hairlines, gold for "you" and "act". Applies under <html class="qb-web">
+   (lib/web-design.ts); phones and the native app keep the liquid-glass
+   layer (app/glass.css) untouched. Source: design/prototype-web-full.
+
+   This file (1) adds the web design's tokens and (2) redefines the glass
+   tokens as a flat material, so every existing surface turns quiet without
+   its own CSS changing. Screen-specific rules live in *.web.css files.
+   The public site (.qb-site: /about, the visitor's landing, /guidelines)
+   keeps its own design: the material stops at the app.
+   ===================================================================== */
+
+html.qb-web body:not(:has(.qb-site)) {
+  /* Gold: the one accent — your place, your selection, matches, primary actions. */
+  --gold-line: rgba(212, 175, 55, 0.35);
+  --gold-soft: rgba(212, 175, 55, 0.14);
+  --gold-glow: #e0c14a;
+  --gold-here: #f5e9b6;
+  --gold-grad: linear-gradient(180deg, #f6e7b4, #d4af37 60%, #a8842a);
+  --bar-on: linear-gradient(180deg, #e0c14a, #b38b10);
+  --bar-off: rgba(212, 175, 55, 0.14);
+  --btn-grad: linear-gradient(180deg, #ecd57a, #d4af37 55%, #b38b10);
+  --on-gold: #1f1702;
+  /* Worlds (reading = gold, research = teal, community = copper): small marks only. */
+  --teal: #6fb5a8;
+  --teal-soft: rgba(111, 181, 168, 0.14);
+  --copper: #d08a5c;
+  --copper-soft: rgba(208, 138, 92, 0.15);
+  --world: var(--gold-text);
+  --world-soft: var(--gold-soft);
+  /* State only. */
+  --ok: #7fb685;
+  --ok-soft: rgba(127, 182, 133, 0.14);
+  --warn: #e2a64b;
+  --warn-soft: rgba(226, 166, 75, 0.14);
+  --bad: #e07a6a;
+  --bad-soft: rgba(224, 122, 106, 0.14);
+  --info: #8fb3d9;
+  --info-soft: rgba(143, 179, 217, 0.14);
+  /* Topic-theme swatches (أخضر، أزرق، وردي، بنفسجي، فيروزي، رملي، ذهبي، رمادي). */
+  --th-green: #7fb685;
+  --th-blue: #7fa6d9;
+  --th-pink: #d98fae;
+  --th-purple: #a98fd9;
+  --th-teal: #6fb5a8;
+  --th-sand: #c9a77a;
+  --th-gold: #d4af37;
+  --th-gray: #9b9586;
+  --shade: rgba(0, 0, 0, 0.55);
+  --scrim: rgba(10, 9, 7, 0.62);
+  --light-a: rgba(212, 175, 55, 0.1);
+  --r-ctl: 10px;
+  --r-panel: 18px;
+
+  /* The glass layer, redefined as the flat material. */
+  --glass-tint: var(--bg-elev-1);
+  --glass-tint-strong: var(--bg-elev-2);
+  --glass-tint-soft: var(--bg-elev-1);
+  --glass-tint-overlay: var(--bg-elev-2);
+  --glass-blur: 0px;
+  --glass-blur-strong: 0px;
+  --glass-saturate: 100%;
+  --glass-rim: var(--border);
+  --glass-rim-strong: var(--border-strong);
+  --glass-sheen: none;
+  --glass-edge: inset 0 0 0 1px var(--border);
+  --glass-shadow: 0 30px 60px -40px var(--shade);
+  --glass-shadow-lift: 0 30px 60px -34px var(--shade);
+  --gold-gel: var(--btn-grad);
+  --gold-gel-shadow: 0 10px 30px -14px var(--gold-400), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  --seg-on-bg: var(--gold-soft);
+  --seg-on-shadow: inset 0 0 0 1px var(--gold-line);
+  --seg-copper-bg: var(--copper-soft);
+  /* Ambient light: one warm field from the top, as on the landing page. */
+  --aurora-1: var(--light-a);
+  --aurora-2: transparent;
+  --aurora-3: transparent;
+}
+
+html.qb-web body.light:not(:has(.qb-site)),
+html.qb-web body.light-mode:not(:has(.qb-site)) {
+  --gold-line: rgba(164, 129, 41, 0.42);
+  --gold-soft: rgba(164, 129, 41, 0.12);
+  --gold-glow: #8a6a0c;
+  --gold-here: #3a2c05;
+  --gold-grad: linear-gradient(180deg, #b38b10, #8a6a0c 60%, #5e4708);
+  --bar-on: linear-gradient(180deg, #c9a43a, #8a6a0c);
+  --bar-off: rgba(164, 129, 41, 0.16);
+  --teal: #2f7d70;
+  --teal-soft: rgba(47, 125, 112, 0.12);
+  --copper: #9a5428;
+  --copper-soft: rgba(154, 84, 40, 0.12);
+  --ok: #3f7a47;
+  --ok-soft: rgba(63, 122, 71, 0.12);
+  --warn: #9a6512;
+  --warn-soft: rgba(154, 101, 18, 0.12);
+  --bad: #a8402f;
+  --bad-soft: rgba(168, 64, 47, 0.1);
+  --info: #3d6690;
+  --info-soft: rgba(61, 102, 144, 0.1);
+  --th-green: #3f7a47;
+  --th-blue: #3d6690;
+  --th-pink: #a8486f;
+  --th-purple: #6a4fa0;
+  --th-teal: #2f7d70;
+  --th-sand: #8a6a3e;
+  --th-gold: #8a6a0c;
+  --th-gray: #6b6556;
+  --shade: rgba(90, 70, 20, 0.18);
+  --scrim: rgba(60, 48, 20, 0.32);
+  --light-a: rgba(212, 175, 55, 0.16);
+  --gold-gel-shadow: 0 10px 30px -14px var(--gold-500), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* Worlds: the shell sets data-world on <html> (features/shell/worlds.ts). */
+html.qb-web[data-world="research"] body { --world: var(--teal); --world-soft: var(--teal-soft); }
+html.qb-web[data-world="community"] body { --world: var(--copper); --world-soft: var(--copper-soft); }
+
+/* No blur anywhere: the flat material has nothing to refract. */
+html.qb-web body:not(:has(.qb-site)) *,
+html.qb-web body:not(:has(.qb-site)) *::before,
+html.qb-web body:not(:has(.qb-site)) *::after {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Shared marks of the web design. */
+html.qb-web .qb-kicker { font-size: 12.5px; font-weight: 700; color: var(--world); }
+html.qb-web .qb-gold-num {
+  font-family: var(--font-arabic-heading);
+  font-weight: 700;
+  background: var(--gold-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.06em;
+}
+html.qb-web .qb-letters { font-family: var(--font-arabic-heading); font-weight: 700; letter-spacing: 0.25em; color: var(--gold-text); }
+html.qb-web .qb-th-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--c, var(--th-gray)); flex: none; }
+html.qb-web .qb-pill-tafsir { background: var(--copper-soft); color: var(--copper); }

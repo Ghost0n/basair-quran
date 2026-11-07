@@ -21,8 +21,11 @@ FastAPI server; both are released from this repository.
   See `docs/offline-packs.md` for `core.db`.
 - **On demand** (Settings → «التنزيلات» / Downloads): the other narrations
   (Qālūn, Warsh, Shuʿba, al-Dūrī, al-Sūsī), every translation of meanings,
-  every interface language, and recitations (one surah at a time per
-  reciter). A new narration or translation on the server appears in the
+  every interface language, and recitations: one surah, or a reciter's
+  whole recitation («تنزيل الكل», `lib/app-mode/audio-jobs.ts`: four files at
+  a time; it carries on while the reader uses the rest of the app, «إيقاف»
+  keeps the complete surahs and «استئناف» skips them; «حذف الكل» asks for a
+  second tap). A new narration or translation on the server appears in the
   catalogue without an app update. Installed packs whose content changed show
   «تحديث» (update).
 
@@ -148,6 +151,19 @@ same code (`apps/web/lib/app-mode/platform-capacitor.ts`).
     is offered for download again.
   - Recitations keep playing with the screen locked (`UIBackgroundModes:
     audio`); the app declares no non-exempt encryption (HTTPS only).
+- **System media controls** (`features/recitation/media-session.tsx`): the
+  verse, the reciter, «بصائر» and the app's mark on the lock screen, in
+  Control Center and the Dynamic Island (iPhone), the notification shade
+  (Android) and the browser's media hub (web), with play / pause, previous /
+  next verse and the surah's progress (dragging it seeks within the surah).
+  iPhone and the web use the Media Session API of WebKit / the browser;
+  Android's WebView has none, so `@capgo/capacitor-media-session` (pinned,
+  a media-playback foreground service) draws the notification there
+  (`FOREGROUND_SERVICE_MEDIA_PLAYBACK` in the manifest).
+- **Sharing** (`lib/native-share.ts`): images and links go through the
+  phone's own share sheet (`@capacitor/share`; files are written to the
+  cache first). Shared links point to the public site (`NEXT_PUBLIC_SITE_URL`,
+  else the server), never to the device's `capacitor://localhost`.
 - **Fonts:** the mushaf fonts ship in the bundle; the interface fonts
   (Amiri, Cairo) are committed under `apps/web/public/fonts/ui/` and
   self-hosted by the web too (`app/tokens.css`), so no launch ever fetches a

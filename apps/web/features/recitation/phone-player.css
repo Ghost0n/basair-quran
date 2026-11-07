@@ -367,7 +367,7 @@
   align-items: center;
   gap: 2px;
   height: 46px;
-  max-width: min(236px, calc(100vw - 32px));
+  max-width: min(276px, calc(100vw - 32px));
   padding: 0 5px;
   border-radius: var(--r-pill);
   border: 1px solid var(--border-strong);
@@ -405,6 +405,24 @@
   text-align: start;
   font: inherit;
   cursor: pointer;
+}
+
+/* «الآية المتلوّة»: a quiet round icon at the capsule's end. */
+.qb-capsule .clocate {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gold-text);
+  cursor: pointer;
+}
+
+.qb-capsule .clocate:active {
+  background: rgba(212, 175, 55, 0.14);
 }
 
 .qb-capsule .ctext {

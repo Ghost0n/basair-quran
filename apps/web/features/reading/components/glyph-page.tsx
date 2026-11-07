@@ -11,6 +11,8 @@ import { usePickedWords, useVerseFocus, verseFocusClass, wordKey, type VerseFocu
 import { isGlyphFontReady } from "@/features/reading/qcf-font-loader";
 import { JUZ_STARTS } from "@/lib/quran-divisions.generated";
 import { toArabicDigits } from "@/lib/numerals";
+import { useNumerals } from "@/lib/preferences-context";
+import { useWebDesign } from "@/lib/use-web-design";
 
 import { t } from "@/lib/i18n";
 
@@ -194,6 +196,9 @@ export function GlyphPage({
   const isPicked = usePickedWords();
   const focusOf = useVerseFocus();
   const ribbons = usePageRibbons();
+  // The web design writes the folio in the reader's numerals, like the focus-mode footer.
+  const webDesign = useWebDesign();
+  const formatNumber = useNumerals();
   // The layout only arrives once its page font is loaded, so it can be measured now.
   const measured = useMemo(() => measurePage(lines), [lines]);
   const calligraphy = isGlyphFontReady(layout.font_base_path ?? "", "qcf-bsml");
@@ -349,11 +354,11 @@ export function GlyphPage({
                     {inner}
                   </span>
                 ) : segment.selected ? (
-                  <span className="qb-glyph-sel" data-ayah-id={segment.words[0]?.ayah_id}>
+                  <span className="qb-glyph-sel" data-ayah-id={segment.words[0]?.ayah_id} data-vf={segment.words[0]?.ayah_id}>
                     {inner}
                   </span>
                 ) : highlight.className ? (
-                  <span className={`qb-glyph-hl${highlight.className}`} data-hl={highlight["data-hl"]}>
+                  <span className={`qb-glyph-hl${highlight.className}`} data-hl={highlight["data-hl"]} data-vf={segment.words[0]?.ayah_id}>
                     {inner}
                   </span>
                 ) : (
@@ -371,7 +376,7 @@ export function GlyphPage({
         })}
       </div>
       <div className="qb-print-folio" aria-hidden="true">
-        {page ? toArabicDigits(page) : null}
+        {page ? (webDesign ? formatNumber(page) : toArabicDigits(page)) : null}
       </div>
     </div>
   );
@@ -544,7 +549,7 @@ export function GlyphAyah({
       className={`qb-glyph-ayah-row${isSelected && !focus ? " qb-glyph-sel" : ""}${highlight.className}${verseFocusClass(focus)}`}
       data-hl={highlight["data-hl"]}
       data-ayah-id={save.ayahId}
-      data-vf={focus ? save.ayahId : undefined}
+      data-vf={focus || isSelected || highlight["data-hl"] ? save.ayahId : undefined}
       style={{ fontFamily: fontFamily ?? undefined }}
     >
       {words.map((word) => {

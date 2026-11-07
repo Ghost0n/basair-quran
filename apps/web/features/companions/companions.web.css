@@ -1,0 +1,51 @@
+/* The notebook and the other «aux» pages (heatmap, roots, sessions) in the web
+   design (desktop web): a header in Amiri with a world kicker, a quiet tab row,
+   hairline rows, theme sections instead of card tiles.
+   Source: design/prototype-web-full/screens/notebook.* */
+
+.qb-web .qb-aux-h .kicker { color: var(--world); font-weight: 700; letter-spacing: 0; text-transform: none; }
+.qb-web .qb-aux-h h2 { font-family: var(--font-arabic-heading); }
+.qb-web .qb-aux-h { align-items: flex-start; }
+
+/* Tabs: one segmented row. */
+.qb-web .qb-lib-tabs { background: var(--bg-elev-2); border: 0; box-shadow: none; border-radius: var(--r-ctl); padding: 3px; }
+.qb-web .qb-lib-tab { border-radius: 8px; background: none; box-shadow: none; }
+.qb-web .qb-lib-tab.active { background: var(--bg); color: var(--fg-1); font-weight: 700; box-shadow: 0 1px 0 var(--border-strong); }
+
+/* View pills (الأحدث / حسب الموضوع) and filters. */
+.qb-web .qb-pill { border-radius: 999px; border: 1px solid var(--border-strong); background: transparent; box-shadow: none; }
+.qb-web .qb-pill.active { background: var(--gold-soft); border-color: var(--gold-line); color: var(--gold-text); font-weight: 700; }
+
+/* Rows: hairlines, no floating tiles. */
+.qb-web .qb-aux-list { gap: 0; }
+.qb-web .qb-aux-row {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  animation: none;
+}
+.qb-web .qb-aux-row:hover { background: var(--gold-soft); }
+.qb-web .qb-aux-row .icon-tile { border-radius: 10px; background: var(--gold-soft); color: var(--gold-text); border: 0; box-shadow: none; }
+.qb-web .qb-aux-row .title { font-family: var(--font-arabic-heading); font-size: 16px; line-height: 1.7; }
+/* Board names in the notebook: room for Arabic marks under an ellipsis. */
+.qb-web .qb-board-item .title { line-height: 1.7; }
+.qb-web .qb-aux-row .root-disp { font-family: var(--font-arabic-heading); letter-spacing: 0.22em; color: var(--gold-text); }
+.qb-web .qb-aux-row .row-action { border-radius: 50%; }
+
+/* Theme sections: an open block per theme with its colour dot, not a tile grid. */
+.qb-web .qb-aux-grid { display: flex; flex-direction: column; gap: 0; }
+.qb-web .qb-collection-card {
+  border: 0;
+  border-top: 1px solid var(--border-strong);
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  padding: 16px 2px;
+}
+.qb-web .qb-collection-card .head .name { font-family: var(--font-arabic-heading); font-size: 18px; }
+.qb-web .qb-lib-ribbon { margin: 4px 0 18px; }
+
+/* States. */
+.qb-web .qb-aux-state { border: 1px dashed var(--border-strong); border-radius: var(--r-panel); background: none; }
