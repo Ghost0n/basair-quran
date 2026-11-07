@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { barLook, nativeBarHidden, nativeTabBarAction, nativeTabBarAvailable, rgbToHex } from "./native-tab-bar";
+import { barLook, nativeBarMode, nativeTabBarAction, nativeTabBarAvailable, rgbToHex } from "./native-tab-bar";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -37,24 +37,45 @@ describe("nativeTabBarAvailable", () => {
 });
 
 describe("nativeTabBarAction", () => {
-  const base = { available: true, hidden: false, shown: false, active: "search", shownActive: null };
+  const base = {
+    available: true,
+    want: "tabs" as const,
+    shown: null,
+    active: "search",
+    shownActive: null,
+    dockKey: null,
+    shownDockKey: null,
+  };
 
   it("never shows the bar when it is not available", () => {
     expect(nativeTabBarAction({ ...base, available: false })).toEqual({ kind: "none" });
   });
 
-  it("shows it outside the Mushaf", () => {
+  it("shows the tabs outside the Mushaf, from nothing or from the dock", () => {
     expect(nativeTabBarAction(base)).toEqual({ kind: "show" });
+    expect(nativeTabBarAction({ ...base, shown: "dock", shownDockKey: "k" })).toEqual({ kind: "show" });
   });
 
-  it("hides it in the Mushaf", () => {
-    expect(nativeTabBarAction({ ...base, hidden: true, shown: true, shownActive: "search" })).toEqual({ kind: "hide" });
-    expect(nativeTabBarAction({ ...base, hidden: true })).toEqual({ kind: "none" });
+  it("turns the tabs into the dock in the Mushaf, and redraws the dock when it changes", () => {
+    const docking = { ...base, want: "dock" as const, active: "reader", dockKey: "k1" };
+    expect(nativeTabBarAction({ ...docking, shown: "tabs", shownActive: "reader" })).toEqual({ kind: "dock" });
+    expect(nativeTabBarAction({ ...docking, shown: "dock", shownDockKey: "k1" })).toEqual({ kind: "none" });
+    expect(nativeTabBarAction({ ...docking, shown: "dock", shownDockKey: "k0" })).toEqual({ kind: "dock" });
+  });
+
+  it("waits for the dock to be read before turning into it", () => {
+    expect(nativeTabBarAction({ ...base, want: "dock", shown: "tabs", shownActive: "reader", active: "reader" })).toEqual({ kind: "none" });
+  });
+
+  it("puts whatever shows away when hidden, and does nothing more", () => {
+    expect(nativeTabBarAction({ ...base, want: "hidden", shown: "tabs", shownActive: "search" })).toEqual({ kind: "hide" });
+    expect(nativeTabBarAction({ ...base, want: "hidden", shown: "dock", shownDockKey: "k" })).toEqual({ kind: "hide" });
+    expect(nativeTabBarAction({ ...base, want: "hidden" })).toEqual({ kind: "none" });
   });
 
   it("moves the active tab when the page changes", () => {
-    expect(nativeTabBarAction({ ...base, shown: true, shownActive: "home" })).toEqual({ kind: "setActive", id: "search" });
-    expect(nativeTabBarAction({ ...base, shown: true, shownActive: "search" })).toEqual({ kind: "none" });
+    expect(nativeTabBarAction({ ...base, shown: "tabs", shownActive: "home" })).toEqual({ kind: "setActive", id: "search" });
+    expect(nativeTabBarAction({ ...base, shown: "tabs", shownActive: "search" })).toEqual({ kind: "none" });
   });
 });
 
@@ -78,16 +99,17 @@ describe("barLook", () => {
   });
 });
 
-describe("nativeBarHidden", () => {
-  it("stays on every page of a phone outside the Mushaf", () => {
-    expect(nativeBarHidden({ narrow: true, reading: false })).toBe(false);
+describe("nativeBarMode", () => {
+  it("shows the tabs on every page of a phone outside the Mushaf", () => {
+    expect(nativeBarMode({ narrow: true, reading: false, immersive: false })).toBe("tabs");
   });
 
-  it("gives its place to the reader's split dock in the Mushaf", () => {
-    expect(nativeBarHidden({ narrow: true, reading: true })).toBe(true);
+  it("becomes the reader's split dock in the Mushaf", () => {
+    expect(nativeBarMode({ narrow: true, reading: true, immersive: false })).toBe("dock");
   });
 
-  it("steps aside where the side menu shows", () => {
-    expect(nativeBarHidden({ narrow: false, reading: false })).toBe(true);
+  it("steps aside in focus mode and where the side menu shows", () => {
+    expect(nativeBarMode({ narrow: true, reading: true, immersive: true })).toBe("hidden");
+    expect(nativeBarMode({ narrow: false, reading: false, immersive: false })).toBe("hidden");
   });
 });

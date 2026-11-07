@@ -263,4 +263,13 @@ html.qb-web[dir="rtl"] .qb-display-strip .size input[type="range"]::-webkit-slid
   html.qb-web.qb-native-tabbar:root:not(.qb-immersive) .qb-page-number {
     bottom: calc(var(--qb-bar-inset) + var(--dock-h) + 8px);
   }
+
+  /* iOS 26: the dock is drawn natively in Liquid Glass (lib/native-dock.ts),
+     the tab bar changing shape into it. The web dock stays laid out in the
+     same place, unseen and untouchable, so what it opens (the display
+     choices, the tool menu) still rises from the right spot. */
+  html.qb-web.qb-native-dock:root .qb-reader-dock,
+  html.qb-web.qb-native-dock:root .qb-reader-back {
+    visibility: hidden;
+  }
 }

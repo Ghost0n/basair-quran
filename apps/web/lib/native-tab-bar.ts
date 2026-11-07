@@ -2,14 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { clickDockItem, dockKey, NATIVE_DOCK_CLASS, nativeDockPayload, type NativeDockPayload, type ReaderDock } from "./native-dock";
 import { nativeTabsPayload, type NativeTabPayload, type TabGlyph } from "./native-tab-icons";
 
 /**
  * The iPhone app's tab bar is Apple's own UITabBar (Liquid Glass on iOS 26),
  * drawn natively over the web view by the NativeTabBar plugin
  * (apps/mobile/ios/App/App/NativeTabBarPlugin.swift). The web app keeps the
- * state: it shows the bar, keeps its active tab in step with the page, hands
- * its place to the reader's split dock in the Mushaf, hides it under a sheet and wherever the side menu
+ * state: it shows the bar, keeps its active tab in step with the page, turns
+ * it into the reader's dock in the Mushaf (lib/native-dock.ts), hides it under a sheet and wherever the side menu
  * shows (iPad, a landscape phone), and turns a native tap into the same navigation as a web tab.
  * Once it has drawn, `html.qb-native-tabbar` hides the web-drawn bar, and
  * `--qb-native-tabbar-h` on <html> holds its height (the room screens keep
@@ -31,8 +32,16 @@ interface NativeTabBarPlugin {
   /** Resolves with the height the bar was drawn at (points, the web's CSS pixels). */
   show(options: { tabs: NativeTabPayload[]; active: string; tint: string } & BarLook): Promise<{ height?: number } | undefined>;
   setActive(options: { id: string }): Promise<void>;
+  /**
+   * Turns the bar into the reader's dock (or redraws the dock). Resolves with
+   * `shown: false` where the native dock is not supported (before iOS 26).
+   */
+  dock(options: NativeDockPayload & { tabs: NativeTabPayload[]; active: string; tint: string } & BarLook): Promise<{ shown?: boolean } | undefined>;
   hide(): Promise<void>;
-  addListener(event: "tabSelected", callback: (event: { id: string }) => void): Promise<{ remove: () => Promise<void> }>;
+  addListener(
+    event: "tabSelected" | "dockTapped",
+    callback: (event: { id?: string; key?: string }) => void,
+  ): Promise<{ remove: () => Promise<void> }>;
 }
 
 interface CapacitorGlobal {
@@ -58,19 +67,34 @@ export function nativeTabBarAvailable(): boolean {
   return Boolean(cap.isPluginAvailable?.(PLUGIN));
 }
 
-export type NativeTabBarAction = { kind: "none" } | { kind: "show" } | { kind: "hide" } | { kind: "setActive"; id: string };
+export type NativeTabBarAction =
+  | { kind: "none" }
+  | { kind: "show" }
+  | { kind: "dock" }
+  | { kind: "hide" }
+  | { kind: "setActive"; id: string };
+
+/** What the page wants of the native bar: its tabs, the reader's dock, or nothing. */
+export type NativeBarMode = "tabs" | "dock" | "hidden";
 
 /** What the native bar must do next, from what the page wants and what is shown. */
 export function nativeTabBarAction(state: {
   available: boolean;
-  hidden: boolean;
-  shown: boolean;
+  want: NativeBarMode;
+  shown: "tabs" | "dock" | null;
   active: string;
   shownActive: string | null;
+  /** What the dock shows (null until the page's dock has been read). */
+  dockKey: string | null;
+  shownDockKey: string | null;
 }): NativeTabBarAction {
   if (!state.available) return { kind: "none" };
-  if (state.hidden) return state.shown ? { kind: "hide" } : { kind: "none" };
-  if (!state.shown) return { kind: "show" };
+  if (state.want === "hidden") return state.shown ? { kind: "hide" } : { kind: "none" };
+  if (state.want === "dock") {
+    if (!state.dockKey) return { kind: "none" };
+    return state.shown === "dock" && state.shownDockKey === state.dockKey ? { kind: "none" } : { kind: "dock" };
+  }
+  if (state.shown !== "tabs") return { kind: "show" };
   if (state.active !== state.shownActive) return { kind: "setActive", id: state.active };
   return { kind: "none" };
 }
@@ -129,14 +153,14 @@ function plugin(): Promise<{ bar: NativeTabBarPlugin }> {
 }
 
 /**
- * Whether the native bar steps aside. In the Mushaf the bar splits in two,
- * as the web bar does: the reader's dock (the toolbox) and its round button
- * (the Home mark or an arrow back) take the bar's exact place
- * (reading.web.css), so the bar gives way to them rather than standing
- * under them. The side menu of wider screens puts it away too.
+ * What the native bar shows. On a phone: its tabs, and in the Mushaf the
+ * reader's dock it turns into (its Home part pulls away as the round button,
+ * the rest becomes the toolbox). Focus mode, which hides all of the reader's
+ * chrome, and the side menu of wider screens put it away.
  */
-export function nativeBarHidden(state: { narrow: boolean; reading: boolean }): boolean {
-  return !state.narrow || state.reading;
+export function nativeBarMode(state: { narrow: boolean; reading: boolean; immersive: boolean }): NativeBarMode {
+  if (!state.narrow || state.immersive) return "hidden";
+  return state.reading ? "dock" : "tabs";
 }
 
 /** A sheet or dialog is open: its own layer, which the native bar must not cover. */
@@ -165,28 +189,45 @@ function useModalOpen(enabled: boolean): boolean {
 /**
  * Drives the native bar from the shell. Returns whether it is in use (the
  * web bar then renders nothing visible). `onSelect` receives a tab id.
+ *
+ * `mode` says what the page wants: the tabs, the reader's dock (the tabs
+ * turning into it, iOS 26: lib/native-dock.ts) or nothing. Where the native
+ * dock is not supported (before iOS 26) the bar simply steps aside in the
+ * Mushaf and the web dock shows, as before.
  */
 export function useNativeTabBar(options: {
   tabs: NativeTab[];
   active: string;
-  hidden: boolean;
+  mode: NativeBarMode;
+  /** The reader's dock as the page shows it (lib/native-dock.ts), in the Mushaf. */
+  dock: ReaderDock | null;
   onSelect: (id: string) => void;
 }): boolean {
   const [available, setAvailable] = useState(false);
   // The native bar drew nothing or failed: the web bar is used instead.
   const [failed, setFailed] = useState(false);
-  const shownRef = useRef<{ shown: boolean; active: string | null }>({ shown: false, active: null });
+  // The native dock: unknown until first asked, then supported or not.
+  const [dockSupported, setDockSupported] = useState<boolean | null>(null);
+  const shownRef = useRef<{ shown: "tabs" | "dock" | null; active: string | null; dockKey: string | null }>({
+    shown: null,
+    active: null,
+    dockKey: null,
+  });
   const tabsRef = useRef(options.tabs);
   tabsRef.current = options.tabs;
+  const dockRef = useRef(options.dock);
+  dockRef.current = options.dock;
   const onSelectRef = useRef(options.onSelect);
   onSelectRef.current = options.onSelect;
   const tabsKey = options.tabs.map((tab) => `${tab.id}:${tab.title}`).join("|");
   const tabsKeyRef = useRef(tabsKey);
   tabsKeyRef.current = tabsKey;
-  // What the native bar was last drawn with, to redraw only on a real change.
+  // What the tabs were last drawn with, to redraw them only on a real change.
   const drawnRef = useRef<{ key: string; tint: string; look: string } | null>(null);
 
   const covered = useModalOpen(available);
+  // The look (theme, gold, direction): a change redraws the tabs or the dock.
+  const look = useLookKey(available);
 
   useEffect(() => {
     const ok = nativeTabBarAvailable() && !failed;
@@ -213,88 +254,151 @@ export function useNativeTabBar(options: {
   useEffect(() => {
     if (!available) return;
     const root = document.documentElement;
-    let removeListener: (() => void) | null = null;
+    const removers: (() => void)[] = [];
     let cancelled = false;
-    void plugin()
-      .then(({ bar }) => bar.addListener("tabSelected", ({ id }) => onSelectRef.current(id)))
-      .then((handle) => {
-        if (cancelled) void handle.remove();
-        else removeListener = () => void handle.remove();
-      })
-      .catch(() => undefined);
+    const listen = (event: "tabSelected" | "dockTapped", callback: (data: { id?: string; key?: string }) => void) =>
+      plugin()
+        .then(({ bar }) => bar.addListener(event, callback))
+        .then((handle) => {
+          if (cancelled) void handle.remove();
+          else removers.push(() => void handle.remove());
+        })
+        .catch(() => undefined);
+    void listen("tabSelected", ({ id }) => {
+      if (id) onSelectRef.current(id);
+    });
+    // A tap on the native dock presses the page's own button.
+    void listen("dockTapped", ({ key }) => {
+      if (key) clickDockItem(document, key);
+    });
     return () => {
       cancelled = true;
-      removeListener?.();
-      root.classList.remove(NATIVE_TABBAR_CLASS);
+      removers.forEach((remove) => remove());
+      root.classList.remove(NATIVE_TABBAR_CLASS, NATIVE_DOCK_CLASS);
       root.style.removeProperty(NATIVE_TABBAR_HEIGHT);
-      shownRef.current = { shown: false, active: null };
+      shownRef.current = { shown: null, active: null, dockKey: null };
       void plugin()
         .then(({ bar }) => bar.hide())
         .catch(() => undefined);
     };
   }, [available]);
 
-  // Show, hide or move the active tab as the page changes.
+  // What the page wants: the dock only where the native dock is supported.
+  const dockWanted = options.mode === "dock" && dockSupported !== false;
+  const want: NativeBarMode = covered || (options.mode === "dock" && !dockWanted) ? "hidden" : options.mode;
+  // Drawn once the look is known, not first without it and again with it.
+  const dockKeyNow = options.dock && look ? `${dockKey(options.dock)}|${look}` : null;
+
+  // The web dock steps aside (in place, unseen) while the native one stands for it.
+  useEffect(() => {
+    if (!available) return;
+    document.documentElement.classList.toggle(NATIVE_DOCK_CLASS, dockWanted);
+  }, [available, dockWanted]);
+
+  // Show the tabs or the dock, hide, or move the active tab as the page changes.
   useEffect(() => {
     const shown = shownRef.current;
     const action = nativeTabBarAction({
       available,
-      hidden: options.hidden || covered,
+      want,
       shown: shown.shown,
       active: options.active,
       shownActive: shown.active,
+      dockKey: dockKeyNow,
+      shownDockKey: shown.dockKey,
     });
     if (action.kind === "none") return;
-    if (action.kind === "hide") shownRef.current = { shown: false, active: null };
-    else shownRef.current = { shown: true, active: options.active };
-    // What a "show" draws is settled now, before the redraw effect below
-    // runs, so the bar is not drawn a second time on start.
-    let drawing: { tint: string; look: BarLook } | null = null;
-    if (action.kind === "show") {
-      drawing = { tint: goldTint(), look: currentLook() };
-      drawnRef.current = { key: tabsKeyRef.current, tint: drawing.tint, look: `${drawing.look.dir}:${drawing.look.style}` };
+    if (action.kind === "hide") shownRef.current = { shown: null, active: null, dockKey: null };
+    else if (action.kind === "dock") shownRef.current = { shown: "dock", active: options.active, dockKey: dockKeyNow };
+    else shownRef.current = { shown: "tabs", active: options.active, dockKey: null };
+    // What a "show" or a "dock" draws is settled now, before the redraw effect
+    // below runs, so the bar is not drawn a second time on start.
+    const drawing = action.kind === "show" || action.kind === "dock";
+    const tint = drawing ? goldTint() : "";
+    const barLookNow = drawing ? currentLook() : null;
+    if (action.kind === "show" && barLookNow) {
+      drawnRef.current = { key: tabsKeyRef.current, tint, look: `${barLookNow.dir}:${barLookNow.style}` };
     }
+    const dock = dockRef.current;
     void plugin()
       .then(({ bar }) => {
-        if (action.kind === "show") {
-          return drawing
-            ? bar.show({ tabs: nativeTabsPayload(tabsRef.current, drawing.tint), active: options.active, tint: drawing.tint, ...drawing.look }).then(onShown)
-            : undefined;
+        if (action.kind === "show" && barLookNow) {
+          return bar.show({ tabs: nativeTabsPayload(tabsRef.current, tint), active: options.active, tint, ...barLookNow }).then(onShown);
+        }
+        if (action.kind === "dock" && barLookNow) {
+          if (!dock) return undefined;
+          return bar
+            .dock({
+              ...nativeDockPayload(dock, tint),
+              // The tabs it turns back into, should the bar not have them yet.
+              tabs: nativeTabsPayload(tabsRef.current, tint),
+              active: options.active,
+              tint,
+              ...barLookNow,
+            })
+            .then((result) => {
+              if (result?.shown) {
+                setDockSupported(true);
+                return undefined;
+              }
+              // Not supported (before iOS 26): the web dock shows instead.
+              shownRef.current = { shown: null, active: null, dockKey: null };
+              setDockSupported(false);
+              return bar.hide();
+            });
         }
         if (action.kind === "hide") return bar.hide();
-        return bar.setActive({ id: action.id });
+        if (action.kind === "setActive") return bar.setActive({ id: action.id });
+        return undefined;
       })
       .catch(() => {
         if (action.kind === "show") onShowFailed();
+        if (action.kind === "dock") {
+          shownRef.current = { shown: null, active: null, dockKey: null };
+          setDockSupported(false);
+        }
       });
-  }, [available, options.hidden, covered, options.active]);
+  }, [available, want, options.active, dockKeyNow]);
 
   // New labels or direction (a language change), or a new gold and look (a
-  // theme change): draw it again.
+  // theme change): draw the tabs again (the dock redraws through its key).
   useEffect(() => {
     if (!available) return;
-    const redraw = () => {
-      const shown = shownRef.current;
-      if (!shown.shown || !shown.active) return;
-      const active = shown.active;
-      const tint = goldTint();
+    const shown = shownRef.current;
+    if (shown.shown !== "tabs" || !shown.active) return;
+    const active = shown.active;
+    const tint = goldTint();
+    const barLookNow = currentLook();
+    const lookKey = `${barLookNow.dir}:${barLookNow.style}`;
+    const drawn = drawnRef.current;
+    if (drawn && drawn.key === tabsKey && drawn.tint === tint && drawn.look === lookKey) return;
+    drawnRef.current = { key: tabsKey, tint, look: lookKey };
+    void plugin()
+      .then(({ bar }) => bar.show({ tabs: nativeTabsPayload(tabsRef.current, tint), active, tint, ...barLookNow }))
+      .then(onShown)
+      .catch(onShowFailed);
+  }, [available, tabsKey, look]);
+
+  return available;
+}
+
+/**
+ * The app's look as one string — the theme (a class on <body>,
+ * use-theme-mode.ts), the gold and the direction (<html dir>) — kept in step.
+ */
+function useLookKey(enabled: boolean): string {
+  const [key, setKey] = useState("");
+  useEffect(() => {
+    if (!enabled) return;
+    const read = () => {
       const look = currentLook();
-      const lookKey = `${look.dir}:${look.style}`;
-      const drawn = drawnRef.current;
-      if (drawn && drawn.key === tabsKey && drawn.tint === tint && drawn.look === lookKey) return;
-      drawnRef.current = { key: tabsKey, tint, look: lookKey };
-      void plugin()
-        .then(({ bar }) => bar.show({ tabs: nativeTabsPayload(tabsRef.current, tint), active, tint, ...look }))
-        .then(onShown)
-        .catch(onShowFailed);
+      setKey(`${look.dir}:${look.style}:${goldTint()}`);
     };
-    redraw();
-    // The light theme is a class on <body> (use-theme-mode.ts); the direction is <html dir>.
-    const observer = new MutationObserver(redraw);
+    read();
+    const observer = new MutationObserver(read);
     observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["dir"] });
     return () => observer.disconnect();
-  }, [available, tabsKey]);
-
-  return available;
+  }, [enabled]);
+  return key;
 }

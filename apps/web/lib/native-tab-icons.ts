@@ -12,7 +12,7 @@ import type { NativeTab } from "./native-tab-bar";
  */
 export type TabGlyph = { kind: "icon"; d: string } | { kind: "brand" };
 
-export type GlyphRender = (glyph: TabGlyph, options: { size: number; stroke: number; color: string }) => string | null;
+export type GlyphRender = (glyph: TabGlyph, options: { size: number; stroke: number; color: string; flip?: boolean }) => string | null;
 
 /** What the plugin receives for a tab. */
 export type NativeTabPayload = Omit<NativeTab, "glyph"> & { image?: string; selectedImage?: string; original?: boolean };
@@ -27,7 +27,7 @@ const STROKE_CURRENT = 2.1;
 const SCALE = 3;
 
 /** Draws a glyph as a PNG data URL, or null where no canvas can draw (tests, very old WebKit). */
-export const renderGlyph: GlyphRender = (glyph, { size, stroke, color }) => {
+export const renderGlyph: GlyphRender = (glyph, { size, stroke, color, flip }) => {
   if (typeof document === "undefined" || typeof Path2D === "undefined") return null;
   try {
     const canvas = document.createElement("canvas");
@@ -36,6 +36,11 @@ export const renderGlyph: GlyphRender = (glyph, { size, stroke, color }) => {
     if (!ctx) return null;
     ctx.strokeStyle = color;
     ctx.fillStyle = color;
+    // Mirrored, as the page mirrors directional icons in left-to-right.
+    if (flip) {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
     if (glyph.kind === "icon") {
       ctx.scale(canvas.width / 24, canvas.width / 24);
       ctx.lineWidth = stroke;
