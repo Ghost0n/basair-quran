@@ -95,3 +95,11 @@ def test_dataset_validation(tmp_path):
         with pytest.raises(ValueError):
             bench.load_dataset(bad)
 
+
+
+def test_the_committed_dataset_is_valid():
+    items = bench.load_dataset(bench.DATASET)
+    assert {item["label"] for item in items} == {"clean", "violation", "borderline"}
+    assert {item["kind"] for item in items} == {"post", "comment"}
+    # Every guideline rule is exercised at least once.
+    assert {rule for item in items for rule in item["rules"]} == set(bench.audit_agent_service.RULES)

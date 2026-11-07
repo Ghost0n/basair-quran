@@ -191,4 +191,6 @@ Not built yet:
   their post and in «منشوراتي»).
 - **Abusive reporting** as a moderated behaviour (reports are rate-limited;
   nothing counts against a reporter yet).
-- The **benchmark** and labelled test set that choose the model.
+- The **benchmark run** that chooses the model: the scorer and a drafted labelled
+  set exist (`docs/moderation-benchmark.md`); the labels need a person's review,
+  then the candidates are run.
