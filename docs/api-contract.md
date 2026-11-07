@@ -64,6 +64,11 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/search`
 - `GET /api/search-v2`
 - `GET /api/search-result-page`
+  - Both take an optional `surah` (1–114): only that surah's verses are returned, and each card's
+    `total_occurrences`, `total_verses`, `total_surahs` and `total_pages` then describe that surah.
+    A card whose root or word has no verse there is left out; nothing found gives `found: false`
+    without a spelling suggestion. Out-of-range values are rejected (422). The concordance's surah
+    ribbon uses it; the on-device engine (`packages/offline-engine`) answers it the same way.
 - `GET /api/research-agent/settings`
 - `POST /api/research-agent`
 - `GET /api/ayah-reader`
@@ -313,6 +318,15 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   so PATCHing `[]` clears it. Stored in the `user_preferences` JSON, so it roams
   with the account and merges from guest on sign-up. The Home screen lists them to
   reopen the reader at that page; the reader footer toggles the current page.
+
+## Home sections
+
+- `home_hidden` is an account preference on `GET/PATCH /api/user/preferences`:
+  the Home sections the reader hid in Settings («الرئيسية»), from `greeting`,
+  `verse` (wide screens), `continue`, `index`, `saved`, `study`, `community`,
+  `search`. Defaults to `[]` (everything shown); unknown ids are rejected (422).
+  Wholesale-replace semantics like `saved_pages`. Sections are listed as
+  hidden so that a section added later shows by default.
 
 ## Morphology notes
 

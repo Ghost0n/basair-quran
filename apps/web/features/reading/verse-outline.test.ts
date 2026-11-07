@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { blocks, OUTLINE_GAP, OUTLINE_PAD, outlinePath, rowsFromRects, separate } from "./verse-outline";
+import { blocks, OUTLINE_GAP, OUTLINE_PAD, OUTLINE_RADIUS, outlinePath, rowsFromRects, separate } from "./verse-outline";
 
 const rect = (left: number, right: number, top: number, bottom: number) => ({ left, right, top, bottom });
 
@@ -40,5 +40,20 @@ describe("verse outline", () => {
   it("splits lines that barely overlap into separate blocks (no thin bridge)", () => {
     const rows = rowsFromRects([rect(0, 60, 0, 30), rect(300, 400, 40, 70)], 400);
     expect(blocks(rows)).toHaveLength(2);
+  });
+
+  it("keeps a verse whose lines barely overlap as one block on the web (2:2 on page 2)", () => {
+    const rows = rowsFromRects([rect(111, 294, 0, 30), rect(290, 349, 40, 70)], 460);
+    expect(blocks(rows.map((row) => ({ ...row })))).toHaveLength(2);
+    const [block, ...rest] = blocks(rows, { bridge: true });
+    expect(rest).toHaveLength(0);
+    const joint = Math.min(block[0].x2, block[1].x2) - Math.max(block[0].x1, block[1].x1);
+    expect(joint).toBeGreaterThan(OUTLINE_RADIUS * 2);
+    expect(outlinePath(block).match(/M/g)).toHaveLength(1);
+  });
+
+  it("never bridges lines that don't overlap", () => {
+    const rows = rowsFromRects([rect(0, 60, 0, 30), rect(300, 400, 40, 70)], 400);
+    expect(blocks(rows, { bridge: true })).toHaveLength(2);
   });
 });

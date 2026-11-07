@@ -1,6 +1,7 @@
 "use client";
 
 import "./documents.css";
+import "./documents.web.css";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -363,7 +364,7 @@ export function ShareStudio({
 
                 <div className="group">
                   <div className="label">{t("المقاس")}</div>
-                  <div className="qb-segmented qb-fit-track" data-autofit="1" role="radiogroup" aria-label={t("المقاس")}>
+                  <div className="qb-segmented qb-fit-track" data-autofit="1" suppressHydrationWarning role="radiogroup" aria-label={t("المقاس")}>
                     {(Object.keys(SHARE_FORMATS) as ShareFormat[]).map((value) => (
                       <button
                         key={value}
@@ -373,7 +374,7 @@ export function ShareStudio({
                         className={format === value ? "on" : ""}
                         onClick={() => setFormat(value)}
                       >
-                        {SHARE_FORMATS[value].label}
+                        {formatNumber(SHARE_FORMATS[value].label)}
                       </button>
                     ))}
                   </div>

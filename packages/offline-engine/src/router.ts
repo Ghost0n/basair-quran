@@ -312,9 +312,10 @@ export class OfflineApi {
   async searchV2(query: URLSearchParams): Promise<EngineResponse> {
     const { params, q, mode, mushaf } = this.searchParams(query);
     const pageSize = params.int("page_size", { default: DEFAULT_PAGE_SIZE, ge: 1, le: MAX_PAGE_SIZE })!;
+    const surah = params.int("surah", { default: null, ge: 1, le: 114 });
     params.check();
     const qSimple = OfflineApi.querySimple(q, mode);
-    const [results, didYouMean] = await this.quran.buildPaginatedSearchResults(q, qSimple, mode, mushaf, pageSize);
+    const [results, didYouMean] = await this.quran.buildPaginatedSearchResults(q, qSimple, mode, mushaf, pageSize, surah);
     if (!results.length) {
       return ok(shapeModel("PaginatedSearchResponse", { found: false, message: "No results found.", page_size: pageSize, results: [], did_you_mean: didYouMean }, true));
     }
@@ -326,9 +327,10 @@ export class OfflineApi {
     const resultKey = params.str("result_key", { minLength: 1 })!;
     const page = params.int("page", { default: 1, ge: 1 })!;
     const pageSize = params.int("page_size", { default: DEFAULT_PAGE_SIZE, ge: 1, le: MAX_PAGE_SIZE })!;
+    const surah = params.int("surah", { default: null, ge: 1, le: 114 });
     params.check();
     const qSimple = OfflineApi.querySimple(q, mode);
-    const result = await this.quran.buildSingleResultPage(q, qSimple, mode, mushaf, resultKey, page, pageSize);
+    const result = await this.quran.buildSingleResultPage(q, qSimple, mode, mushaf, resultKey, page, pageSize, surah);
     if (result === null) throw new HttpError(404, "Result page not found.");
     return ok(shapeModel("SearchResultPageResponse", { found: true, result }, true));
   }

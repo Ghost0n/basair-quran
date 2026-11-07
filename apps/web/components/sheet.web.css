@@ -1,0 +1,255 @@
+/* =====================================================================
+   Bottom sheets (components/sheet.tsx) and the reader's own sheets
+   (.qb-rsheet), in the web design, on a phone. A tablet or a desktop keeps
+   the centred panel of reading.css.
+   Base and Android: a solid surface over a scrim, a grip, the bottom safe
+   area kept clear. iPhone: a translucent surface with the blur allowed.
+   ===================================================================== */
+
+@media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+  html.qb-web .qb-rsheet {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  html.qb-web .qb-rsheet .backdrop {
+    background: var(--scrim);
+  }
+
+  html.qb-web .qb-rsheet .panel {
+    width: 100%;
+    /* A landscape phone: a sheet the width of a portrait one, centred. */
+    max-width: 640px;
+    margin-inline: auto;
+    max-height: min(88dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 16px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    border: 0;
+    border-top: 1px solid var(--border-strong);
+    border-radius: 22px 22px 0 0;
+    background: var(--bg-elev-1);
+    box-shadow: var(--shadow-3);
+    animation: qbSheetUp var(--motion-dur-slow) var(--spring-soft) both;
+  }
+
+  html.qb-web .qb-rsheet.is-tall .panel {
+    height: min(88dvh, calc(100dvh - env(safe-area-inset-top, 0px) - 16px));
+  }
+
+  html.qb-web .qb-rsheet .grip {
+    display: block;
+    flex-shrink: 0;
+    width: 36px;
+    height: 5px;
+    margin: 8px auto 0;
+    border-radius: 3px;
+    background: var(--border-strong);
+  }
+
+  html.qb-web .qb-sheet .head {
+    padding: 12px 20px 6px;
+  }
+
+  html.qb-web .qb-sheet .head h2 {
+    margin: 0;
+    font-family: var(--font-arabic-heading);
+    font-size: 19px;
+    line-height: 1.6;
+    color: var(--fg-1);
+  }
+
+  html.qb-web .qb-sheet .body {
+    padding: 4px 12px 16px;
+  }
+
+  /* Android: Material's sheet — the corner a little rounder, a smaller grip. */
+  html.qb-web.qb-android .qb-rsheet .panel {
+    border-radius: 28px 28px 0 0;
+  }
+
+  html.qb-web.qb-android .qb-rsheet .grip {
+    width: 32px;
+    height: 4px;
+    margin-top: 10px;
+  }
+
+  /* iPhone: glass over the page, one of the web design's blur exceptions. */
+  html.qb-web.qb-ios .qb-rsheet .panel {
+    background: color-mix(in srgb, var(--bg-elev-1) 88%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fg-1) 14%, transparent), var(--shadow-3);
+  }
+
+  html.qb-web.qb-ios body .qb-rsheet .panel {
+    -webkit-backdrop-filter: blur(30px) saturate(1.6) !important;
+    backdrop-filter: blur(30px) saturate(1.6) !important;
+  }
+
+  /* The account menu's popover, laid flat inside its sheet (account-menu.tsx). */
+  html.qb-web .qb-account-pop.is-sheet {
+    position: static;
+    width: auto;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    animation: none;
+  }
+
+  /* The recitation range, laid flat inside its sheet (range-picker.tsx): the
+     sheet carries the title, so the panel's own header steps aside. */
+  html.qb-web .qb-range-panel.is-sheet {
+    position: static;
+    width: auto;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    animation: none;
+  }
+
+  html.qb-web .qb-range-panel.is-sheet > .head {
+    display: none;
+  }
+
+  /* A word's analysis (morph-popover.tsx) inside its sheet: the word stays
+     as the heading, its close button gives way to the sheet's own gestures. */
+  html.qb-web .qb-morph-pop.is-sheet {
+    position: static;
+    width: auto;
+    max-width: none;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    animation: none;
+    transform: none;
+  }
+
+  html.qb-web .qb-morph-pop.is-sheet .pop-head .close {
+    display: none;
+  }
+
+  /* The display choices (display-strip.tsx) stacked in their sheet. */
+  html.qb-web .qb-sheet.is-display .qb-display-strip {
+    position: static;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    animation: none;
+  }
+
+  /* As a column the size row must not keep its desktop flex basis (200px tall),
+     and the highlight toggle is a labelled pill, not a full-width bar. */
+  html.qb-web .qb-sheet.is-display .qb-display-strip .size {
+    flex: none;
+  }
+
+  /* The reading modes share the sheet's width in equal halves (no empty half
+     beside them); a long label widens its own half, never cut. */
+  html.qb-web .qb-sheet.is-display .qb-display-strip .modes {
+    display: flex;
+  }
+
+  html.qb-web .qb-sheet.is-display .qb-display-strip .modes > button {
+    flex: 1 1 0;
+    min-width: max-content;
+    height: 40px;
+  }
+
+  html.qb-web .qb-sheet.is-display .qb-display-strip .toggle {
+    align-self: flex-start;
+    width: auto;
+    padding: 0 14px;
+  }
+
+  html.qb-web .qb-sheet.is-display .qb-display-strip .toggle span {
+    display: inline;
+  }
+
+  /* A menu's options: full-width rows, the chosen one with a gold check. */
+  html.qb-web .qb-sheet-opt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 48px;
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 12px;
+    background: none;
+    color: var(--fg-1);
+    font: inherit;
+    font-size: 15px;
+    line-height: 1.6;
+    text-align: start;
+    cursor: pointer;
+  }
+
+  html.qb-web .qb-sheet-opt .lbl {
+    flex: 1;
+    min-width: 0;
+  }
+
+  html.qb-web .qb-sheet-opt .lbl small {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 400;
+    color: var(--fg-3);
+  }
+
+  html.qb-web .qb-sheet-opt .check {
+    flex: none;
+    width: 18px;
+    color: var(--gold-text);
+  }
+
+  html.qb-web .qb-sheet-opt[aria-selected="true"],
+  html.qb-web .qb-sheet-opt[aria-checked="true"] {
+    color: var(--gold-text);
+    font-weight: 700;
+  }
+
+  html.qb-web .qb-sheet-opt:active {
+    background: var(--gold-soft);
+  }
+
+  /* A confirmation: the question, the action full width, cancel under it. */
+  html.qb-web .qb-sheet-text {
+    margin: 0 8px 16px;
+    font-size: 14.5px;
+    line-height: 1.8;
+    color: var(--fg-2);
+  }
+
+  html.qb-web .qb-sheet-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 8px;
+  }
+
+  html.qb-web .qb-sheet-actions button {
+    min-height: 48px;
+    border-radius: 14px;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  html.qb-web .qb-sheet-actions .primary {
+    border: 0;
+    background: var(--btn-grad);
+    color: var(--on-gold);
+  }
+
+  html.qb-web .qb-sheet-actions .cancel {
+    border: 1px solid var(--border-strong);
+    background: none;
+    color: var(--fg-2);
+  }
+}

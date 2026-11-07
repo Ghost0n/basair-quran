@@ -6,24 +6,34 @@ import { createPortal } from "react-dom";
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type { QuranPageAyah, SurahListItem } from "@q-basair/shared";
 
+import { useBand } from "@/lib/bands";
 import { API_BASE_URL } from "@/lib/config";
 import { ErrorState } from "@/components/error-state";
+import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { useRecitation } from "@/features/recitation/recitation-context";
 import { toggleRevealed } from "@/features/recitation/session-view";
+import { isFollowPaused, setFollowPaused, showRecitedPending, takeShowRecited, useShowRecitedRequests } from "@/features/recitation/follow";
 import { usePhoneLayout } from "@/lib/use-phone-layout";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { divisionOf, divisionRange } from "@/lib/quran-ranges";
 import { Icon } from "@/components/icon";
+import { useExclusiveOverlay } from "@/lib/exclusive-overlay";
+import { loadUntilReady } from "@/lib/retry";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { AyahMarksProvider, useShowHighlights, type AyahMark } from "@/features/themes/ayah-marks";
 import { useSaveAyah } from "@/features/themes/save-ayah-context";
 import { useThemes } from "@/features/themes/themes-store";
 
 import "./reading.css";
+import "./reading.web.css";
 
 import { ReaderBar } from "./components/reader-bar";
-import { NavigateSheet, type NavigateTarget } from "./components/navigate-sheet";
+import { useWebDesign } from "@/lib/use-web-design";
+
+/** The printed page's default size (paged-reader.tsx DEFAULT_FONT_PX): full fit, no zoom-out. */
+const WEB_PAGE_FONT_PX = 28;
+import { NavigateSheet, type NavigateTab, type NavigateTarget } from "./components/navigate-sheet";
 import { TravelOverlay } from "./components/travel-overlay";
 import { type MorphTarget } from "./components/morph-popover";
 import { type GlyphSaveTarget } from "./components/glyph-page";
@@ -34,6 +44,7 @@ import { prefetchQuranPage, useMushaf } from "./mushaf-context";
 import { prefetchMushafLayout, useMushafLayout } from "./use-mushaf-layout";
 import { useReaderGestures } from "./use-reader-gestures";
 import { nextReaderLayout, resolveReaderMode, spreadFits } from "./reader-modes";
+import { takeReaderEntry, takeReaderSheet } from "./reader-entry";
 import { readerOpenPlan, readerRetryDelay } from "./reader-resume";
 import { useCompactReader, useElementSize } from "./use-wide-screen";
 import type { SavableAyah } from "./use-saved-ayat";
@@ -75,6 +86,8 @@ export function MushafStage() {
   const [navDir, setNavDir] = useState<"fwd" | "back">("fwd");
   // Reader sheets («انتقل», «العرض») and focus mode (all chrome hidden).
   const [sheet, setSheet] = useState<"navigate" | null>(null);
+  // The tab «انتقل» opens on (unset: its own default).
+  const [navTab, setNavTab] = useState<NavigateTab | undefined>(undefined);
   // «العرض» drops a strip under the bar (no modal: the page stays in view).
   const [displayOpen, setDisplayOpen] = useState(false);
   // «حفظ وتظليل»: the ayah whose save/theme sheet is open.
@@ -84,8 +97,10 @@ export function MushafStage() {
   // «تظليل»: the tapped verse and the one under the pointer.
   const [focusAyahId, setFocusAyahId] = useState<number | null>(null);
   const [hoverAyahId, setHoverAyahId] = useState<number | null>(null);
-  // Switching tools drops the previous tool's transient state.
+  // Switching tools drops the previous tool's transient state (and focus
+  // mode, which only «قراءة» has).
   useEffect(() => {
+    if (tool !== "read") setImmersive(false);
     setSelection(null);
     setMorphTarget(null);
     setFocusAyahId(null);
@@ -99,15 +114,26 @@ export function MushafStage() {
     [focusAyahId, hoverAyahId, recitingAyahId],
   );
   const [immersive, setImmersive] = useState(false);
+  // «انتقل» is one of the reader's transient surfaces: opening it closes a
+  // menu or «العرض», and vice versa.
+  useExclusiveOverlay(sheet === "navigate", () => setSheet(null));
 
   // A recitation session locks the reader, from play until the player is
   // closed: every tool closes, verse taps do nothing, and on phones a tap on
   // the page only switches the view (the clear page ↔ the bars).
   const sessionActive = useRecitation().active;
+  // The web design (desktop) keeps the reader's tools live while the reciter
+  // is open, playing or paused: only phones and narrow windows lock them.
+  const webDesk = useWebDesign();
+  const narrowCanvas = useBand() !== "wide";
+  const readerLocked = sessionActive && !(webDesk && !narrowCanvas);
+  // While reciting, the recited verse is the only lit one: the resume/selected
+  // verse steps back so the two blocks never stack.
+  const selectedAyahId = sessionActive ? null : mushaf.selectedAyahId;
   const phone = usePhoneLayout();
   const portrait = useIsMobile();
   useEffect(() => {
-    if (!sessionActive) return;
+    if (!readerLocked) return;
     setSelection(null);
     setMorphTarget(null);
     setFocusAyahId(null);
@@ -115,7 +141,7 @@ export function MushafStage() {
     setDisplayOpen(false);
     if (phone && !portrait) setImmersive(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionActive]);
+  }, [readerLocked]);
 
   // Focus mode hides the shell chrome too (top bar, rail, tab bar) — a class on
   // <html> lets shell.css react without threading state through the shell.
@@ -137,40 +163,93 @@ export function MushafStage() {
       setSurahs(cached);
       return;
     }
-    let cancelled = false;
-    api
-      .getSurahs(selectedMushaf)
-      .then((list) => {
+    // Until it arrives (a cold start can ask before the data is reachable).
+    return loadUntilReady(
+      () => api.getSurahs(selectedMushaf),
+      (list) => {
         surahCache.set(selectedMushaf, list);
-        if (!cancelled) setSurahs(list);
-      })
-      .catch(() => {
-        /* dropdowns just stay empty if the catalog fails to load */
-      });
-    return () => {
-      cancelled = true;
-    };
+        setSurahs(list);
+      },
+    );
   }, [selectedMushaf]);
 
   // Opening the reader: resume at the exact last-read verse (last_position),
   // else the last page read on this device (see reader-resume.ts). Attempts
   // after a failed one open the plain page, so a saved verse that can't be
   // answered never keeps the reader on the error screen.
+  // Every way into the reader opens Al-Fatiha (reader-entry.ts) unless it
+  // named a place, Home asked to resume, or a recitation is under way.
   const openAttemptRef = useRef(0);
+  const resumeRef = useRef(false);
+  // The page a fresh entry opened (Al-Fatiha): not a reading position until
+  // the reader moves, so «تابع القراءة» keeps the real one.
+  const freshPageRef = useRef<number | null>(null);
   const openReader = () => {
+    const resume = resumeRef.current;
     const plan = readerOpenPlan({
-      position: preferences.last_position,
+      position: resume ? preferences.last_position : null,
       mushafId: selectedMushaf,
-      lastPage: mushaf.readLastPage(),
+      lastPage: resume ? mushaf.readLastPage() : 1,
       attempt: openAttemptRef.current,
     });
     openAttemptRef.current += 1;
     if (plan.kind === "ayah") void mushaf.loadByAyah(selectedMushaf, plan.ayahId, [], { transient: true });
     else if (plan.kind === "surah") void mushaf.loadBySurah(selectedMushaf, plan.surah, plan.ayah);
-    else void mushaf.loadPage(selectedMushaf, plan.page, { persist: true });
+    else void mushaf.loadPage(selectedMushaf, plan.page, { persist: resume });
   };
   const openReaderRef = useRef(openReader);
   openReaderRef.current = openReader;
+
+  // Entering the reader. Phones and narrow windows show it as its own
+  // screen, so every entry counts; wide screens keep the mushaf beside every
+  // panel, so only the launch does.
+  const { mode: shellMode, setMode: setShellMode } = useShellMode();
+  const ownScreen = useBand() !== "wide";
+  const entering = ownScreen ? shellMode === "reading" : true;
+  const enteredRef = useRef(false);
+  const recitationNow = useRecitation();
+  const recitedRef = useRef(recitationNow.current);
+  recitedRef.current = recitationNow.current;
+  useEffect(() => {
+    if (!entering) {
+      if (ownScreen) enteredRef.current = false;
+      return;
+    }
+    if (!ready || enteredRef.current) return;
+    enteredRef.current = true;
+    const entry = takeReaderEntry();
+    // Home's «الفهرس» / «المحفوظة» open the reader on its «انتقل» sheet.
+    const sheetTab = takeReaderSheet();
+    if (sheetTab) openNavigateRef.current(sheetTab);
+    resumeRef.current = entry === "resume";
+    openAttemptRef.current = 0;
+    freshPageRef.current = null;
+    const recited = recitedRef.current;
+    // «الآية المتلوّة» from another screen: the effect below opens on it.
+    if (recited && showRecitedPending()) return;
+    // A place opened on purpose (a search result, a library verse…) shows
+    // as if nothing were being recited: the reader stops following the
+    // recitation until «الآية المتلوّة» brings it back (follow.ts).
+    if (entry === "explicit") {
+      if (recited) setFollowPaused(true);
+      return;
+    }
+    if (recited) {
+      // A recitation under way: open where the reciter is.
+      setFollowPaused(false);
+      void mushaf.loadBySurah(selectedMushaf, recited.surah, recited.ayah);
+      return;
+    }
+    // Back in the reader: where it was left (a page on screen already).
+    if (entry === "keep" && mushaf.pageData) return;
+    if (entry === "fresh") {
+      freshPageRef.current = 1;
+      // Already there: nothing to load.
+      if (mushaf.pageData?.page === 1 && mushaf.pageData.mushaf_id === selectedMushaf) return;
+    }
+    openReaderRef.current();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entering, ready]);
 
   // A page on screen: the next opening (a self-heal after a reset) resumes again.
   useEffect(() => {
@@ -181,7 +260,7 @@ export function MushafStage() {
   // reading (e.g. after a navigation reset), reload rather than leaving the
   // skeleton stuck. A failed load is retried by the effect below, not here.
   useEffect(() => {
-    if (mushaf.pageData || mushaf.isLoading || mushaf.error || !ready) return;
+    if (mushaf.pageData || mushaf.isLoading || mushaf.error || !ready || !enteredRef.current) return;
     openReaderRef.current();
   }, [mushaf.pageData, mushaf.isLoading, mushaf.error, ready]);
 
@@ -212,6 +291,11 @@ export function MushafStage() {
   useEffect(() => {
     const pd = mushaf.pageData;
     if (!ready || !pd || !pd.ayahs.length) return;
+    // A fresh entry's Al-Fatiha isn't where the reader is — until they move.
+    if (freshPageRef.current != null) {
+      if ((pd.page ?? null) === freshPageRef.current) return;
+      freshPageRef.current = null;
+    }
     // A selection clearing on the same page (e.g. the resume marker fading) is
     // not a move — keep the exact verse that was saved.
     if (
@@ -290,6 +374,22 @@ export function MushafStage() {
   // and verse by verse, on every device.
   const compact = useCompactReader();
   const readerMode = resolveReaderMode(preferences.reader_layout);
+  // Web design: the printed page always shows at its default size (pages mode
+  // keeps no size of its own; the «العرض» size applies to verse by verse).
+  const webDesign = useWebDesign();
+  // «انتقل»: the web design (desktop) opens the side page beside the Mushaf —
+  // the same one as the rail's «انتقل», on the tab asked for — instead of a
+  // sheet over the page; phones and narrow windows keep the sheet.
+  const openNavigate = (tab?: NavigateTab) => {
+    if (webDesign && !ownScreen) {
+      setShellMode("saved", { params: { tab: tab ?? "surah" } });
+      return;
+    }
+    setNavTab(tab);
+    setSheet("navigate");
+  };
+  const openNavigateRef = useRef(openNavigate);
+  openNavigateRef.current = openNavigate;
   const ayahMode = readerMode === "ayah";
   // The verse-by-verse reader is continuous (a windowing engine): prev/next
   // become a smooth in-place scroll rather than a page swap.
@@ -378,7 +478,7 @@ export function MushafStage() {
 
   // «تظليل» hover: the verse under the pointer lights whole (mouse only).
   function onSurfaceHover(event: React.PointerEvent<HTMLDivElement>) {
-    if (sessionActive || tool !== "highlight" || event.pointerType !== "mouse") return;
+    if (readerLocked || tool !== "highlight" || event.pointerType !== "mouse") return;
     const target = event.target as Element;
     const verse = target.closest<HTMLElement>("[data-aid], [data-ayah-id]");
     // Between two words of a line: keep the current verse (no flicker).
@@ -389,7 +489,7 @@ export function MushafStage() {
 
   // Glyph readers: build the ayah payload from the ornament + catalog.
   function handleGlyphSave(target: GlyphSaveTarget) {
-    if (sessionActive) return;
+    if (readerLocked) return;
     const surahName = surahs.find((item) => item.id === target.surahId)?.name ?? `${target.surahId}`;
     activateVerse({
       ayah_id: target.ayahId,
@@ -402,7 +502,7 @@ export function MushafStage() {
   }
 
   function handleAyahSave(ayah: QuranPageAyah) {
-    if (sessionActive) return;
+    if (readerLocked) return;
     activateVerse({
       ayah_id: ayah.ayah_id,
       mushaf_id: ayah.mushaf_id,
@@ -476,18 +576,49 @@ export function MushafStage() {
   const recitingKey = reciting ? `${reciting.surah}:${reciting.ayah}` : null;
   const followedRef = useRef<string | null>(null);
   const showAyahPage = mushaf.showAyahPage;
+  // The recited verse isn't on screen (another page, or the reader stopped
+  // following it): the dock offers «الآية المتلوّة».
+  const [recitedAway, setRecitedAway] = useState(false);
+  // Bumped by «الآية المتلوّة»: follow again, from the verse being recited.
+  const [followNonce, setFollowNonce] = useState(0);
   useEffect(() => {
     if (!recitingKey || !reciting) {
       setRecitingAyahId(null);
+      setRecitedAway(false);
       followedRef.current = null;
+      // The recitation ended: the next one is followed again.
+      setFollowPaused(false);
       return;
     }
     let frame = 0;
     let tries = 0;
     const locate = () => {
-      const word = surfaceRef.current?.querySelector<HTMLElement>(`[data-wk^="${recitingKey}:"]`) ?? null;
+      // The verse on the page in view — not on the pages drawn beside it for
+      // the swipe (.qb-swipe-slot), which would hide that it has moved on.
+      const matches = Array.from(surfaceRef.current?.querySelectorAll<HTMLElement>(`[data-wk^="${recitingKey}:"]`) ?? []);
+      const word = matches.find((element) => !element.closest(".qb-swipe-slot")) ?? null;
+      // Not following (a place opened on purpose): light the verse where it
+      // shows, move nothing. On the page in view it has caught up: follow again
+      // (verse by verse the list holds the surah, so only the button resumes).
+      if (isFollowPaused()) {
+        if (word && !ayahMode) setFollowPaused(false);
+        else {
+          setRecitingAyahId(word?.dataset.aid ? Number(word.dataset.aid) : null);
+          setRecitedAway(true);
+          return;
+        }
+      }
+      // It has moved on to the next page, already drawn beside: turn to it at
+      // once, gliding over as a swipe does.
+      if (!word && followedRef.current !== recitingKey && matches.some((element) => element.closest(".qb-swipe-slot.next"))) {
+        followedRef.current = recitingKey;
+        setRecitingAyahId(null);
+        glideTurnRef.current("next");
+        return;
+      }
       if (word) {
         setRecitingAyahId(word.dataset.aid ? Number(word.dataset.aid) : null);
+        setRecitedAway(false);
         if (ayahMode && followedRef.current !== `${recitingKey}@scroll`) {
           followedRef.current = `${recitingKey}@scroll`;
           const row = word.closest<HTMLElement>(".qb-ayah-row") ?? word;
@@ -507,6 +638,7 @@ export function MushafStage() {
         return;
       }
       setRecitingAyahId(null);
+      setRecitedAway(true);
       if (followedRef.current === recitingKey || !pageData) return;
       const onPage = pageData.ayahs.some((ayah) => ayah.surah_id === reciting.surah && ayah.ayah === reciting.ayah);
       if (onPage) return;
@@ -516,7 +648,28 @@ export function MushafStage() {
     locate();
     return () => cancelAnimationFrame(frame);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recitingKey, ayahMode, pageData, layout, facing.layout, showSpread]);
+  }, [recitingKey, ayahMode, pageData, layout, facing.layout, showSpread, followNonce]);
+
+  // «الآية المتلوّة»: back to the verse being recited, and to following it.
+  const showRecited = useCallback(() => {
+    const recited = recitedRef.current;
+    if (!recited) return;
+    setFollowPaused(false);
+    followedRef.current = null;
+    setFollowNonce((value) => value + 1);
+  }, []);
+  // The same, asked from another screen (the capsule): once the reader shows.
+  const showRequests = useShowRecitedRequests();
+  useEffect(() => {
+    if (!entering || !ready || !showRecitedPending()) return;
+    takeShowRecited();
+    const recited = recitedRef.current;
+    if (!recited) return;
+    setFollowPaused(false);
+    followedRef.current = null;
+    void mushaf.loadBySurah(selectedMushaf, recited.surah, recited.ayah);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showRequests, entering, ready]);
 
   // Desktop page ribbons: outline / red, a click (un)saves that page.
   const savedPages = useSavedPages();
@@ -541,14 +694,18 @@ export function MushafStage() {
   // On phones a swiped page turn also hides the chrome, as an e-reader does —
   // reading resumes full screen and a tap brings the bars back.
   const settleIntoPage = () => {
-    if (phone && !sessionActive) setImmersive(true);
+    if (phone && !sessionActive && tool === "read") setImmersive(true);
   };
   // A tap on the page: focus mode. A phone on its side keeps the recitation's
   // own clear view (its player and capsule, phone-player.css); upright, the
   // recitation's controls are the reader's dock, so the tap is focus mode too.
+  // Focus mode belongs to «قراءة»: with «تحديد» or «تظليل» a tap is for the
+  // text, and the bars stay (a recitation locks the tools, so it reads too).
   function onPageTap() {
     if (sessionActive && phone && !portrait) toggleRevealed();
-    else setImmersive((value) => !value);
+    else if (tool === "read" || readerLocked) setImmersive((value) => !value);
+    // «تحديد»: a tap beside the words lets the selection go.
+    else if (tool === "select") setSelection(null);
   }
 
   // The drag: the track moves with the finger, then glides a full page over
@@ -562,6 +719,20 @@ export function MushafStage() {
     track.style.transition = animate ? "transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1)" : "none";
     track.style.transform = offset ? `translateX(${offset}px)` : "";
   };
+  // Glide the track a full page over, then turn (a swipe let go, or the
+  // recitation moving on to the page drawn beside this one).
+  const glideTurn = (turn: "next" | "prev", width = trackRef.current?.offsetWidth ?? window.innerWidth) => {
+    if (currentPage == null) return;
+    dragTo(turn === "next" ? width : -width, true);
+    const target = turn === "next" ? currentPage + 1 : currentPage - 1;
+    window.setTimeout(() => {
+      setTurning(target);
+      if (turn === "next") goNextRef.current();
+      else goPrevRef.current();
+    }, 240);
+  };
+  const glideTurnRef = useRef(glideTurn);
+  glideTurnRef.current = glideTurn;
   const drag = swipeTrack
     ? {
         onDrag: (dx: number) => {
@@ -569,12 +740,12 @@ export function MushafStage() {
           // No page beyond the first or the last: the page gives a little, then holds.
           dragTo(blocked ? dx * 0.25 : dx, false);
         },
-        onDragEnd: (turn: "next" | "prev" | null) => {
+        onDragEnd: (turn: "next" | "prev" | null): boolean => {
           const possible = turn === "next" ? pageData?.has_next : turn === "prev" ? pageData?.has_previous : false;
           const neighbour = turn === "next" ? nextNeighbour.layout : prevNeighbour.layout;
           if (!turn || !possible || currentPage == null) {
             dragTo(0, true);
-            return;
+            return false;
           }
           const width = trackRef.current?.offsetWidth ?? window.innerWidth;
           // The neighbour isn't drawn yet: turn as before, without the glide.
@@ -583,16 +754,11 @@ export function MushafStage() {
             if (turn === "next") goNextRef.current();
             else goPrevRef.current();
             settleIntoPage();
-            return;
+            return true;
           }
-          dragTo(turn === "next" ? width : -width, true);
-          const target = turn === "next" ? currentPage + 1 : currentPage - 1;
-          window.setTimeout(() => {
-            setTurning(target);
-            if (turn === "next") goNextRef.current();
-            else goPrevRef.current();
-            settleIntoPage();
-          }, 240);
+          glideTurn(turn, width);
+          window.setTimeout(settleIntoPage, 240);
+          return true;
         },
       }
     : undefined;
@@ -610,6 +776,7 @@ export function MushafStage() {
     },
     onTap: () => onPageTap(),
     mouseTaps: compact,
+    mouseDrag: compact,
   });
 
   // The turned-to page is drawn: back to rest, without a glide (before paint,
@@ -749,13 +916,16 @@ export function MushafStage() {
 
   // «تحديد»: first tap picks a word (and shows its analysis); a second tap
   // extends the run to it; a tap on a lone picked word, or any tap after a
-  // run, starts over.
+  // run, starts over. On the web design (desk) a tap picks that one word only
+  // — the verse number takes the whole verse — and a tap on it lets it go.
   function pickWord(element: HTMLElement) {
     const root = surfaceRef.current;
     const key = element.dataset.wk;
     if (!root || !key) return;
     setMorphTarget(null);
+    const single = webDesk && !narrowCanvas;
     setSelection((current) => {
+      if (single) return current && current.keys.length === 1 && current.anchor === key ? null : readSelection(root, key, key);
       if (current && current.keys.length === 1) {
         if (current.anchor === key) return null;
         return readSelection(root, current.anchor, key);
@@ -766,7 +936,7 @@ export function MushafStage() {
 
   // One entry point for pointer + keyboard word activation, routed by tool.
   function activateWord(surah: number, ayah: number, element: HTMLElement, ayahText?: string) {
-    if (sessionActive || tool === "read") {
+    if (readerLocked || tool === "read") {
       // The verse doesn't react (no focus ring left on the tapped word): on
       // phones the tap shows or hides the bars, as on the page around it.
       element.blur();
@@ -877,12 +1047,14 @@ export function MushafStage() {
         onPrev={goPrev}
         onNext={goNext}
         ayahMode={ayahMode}
-        onOpenNavigate={() => setSheet("navigate")}
+        onOpenNavigate={() => openNavigate("surah")}
         displayOpen={displayOpen}
         onToggleDisplay={() => setDisplayOpen((open) => !open)}
         onCloseDisplay={() => setDisplayOpen(false)}
         onToggleImmersive={() => setImmersive((value) => !value)}
-        locked={sessionActive}
+        locked={readerLocked}
+        recitedAway={recitedAway}
+        onShowRecited={showRecited}
       />
 
       {/* The reading surface: touch swipe turns the page (paged modes), a tap on
@@ -894,21 +1066,17 @@ export function MushafStage() {
         onPointerMove={gestures.onPointerMove}
         onPointerUp={gestures.onPointerUp}
         onPointerCancel={gestures.onPointerCancel}
-        onClick={(event) => {
-          // Phones: the surah named at the top of the page opens «انتقل».
-          if (compact && (event.target as Element).closest?.(".qb-print-head .surah")) {
-            setSheet("navigate");
-            return;
-          }
-          gestures.onClick(event);
-        }}
+        onClick={gestures.onClick}
+        onClickCapture={gestures.onClickCapture}
         onWheel={onSurfaceWheel}
         onPointerOver={onSurfaceHover}
         onPointerLeave={() => setHoverAyahId(null)}
       >
       {/* Page-turn zones at the page edges (pointer screens): a soft glow on
-          hover, a click turns the page. RTL book: the next page is on the left. */}
-      {!continuousMode ? (
+          hover, a click turns the page. RTL book: the next page is on the left.
+          Web design: only on the Mushaf's own page — beside another side page
+          the Mushaf turns with its bar's arrows, never by a stray click. */}
+      {!continuousMode && !(webDesk && !narrowCanvas && shellMode !== "reading") ? (
         <>
           <button
             type="button"
@@ -934,7 +1102,7 @@ export function MushafStage() {
           anchorData={pageData}
           totalPages={totalPages}
           authentic={authentic}
-          selectedAyahId={mushaf.selectedAyahId}
+          selectedAyahId={selectedAyahId}
           isSaved={saved.isSaved}
           onToggleSave={handleAyahSave}
           onGlyphSave={handleGlyphSave}
@@ -956,10 +1124,10 @@ export function MushafStage() {
           showSpread={showSpread}
           rightLayout={rightLayout}
           leftLayout={leftLayout}
-          fontSize={preferences.font_size}
+          fontSize={webDesign ? WEB_PAGE_FONT_PX : preferences.font_size}
           neighbours={swipeTrack ? { prev: prevNeighbour.layout, next: nextNeighbour.layout } : undefined}
           trackRef={trackRef}
-          selectedAyahId={mushaf.selectedAyahId}
+          selectedAyahId={selectedAyahId}
           isSaved={saved.isSaved}
           onToggleSave={handleAyahSave}
           onGlyphSave={handleGlyphSave}
@@ -972,8 +1140,9 @@ export function MushafStage() {
 
       </div>
 
-      {/* Phones: the page number, under the tab bar in every mode. */}
-      {phone && displayPage && typeof document !== "undefined"
+      {/* Phones: the page number under the dock, in pages mode (verse by
+          verse marks its pages in the list itself). */}
+      {phone && !ayahMode && displayPage && typeof document !== "undefined"
         ? createPortal(
             <span className="qb-page-number" aria-hidden="true">
               {tt("صفحة")} {formatNumber(displayPage)}
@@ -998,9 +1167,12 @@ export function MushafStage() {
               }}
               onClick={() => setImmersive(false)}
               aria-label={tt("إنهاء وضع التركيز")}
+              title={webDesign ? tt("إنهاء وضع التركيز") : undefined}
             >
-              <span>{tt("صفحة")} {formatNumber(displayPage)}</span>
-              <Icon name="shrink" size={14} />
+              {/* Web: the page's own folio stays the page number in both modes;
+                  the way back is only this icon, in the corner. */}
+              {webDesign ? null : <span>{tt("صفحة")} {formatNumber(displayPage)}</span>}
+              <Icon name="shrink" size={webDesign ? 16 : 14} />
             </button>,
             document.body,
           )
@@ -1017,7 +1189,11 @@ export function MushafStage() {
               currentJuz={pageData.juz}
               currentHizb={pageData.ayahs[0] ? divisionOf("hizb", { surah: pageData.ayahs[0].surah_id, ayah: pageData.ayahs[0].ayah }) : null}
               onNavigate={navigateTo}
-              onClose={() => setSheet(null)}
+              initialTab={navTab}
+              onClose={() => {
+                setSheet(null);
+                setNavTab(undefined);
+              }}
             />,
             document.body,
           )

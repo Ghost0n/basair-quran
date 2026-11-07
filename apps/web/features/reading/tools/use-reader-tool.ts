@@ -2,32 +2,26 @@
 
 import { useSyncExternalStore } from "react";
 
-import { DEFAULT_READER_TOOL, isReaderToolId, type ReaderToolId } from "./registry";
+import { DEFAULT_READER_TOOL, type ReaderToolId } from "./registry";
 
-/** The active reader tool — remembered per device, shared by bar and stage. */
-const KEY = "qb.readerTool";
+/**
+ * The active reader tool, shared by bar and stage. Not remembered: the reader
+ * always opens in «قراءة», and leaving it (another screen, a relaunch) drops
+ * back to «قراءة» (shell.tsx resets it).
+ */
 const listeners = new Set<() => void>();
-
-function read(): ReaderToolId {
-  try {
-    const value = window.localStorage.getItem(KEY);
-    return isReaderToolId(value) ? value : DEFAULT_READER_TOOL;
-  } catch {
-    return DEFAULT_READER_TOOL;
-  }
-}
+let current: ReaderToolId = DEFAULT_READER_TOOL;
 
 export function setReaderTool(tool: ReaderToolId): void {
-  try {
-    window.localStorage.setItem(KEY, tool);
-  } catch {
-    /* private mode — the choice lasts until reload */
-    memory = tool;
-  }
+  if (current === tool) return;
+  current = tool;
   for (const listener of listeners) listener();
 }
 
-let memory: ReaderToolId | null = null;
+/** Back to the default tool («قراءة»). */
+export function resetReaderTool(): void {
+  setReaderTool(DEFAULT_READER_TOOL);
+}
 
 export function useReaderTool(): ReaderToolId {
   return useSyncExternalStore(
@@ -35,7 +29,7 @@ export function useReaderTool(): ReaderToolId {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    () => memory ?? read(),
+    () => current,
     () => DEFAULT_READER_TOOL,
   );
 }

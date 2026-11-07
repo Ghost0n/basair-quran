@@ -10,6 +10,7 @@ import { useMushaf } from "@/features/reading/mushaf-context";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useNumerals } from "@/lib/preferences-context";
 
+import { requestShowRecited } from "./follow";
 import { useRecitation } from "./recitation-context";
 import { RecitationSheet } from "./recitation-sheet";
 import { useRevealed } from "./session-view";
@@ -156,7 +157,7 @@ export function Transport({ big = false }: { big?: boolean }) {
  */
 export function PhonePlayer() {
   const recitation = useRecitation();
-  const { mode } = useShellMode();
+  const { mode, setMode } = useShellMode();
   const revealed = useRevealed();
   const now = useNowPlaying();
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -246,6 +247,21 @@ export function PhonePlayer() {
           </span>
           <Icon name="chevDown" size={14} />
         </button>
+        {/* «الآية المتلوّة»: the reader, on the verse being recited. */}
+        {recitation.current ? (
+          <button
+            type="button"
+            className="clocate"
+            onClick={() => {
+              requestShowRecited();
+              if (mode !== "reading") setMode("reading");
+            }}
+            aria-label={t("الآية المتلوّة")}
+            title={t("الآية المتلوّة")}
+          >
+            <Icon name="locate" size={17} />
+          </button>
+        ) : null}
       </div>
 
       <div className={`qb-recite-hint${hint ? " show" : ""}`} role="status">

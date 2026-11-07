@@ -36,7 +36,16 @@ export function useSavedPages() {
     [pages, updateAccount],
   );
 
-  return { isSaved, toggle };
+  /** Unsave one listed page (a swipe on the saved-pages list). */
+  const remove = useCallback(
+    (target: { page: number; mushaf_id: number }) => {
+      const next = pages.filter((entry) => !(entry.page === target.page && entry.mushaf_id === target.mushaf_id));
+      void updateAccount({ saved_pages: next }).catch(() => {});
+    },
+    [pages, updateAccount],
+  );
+
+  return { isSaved, toggle, remove };
 }
 
 /**

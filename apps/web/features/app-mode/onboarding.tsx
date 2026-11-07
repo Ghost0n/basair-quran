@@ -62,7 +62,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     setError(false);
     setPercent(0);
     try {
-      await chooseLanguage(choice.code, ({ received, total }) => setPercent(total ? Math.round((received / total) * 100) : 0));
+      await chooseLanguage(choice.code, ({ received, total }) => setPercent(total ? Math.round((received / total) * 100) : 0), {
+        adoptNumerals: true,
+      });
       onDone();
       await setLocale(LOCALES.some((locale) => locale.code === choice.code) ? choice.code : "en");
     } catch {

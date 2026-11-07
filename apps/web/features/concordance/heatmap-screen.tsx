@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { useSearchParams } from "next/navigation";
 
@@ -8,12 +9,18 @@ import { createQBasairApiClient } from "@q-basair/api-client";
 import type { RootDistributionResponse, SurahListItem } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
-import { formatNumber } from "@/lib/numerals";
+import { Icon } from "@/components/icon";
+import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
+import { rootSpreadCounts } from "@/features/reading/tools/study-extras-model";
+import { useWebDesign } from "@/lib/use-web-design";
+import { useNumerals } from "@/lib/preferences-context";
 import { useMushaf } from "@/features/reading/mushaf-context";
-import { useShellMode } from "@/features/shell/mode-context";
+import { useGoBack, useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
+import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 
 import "./concordance.css";
+import "./concordance.web.css";
 
 import { t, tn } from "@/lib/i18n";
 
@@ -30,6 +37,9 @@ export function HeatmapScreen() {
   const { state } = useWorkspace();
   const mushaf = useMushaf();
   const { setMode } = useShellMode();
+  const { goBack } = useGoBack();
+  const formatNumber = useNumerals();
+  const topSlots = useTopBarSlots();
 
   const [surahs, setSurahs] = useState<SurahListItem[]>([]);
   const [distribution, setDistribution] = useState<RootDistributionResponse | null>(null);
@@ -86,6 +96,10 @@ export function HeatmapScreen() {
     [distribution],
   );
 
+  // Web design: the same counts as the surah ribbon above the grid.
+  const web = useWebDesign();
+  const spreadCounts = useMemo(() => (distribution?.found ? rootSpreadCounts(distribution) : null), [distribution]);
+
   function intensity(count: number): number {
     if (count <= 0) return 0;
     return Math.min(6, Math.ceil((count / maxCount) * 6));
@@ -99,24 +113,48 @@ export function HeatmapScreen() {
     );
   }
 
+  // Web design, desktop: back, the root and its counts go up into the top bar.
+  const head = (
+  <div className="qb-aux-h has-back">
+    {/* Back to where the root was opened from (the saved roots, a search). */}
+    <button type="button" className="qb-icon-round qb-aux-back" onClick={() => goBack()} aria-label={t("رجوع")}>
+      <Icon name="chevRight" size={18} />
+    </button>
+    <div>
+      <div className="kicker">{t("خريطة انتشار الجذر")}</div>
+      <h2>{distribution?.root ?? root}</h2>
+      <div className="sub">
+        {loading
+          ? t("جارٍ حساب الانتشار…")
+          : distribution?.found
+            ? `${tn("{0} موضع", distribution.total, { 0: formatNumber(distribution.total) })} · ${tn("{0} سورة", distribution.surah_count, { 0: formatNumber(distribution.surah_count) })}`
+            : t("لا توجد مواضع لهذا الجذر.")}
+      </div>
+    </div>
+  </div>
+  );
+
   return (
     <div className="qb-aux">
-      <div className="qb-aux-h">
-        <div>
-          <div className="kicker">{t("خريطة انتشار الجذر")}</div>
-          <h2>{distribution?.root ?? root}</h2>
-          <div className="sub">
-            {loading
-              ? t("جارٍ حساب الانتشار…")
-              : distribution?.found
-                ? `${tn("{0} موضع", distribution.total, { 0: formatNumber(distribution.total) })} · ${tn("{0} سورة", distribution.surah_count, { 0: formatNumber(distribution.surah_count) })}`
-                : t("لا توجد مواضع لهذا الجذر.")}
-          </div>
-        </div>
-      </div>
+      {topSlots ? createPortal(head, topSlots.start) : head}
 
       {distribution?.found ? (
         <>
+          {web && spreadCounts ? (
+            <Ribbon
+              className="qb-heat-ribbon"
+              counts={spreadCounts}
+              label={t("انتشار الجذر في السور")}
+              height={110}
+              grow
+              readout={(i) => t("{0}: {1}", { 0: SURAH_NAMES[i], 1: formatNumber(spreadCounts[i]) })}
+              restReadout={t("المس سورة لتفتحها في المصحف")}
+              onActivate={(i) => {
+                void mushaf.loadBySurah(state.selectedMushaf, i + 1);
+                setMode("reading");
+              }}
+            />
+          ) : null}
           <div className="qb-heatmap-grid">
             {surahs.map((surah) => {
               const count = countBySurah.get(surah.id) ?? 0;

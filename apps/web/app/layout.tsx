@@ -5,21 +5,37 @@ import "./tokens-motion.css";
 import "./globals.css";
 import "./motion.css";
 import "./glass.css";
+import "./web-design.css";
 
 import { AppModeRoot } from "@/features/app-mode/app-mode-root";
 import { APP_MODE } from "@/lib/app-mode/config";
 import { LOCALE_INIT_SCRIPT } from "@/lib/i18n/init-script";
 import { I18nProvider } from "@/lib/i18n/provider";
+import { SITE_URL } from "@/lib/site";
+import { PLATFORM_INIT_SCRIPT } from "@/lib/platform-class";
+import { WEB_DESIGN_INIT_SCRIPT } from "@/lib/web-design";
 
 import { t } from "@/lib/i18n";
 
 export const metadata: Metadata = {
+  // Absolute URLs for canonical links, Open Graph images and the sitemap (lib/site.ts).
+  metadataBase: new URL(SITE_URL),
   get title() {
     return t("بصائر القرآن");
   },
   get description() {
     return t("مساحة بحث قرآنية للباحث تجمع بين الاستكشاف والقراءة والسياق.");
   },
+  applicationName: "Basair",
+  // A shared link shows a card (Facebook, WhatsApp, X, Telegram…): the brand in both scripts.
+  // i18n-ignore
+  openGraph: {
+    type: "website",
+    siteName: "Basair · بصائر",
+    locale: "ar_AR",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "بصائر القرآن" }],
+  },
+  twitter: { card: "summary_large_image", images: ["/og-image.png"] },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -56,9 +72,9 @@ const IOS_FOCUS_ZOOM_SCRIPT = `(function(){try{var n=navigator;if(!(/iPad|iPhone
 
 // Runs before first paint to apply the saved theme, so light-mode users
 // never see a flash of the dark default (FOUC). Mirrors the classes the
-// workspace hook applies at runtime (`light` + `light-mode`) and the reduced
-// transparency.
-const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.body.classList.add('light','light-mode');}if(localStorage.getItem('qb.transparency')==='reduced'){document.documentElement.dataset.transparency='reduced';}}catch(e){}})();`;
+// workspace hook applies at runtime (`light` + `light-mode`). It also drops the
+// former per-device «مُعتِمة» choice: the app is always glass now.
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.body.classList.add('light','light-mode');}localStorage.removeItem('qb.transparency');}catch(e){}})();`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -76,6 +92,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <link rel="preload" href="/fonts/ui/amiri-400-arabic.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <meta name="theme-color" content="#131210" />
         <script dangerouslySetInnerHTML={{ __html: LOCALE_INIT_SCRIPT }} />
+        {/* The web design (desktop web only): <html class="qb-web"> before first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: WEB_DESIGN_INIT_SCRIPT }} />
+        {/* The platform touches: <html class="qb-ios"> or "qb-android" before first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: PLATFORM_INIT_SCRIPT }} />
       </head>
       <body suppressHydrationWarning>
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />

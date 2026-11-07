@@ -18,6 +18,7 @@ import { API_BASE_URL } from "@/lib/config";
 import { reportError } from "@/lib/error-report";
 
 import { t } from "@/lib/i18n";
+import { noteReaderLoad } from "./reader-entry";
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const LAST_PAGE_KEY = "qbasair.mushaf.lastPage";
 // The surah at the top of the last-read page — display sugar for the Home
@@ -92,7 +93,9 @@ export function prefetchQuranPage(mushafId: number | null | undefined, page: num
   fetchPage(mushafId, page).catch(() => {});
 }
 // How long a resume marker stays on the verse before it clears itself.
-const TRANSIENT_SELECTION_MS = 2500;
+// An opened verse (from search, the library, a resume…) glows this long, then
+// lets go — it never stays lit beside the themes' highlights or a recitation.
+const TRANSIENT_SELECTION_MS = 5000;
 
 export type MushafController = {
   pageData: QuranPageResponse | null;
@@ -211,6 +214,7 @@ function useMushafController(): MushafController {
 
   const loadPage = useCallback(
     async (mushafId: number, page: number, options: LoadOptions = {}) => {
+      noteReaderLoad();
       setIsLoading(true);
       setError(null);
       if (options.highlights !== undefined) setSelectedHighlights(options.highlights);
@@ -245,6 +249,7 @@ function useMushafController(): MushafController {
 
   const loadByAyah = useCallback(
     async (mushafId: number, ayahId: number, highlights: number[] = [], options: { transient?: boolean } = {}) => {
+      noteReaderLoad();
       setIsLoading(true);
       setError(null);
       setSelectedAyahId(ayahId);
@@ -253,7 +258,7 @@ function useMushafController(): MushafController {
         const data = await api.getQuranPageForAyah(mushafId, ayahId);
         if (!data.found) throw new Error(t(NOT_FOUND));
         applyResult(data, false);
-        if (options.transient) markTransient(ayahId);
+        markTransient(ayahId);
       } catch (err) {
         reportError("reader", err);
         setError(err instanceof Error ? err.message : t(READER_ERROR));
@@ -266,6 +271,7 @@ function useMushafController(): MushafController {
 
   const loadBySurah = useCallback(
     async (mushafId: number, surah: number, ayah?: number) => {
+      noteReaderLoad();
       setIsLoading(true);
       setError(null);
       setSelectedHighlights([]);
@@ -273,8 +279,10 @@ function useMushafController(): MushafController {
         const data = await api.getQuranPageForSurah(mushafId, surah, ayah);
         if (!data.found) throw new Error(t(NOT_FOUND));
         // Only a targeted verse is selected; a plain surah jump selects nothing.
-        setSelectedAyahId(ayah ? data.selected_ayah_id ?? null : null);
+        const selected = ayah ? data.selected_ayah_id ?? null : null;
+        setSelectedAyahId(selected);
         applyResult(data, true);
+        if (selected != null) markTransient(selected);
       } catch (err) {
         reportError("reader", err);
         setError(err instanceof Error ? err.message : t(READER_ERROR));
@@ -282,11 +290,12 @@ function useMushafController(): MushafController {
         setIsLoading(false);
       }
     },
-    [applyResult],
+    [applyResult, markTransient],
   );
 
   const showAyahPage = useCallback(
     async (mushafId: number, surah: number, ayah: number) => {
+      noteReaderLoad();
       try {
         const data = await api.getQuranPageForSurah(mushafId, surah, ayah);
         if (data.found) applyResult(data, true);
@@ -299,6 +308,7 @@ function useMushafController(): MushafController {
 
   const loadByJuz = useCallback(
     async (mushafId: number, juz: number) => {
+      noteReaderLoad();
       setIsLoading(true);
       setError(null);
       setSelectedHighlights([]);

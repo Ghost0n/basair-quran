@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type { SurahListItem, TextCountResponse, TextCountScopes } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { useBand } from "@/lib/bands";
 import { API_BASE_URL } from "@/lib/config";
 import { useNumerals } from "@/lib/preferences-context";
 import { queueStudioAsk } from "@/lib/studio-prefill";
@@ -14,6 +15,10 @@ import { useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 
 import { useMorphology } from "../use-morphology";
+import { useWebDesign } from "@/lib/use-web-design";
+
+import { StudyExtras } from "./study-extras";
+import "./tools.web.css";
 
 import type { WordSelection } from "./word-selection";
 
@@ -38,12 +43,33 @@ export function SelectionBar({
   onClear: () => void;
 }) {
   const formatNumber = useNumerals();
-  const { setMode } = useShellMode();
+  const { mode, setMode } = useShellMode();
   const { actions } = useWorkspace();
   const [counting, setCounting] = useState(false);
   const [copied, setCopied] = useState(false);
   const [rootBusy, setRootBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  // Web design, wide canvas: the bar becomes the study panel in its column beside
+  // the Mushaf (features/shell/workspace-canvas.tsx). The column is found after
+  // commit, so the panel follows it when the page changes; elsewhere (other
+  // pages, a compact canvas) the reader keeps today's bar.
+  const web = useWebDesign();
+  const compact = useBand() !== "wide";
+  const study = web && !compact;
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    setSlot(study && mode === "reading" ? document.getElementById("qb-study-slot") : null);
+  }, [study, mode]);
+
+  // Another side page beside the Mushaf (library, «انتقل», search…): a word or
+  // verse picked there asks first, then opens the reader with its details. A
+  // selection already open when you left the reader asks nothing.
+  const pickKey = selection.keys.join(",");
+  const seenInReader = useRef<string | null>(mode === "reading" ? pickKey : null);
+  useEffect(() => {
+    if (mode === "reading") seenInReader.current = pickKey;
+  }, [mode, pickKey]);
+  const confirmElsewhere = study && mode !== "reading" && seenInReader.current !== pickKey;
 
   const words = selection.keys.length;
   const single = words === 1;
@@ -101,9 +127,35 @@ export function SelectionBar({
     }
   }
 
+  if (confirmElsewhere) {
+    const host = typeof document === "undefined" ? null : document.querySelector<HTMLElement>(".qb-mushaf-stage");
+    return host
+      ? createPortal(
+          <div className="qb-pick-confirm" role="dialog" aria-label={t("عرض التحديد في المصحف؟")}>
+            <div className="copy">
+              <strong>{t("عرض التحديد في المصحف؟")}</strong>
+              <span>{t("تُغلق الصفحة الجانبية وتظهر تفاصيل «{0}» بجانب المصحف.", { 0: selection.text })}</span>
+            </div>
+            <div className="acts">
+              <button type="button" className="go" onClick={() => setMode("reading")}>
+                {t("انتقل إلى المصحف")}
+              </button>
+              <button type="button" onClick={onClear}>
+                {t("إلغاء")}
+              </button>
+            </div>
+          </div>,
+          host,
+        )
+      : null;
+  }
+
+  // The study panel shows only in its column (reading mode, wide canvas).
+  if (study && !slot) return null;
+
   // Portaled to <body> so it layers above the mobile tab bar and media bar.
   return createPortal(
-    <div className="qb-selection-bar" role="region" aria-label={t("الكلمات المحدّدة")}>
+    <div className={`qb-selection-bar${study ? " is-study" : ""}`} role="region" aria-label={t("الكلمات المحدّدة")}>
       {counting && !wholeVerse ? (
         <CountPanel selection={selection} mushafId={mushafId} onClose={() => setCounting(false)} />
       ) : null}
@@ -121,6 +173,7 @@ export function SelectionBar({
         </button>
       </div>
       {single ? <WordAnalysis selection={selection} mushafId={mushafId} /> : null}
+      {study ? <StudyExtras selection={selection} mushafId={mushafId} /> : null}
       <div className="acts">
         {wholeVerse ? null : (
           <button type="button" onClick={search}>
@@ -146,7 +199,7 @@ export function SelectionBar({
       </div>
       {note ? <div className="note" role="status">{note}</div> : null}
     </div>,
-    document.body,
+    study && slot ? slot : document.body,
   );
 }
 

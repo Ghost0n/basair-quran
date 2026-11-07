@@ -159,6 +159,8 @@ python scripts/build_db.py
 
 The builder now precomputes phrase-token metadata and morphology search variants into SQLite so the API does not need to keep large search indexes in memory at runtime.
 
+Each word's root is read from the morphology source (`data/quran-morphology.txt`, the Quranic Arabic Corpus, Ḥafṣ) word by word, not looked up by spelling: «قُلۡ» is قول while «قَلَّ» is قلل, and particles such as «مِن», «ما», «إنّ» or «على» have no root. Narrations that number or spell verses differently take the root of the same word in a nearby verse of the surah (hamza seats, alifs and the final yā' barī «ے» set aside); `data/word_root_dictionary.json` is only the fallback for spellings the source never uses. Each build prints, per narration, how many roots came from each step (`scripts/build_db.py`, `RootResolver`; tests in `tests/test_build_db.py`).
+
 3. Add optional research-agent sources under `data/research_sources/`, then build the generated research index:
 
 ```powershell

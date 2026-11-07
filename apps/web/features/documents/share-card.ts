@@ -363,10 +363,19 @@ export async function renderShareCard(input: ShareCardInput, options: ShareOptio
   return canvasToPng(await renderShareCanvas(input, options));
 }
 
+import { nativeShareFiles } from "@/lib/native-share";
+
 type ShareNavigator = Navigator & { canShare?: (data: ShareData) => boolean };
 
 /** Share through the OS sheet when files are shareable, else download. */
 export async function shareOrDownload(blob: Blob, filename: string, text: string): Promise<"shared" | "downloaded"> {
+  // The standalone app: the phone's own sheet (a download does nothing there).
+  try {
+    const native = await nativeShareFiles([{ blob, name: filename }], text);
+    if (native) return "shared";
+  } catch {
+    /* the sheet failed — try the web ways below */
+  }
   const file = new File([blob], filename, { type: blob.type || "image/png" });
   const nav = navigator as ShareNavigator;
   if (nav.share && nav.canShare?.({ files: [file] })) {
@@ -383,6 +392,12 @@ export async function shareOrDownload(blob: Blob, filename: string, text: string
 
 /** Share several images at once (a carousel) when the OS allows it; else `null`. */
 export async function shareFiles(files: File[], text: string): Promise<"shared" | null> {
+  try {
+    const native = await nativeShareFiles(files.map((file) => ({ blob: file, name: file.name })), text);
+    if (native) return "shared";
+  } catch {
+    /* fall back to the web share */
+  }
   const nav = navigator as ShareNavigator;
   if (!nav.share || !nav.canShare?.({ files })) return null;
   try {

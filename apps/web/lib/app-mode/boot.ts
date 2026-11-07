@@ -1,6 +1,9 @@
 /**
- * The standalone app's start-up, behind the native splash screen (cold start
- * only: returning from the background never shows it again).
+ * The standalone app's start-up, behind the splash screen (cold start only:
+ * returning from the background never shows it again). The native splash is
+ * only the plain launch colour: as soon as the web app draws, its own splash
+ * (features/app-mode/launch-splash.tsx, the home's rosette drawing itself)
+ * replaces it (`releaseNativeSplash`) and stays until the start-up lifts it.
  *
  * While the splash is up, the work that would otherwise stall the first
  * screens runs: the interface fonts, the device databases (copied from the
@@ -18,6 +21,7 @@
  */
 import { createQBasairApiClient } from "@q-basair/api-client";
 
+import { installAppBack } from "@/lib/app-back";
 import { API_BASE_URL } from "@/lib/config";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { lastReadPage, warmQuranPage } from "@/features/reading/mushaf-context";
@@ -48,22 +52,39 @@ const within = (ms: number, work: Promise<unknown>) =>
   Promise.race([work.then(() => undefined, () => undefined), new Promise<void>((resolve) => setTimeout(resolve, ms))]);
 
 let hidden = false;
+let nativeReleased = false;
 let liftSplash: () => void = () => undefined;
 /** Settles when the splash is asked to lift (the native fade then runs on its own). */
 const splashLifted = new Promise<void>((resolve) => {
   liftSplash = resolve;
 });
 
+/** Settles when the start-up is done (or gave up waiting): the drawn splash then fades out. */
+export function whenSplashLifts(): Promise<void> {
+  return splashLifted;
+}
+
+async function hideNative(fadeOutDuration: number): Promise<void> {
+  if (nativeReleased) return;
+  nativeReleased = true;
+  try {
+    const { SplashScreen } = await import("@capacitor/splash-screen");
+    await SplashScreen.hide({ fadeOutDuration });
+  } catch {
+    /* web preview of the app build: there is no native splash */
+  }
+}
+
+/** The drawn splash is on screen: the native one (the plain launch colour) steps aside under it. */
+export function releaseNativeSplash(): Promise<void> {
+  return hideNative(200);
+}
+
 async function hideSplash(): Promise<void> {
   if (hidden) return;
   hidden = true;
   liftSplash();
-  try {
-    const { SplashScreen } = await import("@capacitor/splash-screen");
-    await SplashScreen.hide({ fadeOutDuration: 300 });
-  } catch {
-    /* web preview of the app build: there is no native splash */
-  }
+  await hideNative(300);
 }
 
 function loadFonts(): Promise<unknown> {
@@ -123,6 +144,10 @@ export function bootApp({ onboarded }: { onboarded: boolean }): Promise<void> {
   if (started || typeof window === "undefined") return splashLifted;
   started = true;
   window.setTimeout(() => void hideSplash(), SAFETY_MS);
+
+  // Android's back button: the open sheet, then the screen before, then out (lib/app-back.ts).
+  const platform = (window as Window & { Capacitor?: { getPlatform?: () => string } }).Capacitor?.getPlatform?.();
+  if (platform === "android") void installAppBack().catch(() => undefined);
 
   const fonts = loadFonts();
   const databases = appRuntime();

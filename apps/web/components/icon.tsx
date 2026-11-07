@@ -52,6 +52,10 @@ export const ICON_PATHS = {
   link: "M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1",
   more: "M5 12h.01M12 12h.01M19 12h.01",
   menu: "M4 6h16M4 12h16M4 18h16",
+  // A panel with its side column: show or hide a list beside the page.
+  sidebar: "M4 5h16v14H4zM9.5 5v14",
+  arrowUp: "M12 19V5M6 11l6-6 6 6",
+  arrowDown: "M12 5v14M6 13l6 6 6-6",
   arrowRight: "M5 12h14M13 6l6 6-6 6",
   arrowLeft: "M19 12H5M11 6l-6 6 6 6",
   arrowDownLeft: "M17 7L7 17M7 17h7M7 17v-7",
@@ -66,6 +70,8 @@ export const ICON_PATHS = {
   cards: "M3 5h12v12H3zM7 9h12v12H7",
   page: "M6 3h9l4 4v14H6zM14 3v5h5",
   mosque: "M4 21V11l8-7 8 7v10M9 21v-6h6v6M12 4v3",
+  // A target: back to the verse being recited.
+  locate: "M12 5a7 7 0 1 1 0 14a7 7 0 0 1 0-14zM12 9.5a2.5 2.5 0 1 1 0 5a2.5 2.5 0 0 1 0-5zM12 2v3M12 19v3M2 12h3M19 12h3",
   compass: "M12 3a9 9 0 1 1 0 18a9 9 0 0 1 0-18zM15 9l-2 6-4 2 2-6z",
   command: "M9 6h-3a3 3 0 1 0 3 3v0v6v0a3 3 0 1 0-3 3h3 M15 6h3a3 3 0 1 1-3 3v0v6v0a3 3 0 1 1 3 3h-3 M9 6h6v12H9z",
   // Strict evidence (gold) — shield with check. Tafssir (copper) — flask.

@@ -1,8 +1,10 @@
 "use client";
 
 import "./companions.css";
+import "./companions.web.css";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import "@/features/themes/themes.css";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,6 +12,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import type { NotebookItem, ThemeColor, ThemeSummary } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
+import { citedSurahCounts } from "@/features/studio/cited-surahs";
+import { useTopBarSlots } from "@/features/shell/top-bar-slots";
+import { useWebDesign } from "@/lib/use-web-design";
+import { SwipeRow } from "@/components/swipe-row";
 import { useNumerals } from "@/lib/preferences-context";
 import { queueStudioOpenSession } from "@/lib/studio-prefill";
 import { boardUrl } from "@/features/board/last-board";
@@ -17,6 +24,7 @@ import { createThemeBoard, useThemeBoards, type BoardListing } from "@/features/
 import { useStickyState } from "@/lib/use-sticky-state";
 import { useMushaf } from "@/features/reading/mushaf-context";
 import { useShellMode } from "@/features/shell/mode-context";
+import { goTo, markReplace } from "@/features/shell/navigation";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { THEME_PALETTE } from "@/features/themes/palette";
 import { deleteTheme, updateTheme, useThemes } from "@/features/themes/themes-store";
@@ -24,6 +32,7 @@ import { createDocumentUrl } from "@/features/documents/open-document";
 
 import { relativeAge, useCompanions } from "./use-companions";
 
+import { TAFSSIR_ENABLED } from "@/lib/features";
 import { t as tt, tn } from "@/lib/i18n";
 
 type LibraryTab = "verses" | "boards" | "documents" | "sessions" | "roots";
@@ -61,6 +70,9 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
   const { state } = useWorkspace();
   const { setMode } = useShellMode();
   const formatNumber = useNumerals();
+  // Web design: where the saved verses sit across the surahs, and a panel that can widen.
+  const web = useWebDesign();
+  const topSlots = useTopBarSlots();
   const router = useRouter();
 
   const [tab, setTabState] = useState<LibraryTab>(initialTab);
@@ -76,7 +88,13 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
     sp.set("tab", next);
     if (focus) sp.set("focus", String(focus));
     else sp.delete("focus");
-    router.replace(`/?${sp.toString()}`, { scroll: false });
+    // A tab change replaces the screen in the back stack (back leaves the notebook).
+    markReplace();
+    goTo(`/?${sp.toString()}`, true);
+  }
+
+  function openRootInsights(rootText: string) {
+    setMode("heatmap", { params: { root: rootText, tab: null, focus: null } });
   }
   const [verseView, setVerseView] = useStickyState<VerseView>("qb.notebook.verseView", "recent", ["recent", "themes"]);
   const [sessionFilter, setSessionFilter] = useStickyState<SessionFilter>("qb.notebook.sessionFilter", "all", ["all", "strict", "tafssir"]);
@@ -90,7 +108,9 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
     } else {
       void mushaf.loadByAyah(item.mushaf_id || state.selectedMushaf, item.ayah_id, []);
     }
-    setMode("reading");
+    // Web design, desktop: the Mushaf is beside the notebook — the verse opens
+    // there and the notebook stays open.
+    if (!topSlots) setMode("reading");
   }
 
   const { themes, byId: themeById } = useThemes();
@@ -105,8 +125,10 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
     (item) => !(item.theme_ids ?? []).some((themeId) => themeById(themeId) != null),
   );
   const visibleSessions = companions.sessions.filter(
-    (s) => sessionFilter === "all" || s.mode === sessionFilter,
+    (s) => !TAFSSIR_ENABLED || sessionFilter === "all" || s.mode === sessionFilter,
   );
+
+  const savedCounts = citedSurahCounts(companions.notebook.map((item) => ({ surah_id: item.surah_id ?? 0 })));
 
   const TABS: { value: LibraryTab; label: string; count: number }[] = [
     { value: "verses", label: tt("الآيات"), count: companions.notebook.length },
@@ -116,37 +138,48 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
     { value: "roots", label: tt("الجذور"), count: companions.roots.length },
   ];
 
+  // Web design, desktop: the tabs (each with its count) and the widen toggle
+  // live in the shell's top bar (top-bar-slots.ts); the page needs no heading.
+  const tabStrip = (
+    <div className="qb-lib-tabs qb-fit-track" data-autofit="2" suppressHydrationWarning role="tablist">
+      {TABS.map((t) => (
+        <button
+          key={t.value}
+          type="button"
+          role="tab"
+          aria-selected={tab === t.value}
+          className={`qb-lib-tab${tab === t.value ? " active" : ""}`}
+          onClick={() => setTab(t.value)}
+        >
+          {t.label} <span className="n">{formatNumber(t.count)}</span>
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <div className="qb-aux">
-      <div className="qb-aux-h">
-        <div>
-          <div className="kicker">{tt("الدفتر")}</div>
-          <h2>{tt("الدفتر")}</h2>
-          <div className="sub">
-            {[
-              tn("{0} آية", companions.notebook.length, { 0: formatNumber(companions.notebook.length) }),
-              tn("{0} بحث", companions.documents.length, { 0: formatNumber(companions.documents.length) }),
-              tn("{0} جلسة", companions.sessions.length, { 0: formatNumber(companions.sessions.length) }),
-              tn("{0} جذر", companions.roots.length, { 0: formatNumber(companions.roots.length) }),
-            ].join(tt("، "))}
+      {topSlots ? (
+        createPortal(tabStrip, topSlots.start)
+      ) : (
+        <>
+          <div className="qb-aux-h">
+            <div>
+              <div className="kicker">{tt("الدفتر")}</div>
+              <h2>{tt("الدفتر")}</h2>
+              <div className="sub">
+                {[
+                  tn("{0} آية", companions.notebook.length, { 0: formatNumber(companions.notebook.length) }),
+                  tn("{0} بحث", companions.documents.length, { 0: formatNumber(companions.documents.length) }),
+                  tn("{0} جلسة", companions.sessions.length, { 0: formatNumber(companions.sessions.length) }),
+                  tn("{0} جذر", companions.roots.length, { 0: formatNumber(companions.roots.length) }),
+                ].join(tt("، "))}
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-
-      <div className="qb-lib-tabs qb-fit-track" data-autofit="2" role="tablist">
-        {TABS.map((t) => (
-          <button
-            key={t.value}
-            type="button"
-            role="tab"
-            aria-selected={tab === t.value}
-            className={`qb-lib-tab${tab === t.value ? " active" : ""}`}
-            onClick={() => setTab(t.value)}
-          >
-            {t.label} <span className="n">{formatNumber(t.count)}</span>
-          </button>
-        ))}
-      </div>
+          {tabStrip}
+        </>
+      )}
 
       {companions.error ? <div className="qb-aux-state">{companions.error}</div> : null}
       {companions.loading ? <div className="qb-aux-state is-loading">{tt("جارٍ التحميل…")}</div> : null}
@@ -169,7 +202,8 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
             {verseView === "recent" ? (
               <div className="qb-aux-list">
                 {companions.notebook.map((item) => (
-                  <div key={item.id} className="qb-aux-row">
+                  <SwipeRow key={item.id} onDelete={() => void companions.deleteNotebookItem(item.id)}>
+                  <div className="qb-aux-row">
                     <span className="icon-tile"><Icon name="book" size={16} /></span>
                     <button type="button" className="grow qb-row-open" onClick={() => openVerse(item)}>
                       <div className="title">
@@ -182,13 +216,25 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                         {relativeAge(item.created_at, formatNumber)}
                       </div>
                     </button>
-                    <button type="button" className="row-action" aria-label={tt("حذف")} onClick={() => void companions.deleteNotebookItem(item.id)}>
+                    <button type="button" className="row-action delete" aria-label={tt("حذف")} onClick={() => void companions.deleteNotebookItem(item.id)}>
                       <Icon name="trash" size={15} />
                     </button>
                   </div>
+                  </SwipeRow>
                 ))}
               </div>
             ) : (
+              <>
+              {web ? (
+                <Ribbon
+                  className="qb-lib-ribbon"
+                  counts={savedCounts}
+                  label={tt("أين تقع آياتك المحفوظة")}
+                  height={48}
+                  readout={(i) => tt("{0}: {1}", { 0: SURAH_NAMES[i], 1: formatNumber(savedCounts[i]) })}
+                  restReadout={tt("أين تقع آياتك المحفوظة")}
+                />
+              ) : null}
               <div className="qb-aux-grid">
                 {themeGroups.map(({ theme, items }) => (
                   <ThemeCard
@@ -217,6 +263,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                   </div>
                 ) : null}
               </div>
+              </>
             )}
           </>
         )
@@ -260,7 +307,8 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
           ) : (
             <div className="qb-aux-list">
               {companions.documents.map((document) => (
-                <div key={document.id} className="qb-aux-row">
+                <SwipeRow key={document.id} onDelete={() => void companions.deleteDocument(document.id)}>
+                <div className="qb-aux-row">
                   <span className={`icon-tile${document.mode === "tafssir" ? " copper" : ""}`}>
                     <Icon name="page" size={17} />
                   </span>
@@ -275,19 +323,20 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                       {tt("، ")}
                       {tn("{0} آية", document.ayah_count, { 0: formatNumber(document.ayah_count) })}
                       {tt("، ")}
-                      {relativeAge(document.updated_at)}
+                      {relativeAge(document.updated_at, formatNumber)}
                       {document.created_from === "studio" ? tt("، من الدراسة") : document.created_from === "board" ? tt("، من لوحة") : ""}
                     </div>
                   </button>
                   <button
                     type="button"
-                    className="row-action"
+                    className="row-action delete"
                     aria-label={tt("حذف البحث")}
                     onClick={() => void companions.deleteDocument(document.id)}
                   >
                     <Icon name="trash" size={15} />
                   </button>
                 </div>
+                </SwipeRow>
               ))}
             </div>
           )}
@@ -297,19 +346,23 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
       {/* ---- Sessions ---- */}
       {tab === "sessions" && !companions.loading ? (
         <>
-          <div className="qb-form-tabs" style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-            {SESSION_FILTERS.map((option) => (
-              <button key={option.value} type="button" className={`qb-pill${sessionFilter === option.value ? " active" : ""}`} onClick={() => setSessionFilter(option.value)}>
-                {option.label}
-              </button>
-            ))}
-          </div>
+          {/* Sessions sort by reading kind only where the explanatory reading exists. */}
+          {TAFSSIR_ENABLED ? (
+            <div className="qb-form-tabs" style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
+              {SESSION_FILTERS.map((option) => (
+                <button key={option.value} type="button" className={`qb-pill${sessionFilter === option.value ? " active" : ""}`} onClick={() => setSessionFilter(option.value)}>
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
           {visibleSessions.length === 0 ? (
             <div className="qb-aux-state">{tt("لا توجد جلسات محفوظة في هذا التصنيف.")}</div>
           ) : (
             <div className="qb-aux-list">
               {visibleSessions.map((session) => (
-                <div key={session.id} className="qb-aux-row">
+                <SwipeRow key={session.id} onDelete={() => void companions.deleteSession(session.id)}>
+                <div className="qb-aux-row">
                   <span className={`icon-tile${session.mode === "tafssir" ? " copper" : ""}`}>
                     <Icon name={session.mode === "tafssir" ? "feather" : "scale"} size={18} />
                   </span>
@@ -325,14 +378,15 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                     <div className="meta">
                       {tn("{0} رسالة", session.message_count, { 0: formatNumber(session.message_count) })}
                       {tt("، ")}
-                      {relativeAge(session.updated_at)} ·{" "}
+                      {relativeAge(session.updated_at, formatNumber)} ·{" "}
                       {session.mode === "tafssir" ? tt("قراءة تفسيرية") : tt("القرآن وحدَه")}
                     </div>
                   </button>
-                  <button type="button" className="row-action" aria-label={tt("حذف الجلسة")} onClick={() => void companions.deleteSession(session.id)}>
+                  <button type="button" className="row-action delete" aria-label={tt("حذف الجلسة")} onClick={() => void companions.deleteSession(session.id)}>
                     <Icon name="trash" size={15} />
                   </button>
                 </div>
+                </SwipeRow>
               ))}
             </div>
           )}
@@ -342,26 +396,47 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
       {/* ---- Roots ---- */}
       {tab === "roots" && !companions.loading ? (
         companions.roots.length === 0 ? (
-          <div className="qb-aux-state">{tt("لا توجد جذور مُتابَعة بعد. تابِع جذراً من لوحة المطابقة.")}</div>
+          <div className="qb-aux-state">{tt("لا توجد جذور محفوظة بعد. احفظ جذراً من لوحة المطابقة.")}</div>
         ) : (
           <div className="qb-aux-list">
             {companions.roots.map((root) => (
-              <div key={root.id} className="qb-aux-row">
-                <span className="icon-tile"><Icon name="tree" size={18} /></span>
+              // The whole row opens the root's insights (its spread over the
+              // mushaf); the row is role=button so the removal stays a real button.
+              <SwipeRow key={root.id} label={tt("إزالة")} onDelete={() => void companions.unfollowRoot(root.id)}>
+              <div
+                className="qb-aux-row is-link"
+                role="button"
+                tabIndex={0}
+                aria-label={tt("خريطة انتشار الجذر") + tt("، ") + root.root_text}
+                onClick={() => openRootInsights(root.root_text)}
+                onKeyDown={(event) => {
+                  if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+                    event.preventDefault();
+                    openRootInsights(root.root_text);
+                  }
+                }}
+              >
+                <span className="icon-tile"><Icon name="bookmarkFilled" size={18} /></span>
                 <div className="grow">
                   <div className="root-disp">{root.root_text}</div>
                   <div className="meta">
                     {root.occurrences != null ? tn("{0} موضع", root.occurrences, { 0: formatNumber(root.occurrences) }) + tt("، ") : ""}
-                    {relativeAge(root.created_at)}
+                    {relativeAge(root.created_at, formatNumber)}
                   </div>
                 </div>
-                <button type="button" className="row-action" aria-label={tt("خريطة انتشار الجذر")} title={tt("خريطة الانتشار")} onClick={() => router.push(`/?mode=heatmap&root=${encodeURIComponent(root.root_text)}`)}>
-                  <Icon name="graph" size={15} />
-                </button>
-                <button type="button" className="row-action" aria-label={tt("إلغاء المتابعة")} onClick={() => void companions.unfollowRoot(root.id)}>
+                <button
+                  type="button"
+                  className="row-action delete"
+                  aria-label={tt("إزالة الجذر من المحفوظات")}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    void companions.unfollowRoot(root.id);
+                  }}
+                >
                   <Icon name="trash" size={15} />
                 </button>
               </div>
+              </SwipeRow>
             ))}
           </div>
         )
