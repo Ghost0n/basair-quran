@@ -24,7 +24,7 @@ import {
 
 import { t } from "@/lib/i18n";
 
-import { dropExtraBlanks, placeNewSession } from "./session-reuse";
+import { dropExtraBlanks, NEW_SESSION_PREFIX, placeNewSession, putSession } from "./session-reuse";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -76,7 +76,7 @@ function createSession(defaults?: {
 }): StudioSession {
   sessionCounter += 1;
   return {
-    id: `studio-${Date.now()}-${sessionCounter}`,
+    id: `${NEW_SESSION_PREFIX}${Date.now()}-${sessionCounter}`,
     title: t("جلسة جديدة"),
     messages: [],
     mode: allowedStudyMode(defaults?.mode ?? "strict"),
@@ -165,7 +165,8 @@ export function useStudioSessions() {
     const placed = placeNewSession(sessionsRef.current, fresh, activeIdRef.current);
     sessionsRef.current = placed.sessions;
     activeIdRef.current = placed.session.id;
-    setSessions(placed.sessions);
+    // Applied to the tabs as they are when React runs it, never a stale copy.
+    setSessions((current) => putSession(current, placed.session));
     setActiveId(placed.session.id);
     return placed.session;
   }, []);

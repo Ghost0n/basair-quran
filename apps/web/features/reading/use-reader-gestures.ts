@@ -31,12 +31,12 @@ type Handlers = {
   /**
    * The page follows the finger (photo-style): `onDrag` gets the horizontal
    * offset while a horizontal drag is under way, `onDragEnd` whether it
-   * turns the page ("next" / "prev") or springs back (null). Without it a
-   * swipe turns the page on release.
+   * turns the page ("next" / "prev") or springs back (null), and answers
+   * whether the page did turn. Without it a swipe turns the page on release.
    */
   drag?: {
     onDrag: (dx: number) => void;
-    onDragEnd: (turn: "next" | "prev" | null) => void;
+    onDragEnd: (turn: "next" | "prev" | null) => boolean;
   };
 };
 
@@ -45,6 +45,11 @@ const DRAG_START_PX = 8;
 const DRAG_COMMIT_RATIO = 0.25;
 // The click that ends a mouse drag is not a tap.
 const DRAG_CLICK_MS = 400;
+
+/** Ends a drag: the page turns or springs back, and a page that turned answers with a light tap. */
+export function endDrag(turn: "next" | "prev" | null, commit: (turn: "next" | "prev" | null) => boolean): void {
+  if (commit(turn)) haptic("light");
+}
 
 /** Whether a pressed pointer may swipe or drag the page. */
 export function followsPointer(
@@ -129,7 +134,7 @@ export function useReaderGestures({ swipeEnabled, onNext, onPrev, onTap, mouseTa
     if (drag && axis.current === "drag") {
       axis.current = null;
       if (event.pointerType === "mouse") mouseTurnEnded.current = performance.now();
-      drag.onDragEnd(releaseTurn(dx, dt, window.innerWidth));
+      endDrag(releaseTurn(dx, dt, window.innerWidth), drag.onDragEnd);
       return;
     }
 
@@ -175,7 +180,7 @@ export function useReaderGestures({ swipeEnabled, onNext, onPrev, onTap, mouseTa
 
   function onPointerCancel() {
     start.current = null;
-    if (drag && axis.current === "drag") drag.onDragEnd(null);
+    if (drag && axis.current === "drag") endDrag(null, drag.onDragEnd);
     axis.current = null;
   }
 

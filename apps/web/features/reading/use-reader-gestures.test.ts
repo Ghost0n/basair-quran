@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { followsPointer, releaseTurn } from "./use-reader-gestures";
+vi.mock("@/lib/haptics", () => ({ haptic: vi.fn() }));
+
+import { haptic } from "@/lib/haptics";
+
+import { endDrag, followsPointer, releaseTurn } from "./use-reader-gestures";
 
 describe("followsPointer", () => {
   it("follows a finger or a pen", () => {
@@ -33,5 +37,23 @@ describe("releaseTurn", () => {
 
   it("springs back on a short slow drag", () => {
     expect(releaseTurn(60, 2000, 400)).toBeNull();
+  });
+});
+
+describe("endDrag", () => {
+  it("answers a page the drag turned with a light tap", () => {
+    vi.mocked(haptic).mockClear();
+    endDrag("next", () => true);
+    expect(haptic).toHaveBeenCalledWith("light");
+  });
+
+  it("stays silent when the turn is refused (first or last page) or the page springs back", () => {
+    vi.mocked(haptic).mockClear();
+    const commit = vi.fn(() => false);
+    endDrag("prev", commit);
+    endDrag(null, commit);
+    expect(commit).toHaveBeenNthCalledWith(1, "prev");
+    expect(commit).toHaveBeenNthCalledWith(2, null);
+    expect(haptic).not.toHaveBeenCalled();
   });
 });

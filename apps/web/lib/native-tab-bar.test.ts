@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { nativeTabBarAction, nativeTabBarAvailable, rgbToHex } from "./native-tab-bar";
+import { barLook, nativeTabBarAction, nativeTabBarAvailable, rgbToHex } from "./native-tab-bar";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -64,5 +64,16 @@ describe("rgbToHex", () => {
     expect(rgbToHex("rgba(10, 0, 255, 0.5)")).toBe("#0a00ff");
     expect(rgbToHex("color(srgb 1 0.5 0)")).toBe("#ff8000");
     expect(rgbToHex("nonsense")).toBeNull();
+  });
+});
+
+describe("barLook", () => {
+  it("lays the native bar out right to left in an Arabic or Urdu interface", () => {
+    expect(barLook("rtl", false)).toEqual({ dir: "rtl", style: "dark" });
+  });
+
+  it("lays it out left to right otherwise, and follows the app's light theme", () => {
+    expect(barLook("ltr", true)).toEqual({ dir: "ltr", style: "light" });
+    expect(barLook("", false)).toEqual({ dir: "ltr", style: "dark" });
   });
 });

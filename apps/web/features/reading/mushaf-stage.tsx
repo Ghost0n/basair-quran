@@ -740,12 +740,12 @@ export function MushafStage() {
           // No page beyond the first or the last: the page gives a little, then holds.
           dragTo(blocked ? dx * 0.25 : dx, false);
         },
-        onDragEnd: (turn: "next" | "prev" | null) => {
+        onDragEnd: (turn: "next" | "prev" | null): boolean => {
           const possible = turn === "next" ? pageData?.has_next : turn === "prev" ? pageData?.has_previous : false;
           const neighbour = turn === "next" ? nextNeighbour.layout : prevNeighbour.layout;
           if (!turn || !possible || currentPage == null) {
             dragTo(0, true);
-            return;
+            return false;
           }
           const width = trackRef.current?.offsetWidth ?? window.innerWidth;
           // The neighbour isn't drawn yet: turn as before, without the glide.
@@ -754,10 +754,11 @@ export function MushafStage() {
             if (turn === "next") goNextRef.current();
             else goPrevRef.current();
             settleIntoPage();
-            return;
+            return true;
           }
           glideTurn(turn, width);
           window.setTimeout(settleIntoPage, 240);
+          return true;
         },
       }
     : undefined;

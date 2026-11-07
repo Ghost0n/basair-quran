@@ -1,8 +1,15 @@
 import type { StudioSession } from "./use-studio-sessions";
 
-/** A session with no question yet. */
+/** Sessions made in this browser (createSession); a reopened saved one keeps its stored id. */
+export const NEW_SESSION_PREFIX = "studio-";
+
+/**
+ * A session made here with no question yet. A reopened saved session is
+ * never blank, even if none of its messages came back: reusing it would
+ * write an unrelated thread over the stored one.
+ */
 function isBlank(session: StudioSession): boolean {
-  return session.messages.length === 0;
+  return session.id.startsWith(NEW_SESSION_PREFIX) && session.messages.length === 0;
 }
 
 /**
@@ -20,6 +27,16 @@ export function placeNewSession(
   if (!blank) return { sessions: [...sessions, fresh], session: fresh };
   const session: StudioSession = { ...fresh, id: blank.id };
   return { sessions: sessions.map((current) => (current.id === blank.id ? session : current)), session };
+}
+
+/**
+ * Puts a placed session into the tabs as they are now: in place of the tab
+ * with its id, or at the end when the tabs changed since it was placed (a
+ * restore that landed meanwhile), so no open tab is ever dropped.
+ */
+export function putSession(sessions: StudioSession[], session: StudioSession): StudioSession[] {
+  if (!sessions.some((current) => current.id === session.id)) return [...sessions, session];
+  return sessions.map((current) => (current.id === session.id ? session : current));
 }
 
 /** Restored tabs keep a single blank session: the open one if it is blank, else the first. */

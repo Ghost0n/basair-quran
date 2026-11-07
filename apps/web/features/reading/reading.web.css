@@ -164,8 +164,14 @@ html.qb-web[dir="rtl"] .qb-display-strip .size input[type="range"]::-webkit-slid
   /* Turning by the screen's edges: a tap or a click on a narrow band at each
      side turns the page (RTL book: the next page lies to the left), over the
      page's words but under the corner buttons and the dock. Invisible; a
-     mouse shows the turn arrow (the pointer-screen rules above). */
+     mouse shows the turn arrow (the pointer-screen rules above). Only with
+     «قراءة», where a tap on a word does nothing of its own: «تحديد» and
+     «تظليل» need every word, so the bands step aside there. */
   html.qb-web:root .qb-mushaf-stage:not(.is-ayah) .qb-turn-zone {
+    display: none;
+  }
+
+  html.qb-web:root .qb-mushaf-stage.tool-read:not(.is-ayah) .qb-turn-zone {
     display: block;
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 56px);
@@ -183,14 +189,19 @@ html.qb-web[dir="rtl"] .qb-display-strip .size input[type="range"]::-webkit-slid
     -webkit-tap-highlight-color: transparent;
   }
 
-  html.qb-web:root .qb-mushaf-stage:not(.is-ayah) .qb-turn-zone.next {
+  html.qb-web:root .qb-mushaf-stage.tool-read:not(.is-ayah) .qb-turn-zone.next {
     left: 0;
     right: auto;
   }
 
-  html.qb-web:root .qb-mushaf-stage:not(.is-ayah) .qb-turn-zone.prev {
+  html.qb-web:root .qb-mushaf-stage.tool-read:not(.is-ayah) .qb-turn-zone.prev {
     right: 0;
     left: auto;
+  }
+
+  /* No page beyond (the first or the last): the tap reaches the page. */
+  html.qb-web:root .qb-mushaf-stage.tool-read:not(.is-ayah) .qb-turn-zone:disabled {
+    pointer-events: none;
   }
 
   /* Frosted on every phone (the owner's call, 2026-11-07): the page shows

@@ -21,7 +21,7 @@ export interface NativeTab {
 }
 
 interface NativeTabBarPlugin {
-  show(options: { tabs: NativeTab[]; active: string; tint: string }): Promise<void>;
+  show(options: { tabs: NativeTab[]; active: string; tint: string } & BarLook): Promise<void>;
   setActive(options: { id: string }): Promise<void>;
   hide(): Promise<void>;
   addListener(event: "tabSelected", callback: (event: { id: string }) => void): Promise<{ remove: () => Promise<void> }>;
@@ -72,6 +72,24 @@ export function rgbToHex(color: string): string | null {
   return `#${channels.map((value) => Math.round(Math.min(255, Math.max(0, value))).toString(16).padStart(2, "0")).join("")}`;
 }
 
+/** How the native bar is laid out and lit: the interface's direction and the app's theme. */
+export type BarLook = { dir: "rtl" | "ltr"; style: "light" | "dark" };
+
+/**
+ * The bar follows the web app, not the phone: its tabs run right to left in
+ * an Arabic or Urdu interface (the app bundle itself is English-only, so
+ * UIKit alone would lay them out left to right), and it takes the app's
+ * light or dark theme whatever the phone's own appearance.
+ */
+export function barLook(dir: string, light: boolean): BarLook {
+  return { dir: dir === "rtl" ? "rtl" : "ltr", style: light ? "light" : "dark" };
+}
+
+function currentLook(): BarLook {
+  // The light theme is a class on <body> (use-theme-mode.ts).
+  return barLook(document.documentElement.dir, document.body.classList.contains("light"));
+}
+
 /** The gold token as the native tint (it follows the light and dark themes). */
 function goldTint(): string {
   const probe = document.createElement("span");
@@ -109,7 +127,7 @@ export function useNativeTabBar(options: {
   const tabsKeyRef = useRef(tabsKey);
   tabsKeyRef.current = tabsKey;
   // What the native bar was last drawn with, to redraw only on a real change.
-  const drawnRef = useRef<{ key: string; tint: string } | null>(null);
+  const drawnRef = useRef<{ key: string; tint: string; look: string } | null>(null);
 
   useEffect(() => setAvailable(nativeTabBarAvailable()), []);
 
@@ -155,8 +173,9 @@ export function useNativeTabBar(options: {
       .then((bar) => {
         if (action.kind === "show") {
           const tint = goldTint();
-          drawnRef.current = { key: tabsKeyRef.current, tint };
-          return bar.show({ tabs: tabsRef.current, active: options.active, tint });
+          const look = currentLook();
+          drawnRef.current = { key: tabsKeyRef.current, tint, look: `${look.dir}:${look.style}` };
+          return bar.show({ tabs: tabsRef.current, active: options.active, tint, ...look });
         }
         if (action.kind === "hide") return bar.hide();
         return bar.setActive({ id: action.id });
@@ -164,7 +183,8 @@ export function useNativeTabBar(options: {
       .catch(() => undefined);
   }, [available, options.hidden, options.active]);
 
-  // New labels (a language change) or a new gold (a theme change): draw it again.
+  // New labels or direction (a language change), or a new gold and look (a
+  // theme change): draw it again.
   useEffect(() => {
     if (!available) return;
     const redraw = () => {
@@ -172,17 +192,20 @@ export function useNativeTabBar(options: {
       if (!shown.shown || !shown.active) return;
       const active = shown.active;
       const tint = goldTint();
+      const look = currentLook();
+      const lookKey = `${look.dir}:${look.style}`;
       const drawn = drawnRef.current;
-      if (drawn && drawn.key === tabsKey && drawn.tint === tint) return;
-      drawnRef.current = { key: tabsKey, tint };
+      if (drawn && drawn.key === tabsKey && drawn.tint === tint && drawn.look === lookKey) return;
+      drawnRef.current = { key: tabsKey, tint, look: lookKey };
       void plugin()
-        .then((bar) => bar.show({ tabs: tabsRef.current, active, tint }))
+        .then((bar) => bar.show({ tabs: tabsRef.current, active, tint, ...look }))
         .catch(() => undefined);
     };
     redraw();
-    // The light theme is a class on <body> (use-theme-mode.ts).
+    // The light theme is a class on <body> (use-theme-mode.ts); the direction is <html dir>.
     const observer = new MutationObserver(redraw);
     observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["dir"] });
     return () => observer.disconnect();
   }, [available, tabsKey]);
 

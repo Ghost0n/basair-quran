@@ -3,7 +3,8 @@ import Capacitor
 
 /// The iPhone app's tab bar: Apple's own UITabBar (Liquid Glass on iOS 26),
 /// drawn over the web view. The web app drives it (apps/web/lib/native-tab-bar.ts):
-/// `show` with the tabs, the active tab and the gold tint; `setActive` as the
+/// `show` with the tabs, the active tab, the gold tint, the interface's
+/// direction (`dir`) and the app's theme (`style`); `setActive` as the
 /// page changes; `hide` in the Mushaf and wherever the side menu shows. A tap
 /// sends `tabSelected` with the tab's id, and the web app navigates as for a
 /// tap on its own bar. The bar steps aside while the keyboard is up.
@@ -39,6 +40,8 @@ public class NativeTabBarPlugin: CAPPlugin, CAPBridgedPlugin, UITabBarDelegate {
         let tabs = call.getArray("tabs", JSObject.self) ?? []
         let active = call.getString("active") ?? ""
         let tint = call.getString("tint") ?? ""
+        let rtl = call.getString("dir") == "rtl"
+        let light = call.getString("style") == "light"
         DispatchQueue.main.async {
             guard let bar = self.ensureBar() else {
                 call.reject("No web view to attach the tab bar to")
@@ -54,6 +57,11 @@ public class NativeTabBarPlugin: CAPPlugin, CAPBridgedPlugin, UITabBarDelegate {
             if let color = UIColor(qbHex: tint) {
                 bar.tintColor = color
             }
+            // The app bundle is English-only, so UIKit would lay the tabs out
+            // left to right: the web app's direction decides, and its theme
+            // decides light or dark whatever the phone's own appearance.
+            bar.semanticContentAttribute = rtl ? .forceRightToLeft : .forceLeftToRight
+            bar.overrideUserInterfaceStyle = light ? .light : .dark
             self.select(active)
             self.wanted = true
             self.applyVisibility()
