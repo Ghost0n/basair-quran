@@ -9,8 +9,8 @@ import Capacitor
 /// sends `tabSelected` with the tab's id, and the web app navigates as for a
 /// tap on its own bar. The bar steps aside while the keyboard is up.
 ///
-/// Not compiled yet (written on Windows): build it on a Mac (see the plan's
-/// Task 10 notes) before relying on it.
+/// `show` answers with the height the bar was drawn at: the web app keeps its
+/// own bar hidden only when that height is above zero.
 @objc(NativeTabBarPlugin)
 public class NativeTabBarPlugin: CAPPlugin, CAPBridgedPlugin, UITabBarDelegate {
     public let identifier = "NativeTabBarPlugin"
@@ -65,7 +65,8 @@ public class NativeTabBarPlugin: CAPPlugin, CAPBridgedPlugin, UITabBarDelegate {
             self.select(active)
             self.wanted = true
             self.applyVisibility()
-            call.resolve()
+            bar.superview?.layoutIfNeeded()
+            call.resolve(["height": Double(bar.frame.height)])
         }
     }
 
@@ -101,11 +102,15 @@ public class NativeTabBarPlugin: CAPPlugin, CAPBridgedPlugin, UITabBarDelegate {
         bar.isHidden = true
         bar.alpha = 0
         host.addSubview(bar)
-        // Pinned to the bottom edge: UIKit extends it under the home indicator.
+        // Pinned to the bottom edge, under the home indicator. A standalone
+        // UITabBar has no height of its own under Auto Layout (it came out
+        // 0 points tall, so nothing showed): the bar's 49 points sit above
+        // the safe area, and its background runs down to the screen's edge.
         NSLayoutConstraint.activate([
             bar.leadingAnchor.constraint(equalTo: host.leadingAnchor),
             bar.trailingAnchor.constraint(equalTo: host.trailingAnchor),
-            bar.bottomAnchor.constraint(equalTo: host.bottomAnchor)
+            bar.bottomAnchor.constraint(equalTo: host.bottomAnchor),
+            bar.topAnchor.constraint(equalTo: host.safeAreaLayoutGuide.bottomAnchor, constant: -49)
         ])
         tabBar = bar
         return bar

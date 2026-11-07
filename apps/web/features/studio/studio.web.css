@@ -310,3 +310,73 @@ html.qb-web .qb-studio-side.open {
   overflow-wrap: anywhere;
 }
 .qb-web .qb-studio.is-desk .qb-composer .qb-studio-error.is-docked .qb-icon { flex: none; margin-top: 4px; color: var(--copper); }
+
+/* ---------- The composer floats over the thread, in glass ----------
+   The thread scrolls under it to the screen's end; the stage publishes the
+   composer's height (--qb-composer-h, studio-panel.tsx) so the newest
+   message still scrolls clear of it. Up the history, a round arrow above
+   the composer brings the newest message back. */
+.qb-web .qb-studio-stage {
+  --qb-composer-gap: 6px;
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.qb-web .qb-studio-stage > .qb-thread {
+  padding-bottom: calc(var(--qb-composer-h, 120px) + var(--qb-composer-gap) + 16px);
+  scroll-padding-bottom: calc(var(--qb-composer-h, 120px) + var(--qb-composer-gap) + 16px);
+}
+.qb-web .qb-studio-stage > .qb-composer {
+  position: absolute;
+  z-index: 4;
+  inset-inline: 10px;
+  bottom: var(--qb-composer-gap);
+  border-radius: 22px;
+  border-color: var(--border-strong);
+  background-color: var(--lg-tint-strong);
+  box-shadow: var(--lg-depth), var(--lg-shadow);
+}
+/* A blur exception (the web design has none, app/web-design.css): the
+   thread scrolls under the composer and its arrow. */
+html.qb-web body .qb-studio-stage > .qb-composer,
+html.qb-web body .qb-studio-stage > .qb-thread-latest {
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) !important;
+  backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) !important;
+}
+.qb-web .qb-studio.is-desk .qb-studio-stage {
+  --qb-composer-gap: 0px;
+}
+.qb-web .qb-studio.is-desk .qb-studio-stage > .qb-composer {
+  inset-inline: 0;
+  bottom: 0;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.qb-web .qb-thread-latest {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: calc(var(--qb-composer-h, 120px) + var(--qb-composer-gap) + 12px);
+  transform: translateX(-50%);
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background-color: var(--lg-tint-strong);
+  box-shadow: var(--lg-depth), var(--lg-shadow);
+  color: var(--gold-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.qb-web .qb-thread-latest:active {
+  transform: translateX(-50%) scale(var(--press-scale, 0.94));
+}
+.qb-web .qb-thread-latest:focus:not(:focus-visible) {
+  outline: none;
+}

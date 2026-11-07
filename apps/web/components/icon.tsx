@@ -55,6 +55,7 @@ export const ICON_PATHS = {
   // A panel with its side column: show or hide a list beside the page.
   sidebar: "M4 5h16v14H4zM9.5 5v14",
   arrowUp: "M12 19V5M6 11l6-6 6 6",
+  arrowDown: "M12 5v14M6 13l6 6 6-6",
   arrowRight: "M5 12h14M13 6l6 6-6 6",
   arrowLeft: "M19 12H5M11 6l-6 6 6 6",
   arrowDownLeft: "M17 7L7 17M7 17h7M7 17v-7",

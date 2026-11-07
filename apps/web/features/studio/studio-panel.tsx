@@ -17,6 +17,7 @@ import { MiniRibbon } from "@/components/ribbon";
 import { useWebDesign } from "@/lib/use-web-design";
 
 import { citedSurahCounts } from "./cited-surahs";
+import { awayFromLatest } from "./thread-follow";
 import "./studio.web.css";
 import { useNumerals } from "@/lib/preferences-context";
 import { renderHighlightedVerseText } from "@/lib/quran-ui";
@@ -119,6 +120,12 @@ export function StudioPanel() {
   }
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const threadRef = useRef<HTMLDivElement | null>(null);
+  // The composer floats over the thread's end (glass): the stage publishes
+  // its height so the last message can scroll clear of it.
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const composerRef = useRef<HTMLDivElement | null>(null);
+  // Up the history: an arrow brings the newest message back.
+  const [awayFromEnd, setAwayFromEnd] = useState(false);
 
   const active = studio.active;
   // The explanatory reading exists only in a build that has it (lib/features.ts).
@@ -137,7 +144,26 @@ export function StudioPanel() {
   useEffect(() => {
     const el = threadRef.current;
     if (el) el.scrollTop = el.scrollHeight;
+    setAwayFromEnd(false);
   }, [active?.id, active?.messages.length, studio.isResearching]);
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    const composer = composerRef.current;
+    if (!stage || !composer || typeof ResizeObserver === "undefined") return;
+    const publish = () => stage.style.setProperty("--qb-composer-h", `${composer.offsetHeight}px`);
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(composer);
+    return () => observer.disconnect();
+  }, []);
+
+  function jumpToLatest() {
+    const el = threadRef.current;
+    if (!el) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    el.scrollTo({ top: el.scrollHeight, behavior: reduce ? "auto" : "smooth" });
+  }
 
   async function submit() {
     const content = draft.trim();
@@ -483,8 +509,13 @@ export function StudioPanel() {
           </div>
         ) : null}
 
+        <div className="qb-studio-stage" ref={stageRef}>
         {active && active.messages.length > 0 ? (
-          <div className="qb-thread" ref={threadRef}>
+          <div
+            className="qb-thread"
+            ref={threadRef}
+            onScroll={(event) => setAwayFromEnd(awayFromLatest(event.currentTarget))}
+          >
             {active.messages.map((message, index) =>
               message.role === "user" ? (
                 <div key={`${active.id}-${index}`} className="qb-msg user">
@@ -517,7 +548,13 @@ export function StudioPanel() {
           </div>
         )}
 
-        <div className="qb-composer">
+        {hasMessages && awayFromEnd ? (
+          <button type="button" className="qb-thread-latest" onClick={jumpToLatest} aria-label={t("إلى آخر رسالة")} title={t("إلى آخر رسالة")}>
+            <Icon name="arrowDown" size={18} />
+          </button>
+        ) : null}
+
+        <div className="qb-composer" ref={composerRef}>
           {studio.error && topSlots ? (
             <div className="qb-studio-error is-docked" role="alert">
               <Icon name="alert" size={15} />
@@ -584,6 +621,7 @@ export function StudioPanel() {
               </button>
             </div>
           </div>
+        </div>
         </div>
         </div>
       </div>

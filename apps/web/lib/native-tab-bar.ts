@@ -9,7 +9,10 @@ import { useEffect, useRef, useState } from "react";
  * state: it shows the bar, keeps its active tab in step with the page, hides
  * it in the Mushaf and wherever the side menu shows (iPad, a landscape
  * phone), and turns a native tap into the same navigation as a web tab.
- * While it is up, `html.qb-native-tabbar` hides the web-drawn bar.
+ * While it is up, `html.qb-native-tabbar` hides the web-drawn bar, and
+ * `--qb-native-tabbar-h` on <html> holds its height (the room screens keep
+ * above it). The native bar answers `show` with the height it drew; if it
+ * drew nothing or failed, the web bar comes back.
  * Safari on iPhone and Android keep the web bar (features/shell/mobile-tab-bar.tsx).
  */
 
@@ -21,7 +24,8 @@ export interface NativeTab {
 }
 
 interface NativeTabBarPlugin {
-  show(options: { tabs: NativeTab[]; active: string; tint: string } & BarLook): Promise<void>;
+  /** Resolves with the height the bar was drawn at (points, the web's CSS pixels). */
+  show(options: { tabs: NativeTab[]; active: string; tint: string } & BarLook): Promise<{ height?: number } | undefined>;
   setActive(options: { id: string }): Promise<void>;
   hide(): Promise<void>;
   addListener(event: "tabSelected", callback: (event: { id: string }) => void): Promise<{ remove: () => Promise<void> }>;
@@ -35,6 +39,12 @@ interface CapacitorGlobal {
 
 const PLUGIN = "NativeTabBar";
 export const NATIVE_TABBAR_CLASS = "qb-native-tabbar";
+export const NATIVE_TABBAR_HEIGHT = "--qb-native-tabbar-h";
+
+/** Whether `show`'s answer says the bar is really on screen. */
+export function nativeBarDrawn(result: { height?: number } | undefined | null): boolean {
+  return typeof result?.height === "number" && result.height > 0;
+}
 
 /** True in the installed iPhone app when the native plugin is registered. */
 export function nativeTabBarAvailable(): boolean {
@@ -119,6 +129,8 @@ export function useNativeTabBar(options: {
   onSelect: (id: string) => void;
 }): boolean {
   const [available, setAvailable] = useState(false);
+  // The native bar drew nothing or failed: the web bar is used instead.
+  const [failed, setFailed] = useState(false);
   const shownRef = useRef<{ shown: boolean; active: string | null }>({ shown: false, active: null });
   const tabsRef = useRef(options.tabs);
   tabsRef.current = options.tabs;
@@ -130,7 +142,16 @@ export function useNativeTabBar(options: {
   // What the native bar was last drawn with, to redraw only on a real change.
   const drawnRef = useRef<{ key: string; tint: string; look: string } | null>(null);
 
-  useEffect(() => setAvailable(nativeTabBarAvailable()), []);
+  useEffect(() => setAvailable(nativeTabBarAvailable() && !failed), [failed]);
+
+  // The answer to every `show`: on screen (its height is kept), or not (back to the web bar).
+  const onShown = (result: { height?: number } | undefined) => {
+    if (!nativeBarDrawn(result)) {
+      setFailed(true);
+      return;
+    }
+    document.documentElement.style.setProperty(NATIVE_TABBAR_HEIGHT, `${result!.height}px`);
+  };
 
   // While the native bar is in use: hide the web one, and listen for taps.
   useEffect(() => {
@@ -150,6 +171,7 @@ export function useNativeTabBar(options: {
       cancelled = true;
       removeListener?.();
       root.classList.remove(NATIVE_TABBAR_CLASS);
+      root.style.removeProperty(NATIVE_TABBAR_HEIGHT);
       shownRef.current = { shown: false, active: null };
       void plugin()
         .then((bar) => bar.hide())
@@ -180,12 +202,16 @@ export function useNativeTabBar(options: {
     void plugin()
       .then((bar) => {
         if (action.kind === "show") {
-          return drawing ? bar.show({ tabs: tabsRef.current, active: options.active, tint: drawing.tint, ...drawing.look }) : undefined;
+          return drawing
+            ? bar.show({ tabs: tabsRef.current, active: options.active, tint: drawing.tint, ...drawing.look }).then(onShown)
+            : undefined;
         }
         if (action.kind === "hide") return bar.hide();
         return bar.setActive({ id: action.id });
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (action.kind === "show") setFailed(true);
+      });
   }, [available, options.hidden, options.active]);
 
   // New labels or direction (a language change), or a new gold and look (a
@@ -204,7 +230,8 @@ export function useNativeTabBar(options: {
       drawnRef.current = { key: tabsKey, tint, look: lookKey };
       void plugin()
         .then((bar) => bar.show({ tabs: tabsRef.current, active, tint, ...look }))
-        .catch(() => undefined);
+        .then(onShown)
+        .catch(() => setFailed(true));
     };
     redraw();
     // The light theme is a class on <body> (use-theme-mode.ts); the direction is <html dir>.

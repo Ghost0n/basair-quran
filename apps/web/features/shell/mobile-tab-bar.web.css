@@ -108,3 +108,11 @@
 html.qb-web.qb-native-tabbar .qb-tabbar {
   display: none !important;
 }
+
+/* Study keeps the room of the bar actually drawn: the native bar's own
+   height (--qb-native-tabbar-h, lib/native-tab-bar.ts), not the web bar's. */
+@media (max-width: 768px) {
+  html.qb-web.qb-native-tabbar:not([data-kb="open"])[data-shell-mode="studio"] .qb-main {
+    padding-bottom: calc(var(--qb-native-tabbar-h, 83px) + 4px);
+  }
+}

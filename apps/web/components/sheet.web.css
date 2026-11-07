@@ -148,6 +148,18 @@
     flex: none;
   }
 
+  /* The reading modes share the sheet's width in equal halves (no empty half
+     beside them); a long label widens its own half, never cut. */
+  html.qb-web .qb-sheet.is-display .qb-display-strip .modes {
+    display: flex;
+  }
+
+  html.qb-web .qb-sheet.is-display .qb-display-strip .modes > button {
+    flex: 1 1 0;
+    min-width: max-content;
+    height: 40px;
+  }
+
   html.qb-web .qb-sheet.is-display .qb-display-strip .toggle {
     align-self: flex-start;
     width: auto;

@@ -67,8 +67,10 @@
     --search-top: calc(var(--qb-research-top) + 40px + 8px);
   }
 
-  /* Study: its header starts under the switch. */
+  /* Study: its header starts under the switch. The switch is fixed to the
+     viewport, but the page body already pads the status bar
+     (app/globals.css), so the safe area is not counted a second time. */
   html.qb-web:root[data-shell-mode="studio"] .qb-main {
-    padding-top: calc(var(--qb-research-top) + 40px + 4px);
+    padding-top: calc(var(--qb-research-top) - env(safe-area-inset-top, 0px) + 40px + 4px);
   }
 }
