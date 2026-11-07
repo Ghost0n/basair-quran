@@ -49,11 +49,18 @@ export function localeInfo(code: string | null | undefined): LocaleInfo {
   return LOCALES.find((locale) => locale.code === code) ?? LOCALES[0];
 }
 
-/** The best supported locale for a browser language list (`navigator.languages`). */
-export function matchLocale(preferred: readonly string[]): string {
-  for (const tag of preferred) {
-    const base = tag.toLowerCase().split("-")[0];
-    if (LOCALE_CODES.includes(base)) return base;
+/**
+ * The best supported locale for a browser language list (`navigator.languages`),
+ * by base language ("fr-CA" → fr, "zh-Hans-CN" → zh; older Android reports
+ * Indonesian as "in"); Arabic when none matches. The web opens in it until the
+ * reader picks a language (docs/i18n.md). Mirrored, minified, in
+ * `LOCALE_INIT_SCRIPT` — `browser-locale.test.ts` keeps both in step.
+ */
+export function matchLocale(preferred: readonly string[] | null | undefined): string {
+  for (const tag of preferred ?? []) {
+    let base = String(tag || "").toLowerCase().split(/[-_]/)[0];
+    if (base === "in") base = "id";
+    if (base && LOCALE_CODES.includes(base)) return base;
   }
   return SOURCE_LOCALE;
 }
