@@ -265,8 +265,22 @@ def get_db():
     return connection
 
 
+# Qālūn and Warsh write some letters the other narrations write otherwise: a
+# yā' barī «ے» is a yā' (فِے, رَبِّے), and a yā' carrying a separate hamza
+# mark is «ئ» (يَسْتَهْزِۓُ). Folded before any other normalization so that
+# a word reads, and is searched, the same in every narration.
+_SEATED_HAMZA_RE = re.compile(r"[\u064A\u06D2]([\u064B-\u0653\u0655-\u065F\u0670]*)\u0654")
+
+
+def fold_narration_letters(text):
+    """Fold the narrations' spellings of yā' and seated hamza (see above)."""
+    text = _SEATED_HAMZA_RE.sub(lambda match: "\u0626" + match.group(1), text)
+    return text.replace("\u06D2", "\u064A")
+
+
 def normalize_text_search(text):
     """Matches build_db normalization logic."""
+    text = fold_narration_letters(text)
     text = re.sub(r"[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]", "", text)
     text = re.sub(r"[\u0623\u0625\u0622\u0671]", "\u0627", text)
     text = text.replace("\u0621", "")
@@ -420,6 +434,7 @@ def rank_latin_variant_match(query_full, query_skeleton, variants):
 
 def standardize_uthmani(text):
     """Normalize Uthmani script peculiarities for exact comparison."""
+    text = fold_narration_letters(text)
     text = re.sub(r"\u0671", "\u0627", text)
     text = re.sub(r"\u0670", "\u0627", text)
     text = re.sub(r"[\u06E5\u06E6]", "", text)
