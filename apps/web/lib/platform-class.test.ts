@@ -57,3 +57,28 @@ describe("PLATFORM_INIT_SCRIPT", () => {
     expect(runInitScript(WINDOWS, 0, "android")).toEqual(["qb-android"]);
   });
 });
+
+describe("PLATFORM_INIT_SCRIPT in the iPhone app", () => {
+  function runInApp(plugin: boolean): string[] {
+    const classes: string[] = [];
+    const document = { documentElement: { classList: { add: (c: string) => classes.push(c) } } };
+    const navigator = { userAgent: IPHONE, maxTouchPoints: 5 };
+    const window = {
+      Capacitor: {
+        getPlatform: () => "ios",
+        isNativePlatform: () => true,
+        isPluginAvailable: (name: string) => plugin && name === "NativeTabBar",
+      },
+    };
+    new Function("window", "document", "navigator", PLATFORM_INIT_SCRIPT)(window, document, navigator);
+    return classes;
+  }
+
+  it("hides the web tab bar before first paint when the native one will draw", () => {
+    expect(runInApp(true)).toEqual(["qb-ios", "qb-native-tabbar"]);
+  });
+
+  it("keeps the web tab bar when the native plugin is missing", () => {
+    expect(runInApp(false)).toEqual(["qb-ios"]);
+  });
+});

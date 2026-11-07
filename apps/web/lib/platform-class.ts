@@ -20,5 +20,10 @@ export function detectPlatform(input: {
   return null;
 }
 
-/** Sets the platform class on `<html>` before first paint (same rules as detectPlatform). */
-export const PLATFORM_INIT_SCRIPT = `(function(){try{var c=window.Capacitor;var n=c&&c.getPlatform?c.getPlatform():null;var u=navigator.userAgent;var p=(n==='ios'||n==='android')?n:/iPhone|iPad|iPod/.test(u)?'ios':(/Macintosh/.test(u)&&navigator.maxTouchPoints>1)?'ios':/Android/.test(u)?'android':null;if(p)document.documentElement.classList.add('qb-'+p);}catch(e){}})();`;
+/**
+ * Sets the platform class on `<html>` before first paint (same rules as
+ * detectPlatform). In the iPhone app with the NativeTabBar plugin it also sets
+ * `qb-native-tabbar` (lib/native-tab-bar.ts), so the web tab bar never paints
+ * under the native one for a frame.
+ */
+export const PLATFORM_INIT_SCRIPT = `(function(){try{var c=window.Capacitor;var n=c&&c.getPlatform?c.getPlatform():null;var u=navigator.userAgent;var p=(n==='ios'||n==='android')?n:/iPhone|iPad|iPod/.test(u)?'ios':(/Macintosh/.test(u)&&navigator.maxTouchPoints>1)?'ios':/Android/.test(u)?'android':null;if(p)document.documentElement.classList.add('qb-'+p);if(n==='ios'&&c.isNativePlatform&&c.isNativePlatform()&&c.isPluginAvailable&&c.isPluginAvailable('NativeTabBar'))document.documentElement.classList.add('qb-native-tabbar');}catch(e){}})();`;

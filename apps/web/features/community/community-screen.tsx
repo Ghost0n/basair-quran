@@ -69,7 +69,7 @@ export function CommunityScreen() {
       const sp = new URLSearchParams(window.location.search);
       if (next === "feed") sp.delete("tab");
       else sp.set("tab", next);
-      goTo(router, `/?${sp.toString()}`, true);
+      goTo(`/?${sp.toString()}`, true);
     },
     [router],
   );

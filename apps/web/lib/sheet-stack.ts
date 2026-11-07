@@ -8,12 +8,15 @@ const open: (() => void)[] = [];
 export const sheetStack = {
   /** Registers a sheet's close; returns the function that unregisters it. */
   push(close: () => void): () => void {
-    const entry = () => close();
-    open.push(entry);
+    open.push(close);
     return () => {
-      const index = open.lastIndexOf(entry);
+      const index = open.lastIndexOf(close);
       if (index >= 0) open.splice(index, 1);
     };
+  },
+  /** Whether this close (as registered) belongs to the newest open sheet. */
+  isTop(close: () => void): boolean {
+    return open.length > 0 && open[open.length - 1] === close;
   },
   /** Closes the newest open sheet; false when none is open. */
   closeTop(): boolean {

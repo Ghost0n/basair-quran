@@ -42,10 +42,15 @@ export function useDialog<T extends HTMLElement>(onClose: () => void, { enabled 
       (focusables[0] ?? node)?.focus();
     }
 
+    // Registered with sheetStack below; Escape, like Android's back, closes
+    // only the newest dialog when one is open inside another.
+    const close = () => onCloseRef.current();
+
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        if (!sheetStack.isTop(close)) return;
         event.stopPropagation();
-        onCloseRef.current();
+        close();
         return;
       }
       if (event.key !== "Tab" || !node) return;
@@ -74,7 +79,7 @@ export function useDialog<T extends HTMLElement>(onClose: () => void, { enabled 
     const detachSwipe = node?.parentElement?.classList.contains("qb-rsheet")
       ? attachSheetSwipe(node, () => onCloseRef.current())
       : null;
-    const leaveStack = sheetStack.push(() => onCloseRef.current());
+    const leaveStack = sheetStack.push(close);
     return () => {
       document.removeEventListener("keydown", handleKeyDown, true);
       detachSwipe?.();

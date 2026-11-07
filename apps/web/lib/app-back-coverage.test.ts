@@ -18,6 +18,33 @@ function sources(dir: string): string[] {
   });
 }
 
+// A .qb-rsheet root, written as a plain or a template-literal class name.
+const SHEET = /className=(?:"|\{`)qb-rsheet(?=[\s"`$])/g;
+const DIALOG = /useDialog</g;
+
+/** How many .qb-rsheet roots in a file have no useDialog of their own. */
+function uncoveredSheets(source: string): number {
+  const sheets = source.match(SHEET)?.length ?? 0;
+  const dialogs = source.match(DIALOG)?.length ?? 0;
+  return Math.max(0, sheets - dialogs);
+}
+
+describe("the coverage guard itself", () => {
+  it("sees a sheet whose class name is a template literal", () => {
+    expect(uncoveredSheets('<div className={`qb-rsheet${open ? " is-open" : ""}`}>')).toBe(1);
+  });
+
+  it("sees a second sheet in a file that has one useDialog", () => {
+    const source = 'const a = useDialog<HTMLDivElement>(close); <div className="qb-rsheet"/> <div className="qb-rsheet is-tall"/>';
+    expect(uncoveredSheets(source)).toBe(1);
+  });
+
+  it("passes a file with a dialog for each sheet, and ignores other classes", () => {
+    const source = 'useDialog<HTMLDivElement>(close); <div className="qb-rsheet"/> <div className="qb-rsheet-grip"/>';
+    expect(uncoveredSheets(source)).toBe(0);
+  });
+});
+
 describe("Android back reaches every sheet", () => {
   it("useDialog registers its close with sheetStack", () => {
     const source = readFileSync(join(ROOT, "lib/use-dialog.ts"), "utf8");
@@ -26,8 +53,7 @@ describe("Android back reaches every sheet", () => {
 
   it("every .qb-rsheet is opened through useDialog or the shared Sheet", () => {
     const missing = [...sources(join(ROOT, "features")), ...sources(join(ROOT, "components"))]
-      .filter((path) => /className="qb-rsheet[\s"]/.test(readFileSync(path, "utf8")))
-      .filter((path) => !/useDialog</.test(readFileSync(path, "utf8")))
+      .filter((path) => uncoveredSheets(readFileSync(path, "utf8")) > 0)
       .map((path) => relative(ROOT, path).split("\\").join("/"));
     expect(missing).toEqual([]);
   });

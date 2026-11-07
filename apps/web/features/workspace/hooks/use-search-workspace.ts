@@ -262,7 +262,7 @@ export function useSearchWorkspace() {
     sp.set("mode", "search");
     sp.set("q", reflectedQuery);
     sp.set("sm", reflectedMode);
-    goTo(router, `/?${sp.toString()}`, true);
+    goTo(`/?${sp.toString()}`, true);
   }
 
   // Hydrate a search from ?q=&sm= once on first load (shared/bookmarked link).

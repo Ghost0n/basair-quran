@@ -76,3 +76,16 @@ describe("putSession", () => {
     expect(tabs.map((s) => s.id)).toEqual(["studio-r1", "studio-r2", "studio-b"]);
   });
 });
+
+describe("dropExtraBlanks, edge cases", () => {
+  it("keeps exactly one session when every restored tab is blank", () => {
+    expect(dropExtraBlanks([session("b1"), session("b2"), session("b3")], "studio-b3").map((s) => s.id)).toEqual(["studio-b3"]);
+  });
+
+  it("keeps the first blank one when the remembered tab is gone", () => {
+    expect(dropExtraBlanks([session("a", true), session("b1"), session("b2")], "studio-gone").map((s) => s.id)).toEqual([
+      "studio-a",
+      "studio-b1",
+    ]);
+  });
+});

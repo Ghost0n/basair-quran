@@ -67,25 +67,24 @@ export function transition(navigate: () => void, motion: NavMotion = "fade"): vo
   }
 }
 
-/** The web design (html.qb-web, lib/use-web-design.ts). */
+/**
+ * The web design (html.qb-web), now on at every size: screens switch in place,
+ * with no whole-window view transition (owner rule: switches feel instant).
+ */
 function isWebDesign(): boolean {
   return typeof document !== "undefined" && document.documentElement.classList.contains("qb-web");
 }
 
 /**
  * Move between screens of the shell. Every screen is the same route with a
- * different query, rendered on the client, so the web design changes the URL
- * in place (Next keeps useSearchParams in step with history.pushState) instead
- * of asking the server for a payload it already has. The app keeps the router.
+ * different query, rendered on the client, so the URL changes in place (Next
+ * keeps useSearchParams in step with history.pushState) instead of asking the
+ * server for a payload it already has. The same in a browser and in the app:
+ * the static export serves that one route too.
  */
-export function goTo(router: { push: (href: string, options?: { scroll?: boolean }) => void; replace: (href: string, options?: { scroll?: boolean }) => void }, href: string, replace = false): void {
-  if (isWebDesign()) {
-    if (replace) window.history.replaceState(null, "", href);
-    else window.history.pushState(null, "", href);
-    return;
-  }
-  if (replace) router.replace(href, { scroll: false });
-  else router.push(href, { scroll: false });
+export function goTo(href: string, replace = false): void {
+  if (replace) window.history.replaceState(null, "", href);
+  else window.history.pushState(null, "", href);
 }
 
 // ---------- The back stack ----------

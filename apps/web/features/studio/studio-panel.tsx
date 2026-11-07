@@ -101,11 +101,14 @@ export function StudioPanel() {
   const [sideOpen, setSideOpen] = useStickyState<boolean>("qb.studio.sessionsPane", false);
 
   // «حوّل إلى بحث»: the session becomes an editable research document.
-  async function convertToDocument() {
+  async function convertToDocument({ confirmFeel = false }: { confirmFeel?: boolean } = {}) {
     if (!active || active.messages.length === 0 || converting) return;
     setConverting(true);
     try {
-      router.push(await createDocumentUrl(documentFromSession(active)));
+      const url = await createDocumentUrl(documentFromSession(active));
+      // The phone sheet's confirmation answers with a success tap, once it worked.
+      if (confirmFeel) haptic("success");
+      router.push(url);
       setConvertAsk("closed");
     } catch {
       // The session is untouched; the banner offers another try.
@@ -383,10 +386,7 @@ export function StudioPanel() {
                 type="button"
                 className="primary"
                 disabled={converting}
-                onClick={() => {
-                  haptic("success");
-                  void convertToDocument();
-                }}
+                onClick={() => void convertToDocument({ confirmFeel: true })}
               >
                 {t("حوّل إلى بحث")}
               </button>

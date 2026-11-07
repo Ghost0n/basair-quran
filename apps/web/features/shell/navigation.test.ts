@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { canGoBackInApp, markReplace, noteReaderOpening, previousScreen, readerBackLeadsHome, recordScreen, resetBackStackForTests } from "./navigation";
+import { canGoBackInApp, goTo, markReplace, noteReaderOpening, previousScreen, readerBackLeadsHome, recordScreen, resetBackStackForTests } from "./navigation";
 
 describe("the in-app back stack", () => {
   beforeEach(() => resetBackStackForTests());
@@ -62,5 +62,21 @@ describe("where the reader's back arrow leads", () => {
     noteReaderOpening(false);
     recordScreen("mode=reading");
     expect(readerBackLeadsHome()).toBe(true);
+  });
+});
+
+describe("goTo", () => {
+  it("moves between screens through history, in the browser and in the app alike", () => {
+    const calls: string[] = [];
+    const history = {
+      pushState: (_s: unknown, _t: string, url: string) => calls.push(`push ${url}`),
+      replaceState: (_s: unknown, _t: string, url: string) => calls.push(`replace ${url}`),
+    };
+    vi.stubGlobal("window", { history });
+    vi.stubGlobal("document", { documentElement: { classList: { contains: () => false } } });
+    goTo("/?mode=search");
+    goTo("/?mode=search&q=x", true);
+    vi.unstubAllGlobals();
+    expect(calls).toEqual(["push /?mode=search", "replace /?mode=search&q=x"]);
   });
 });

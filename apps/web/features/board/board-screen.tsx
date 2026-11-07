@@ -571,7 +571,7 @@ function Board() {
         if (entry.id !== boardParam) {
           const sp = new URLSearchParams(window.location.search);
           sp.set("board", entry.id);
-          goTo(router, `/?${sp.toString()}`, true);
+          goTo(`/?${sp.toString()}`, true);
         }
         boardsRef.current = boards;
         entryRef.current = entry;

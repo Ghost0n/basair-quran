@@ -29,3 +29,18 @@ describe("sheetStack", () => {
     expect(close).not.toHaveBeenCalled();
   });
 });
+
+describe("sheetStack.isTop", () => {
+  it("names the newest open sheet only, so Escape closes one sheet at a time", () => {
+    const outer = () => undefined;
+    const inner = () => undefined;
+    const leaveOuter = sheetStack.push(outer);
+    const leaveInner = sheetStack.push(inner);
+    expect(sheetStack.isTop(inner)).toBe(true);
+    expect(sheetStack.isTop(outer)).toBe(false);
+    leaveInner();
+    expect(sheetStack.isTop(outer)).toBe(true);
+    leaveOuter();
+    expect(sheetStack.isTop(outer)).toBe(false);
+  });
+});

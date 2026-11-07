@@ -4,7 +4,7 @@ vi.mock("@/lib/haptics", () => ({ haptic: vi.fn() }));
 
 import { haptic } from "@/lib/haptics";
 
-import { endDrag, followsPointer, releaseTurn } from "./use-reader-gestures";
+import { endDrag, followsPointer, mouseMoved, releaseTurn } from "./use-reader-gestures";
 
 describe("followsPointer", () => {
   it("follows a finger or a pen", () => {
@@ -55,5 +55,17 @@ describe("endDrag", () => {
     expect(commit).toHaveBeenNthCalledWith(1, "prev");
     expect(commit).toHaveBeenNthCalledWith(2, null);
     expect(haptic).not.toHaveBeenCalled();
+  });
+});
+
+describe("mouseMoved", () => {
+  it("takes a mouse release that travelled for the end of a drag, not a click", () => {
+    expect(mouseMoved("mouse", 40, 2)).toBe(true);
+    expect(mouseMoved("mouse", 2, 30)).toBe(true);
+  });
+
+  it("leaves a still click and every finger alone", () => {
+    expect(mouseMoved("mouse", 3, 2)).toBe(false);
+    expect(mouseMoved("touch", 40, 2)).toBe(false);
   });
 });

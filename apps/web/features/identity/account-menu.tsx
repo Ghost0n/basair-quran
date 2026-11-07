@@ -86,7 +86,7 @@ export function AccountMenu({ onOpenSettings }: AccountMenuProps) {
         type="button"
         className={`qb-rail-btn qb-account-btn${open ? " active" : ""}`}
         onClick={toggleOpen}
-        aria-haspopup="menu"
+        aria-haspopup={asSheet ? "dialog" : "menu"}
         aria-expanded={open}
         title={user.name || user.email}
       >
@@ -96,7 +96,7 @@ export function AccountMenu({ onOpenSettings }: AccountMenuProps) {
 
       {open && asSheet ? (
         <Sheet label={t("حسابي")} onClose={() => setOpen(false)} className="qb-account-sheet-pop">
-          <div className="qb-account-pop is-sheet" role="menu">
+          <div className="qb-account-pop is-sheet">
             <div className="qb-account-head">
               <UserAvatar motif={motif} size={40} />
               <div className="who">

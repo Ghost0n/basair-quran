@@ -90,7 +90,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
     else sp.delete("focus");
     // A tab change replaces the screen in the back stack (back leaves the notebook).
     markReplace();
-    goTo(router, `/?${sp.toString()}`, true);
+    goTo(`/?${sp.toString()}`, true);
   }
 
   function openRootInsights(rootText: string) {
@@ -427,7 +427,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
                 <button
                   type="button"
                   className="row-action delete"
-                  aria-label={tt("إزالة")}
+                  aria-label={tt("إزالة الجذر من المحفوظات")}
                   onClick={(event) => {
                     event.stopPropagation();
                     void companions.unfollowRoot(root.id);

@@ -98,7 +98,7 @@ export function useGoBack(): { canGoBack: boolean; goBack: (options?: { beforeUp
       if (mode === "reading" && readerBackLeadsHome() && previousScreen() !== "") {
         transition(() => {
           options?.beforeUpdate?.();
-          goTo(router, "/");
+          goTo("/");
         }, motion);
         return;
       }
@@ -113,7 +113,7 @@ export function useGoBack(): { canGoBack: boolean; goBack: (options?: { beforeUp
       transition(() => {
         options?.beforeUpdate?.();
         markReplace();
-        goTo(router, query ? `/?${query}` : "/", true);
+        goTo(query ? `/?${query}` : "/", true);
       }, motion);
     },
     [mode, router],
@@ -134,7 +134,7 @@ export function useBackToNotebook(tab: string): () => void {
       transition(() => router.back(), "back");
       return;
     }
-    transition(() => goTo(router, `/?mode=notebook&tab=${tab}`), "back");
+    transition(() => goTo(`/?mode=notebook&tab=${tab}`), "back");
   }, [router, tab]);
 }
 
@@ -178,7 +178,7 @@ export function useShellMode(): {
       // Search) so Back isn't clogged with entries the user didn't choose.
       const navigate = () => {
         if (options?.replace) markReplace();
-        goTo(router, href, options?.replace);
+        goTo(href, options?.replace);
       };
       // A view transition carries the change (navigation.ts): entering the
       // reader splits the tab bar into its back button and dock.

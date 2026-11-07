@@ -98,7 +98,8 @@ function goldTint(): string {
   document.body.appendChild(probe);
   const color = getComputedStyle(probe).color;
   probe.remove();
-  return rgbToHex(color) ?? "#c9a24a";
+  // Unreadable: no tint is sent, and the native bar keeps the one it has.
+  return rgbToHex(color) ?? "";
 }
 
 let pluginPromise: Promise<NativeTabBarPlugin> | null = null;
@@ -169,13 +170,17 @@ export function useNativeTabBar(options: {
     if (action.kind === "none") return;
     if (action.kind === "hide") shownRef.current = { shown: false, active: null };
     else shownRef.current = { shown: true, active: options.active };
+    // What a "show" draws is settled now, before the redraw effect below
+    // runs, so the bar is not drawn a second time on start.
+    let drawing: { tint: string; look: BarLook } | null = null;
+    if (action.kind === "show") {
+      drawing = { tint: goldTint(), look: currentLook() };
+      drawnRef.current = { key: tabsKeyRef.current, tint: drawing.tint, look: `${drawing.look.dir}:${drawing.look.style}` };
+    }
     void plugin()
       .then((bar) => {
         if (action.kind === "show") {
-          const tint = goldTint();
-          const look = currentLook();
-          drawnRef.current = { key: tabsKeyRef.current, tint, look: `${look.dir}:${look.style}` };
-          return bar.show({ tabs: tabsRef.current, active: options.active, tint, ...look });
+          return drawing ? bar.show({ tabs: tabsRef.current, active: options.active, tint: drawing.tint, ...drawing.look }) : undefined;
         }
         if (action.kind === "hide") return bar.hide();
         return bar.setActive({ id: action.id });

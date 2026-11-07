@@ -15,7 +15,8 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["**/*.test.ts"],
+    // *.test.tsx: hook and component tests that opt into a DOM per file (`@vitest-environment happy-dom`).
+    include: ["**/*.test.ts", "**/*.test.tsx"],
     exclude: ["node_modules/**", ".next/**"],
   },
 });

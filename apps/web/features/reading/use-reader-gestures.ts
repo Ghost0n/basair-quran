@@ -51,6 +51,11 @@ export function endDrag(turn: "next" | "prev" | null, commit: (turn: "next" | "p
   if (commit(turn)) haptic("light");
 }
 
+/** A mouse released away from where it was pressed: the end of a drag, not a click. */
+export function mouseMoved(pointerType: string, dx: number, dy: number): boolean {
+  return pointerType === "mouse" && (Math.abs(dx) > TAP_MAX_PX || Math.abs(dy) > TAP_MAX_PX);
+}
+
 /** Whether a pressed pointer may swipe or drag the page. */
 export function followsPointer(
   pointer: { pointerType: string; isPrimary: boolean; button: number },
@@ -149,6 +154,12 @@ export function useReaderGestures({ swipeEnabled, onNext, onPrev, onTap, mouseTa
       if (event.pointerType === "mouse") mouseTurnEnded.current = performance.now();
       if (dx > 0) onNext();
       else onPrev();
+      return;
+    }
+
+    // A mouse that moved and turned nothing: its click is not a tap either.
+    if (mouseMoved(event.pointerType, dx, dy)) {
+      mouseTurnEnded.current = performance.now();
       return;
     }
 
