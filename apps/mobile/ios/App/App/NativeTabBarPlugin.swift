@@ -2,10 +2,11 @@ import UIKit
 import Capacitor
 
 /// The iPhone app's tab bar: Apple's own UITabBar (Liquid Glass on iOS 26),
-/// drawn over the web view. The web app drives it (apps/web/lib/native-tab-bar.ts):
+/// drawn over the web view, with the app's own icons. The web app drives it (apps/web/lib/native-tab-bar.ts):
 /// `show` with the tabs, the active tab, the gold tint, the interface's
 /// direction (`dir`) and the app's theme (`style`); `setActive` as the
-/// page changes; `hide` in the Mushaf and wherever the side menu shows. A tap
+/// page changes; `hide` in the Mushaf, wherever the side menu shows and while
+/// a sheet is open (no web layer can cover the bar). A tap
 /// sends `tabSelected` with the tab's id, and the web app navigates as for a
 /// tap on its own bar. The bar steps aside while the keyboard is up.
 ///
@@ -49,8 +50,15 @@ public class NativeTabBarPlugin: CAPPlugin, CAPBridgedPlugin, UITabBarDelegate {
             }
             self.ids = tabs.map { $0["id"] as? String ?? "" }
             bar.items = tabs.enumerated().map { index, tab in
-                let symbol = tab["symbol"] as? String ?? "circle"
-                let item = UITabBarItem(title: tab["title"] as? String, image: UIImage(systemName: symbol), tag: index)
+                // The app's own icon when the web app could draw it (a
+                // template the bar tints, or the logo in its own gold);
+                // otherwise the SF Symbol.
+                let original = tab["original"] as? Bool ?? false
+                let symbol = UIImage(systemName: tab["symbol"] as? String ?? "circle")
+                let image = Self.image(tab["image"] as? String, original: original) ?? symbol
+                let selected = Self.image(tab["selectedImage"] as? String, original: original) ?? image
+                let item = UITabBarItem(title: tab["title"] as? String, image: image, selectedImage: selected)
+                item.tag = index
                 item.accessibilityIdentifier = self.ids[index]
                 return item
             }
@@ -89,6 +97,14 @@ public class NativeTabBarPlugin: CAPPlugin, CAPBridgedPlugin, UITabBarDelegate {
     public func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
         guard item.tag >= 0, item.tag < ids.count else { return }
         notifyListeners("tabSelected", data: ["id": ids[item.tag]])
+    }
+
+    /// A PNG sent as a data URL, drawn at 3x (lib/native-tab-icons.ts).
+    private static func image(_ dataURL: String?, original: Bool) -> UIImage? {
+        guard let dataURL = dataURL, let comma = dataURL.firstIndex(of: ","),
+              let data = Data(base64Encoded: String(dataURL[dataURL.index(after: comma)...])),
+              let image = UIImage(data: data, scale: 3) else { return nil }
+        return image.withRenderingMode(original ? .alwaysOriginal : .alwaysTemplate)
     }
 
     // MARK: - Layout

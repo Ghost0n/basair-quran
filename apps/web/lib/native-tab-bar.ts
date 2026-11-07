@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { nativeTabsPayload, type NativeTabPayload, type TabGlyph } from "./native-tab-icons";
+
 /**
  * The iPhone app's tab bar is Apple's own UITabBar (Liquid Glass on iOS 26),
  * drawn natively over the web view by the NativeTabBar plugin
@@ -19,13 +21,15 @@ import { useEffect, useRef, useState } from "react";
 export interface NativeTab {
   id: string;
   title: string;
-  /** An SF Symbol name. */
+  /** An SF Symbol name: the fallback when the app's own icon cannot be drawn. */
   symbol: string;
+  /** The app's own icon (lib/native-tab-icons.ts). */
+  glyph?: TabGlyph;
 }
 
 interface NativeTabBarPlugin {
   /** Resolves with the height the bar was drawn at (points, the web's CSS pixels). */
-  show(options: { tabs: NativeTab[]; active: string; tint: string } & BarLook): Promise<{ height?: number } | undefined>;
+  show(options: { tabs: NativeTabPayload[]; active: string; tint: string } & BarLook): Promise<{ height?: number } | undefined>;
   setActive(options: { id: string }): Promise<void>;
   hide(): Promise<void>;
   addListener(event: "tabSelected", callback: (event: { id: string }) => void): Promise<{ remove: () => Promise<void> }>;
@@ -113,24 +117,6 @@ function goldTint(): string {
 }
 
 /**
- * What happened to the native bar, step by step (the iPhone app's diagnostic,
- * features/shell/tabbar-diagnostic.tsx, shows it when the bar did not draw).
- */
-export const nativeTabBarTrace: string[] = [];
-function trace(step: string): void {
-  nativeTabBarTrace.push(`${Math.round(performance.now())}ms ${step}`);
-  if (nativeTabBarTrace.length > 24) nativeTabBarTrace.shift();
-}
-
-/** The height the native bar last drew at, or 0 while it has not. */
-export function nativeTabBarDrawnHeight(): number {
-  if (typeof document === "undefined") return 0;
-  return document.documentElement.classList.contains(NATIVE_TABBAR_CLASS)
-    ? Number.parseFloat(document.documentElement.style.getPropertyValue(NATIVE_TABBAR_HEIGHT)) || 0
-    : 0;
-}
-
-/**
  * The plugin, wrapped: Capacitor's plugin is a Proxy that answers every
  * property with a native call, `then` included, so a promise resolved with
  * it bare takes it for a promise, calls a native `then` that never answers,
@@ -140,6 +126,29 @@ let pluginPromise: Promise<{ bar: NativeTabBarPlugin }> | null = null;
 function plugin(): Promise<{ bar: NativeTabBarPlugin }> {
   pluginPromise ??= import("@capacitor/core").then(({ registerPlugin }) => ({ bar: registerPlugin<NativeTabBarPlugin>(PLUGIN) }));
   return pluginPromise;
+}
+
+/** A sheet or dialog is open: its own layer, which the native bar must not cover. */
+export function modalOpen(root: ParentNode = document): boolean {
+  return root.querySelector('[aria-modal="true"]') !== null;
+}
+
+/**
+ * Whether a sheet or dialog is open. The native bar is drawn over the web
+ * view, so no web layer can cover it: it steps aside while one is open, as
+ * an iOS sheet covers the tab bar.
+ */
+function useModalOpen(enabled: boolean): boolean {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!enabled) return;
+    const check = () => setOpen(modalOpen());
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-modal"] });
+    return () => observer.disconnect();
+  }, [enabled]);
+  return enabled && open;
 }
 
 /**
@@ -166,16 +175,16 @@ export function useNativeTabBar(options: {
   // What the native bar was last drawn with, to redraw only on a real change.
   const drawnRef = useRef<{ key: string; tint: string; look: string } | null>(null);
 
+  const covered = useModalOpen(available);
+
   useEffect(() => {
     const ok = nativeTabBarAvailable() && !failed;
-    trace(`available=${ok}${failed ? " (failed before)" : ""}`);
     setAvailable(ok);
   }, [failed]);
 
   // The answer to every `show`: on screen (the web bar steps aside and its
   // height is kept), or not (the web bar stays).
   const onShown = (result: { height?: number } | undefined) => {
-    trace(`show answered ${JSON.stringify(result ?? null)}`);
     if (!nativeBarDrawn(result)) {
       setFailed(true);
       return;
@@ -184,8 +193,7 @@ export function useNativeTabBar(options: {
     root.style.setProperty(NATIVE_TABBAR_HEIGHT, `${result!.height}px`);
     root.classList.add(NATIVE_TABBAR_CLASS);
   };
-  const onShowFailed = (error: unknown) => {
-    trace(`show failed: ${error instanceof Error ? error.message : String(error)}`);
+  const onShowFailed = () => {
     setFailed(true);
   };
 
@@ -220,7 +228,7 @@ export function useNativeTabBar(options: {
     const shown = shownRef.current;
     const action = nativeTabBarAction({
       available,
-      hidden: options.hidden,
+      hidden: options.hidden || covered,
       shown: shown.shown,
       active: options.active,
       shownActive: shown.active,
@@ -231,7 +239,6 @@ export function useNativeTabBar(options: {
     // What a "show" draws is settled now, before the redraw effect below
     // runs, so the bar is not drawn a second time on start.
     let drawing: { tint: string; look: BarLook } | null = null;
-    trace(`action ${action.kind}${action.kind === "setActive" ? ` ${action.id}` : ""}`);
     if (action.kind === "show") {
       drawing = { tint: goldTint(), look: currentLook() };
       drawnRef.current = { key: tabsKeyRef.current, tint: drawing.tint, look: `${drawing.look.dir}:${drawing.look.style}` };
@@ -240,16 +247,16 @@ export function useNativeTabBar(options: {
       .then(({ bar }) => {
         if (action.kind === "show") {
           return drawing
-            ? bar.show({ tabs: tabsRef.current, active: options.active, tint: drawing.tint, ...drawing.look }).then(onShown)
+            ? bar.show({ tabs: nativeTabsPayload(tabsRef.current, drawing.tint), active: options.active, tint: drawing.tint, ...drawing.look }).then(onShown)
             : undefined;
         }
         if (action.kind === "hide") return bar.hide();
         return bar.setActive({ id: action.id });
       })
-      .catch((error: unknown) => {
-        if (action.kind === "show") onShowFailed(error);
+      .catch(() => {
+        if (action.kind === "show") onShowFailed();
       });
-  }, [available, options.hidden, options.active]);
+  }, [available, options.hidden, covered, options.active]);
 
   // New labels or direction (a language change), or a new gold and look (a
   // theme change): draw it again.
@@ -266,7 +273,7 @@ export function useNativeTabBar(options: {
       if (drawn && drawn.key === tabsKey && drawn.tint === tint && drawn.look === lookKey) return;
       drawnRef.current = { key: tabsKey, tint, look: lookKey };
       void plugin()
-        .then(({ bar }) => bar.show({ tabs: tabsRef.current, active, tint, ...look }))
+        .then(({ bar }) => bar.show({ tabs: nativeTabsPayload(tabsRef.current, tint), active, tint, ...look }))
         .then(onShown)
         .catch(onShowFailed);
     };

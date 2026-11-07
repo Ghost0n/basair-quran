@@ -6,12 +6,11 @@ import "./mobile-tab-bar.web.css";
 import { useCallback, useEffect, useLayoutEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 
 import { BrandMark } from "@/components/brand-mark";
-import { Icon } from "@/components/icon";
+import { Icon, ICON_PATHS } from "@/components/icon";
 import { haptic } from "@/lib/haptics";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { useNativeTabBar } from "@/lib/native-tab-bar";
 
-import { TabBarDiagnostic } from "./tabbar-diagnostic";
 
 import { useShellMode } from "./mode-context";
 import { PHONE_TABS, rememberResearch, researchTarget, useOpenDestination, type Destination } from "./worlds";
@@ -57,7 +56,13 @@ export function MobileTabBar() {
   const narrow = useIsMobile(768);
   const activeId = PHONE_TABS.find((item) => item.owns.includes(mode))?.id ?? "";
   useNativeTabBar({
-    tabs: PHONE_TABS.map((item) => ({ id: item.id, title: item.label, symbol: NATIVE_SYMBOLS[item.id] ?? "circle" })),
+    // The app's own icons (the logo for Home), as on the web bar; the SF Symbol is the fallback.
+    tabs: PHONE_TABS.map((item) => ({
+      id: item.id,
+      title: item.label,
+      symbol: NATIVE_SYMBOLS[item.id] ?? "circle",
+      glyph: item.id === "home" ? { kind: "brand" as const } : { kind: "icon" as const, d: ICON_PATHS[item.icon] },
+    })),
     active: activeId,
     // The Mushaf has its own controls; the side menu replaces the bar when wider.
     hidden: mode === "reading" || !narrow,
@@ -147,8 +152,7 @@ export function MobileTabBar() {
   }
 
   return (
-    <>
-      <nav
+    <nav
         ref={navRef}
         className="qb-tabbar qb-stable-tabbar"
         aria-label={t("التنقل")}
@@ -186,12 +190,10 @@ export function MobileTabBar() {
           );
         })}
       </nav>
-      <TabBarDiagnostic />
-    </>
   );
 }
 
-/** The native iPhone bar's SF Symbols, by tab id. */
+/** The native iPhone bar's SF Symbols, by tab id: only if its own icons cannot be drawn. */
 const NATIVE_SYMBOLS: Record<string, string> = {
   home: "house",
   reader: "book",

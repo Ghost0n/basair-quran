@@ -42,6 +42,7 @@ afterEach(async () => {
   document.documentElement.classList.remove("qb-native-tabbar");
   document.documentElement.style.removeProperty("--qb-native-tabbar-h");
   bar.show.mockClear();
+  bar.hide.mockClear();
   bar.show.mockImplementation(async () => ({ height: 83 }));
 });
 
@@ -106,5 +107,26 @@ describe("useNativeTabBar in the iPhone app", () => {
     inTheApp();
     await mount();
     expect(document.documentElement.classList.contains("qb-native-tabbar")).toBe(false);
+  });
+
+  it("steps aside while a sheet or dialog is open, and comes back after", async () => {
+    inTheApp();
+    await mount();
+    expect(bar.show).toHaveBeenCalledTimes(1);
+    const sheet = document.createElement("div");
+    sheet.setAttribute("role", "dialog");
+    sheet.setAttribute("aria-modal", "true");
+    await act(async () => {
+      document.body.appendChild(sheet);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(bar.hide).toHaveBeenCalledTimes(1);
+    // The web bar stays hidden: the native one only stepped aside.
+    expect(document.documentElement.classList.contains("qb-native-tabbar")).toBe(true);
+    await act(async () => {
+      sheet.remove();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+    expect(bar.show).toHaveBeenCalledTimes(2);
   });
 });
