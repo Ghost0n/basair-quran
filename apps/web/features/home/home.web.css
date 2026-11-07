@@ -105,3 +105,21 @@
 @media (max-width: 1080px) {
   .qb-web .qbw-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Phones: the rail (and its account menu) is hidden, so the account and
+   settings sit in the hero's corner; the last row scrolls clear of the tab
+   bar, whichever bar is drawn (mobile-tab-bar.web.css, lib/native-tab-bar.ts). */
+.qb-web .qbw-corner { display: none; }
+@media (max-width: 768px) {
+  .qb-web .qb-home-web { position: relative; padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px) + 24px); }
+  html.qb-web.qb-ios .qb-home-web { padding-bottom: calc(62px + max(10px, env(safe-area-inset-bottom, 0px)) + 24px); }
+  html.qb-web.qb-native-tabbar .qb-home-web { padding-bottom: calc(var(--qb-native-tabbar-h, 83px) + 24px); }
+  .qb-web .qbw-corner {
+    display: block;
+    position: absolute;
+    z-index: 2;
+    top: 12px;
+    inset-inline-end: 14px;
+  }
+  .qb-web .qbw-corner .qb-home-account { display: grid; }
+}

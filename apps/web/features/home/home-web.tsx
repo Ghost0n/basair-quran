@@ -29,6 +29,10 @@ export type WebHomeProps = {
   } | null;
   rows: WebHomeRow[];
   formatNumber: (value: number) => string;
+  /** Phones: the account and settings button, in the hero's corner (the rail that carries it is hidden). */
+  corner?: ReactNode;
+  /** What opens over Home (the account sheet). */
+  overlay?: ReactNode;
 };
 
 /**
@@ -36,12 +40,13 @@ export type WebHomeProps = {
  * by word over the rosette; beside the reading card, the way back into your
  * work as a quiet list. Same data and actions as the phone Home (home-screen.tsx).
  */
-export function WebHome({ greeting, verse, reading, rows, formatNumber }: WebHomeProps) {
+export function WebHome({ greeting, verse, reading, rows, formatNumber, corner, overlay }: WebHomeProps) {
   const words = verse ? verse.text.split(" ") : [];
   const here = reading?.surah ? reading.surah - 1 : null;
 
   return (
     <div className="qb-home-web">
+      {corner ? <div className="qbw-corner">{corner}</div> : null}
       {verse ? (
         <section className="qbw-hero" aria-label={t("آية")}>
           <GirihPattern className="qbw-hero-girih" drawn />
@@ -134,6 +139,7 @@ export function WebHome({ greeting, verse, reading, rows, formatNumber }: WebHom
           </ul>
         ) : null}
       </div>
+      {overlay}
     </div>
   );
 }

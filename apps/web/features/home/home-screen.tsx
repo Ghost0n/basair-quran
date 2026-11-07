@@ -213,10 +213,39 @@ export function HomeScreen() {
   const shows = (id: HomeSectionId) => !hiddenSections.includes(id);
   const tiles = shortcuts.filter((item) => shows(item.id));
 
+  // Account and settings: on a phone the rail (and its account menu) is gone,
+  // so Home's corner opens them as a sheet.
+  const accountButton = (
+    <button
+      ref={accountBtn}
+      type="button"
+      className="qb-home-account"
+      onClick={() => setAccountOpen(true)}
+      aria-haspopup="dialog"
+      aria-label={t("الحساب والإعدادات")}
+    >
+      <Icon name="user" size={20} />
+    </button>
+  );
+  const accountSheet =
+    accountOpen && typeof document !== "undefined"
+      ? createPortal(
+          <AccountSheet
+            onClose={() => {
+              setAccountOpen(false);
+              accountBtn.current?.focus({ preventScroll: true });
+            }}
+          />,
+          document.body,
+        )
+      : null;
+
   // The web design (desktop web): same data and actions, its own layout (home-web.tsx).
   if (web) {
     return (
       <WebHome
+        corner={accountButton}
+        overlay={accountSheet}
         formatNumber={formatNumber}
         greeting={shows("greeting") ? { line: greeting.line, sub: greeting.sub } : null}
         verse={
@@ -269,16 +298,7 @@ export function HomeScreen() {
           </div>
         ) : null}
         {/* Phones only: the desktop rail carries the account menu. */}
-        <button
-          ref={accountBtn}
-          type="button"
-          className="qb-home-account"
-          onClick={() => setAccountOpen(true)}
-          aria-haspopup="dialog"
-          aria-label={t("الحساب والإعدادات")}
-        >
-          <Icon name="user" size={20} />
-        </button>
+        {accountButton}
       </header>
 
       {/* Wide screens: the verse holds the seat of honour. No aria-live — a
@@ -338,17 +358,7 @@ export function HomeScreen() {
         ) : null}
       </div>
 
-      {accountOpen && typeof document !== "undefined"
-        ? createPortal(
-            <AccountSheet
-              onClose={() => {
-                setAccountOpen(false);
-                accountBtn.current?.focus({ preventScroll: true });
-              }}
-            />,
-            document.body,
-          )
-        : null}
+      {accountSheet}
     </div>
   );
 }
