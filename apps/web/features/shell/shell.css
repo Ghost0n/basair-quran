@@ -1,0 +1,830 @@
+/* =====================================================================
+   Shell — the persistent chrome of the workspace.
+   Hosts: LeftRail + TopBar (CommandBar) + the routed canvas.
+   ===================================================================== */
+
+/* App-shell root: pins the whole workspace to the viewport height and owns the
+   overflow boundary, so nothing grows the document. Each screen provides its
+   own inner scroll region (reader page, studio thread, results body, …). */
+.qb-shell-root {
+  /* The body's padding keeps the status bar clear (app/globals.css). */
+  height: calc(100dvh - env(safe-area-inset-top, 0px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.qb-frame {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  background: var(--bg);
+  background-image: var(--page-bg);
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  isolation: isolate;
+}
+
+/* Ambient light behind the glass chrome: slow, soft colour fields (see
+   app/glass.css) so the translucent surfaces have something to refract. */
+.qb-frame::before {
+  content: "";
+  position: fixed;
+  inset: -20vmax;
+  pointer-events: none;
+  background:
+    radial-gradient(38vmax 30vmax at 82% 8%, var(--aurora-1), transparent 70%),
+    radial-gradient(34vmax 28vmax at 12% 80%, var(--aurora-2), transparent 70%),
+    radial-gradient(30vmax 26vmax at 55% 55%, var(--aurora-3), transparent 72%);
+  /* Still, on purpose: see body::before in app/glass.css (an endlessly moving
+     layer under the glass kept the GPU busy and heated phones). */
+  z-index: 0;
+}
+
+/* ---------- Left rail ---------- */
+
+/* A floating glass column, inset from the window edge. */
+.qb-rail {
+  position: sticky;
+  top: 0;
+  width: 80px;
+  flex: 0 0 80px;
+  align-self: stretch;
+  margin-block: 10px;
+  margin-inline-start: 10px;
+  border-radius: 26px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0;
+  gap: 4px;
+  z-index: 5;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.qb-rail-brand-btn {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin-bottom: 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out);
+}
+
+.qb-rail-brand-btn:hover {
+  background: rgba(212, 175, 55, 0.06);
+  border-color: rgba(212, 175, 55, 0.20);
+}
+
+/* On Home the brand mark is the current page: lit like an active rail button. */
+.qb-rail-brand-btn[aria-current="page"] {
+  background-color: var(--gold-a12);
+  background-image: var(--glass-sheen);
+  border-color: var(--border-accent);
+  box-shadow: var(--glass-edge), 0 6px 18px rgba(212, 175, 55, 0.14);
+}
+
+.qb-rail-btn {
+  width: 64px;
+  min-height: 54px;
+  padding: 7px 2px;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--fg-3);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  position: relative;
+  transition: color var(--motion-dur-base) var(--motion-ease-settle),
+    background-color var(--motion-dur-base) var(--motion-ease-settle),
+    border-color var(--motion-dur-base) var(--motion-ease-settle),
+    transform var(--motion-dur-instant) var(--motion-ease-settle),
+    box-shadow var(--motion-dur-base) var(--motion-ease-settle);
+}
+
+.qb-rail-btn:hover {
+  color: var(--gold-text);
+  background-color: var(--gold-a08);
+}
+
+.qb-rail-btn:active {
+  transform: scale(0.94);
+}
+
+/* Active: a lit glass gel with a gold rim. */
+.qb-rail-btn.active {
+  color: var(--gold-text);
+  background-color: var(--gold-a12);
+  background-image: var(--glass-sheen);
+  border-color: var(--border-accent);
+  box-shadow: var(--glass-edge), 0 6px 18px rgba(212, 175, 55, 0.14);
+}
+
+.qb-rail-btn.active .qb-icon {
+  animation: qbRailPop var(--motion-dur-slow) var(--spring);
+}
+
+@keyframes qbRailPop {
+  0% {
+    transform: scale(0.8);
+  }
+  60% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-rail-btn.active .qb-icon {
+    animation: none;
+  }
+}
+
+.qb-rail-divider {
+  width: 28px;
+  height: 1px;
+  background: var(--divider);
+  margin: 8px 0;
+}
+
+.qb-rail-spacer {
+  flex: 1;
+}
+
+/* Every destination sits on the rail (shell/worlds.ts RAIL_GROUPS): on a
+   shorter window the buttons tighten, and on a very short one the rail
+   scrolls rather than clipping Settings and the account. */
+@media (max-height: 900px) {
+  .qb-rail {
+    padding-block: 10px;
+    gap: 2px;
+  }
+
+  .qb-rail-brand-btn {
+    margin-bottom: 4px;
+  }
+
+  .qb-rail-btn {
+    min-height: 48px;
+    padding-block: 4px;
+  }
+
+  .qb-rail-divider {
+    margin: 4px 0;
+  }
+}
+
+@media (max-height: 760px) {
+  .qb-rail {
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .qb-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .qb-rail > * {
+    flex-shrink: 0;
+  }
+}
+
+/* Always-visible rail labels (replaces the old hover tooltip) so the
+   icon-only chrome is discoverable without hover — matches the mobile tab bar. */
+.qb-rail-label {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  color: inherit;
+}
+
+/* Auto-fit (lib/auto-fit.ts): a destination name too long for the rail tile
+   gets a tighter face, then may use the rail's full width (not just the
+   tile's), and only then wraps — hyphenated where the browser can, broken
+   inside the word as a last resort. Never an ellipsis. */
+.qb-rail:is([data-fit="1"], [data-fit="2"], [data-fit="3"]) .qb-rail-label {
+  font-size: 8.5px;
+  letter-spacing: -0.02em;
+}
+
+.qb-rail:is([data-fit="2"], [data-fit="3"]) .qb-rail-label {
+  max-width: calc(100% + 14px);
+  margin-inline: -7px;
+}
+
+.qb-rail[data-fit="3"] .qb-rail-label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  line-height: 1.1;
+  text-wrap: balance;
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+.qb-rail[data-fit="2"] .qb-rail-label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.qb-rail-badge {
+  position: absolute;
+  top: 4px;
+  inset-inline-start: 4px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 4px;
+  background: var(--gold-400);
+  color: #1a1207;
+  font-size: 9px;
+  font-weight: 700;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- Main column ---------- */
+
+.qb-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Top bar ---------- */
+
+.qb-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 64px;
+  flex: 0 0 64px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  /* Transparent chrome: the command bar is the one floating glass object. */
+  background: transparent;
+}
+
+.qb-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--fg-3);
+  font-size: 13px;
+}
+
+.qb-crumb-current {
+  color: var(--fg-1);
+  font-weight: 600;
+}
+
+.qb-crumbs .dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--fg-mute);
+}
+
+/* ---------- Command bar ---------- */
+
+.qb-cmd {
+  flex: 1 1 360px;
+  max-width: 720px;
+  min-width: 220px;
+  margin: 0 auto;
+  height: 46px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  position: relative;
+  isolation: isolate;
+  transition: border-color var(--motion-dur-base) var(--motion-ease-settle),
+    box-shadow var(--motion-dur-base) var(--motion-ease-settle),
+    transform var(--motion-dur-base) var(--spring-soft);
+}
+
+/* The bar's glass lives on a layer behind its content, not on the bar itself:
+   an element with a backdrop-filter becomes the "backdrop root" of everything
+   inside it, so the suggestions and hint that hang below the bar could only
+   blur the bar — the page behind them would show through sharp. */
+.qb-cmd::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  pointer-events: none;
+}
+
+.qb-cmd:hover,
+.qb-cmd:focus-within {
+  border-color: var(--border-accent);
+  box-shadow: var(--glass-edge), var(--glass-shadow-lift), 0 0 0 4px var(--gold-a08);
+}
+
+/* In Search mode the command bar is the focal point — a persistent gold ring. */
+.qb-cmd.is-search-active {
+  border-color: var(--border-focus);
+  box-shadow: var(--glass-edge), var(--glass-shadow), 0 0 0 4px var(--gold-a12);
+}
+
+.qb-cmd-icon {
+  color: var(--fg-3);
+  display: inline-flex;
+}
+
+.qb-cmd-mode {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(212, 175, 55, 0.10);
+  color: var(--gold-text);
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid var(--border-accent);
+  white-space: nowrap;
+}
+
+.qb-cmd input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-arabic-display);
+  direction: rtl;
+  font-size: 18px;
+  color: var(--fg-1);
+  min-width: 0;
+  padding: 0;
+}
+
+.qb-cmd input::placeholder {
+  color: var(--fg-mute);
+  font-family: var(--font-arabic-ui);
+  font-size: 14px;
+}
+
+.qb-cmd-kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--fg-mute);
+  font-size: 11px;
+}
+
+/* Keyboard hints mean nothing on touch devices (and cost phone width). */
+@media (hover: none) and (pointer: coarse) {
+  .qb-cmd-kbd {
+    display: none;
+  }
+}
+
+.qb-cmd-kbd kbd {
+  font-family: var(--font-mono);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 10px;
+  color: var(--fg-2);
+}
+
+/* Suggestions dropdown attached to the command bar */
+.qb-cmd-suggestions {
+  position: absolute;
+  inset-inline-start: 0;
+  inset-inline-end: 0;
+  top: calc(100% + 8px);
+  border-radius: var(--r-xl);
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-overlay);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow-lift);
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  animation: qbPopIn var(--motion-dur-base) var(--spring-soft) both;
+  transform-origin: top center;
+  max-height: 360px;
+  overflow-y: auto;
+  z-index: 200;
+  padding: 4px;
+}
+
+.qb-cmd-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 14px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--fg-1);
+  text-align: start;
+  cursor: pointer;
+  font-family: var(--font-arabic-display);
+  direction: rtl;
+  font-size: 15px;
+}
+
+.qb-cmd-suggestion:hover,
+.qb-cmd-suggestion.active {
+  background: rgba(212, 175, 55, 0.10);
+  color: var(--gold-text-bright);
+}
+
+.qb-cmd-suggestion .type {
+  /* U7: badge style — stays close to the text, not floating to the far end. */
+  font-family: var(--font-arabic-ui);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--fg-3);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-inline-start: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.light .qb-cmd-suggestion .type {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+/* ---------- Top actions ---------- */
+
+.qb-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qb-riwayah-menu {
+  max-width: 170px;
+}
+
+.qb-riwayah-menu .qb-select-btn {
+  min-width: 116px;
+}
+
+.qb-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-2);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 180ms var(--ease-out);
+}
+
+.qb-icon-btn:hover {
+  color: var(--gold-text);
+  background: rgba(212, 175, 55, 0.06);
+  border-color: var(--border);
+}
+
+.qb-icon-btn.gold {
+  color: var(--gold-text);
+  border-color: var(--border-accent);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+/* ---------- Canvas ---------- */
+
+.qb-canvas {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* ---------- Placeholders (Reading, coming-soon) ---------- */
+
+.qb-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 32px;
+}
+
+.qb-placeholder-card {
+  max-width: 560px;
+  text-align: center;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  backdrop-filter: blur(var(--glass-blur));
+  border-radius: var(--r-2xl);
+  padding: 48px 40px;
+}
+
+.qb-placeholder-card .kicker {
+  margin-bottom: 12px;
+  display: block;
+}
+
+.qb-placeholder-card h2 {
+  font-family: var(--font-arabic-heading);
+  color: var(--gold-text);
+  font-size: var(--fs-2xl);
+  margin-bottom: 12px;
+  line-height: var(--lh-heading);
+}
+
+.qb-placeholder-card p {
+  color: var(--fg-2);
+  font-size: var(--fs-base);
+  line-height: var(--lh-body);
+}
+
+.qb-placeholder-card .version-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.10);
+  border: 1px solid var(--border-accent);
+  color: var(--gold-text);
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
+}
+
+/* ---------- Theme toggle (in TopBar) ---------- */
+
+.qb-theme-toggle {
+  /* uses .qb-icon-btn base */
+}
+
+/* ---------- Auth strip (above the Shell, when AUTH_ENABLED) ---------- */
+
+.qb-auth-strip {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+/* =====================================================================
+   Mobile bottom tab bar + responsive layout.
+   ===================================================================== */
+
+.qb-tabbar {
+  display: none;
+}
+
+.qb-tabbar-btn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--fg-3);
+}
+
+.qb-tabbar-btn .tile {
+  width: min(44px, 100%);
+  height: 30px;
+  border-radius: var(--r-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  transition: background-color var(--motion-dur-base) var(--spring-soft),
+    border-color var(--motion-dur-base), transform var(--motion-dur-instant);
+}
+
+.qb-tabbar-btn:active .tile {
+  transform: scale(0.9);
+}
+
+.qb-tabbar-btn .label {
+  max-width: 100%;
+  padding-inline: 2px;
+  overflow: hidden;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Auto-fit (lib/auto-fit.ts): a label too long for its slot first gets a
+   slightly smaller, tighter face, then may wrap onto two balanced lines. The
+   icons stay on one row because every button starts at the top. */
+.qb-tabbar[data-fit="1"] .qb-tabbar-btn .label,
+.qb-tabbar[data-fit="2"] .qb-tabbar-btn .label {
+  font-size: 9px;
+  letter-spacing: -0.01em;
+}
+
+.qb-tabbar[data-fit="2"] {
+  align-items: stretch;
+}
+
+.qb-tabbar[data-fit="2"] .qb-tabbar-btn {
+  justify-content: flex-start;
+}
+
+/* Two lines only between words: a single long word ("Community") gets the
+   tighter face instead of being broken mid-word. */
+.qb-tabbar[data-fit="2"] .qb-tabbar-btn .label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  white-space: normal;
+  line-height: 1.05;
+  text-align: center;
+  text-wrap: balance;
+  hyphens: manual;
+  overflow-wrap: normal;
+  word-break: normal;
+  font-size: 8.5px;
+  letter-spacing: -0.02em;
+  padding-inline: 0;
+}
+
+/* Narrow phones: the dock gives its tabs a little more width. */
+@media (max-width: 380px) {
+  .qb-tabbar {
+    inset-inline: 6px !important;
+    padding-inline: 2px !important;
+  }
+}
+
+.qb-tabbar-btn.active {
+  color: var(--gold-text);
+}
+
+.qb-tabbar-btn.active .tile {
+  background-color: var(--gold-a12);
+  background-image: var(--glass-sheen);
+  border-color: var(--border-accent);
+  box-shadow: var(--glass-edge);
+}
+
+@media (max-width: 768px) {
+  .qb-rail {
+    display: none;
+  }
+
+  /* A floating glass dock: a translucent tint, sheen and lift over the page
+     that scrolls on beneath it (no band of background under it). */
+  .qb-tabbar {
+    display: flex;
+    position: fixed;
+    left: calc(10px + env(safe-area-inset-left, 0px));
+    right: calc(10px + env(safe-area-inset-right, 0px));
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    height: 64px;
+    padding: 0 4px;
+    border-radius: 24px;
+    border: 1px solid var(--glass-rim);
+    background-color: var(--glass-tint-soft);
+    background-image: var(--glass-sheen);
+    box-shadow: var(--glass-edge), var(--glass-shadow-lift);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+    z-index: 45;
+  }
+
+  /* Pages scroll under the dock (their own bottom padding clears it). The
+     reader, search and study keep their room: their controls sit at the bottom. */
+  html:not([data-shell-mode="reading"]):not([data-shell-mode="search"]):not([data-shell-mode="studio"]) .qb-main {
+    padding-bottom: 0;
+  }
+
+  .qb-post {
+    padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .qb-tabbar-btn {
+    padding: 6px 0;
+  }
+
+  .qb-main {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .qb-topbar {
+    height: 56px;
+    flex-basis: 56px;
+    padding: 0 14px;
+    gap: 10px;
+  }
+
+  .qb-crumbs {
+    display: none;
+  }
+
+  /* Phones: the search bar is the top bar — centred, full width. The theme
+     toggle lives in «المزيد» and Settings instead of crowding it. */
+  .qb-cmd {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  .qb-top-actions {
+    display: none;
+  }
+}
+
+/* Phones: the reader carries its own bar (navigation, display, audio), and
+   search is one tap away in the tab bar — give the page the top bar's height. */
+@media (max-width: 768px) {
+  .qb-topbar.is-reading {
+    display: none;
+  }
+}
+
+/* Focus mode (reader): only the mushaf remains. The recitation bar stays if
+   audio is playing — it is the one control a listener needs. */
+html.qb-immersive .qb-topbar,
+html.qb-immersive .qb-rail,
+html.qb-immersive .qb-tabbar {
+  display: none;
+}
+
+/* Landscape phones / short windows: every pixel of height is reading room —
+   the reader bar carries the controls, so drop the top bar while reading. */
+@media (max-height: 500px) {
+  .qb-topbar.is-reading {
+    display: none;
+  }
+}
+
+/* The back swipe (edge-swipe-back.tsx): the screen slides off over a shade. */
+.qb-edge-shade {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: #000;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+html.qb-edge-swiping .qb-frame {
+  will-change: transform;
+}

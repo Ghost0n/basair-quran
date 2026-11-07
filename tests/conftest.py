@@ -1,10 +1,24 @@
+import os
 import sqlite3
 from pathlib import Path
+
+# Tests run the moderation batches explicitly (moderation_service.run_batch),
+# never in the background.
+os.environ.setdefault("QBASAIR_MODERATION_WORKER", "off")
 
 import pytest
 from fastapi.testclient import TestClient
 
 from src import main
+from src.app.core import rate_limit
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter():
+    """Isolate the in-memory rate-limit store between tests."""
+    rate_limit.reset()
+    yield
+    rate_limit.reset()
 
 
 def create_test_db(db_path: Path):
@@ -230,8 +244,14 @@ def api_client(tmp_path):
     create_test_db(db_path)
 
     original_db_path = main.get_db_path()
+    original_app_db_path = main.get_app_db_path()
     main.close_db_connection()
     main.set_db_path(str(db_path))
+    main.set_app_db_path(str(tmp_path / "app_data.db"))
+
+    from src.app.services import app_data_service
+
+    app_data_service.ensure_app_db()
 
     try:
         with TestClient(main.app) as client:
@@ -239,3 +259,4 @@ def api_client(tmp_path):
     finally:
         main.close_db_connection()
         main.set_db_path(original_db_path)
+        main.set_app_db_path(original_app_db_path)

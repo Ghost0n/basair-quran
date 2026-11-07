@@ -3,7 +3,13 @@ import sqlite3
 import pytest
 
 from src.app.core import config
-from src.app.models.api import ResearchAgentAyah, ResearchRelatedTerm, ResearchSearchItem, TafssirStructuredAnswer
+from src.app.models.api import (
+    ResearchAgentAyah,
+    ResearchAgentMessage,
+    ResearchRelatedTerm,
+    ResearchSearchItem,
+    TafssirStructuredAnswer,
+)
 from src.app.services import quran_service, research_agent_service
 
 
@@ -567,3 +573,347 @@ def test_research_agent_filters_displayed_ayahs_from_final_review(api_client):
     assert body["answer"] == "Filtered answer."
     assert len(body["ayahs"]) == 1
     assert body["ayahs"][0]["ayah_id"] == provider.answer_ayahs[-1].ayah_id
+
+
+# --- SSRF / server-key-exfil closure (T1.3) -------------------------------
+
+
+def test_client_base_url_override_never_carries_server_key(monkeypatch):
+    """A client base_url override must not inherit the server's Ollama key."""
+    monkeypatch.setenv("OLLAMA_API_KEY", "server-secret-key")
+
+    runtime = research_agent_service.build_runtime_settings(
+        api_key=None, base_url="https://ollama.com"
+    )
+
+    assert runtime.base_url == "https://ollama.com"
+    assert runtime.api_key == ""  # server key withheld from the override endpoint
+
+
+def test_client_base_url_override_honors_client_key(monkeypatch):
+    monkeypatch.setenv("OLLAMA_API_KEY", "server-secret-key")
+
+    runtime = research_agent_service.build_runtime_settings(
+        api_key="client-key", base_url="https://ollama.com"
+    )
+
+    assert runtime.api_key == "client-key"
+
+
+def test_no_override_still_uses_server_key(monkeypatch):
+    """The trusted env path (no client override) keeps the server key."""
+    monkeypatch.setenv("OLLAMA_API_KEY", "server-secret-key")
+    monkeypatch.setenv("QBASAIR_OLLAMA_BASE_URL", "https://ollama.com")
+
+    runtime = research_agent_service.build_runtime_settings(api_key=None, base_url=None)
+
+    assert runtime.api_key == "server-secret-key"
+
+
+def test_client_base_url_override_rejects_http_and_non_allowlisted():
+    for bad in (
+        "http://ollama.com",  # non-https
+        "https://169.254.169.254/latest/meta-data",  # SSRF to metadata
+        "https://evil.example.com",  # not allowlisted
+        "https://notollama.com",  # not a suffix match
+    ):
+        with pytest.raises(research_agent_service.ResearchProviderUnavailable):
+            research_agent_service.build_runtime_settings(base_url=bad)
+
+
+def test_client_base_url_override_allows_extra_allowlisted_host(monkeypatch):
+    monkeypatch.setenv("QBASAIR_OLLAMA_ALLOWED_HOSTS", "my-ollama.internal")
+
+    runtime = research_agent_service.build_runtime_settings(
+        base_url="https://my-ollama.internal", api_key="k"
+    )
+
+    assert runtime.base_url == "https://my-ollama.internal"
+
+
+def test_bounded_provider_error_caps_reflected_body():
+    huge = "leaked-secret " * 200
+    bounded = research_agent_service._bounded_provider_error(
+        f"Ollama request failed with HTTP 500: {huge}"
+    )
+    assert len(bounded) <= research_agent_service.MAX_PROVIDER_ERROR_CHARS
+
+
+def test_source_path_is_never_sent_to_the_llm(monkeypatch):
+    """T3.7: corpus source_path must not leak into any LLM prompt."""
+    runtime = research_agent_service.build_runtime_settings()
+    provider = research_agent_service.OllamaResearchLlmProvider(runtime)
+
+    captured: list[str] = []
+
+    def fake_chat(messages, *args, **kwargs):
+        captured.append(research_agent_service.json.dumps(messages, ensure_ascii=False))
+        return '{"related_terms":[],"searches":[]}'
+
+    monkeypatch.setattr(provider, "_chat", fake_chat)
+
+    chunk = research_agent_service.SourceChunk(
+        id=1, title="Note", source_path="/srv/secret/internal/note.txt", content="نص", score=1.0
+    )
+    provider.expand_search_candidates(
+        messages=[ResearchAgentMessage(role="user", content="سؤال")],
+        source_chunks=[chunk],
+        quran_terms=[],
+        answer_language="ar",
+    )
+
+    assert captured, "expected the provider to build an LLM prompt"
+    assert "secret/internal" not in captured[0]
+    assert "source_path" not in captured[0]
+
+
+def _ayah(i: int) -> ResearchAgentAyah:
+    return ResearchAgentAyah(
+        ayah_id=i, mushaf_id=1, surah="س", surah_id=1, ayah=i, text=f"v{i}", global_index=i
+    )
+
+
+def test_filter_ayahs_by_review_respects_discard_only_review():
+    """T3.4: a discard-only review must actually drop the discarded ayahs."""
+    ayahs = [_ayah(i) for i in (1, 2, 3)]
+    review = research_agent_service.AnswerReview(answer="a", keep_ayah_ids=[], discard_ayah_ids=[1])
+    kept = research_agent_service.filter_ayahs_by_review(ayahs, review)
+    assert [a.ayah_id for a in kept] == [2, 3]
+
+
+def test_filter_ayahs_by_review_no_signal_keeps_all():
+    ayahs = [_ayah(i) for i in (1, 2)]
+    review = research_agent_service.AnswerReview(answer="a", keep_ayah_ids=[], discard_ayah_ids=[])
+    assert research_agent_service.filter_ayahs_by_review(ayahs, review) == ayahs
+
+
+def test_parse_search_plan_falls_back_on_garbage_json():
+    """T3.4: malformed LLM output degrades to a deterministic plan, not a 502."""
+    fallback = [research_agent_service.QuranTermCandidate(type="root", text="ر ح م", root_id=1, score=1.0)]
+    plan = research_agent_service.parse_search_plan("not json at all", fallback)
+    assert plan.status == "search"
+    assert plan.searches  # populated from the fallback candidates
+
+
+def test_parse_candidate_expansion_falls_back_on_garbage_json():
+    fallback = [research_agent_service.QuranTermCandidate(type="root", text="ر ح م", root_id=1, score=1.0)]
+    expansion = research_agent_service.parse_candidate_expansion("<<broken>>", fallback)
+    assert expansion.searches
+
+
+def test_public_catalog_serves_fresh_cache_without_scraping(monkeypatch):
+    """T3.6: a fresh cache is served without touching the network."""
+    calls = []
+    monkeypatch.setattr(
+        research_agent_service,
+        "fetch_public_ollama_cloud_catalog",
+        lambda timeout=10.0: calls.append(timeout) or [],
+    )
+    previous = research_agent_service._public_ollama_cloud_catalog_cache
+    try:
+        cached_item = research_agent_service.make_model_item("cached-model")
+        research_agent_service._public_ollama_cloud_catalog_cache = (
+            research_agent_service.time.time(),
+            [cached_item],
+        )
+        result = research_agent_service.get_public_ollama_cloud_catalog()
+        assert [m.name for m in result] == ["cached-model"]
+        assert calls == []  # fresh cache ⇒ no scrape on the request path
+    finally:
+        research_agent_service._public_ollama_cloud_catalog_cache = previous
+
+
+def test_public_catalog_background_refresh_populates_cache(monkeypatch):
+    fetched = [research_agent_service.make_model_item("fetched-model")]
+    monkeypatch.setattr(
+        research_agent_service, "fetch_public_ollama_cloud_catalog", lambda timeout=10.0: fetched
+    )
+    previous = research_agent_service._public_ollama_cloud_catalog_cache
+    try:
+        research_agent_service._refresh_public_ollama_cloud_catalog(1.0)
+        cache = research_agent_service._public_ollama_cloud_catalog_cache
+        assert cache is not None
+        assert [m.name for m in cache[1]] == ["fetched-model"]
+    finally:
+        research_agent_service._public_ollama_cloud_catalog_cache = previous
+
+
+# --- Contextual tafssir (Q-Basair-14) -------------------------------------------------
+
+
+def test_get_ayah_context_returns_neighbours_within_the_surah(api_client):
+    context = quran_service.get_ayah_context(1, 1, 5, before=2, after=2)
+    assert context["surah"]["name_arabic"] == "Fixture Surah"
+    assert context["surah"]["type"] == "meccan"
+    assert context["surah"]["ayah_count"] == 15
+    assert [n["ayah"] for n in context["before"]] == [3, 4]
+    assert [n["ayah"] for n in context["after"]] == [6, 7]
+    assert context["after"][0]["text"] == "shared verse 6"
+
+
+def test_get_ayah_context_stops_at_surah_edges_and_rejects_unknown(api_client):
+    first = quran_service.get_ayah_context(1, 1, 1, before=3, after=1)
+    assert first["before"] == []
+    assert [n["ayah"] for n in first["after"]] == [2]
+    last = quran_service.get_ayah_context(1, 1, 15, before=1, after=3)
+    assert last["after"] == []
+    assert quran_service.get_ayah_context(1, 1, 16) is None
+    assert quran_service.get_ayah_context(1, 2, 1) is None
+
+
+def test_tafssir_payload_carries_context_and_widens_it_for_the_focus(api_client):
+    ayahs = [_ayah(3), _ayah(8)]
+    payload = research_agent_service.build_tafssir_ayah_payload(ayahs, window=1, focus_ayah_id=8)
+    first, focus = payload
+    assert first["context"]["position"] == "3/15"
+    assert [n["ayah"] for n in first["context"]["before"]] == [2]
+    assert [n["ayah"] for n in first["context"]["after"]] == [4]
+    assert first["context"]["surah"]["type"] == "meccan"
+    window = research_agent_service.TAFSSIR_FOCUS_CONTEXT_WINDOW
+    assert [n["ayah"] for n in focus["context"]["before"]] == list(range(8 - window, 8))
+    assert [n["ayah"] for n in focus["context"]["after"]] == list(range(9, 9 + window))
+
+
+def test_tafssir_final_prompt_requires_reading_in_context(api_client, monkeypatch):
+    provider = research_agent_service.OllamaResearchLlmProvider(research_agent_service.build_runtime_settings())
+    captured: list[list[dict]] = []
+
+    def fake_chat(messages, *args, **kwargs):
+        captured.append(messages)
+        return '{"answer":"قراءة في السياق","keep_ayah_ids":[5]}'
+
+    monkeypatch.setattr(provider, "_chat", fake_chat)
+    review = provider.finalize_tafssir_answer(
+        [ResearchAgentMessage(role="user", content="ما معنى الآية؟")],
+        [_ayah(5)],
+        [],
+        [],
+        [],
+        "arabic",
+        "balanced",
+        focus_ayah_id=5,
+    )
+
+    assert review.answer == "قراءة في السياق"
+    system, user = captured[0]
+    assert "CONTEXT RULE" in system["content"]
+    assert "whole surah" in system["content"]
+    payload = research_agent_service.json.loads(user["content"])
+    assert payload["focus_ayah_id"] == 5
+    entry = payload["ayahs"][0]
+    assert entry["context"]["before"][-1] == {"ayah": 4, "text": "shared verse 4"}
+    assert entry["context"]["after"][0] == {"ayah": 6, "text": "shared verse 6"}
+
+
+def test_context_text_is_clipped():
+    long_text = "ا" * (research_agent_service.TAFSSIR_CONTEXT_AYAH_CHARS + 50)
+    clipped = research_agent_service._clip_context_text(long_text)
+    assert clipped.endswith("…")
+    assert len(clipped) <= research_agent_service.TAFSSIR_CONTEXT_AYAH_CHARS + 2
+
+
+class FocusRecordingProvider(StubResearchProvider):
+    def __init__(self, plan):
+        super().__init__(plan)
+        self.focus_ayah_id = None
+        self.final_messages = []
+
+    def finalize_tafssir_answer(
+        self, messages, ayahs, related_terms, searches, source_chunks, answer_language,
+        tafssir_depth="balanced", focus_ayah_id=None,
+    ):
+        self.final_messages = messages
+        self.answer_ayahs = ayahs
+        self.focus_ayah_id = focus_ayah_id
+        # An over-eager review that drops the focus ayah: the pipeline must keep it.
+        return research_agent_service.AnswerReview(
+            answer="Contextual reading.",
+            keep_ayah_ids=[a.ayah_id for a in ayahs if a.ayah_id != focus_ayah_id][:1],
+        )
+
+
+def test_focus_ayah_leads_evidence_and_is_always_kept(api_client):
+    provider = FocusRecordingProvider(
+        research_agent_service.SearchPlan(
+            status="search",
+            related_terms=[ResearchRelatedTerm(type="root", text="shared-root-a")],
+            searches=[ResearchSearchItem(mode="root", query="shared")],
+        )
+    )
+    research_agent_service.set_llm_provider_for_tests(provider)
+
+    response = api_client.post(
+        "/api/research-agent",
+        json={
+            "messages": [{"role": "user", "content": "فسّر هذه الآية في سياقها"}],
+            "mushaf": 1,
+            "response_mode": "tafssir",
+            "max_results": 3,
+            "focus": {"surah": 1, "ayah": 9},
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "answered"
+    assert provider.focus_ayah_id == 9
+    assert provider.answer_ayahs[0].ayah == 9
+    assert len(provider.answer_ayahs) == 3
+    assert "shared verse 9" in provider.final_messages[-1].content
+    assert [a["ayah"] for a in body["ayahs"]][0] == 9
+    assert len(body["ayahs"]) == 2
+
+
+def test_focus_ayah_skips_clarification_and_answers_without_search_hits(api_client):
+    provider = FocusRecordingProvider(
+        research_agent_service.SearchPlan(
+            status="needs_clarification",
+            clarifying_question="Which angle?",
+            searches=[ResearchSearchItem(mode="exact", query="missing")],
+        )
+    )
+    research_agent_service.set_llm_provider_for_tests(provider)
+
+    response = api_client.post(
+        "/api/research-agent",
+        json={
+            "messages": [{"role": "user", "content": "فسّر هذه الآية"}],
+            "mushaf": 1,
+            "response_mode": "tafssir",
+            "focus": {"surah": 1, "ayah": 2},
+        },
+    )
+
+    body = response.json()
+    assert body["status"] == "answered"
+    assert [a["ayah"] for a in body["ayahs"]] == [2]
+
+
+def test_unknown_focus_ayah_is_rejected(api_client):
+    research_agent_service.set_llm_provider_for_tests(
+        StubResearchProvider(research_agent_service.SearchPlan(status="search"))
+    )
+    response = api_client.post(
+        "/api/research-agent",
+        json={"messages": [{"role": "user", "content": "q"}], "mushaf": 1, "focus": {"surah": 1, "ayah": 99}},
+    )
+    assert response.status_code == 422
+
+
+def test_strict_mode_with_focus_keeps_quran_only_evidence(api_client):
+    provider = StubResearchProvider(
+        research_agent_service.SearchPlan(
+            status="search",
+            searches=[ResearchSearchItem(mode="exact", query="missing")],
+        )
+    )
+    research_agent_service.set_llm_provider_for_tests(provider)
+    response = api_client.post(
+        "/api/research-agent",
+        json={"messages": [{"role": "user", "content": "q"}], "mushaf": 1, "focus": {"surah": 1, "ayah": 4}},
+    )
+    body = response.json()
+    assert body["status"] == "answered"
+    assert body["mode"] == "strict"
+    assert [a["ayah"] for a in body["ayahs"]] == [4]
+    assert [a.text for a in provider.answer_ayahs] == ["shared verse 4"]

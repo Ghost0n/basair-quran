@@ -1,0 +1,720 @@
+/* =====================================================================
+   Companions — Notebook drawer + Bookmarks / Sessions / Roots screens.
+   ===================================================================== */
+
+/* ---------- Notebook drawer (side companion) ---------- */
+
+.qb-notebook {
+  width: 320px;
+  flex: 0 0 320px;
+  min-width: 0;
+  border-inline-end: 1px solid var(--divider);
+  background: linear-gradient(180deg, rgba(28, 25, 18, 0.62), rgba(20, 18, 12, 0.5));
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  backdrop-filter: blur(14px);
+}
+
+.light .qb-notebook {
+  background: linear-gradient(180deg, rgba(252, 247, 231, 0.7), rgba(244, 236, 216, 0.55));
+}
+
+.qb-notebook .head {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.qb-notebook .head .kicker {
+  color: var(--gold-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
+}
+
+.qb-notebook .head h4 {
+  font-family: var(--font-arabic-heading);
+  font-size: 22px;
+  color: var(--fg-1);
+  margin: 4px 0;
+  line-height: var(--lh-heading);
+}
+
+.qb-notebook .head .meta {
+  color: var(--fg-3);
+  font-size: 11px;
+}
+
+.qb-notebook .head .close {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--fg-3);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.qb-notebook .head .close:hover {
+  color: var(--gold-text);
+  background: rgba(212, 175, 55, 0.06);
+}
+
+.qb-notebook .body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 16px 16px;
+}
+
+.qb-nb-section {
+  margin-bottom: 18px;
+}
+
+.qb-nb-section .label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--fg-3);
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
+}
+
+.qb-nb-section .label .count {
+  background: rgba(212, 175, 55, 0.10);
+  color: var(--gold-text);
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+  margin-inline-start: auto;
+}
+
+.qb-nb-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: border-color 180ms var(--ease-out), background 180ms var(--ease-out);
+  width: 100%;
+  text-align: start;
+}
+
+.light .qb-nb-item {
+  background: rgba(255, 253, 246, 0.6);
+}
+
+.qb-nb-item:hover {
+  border-color: var(--border-accent);
+  background: rgba(212, 175, 55, 0.04);
+}
+
+.qb-nb-item .top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.qb-nb-item .top .surah {
+  color: var(--gold-text);
+  font-weight: 700;
+}
+
+.qb-nb-item .top .ref {
+  color: var(--fg-3);
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.qb-nb-item .top .age {
+  color: var(--fg-mute);
+  margin-inline-start: auto;
+  font-size: 10px;
+}
+
+.qb-nb-item .top .del {
+  color: var(--fg-mute);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.qb-nb-item .top .del:hover {
+  color: var(--tafssir-fg);
+}
+
+.qb-nb-item .preview {
+  font-family: var(--font-arabic-display);
+  direction: rtl;
+  font-size: 13px;
+  color: var(--fg-2);
+  line-height: 2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* Room for Uthmani marks inside the clamp. */
+  padding-block: 0.3em;
+}
+
+.qb-nb-item .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--fg-3);
+}
+
+/* ---------- Aux full-screen layout (Bookmarks / Sessions / Roots) ---------- */
+
+.qb-aux {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 32px 40px 48px;
+}
+
+.qb-aux-h {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.qb-aux-h .kicker {
+  color: var(--gold-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
+}
+
+.qb-aux-h h2 {
+  font-family: var(--font-arabic-heading);
+  font-size: var(--fs-title-page);
+  /* Deep Arabic descenders (ح م ع) need room above the subtitle line. */
+  line-height: var(--lh-heading);
+  color: var(--fg-1);
+  margin: 4px 0;
+}
+
+.qb-aux-h .sub {
+  color: var(--fg-3);
+  font-size: 13px;
+}
+
+.qb-aux-state {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--fg-2);
+  font-size: 14px;
+}
+
+/* Indeterminate loading breathes calmly (qbPulse) — no spinner. */
+.qb-aux-state.is-loading {
+  animation: qbPulse 1.6s var(--ease-in-out) infinite;
+}
+
+/* Card grid (bookmarks collections) */
+.qb-aux-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.qb-collection-card {
+  overflow: hidden;
+  background: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), 0 8px 24px rgba(0, 0, 0, 0.14);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border-radius: var(--r-xl);
+}
+
+.qb-collection-card .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.12), rgba(212, 175, 55, 0.02));
+  border-bottom: 1px solid var(--border);
+}
+
+.qb-collection-card .head .name {
+  font-family: var(--font-arabic-heading);
+  font-size: var(--fs-title-card);
+  color: var(--gold-text);
+  line-height: var(--lh-heading);
+}
+
+.qb-collection-card .head .count {
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--fg-3);
+}
+
+.qb-collection-card .body {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.qb-mini-verse {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+  width: 100%;
+  transition: border-color 160ms var(--ease-out);
+}
+
+.qb-mini-verse .open {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.qb-mini-verse .ref {
+  display: block;
+}
+
+.qb-mini-verse .more {
+  margin-top: 2px;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--gold-text);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-mini-verse .more:hover {
+  text-decoration: underline;
+}
+
+.qb-mini-verse.expanded .text {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+}
+
+.qb-mini-verse:hover {
+  border-color: var(--border-accent);
+}
+
+.qb-mini-verse .ref {
+  font-size: 10px;
+  color: var(--gold-text);
+  font-weight: 700;
+}
+
+.qb-mini-verse .text {
+  font-family: var(--font-arabic-display);
+  direction: rtl;
+  font-size: 15px;
+  color: var(--verse-fg);
+  line-height: 2;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* Room for Uthmani marks inside the clamp. */
+  padding-block: 0.3em;
+}
+
+/* Row list (sessions, roots) */
+.qb-aux-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.qb-aux-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  /* Rows mount in a soft cascade; `backwards` keeps transform free afterwards. */
+  animation: qbRise var(--dur) var(--ease-out) backwards;
+  background: var(--glass-tint-soft);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge);
+  border-radius: var(--r-lg);
+}
+
+/* Pure-CSS stagger, capped at the first ten rows (the visible fold). */
+.qb-aux-row:nth-child(2) { animation-delay: 35ms; }
+.qb-aux-row:nth-child(3) { animation-delay: 70ms; }
+.qb-aux-row:nth-child(4) { animation-delay: 105ms; }
+.qb-aux-row:nth-child(5) { animation-delay: 140ms; }
+.qb-aux-row:nth-child(6) { animation-delay: 175ms; }
+.qb-aux-row:nth-child(7) { animation-delay: 210ms; }
+.qb-aux-row:nth-child(8) { animation-delay: 245ms; }
+.qb-aux-row:nth-child(9) { animation-delay: 280ms; }
+.qb-aux-row:nth-child(n + 10) { animation-delay: 315ms; }
+
+.qb-aux-row .icon-tile {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(212, 175, 55, 0.10);
+  color: var(--gold-text);
+  border: 1px solid var(--border-accent);
+}
+
+.qb-aux-row .icon-tile.copper {
+  background: var(--tafssir-bg);
+  color: var(--tafssir-fg);
+  border-color: var(--tafssir-border);
+}
+
+.qb-aux-row .grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.qb-aux-row .title {
+  font-family: var(--font-arabic-heading);
+  font-size: var(--fs-title-card);
+  color: var(--fg-1);
+  overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  line-height: var(--lh-heading);
+}
+
+.qb-aux-row .root-disp {
+  font-family: var(--font-arabic-heading);
+  font-size: 22px;
+  color: var(--gold-text);
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
+  line-height: var(--lh-heading);
+}
+
+.qb-aux-row .meta {
+  font-size: 11px;
+  color: var(--fg-3);
+  margin-top: 2px;
+}
+
+.qb-aux-row .row-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  color: var(--fg-mute);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.qb-aux-row .row-action:hover {
+  color: var(--tafssir-fg);
+  border-color: var(--tafssir-border);
+}
+
+/* ---------- Library tabs (unified الدفتر) ---------- */
+
+/* Library tabs: the shared glass segmented track (see .qb-segmented). */
+.qb-lib-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 20px;
+  padding: 4px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-rim);
+  background: var(--glass-tint-soft);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.qb-lib-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.qb-lib-tab {
+  flex: 1 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  background: none;
+  border: none;
+  border-radius: var(--r-pill);
+  color: var(--fg-3);
+  font-family: var(--font-arabic-ui);
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 0 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--motion-dur-fast), background-color var(--motion-dur-base) var(--spring-soft),
+    box-shadow var(--motion-dur-base);
+}
+
+.qb-lib-tab .n {
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  color: var(--fg-mute);
+  margin-inline-start: 5px;
+}
+
+.qb-lib-tab:hover {
+  color: var(--fg-1);
+}
+
+.qb-lib-tab.active {
+  color: var(--gold-text);
+  background: var(--seg-on-bg);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--seg-on-shadow);
+}
+
+.qb-lib-tab.active .n {
+  color: var(--gold-text);
+}
+
+/* Narrow (the notebook beside the reader, phones): the inactive tabs drop
+   their counts and the labels tighten, so every tab stays in view. */
+.qb-lib-tabs.qb-fit-track[data-fit="2"] > .qb-lib-tab {
+  padding-inline: 8px;
+  font-size: 12.5px;
+}
+
+.qb-lib-tabs[data-fit="2"] .qb-lib-tab:not(.active) .n {
+  display: none;
+}
+
+/* A clickable verse row that opens the ayah (button reset, fills the row). */
+.qb-row-open {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  text-align: start;
+  font: inherit;
+  color: inherit;
+}
+
+/* Narrow phones: the four library tabs share the width instead of scrolling. */
+@media (max-width: 480px) {
+  .qb-lib-tab {
+    flex: 1 1 auto;
+    padding: 0 8px;
+    font-size: 13px;
+  }
+
+  .qb-lib-tab .n {
+    margin-inline-start: 3px;
+  }
+}
+
+/* ---------- «اللوحات»: boards inside their theme's card ---------- */
+
+.qb-boards-card.focused {
+  box-shadow: 0 0 0 2px var(--hl-ink), var(--glass-shadow, none);
+}
+
+.qb-boards-card .body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.qb-boards-card .empty {
+  margin: 2px 4px;
+  font-size: 12.5px;
+  color: var(--fg-3);
+}
+
+.qb-board-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 4px 4px 2px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--glass-tint-soft);
+}
+
+.qb-board-item .open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 0;
+  background: none;
+  color: var(--hl-ink, var(--gold-text));
+  text-align: start;
+  cursor: pointer;
+}
+
+.qb-board-item .open .text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.qb-board-item .title {
+  font-family: var(--font-arabic-heading);
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--fg-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qb-board-item .meta {
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+
+.qb-board-item .rename {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qb-board-item .rename input,
+.qb-board-create input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-accent);
+  background: transparent;
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-size: 15px;
+}
+
+.qb-board-item .confirm {
+  display: inline-flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.qb-board-item .confirm button,
+.qb-board-create button {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.qb-board-item .confirm .danger {
+  border-color: transparent;
+  color: var(--danger-fg);
+}
+
+.qb-board-create {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qb-board-create button.primary {
+  border-color: transparent;
+  background: var(--hl-ink, var(--gold-400));
+  color: #fff;
+  font-weight: 700;
+}
+
+.qb-board-new {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px dashed var(--hl-ink, var(--border-accent));
+  background: none;
+  color: var(--hl-ink, var(--gold-text));
+  font-family: var(--font-arabic-ui);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-theme-card .head .qb-board-open .n {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--hl-ink);
+  color: #fff;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+}
+
+.qb-board-item .row-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+.qb-board-item .row-action:hover {
+  color: var(--hl-ink);
+  border-color: var(--hl-ink);
+}

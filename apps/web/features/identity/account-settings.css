@@ -1,0 +1,390 @@
+/* =====================================================================
+   Settings — Account + Devices cards. Rides on .qb-setting-card chrome.
+   ===================================================================== */
+
+.qb-account-card {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin-top: var(--sp-2);
+}
+
+.qb-account-card .who {
+  flex: 1;
+  min-width: 0;
+}
+
+.qb-account-card .who .name {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--fg-1);
+}
+
+.qb-account-card .who .email {
+  font-size: 11px;
+  color: var(--fg-3);
+  direction: ltr;
+  text-align: start;
+}
+
+.qb-account-change {
+  flex: none;
+  padding: 7px 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--gold-text);
+  font-size: 11.5px;
+  font-weight: 700;
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  transition: background var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-account-change:hover {
+  background: var(--gold-a08);
+}
+
+.qb-account-motifs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-3);
+  animation: qbFade var(--motion-dur-base) both;
+}
+
+.qb-account-motifs .tile {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-settle),
+    background var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-account-motifs .tile.selected {
+  border: 2px solid var(--gold-a55);
+  background: var(--gold-a12);
+}
+
+/* ---------- Guest sign-in / sign-up ---------- */
+
+.qb-account-guest {
+  display: flex;
+  gap: var(--sp-2);
+  margin: var(--sp-3) 0 var(--sp-2);
+}
+
+.qb-account-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--fg-1);
+  font-size: 12.5px;
+  font-weight: 700;
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-settle),
+    background var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-account-cta:hover {
+  border-color: var(--gold-a55);
+  background: var(--gold-a08);
+}
+
+.qb-account-cta.primary {
+  border: none;
+  background: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
+  color: #140f00;
+  font-weight: 800;
+}
+
+.qb-account-cta.primary:hover {
+  background: linear-gradient(135deg, #f0cd54, #cfa62c);
+}
+
+/* ---------- Editable display name ---------- */
+
+.qb-account-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: var(--sp-3);
+}
+
+.qb-account-field > label {
+  font-size: 12px;
+  color: var(--fg-2);
+  font-weight: 600;
+}
+
+.qb-account-name-edit {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+.qb-account-name-edit input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.20);
+  border: 1px solid var(--border);
+  color: var(--fg-1);
+  font-size: 13px;
+  font-family: var(--font-arabic-ui);
+}
+
+.light .qb-account-name-edit input {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.qb-account-name-edit input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.qb-account-name-edit .save {
+  flex: none;
+  padding: 0 18px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
+  color: #140f00;
+  font-size: 12px;
+  font-weight: 800;
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+}
+
+.qb-account-name-edit .save:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ---------- Sign out ---------- */
+
+.qb-account-signout-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: var(--sp-3);
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--danger-fg);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-settle),
+    background var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-account-signout-row:hover {
+  border-color: var(--danger-fg);
+  background: rgba(220, 90, 80, 0.08);
+}
+
+/* ---------- Devices ---------- */
+
+.qb-devices-error {
+  margin-top: var(--sp-2);
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--danger-fg);
+  background: rgba(220, 90, 80, 0.08);
+  color: var(--danger-fg);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-arabic-ui);
+}
+
+.qb-devices {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--sp-2);
+}
+
+.qb-device-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
+}
+
+.qb-device-row:last-child {
+  border-bottom: none;
+}
+
+.qb-device-row > svg {
+  color: var(--gold-text);
+  flex: none;
+}
+
+.qb-device-row .info {
+  flex: 1;
+  min-width: 0;
+}
+
+.qb-device-row .label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--fg-1);
+}
+
+.qb-device-row .label .this {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #140f00;
+  background: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
+  border-radius: var(--r-pill);
+  padding: 1px 8px;
+}
+
+.qb-device-row .meta {
+  font-size: 10.5px;
+  color: var(--fg-3);
+}
+
+.qb-device-eject {
+  flex: none;
+  padding: 5px 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-2);
+  font-size: 10.5px;
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  transition: border-color var(--motion-dur-fast) var(--motion-ease-settle), color var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-device-eject:hover {
+  border-color: var(--danger-fg);
+  color: var(--danger-fg);
+}
+
+.qb-devices-empty {
+  font-size: 11.5px;
+  color: var(--fg-3);
+  padding: 10px 0;
+}
+
+/* Account deletion (danger zone) */
+.qb-account-delete-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 8px 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--danger-fg);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  opacity: 0.75;
+}
+
+.qb-account-delete-row:hover {
+  opacity: 1;
+  border-color: var(--danger-fg);
+  background: rgba(220, 90, 80, 0.08);
+}
+
+.qb-account-delete-confirm {
+  margin-top: var(--sp-2);
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--danger-fg);
+  background: rgba(220, 90, 80, 0.08);
+  color: var(--fg-1);
+  font-size: 12px;
+  line-height: 1.7;
+  font-family: var(--font-arabic-ui);
+}
+
+.qb-account-delete-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.qb-account-delete-actions button {
+  padding: 6px 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.qb-account-delete-actions button.danger {
+  border-color: var(--danger-fg);
+  color: var(--danger-fg);
+}
+
+.qb-account-delete-actions button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.qb-devices-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.qb-devices-more {
+  min-height: 40px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--gold-text);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-device-eject.all {
+  min-height: 40px;
+  padding: 0 14px;
+}
+
+.qb-device-eject.all:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

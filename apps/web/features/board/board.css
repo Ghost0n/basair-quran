@@ -1,0 +1,1211 @@
+/* =====================================================================
+   Theme board (لوحة الموضوع) — React Flow canvas themed to Q-Basair.
+   ===================================================================== */
+
+.qb-board {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.qb-board-bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  margin: 4px 20px 12px;
+  border-radius: 22px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+.qb-board-bar .back {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg-2);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.qb-board-bar .title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+}
+
+.qb-board-bar .title .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--hl-ink);
+  align-self: center;
+}
+
+.qb-board-bar h1 {
+  margin: 0;
+  font-family: var(--font-arabic-heading);
+  font-size: var(--fs-title-section);
+  line-height: var(--lh-heading);
+  color: var(--gold-text);
+}
+
+.qb-board-bar .meta {
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.qb-board-bar .tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qb-board-bar .tools button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-soft);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge);
+  color: var(--fg-2);
+  transition: transform var(--motion-dur-instant), border-color var(--motion-dur-fast), color var(--motion-dur-fast);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.qb-board-bar .tools button:hover {
+  border-color: var(--border-accent);
+  color: var(--gold-text);
+}
+
+.qb-board-bar .save {
+  min-width: 70px;
+  font-size: 12px;
+  color: var(--fg-3);
+  text-align: center;
+}
+
+.qb-board-bar .save.error {
+  color: var(--danger-fg);
+}
+
+.qb-board-canvas {
+  flex: 1;
+  min-height: 320px;
+  position: relative;
+}
+
+.qb-board-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--fg-3);
+}
+
+.qb-board-state button {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-accent);
+  background: var(--gold-a12);
+  color: var(--gold-text);
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+}
+
+/* React Flow chrome in the app's palette. */
+.qb-board .react-flow {
+  --xy-background-color: transparent;
+  --xy-background-pattern-dots-color: var(--border-strong, rgba(212, 175, 55, 0.18));
+  --xy-edge-stroke: var(--fg-3);
+  --xy-edge-stroke-selected: var(--gold-400);
+  --xy-connectionline-stroke: var(--gold-400);
+  --xy-handle-background-color: var(--gold-400);
+  --xy-handle-border-color: var(--bg-elev-2);
+  --xy-controls-button-background-color: var(--bg-elev-2);
+  --xy-controls-button-background-color-hover: var(--gold-a12);
+  --xy-controls-button-color: var(--fg-2);
+  --xy-controls-button-border-color: var(--border);
+  --xy-minimap-background-color: var(--bg-elev-2);
+  --xy-minimap-mask-background-color: rgba(0, 0, 0, 0.35);
+  --xy-edge-label-background-color: var(--bg-elev-2);
+  --xy-edge-label-color: var(--gold-text);
+  --xy-selection-background-color: rgba(212, 175, 55, 0.08);
+  --xy-selection-border: 1px dashed var(--gold-400);
+  font-family: var(--font-arabic-ui);
+}
+
+.light .qb-board .react-flow {
+  --xy-minimap-mask-background-color: rgba(255, 255, 255, 0.5);
+}
+
+.qb-board .react-flow__edge-textbg {
+  rx: 6;
+}
+
+.qb-board .react-flow__edge-text {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.qb-board .react-flow__handle {
+  width: 9px;
+  height: 9px;
+  opacity: 0;
+  transition: opacity 120ms var(--ease-out);
+}
+
+.qb-board .react-flow__node:hover .react-flow__handle,
+.qb-board .react-flow__node.selected .react-flow__handle,
+.qb-board .react-flow.connecting .react-flow__handle {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .qb-board .react-flow__handle {
+    opacity: 0.8;
+    width: 14px;
+    height: 14px;
+  }
+}
+
+.qb-board-minimap {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .qb-board-minimap {
+    display: none;
+  }
+}
+
+.qb-board-hint {
+  max-width: 420px;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elev-2);
+  color: var(--fg-2);
+  font-size: 13px;
+  line-height: 1.8;
+  text-align: center;
+}
+
+/* --- Nodes --- */
+
+.qb-bnode {
+  position: relative;
+  color: var(--fg-1);
+  background: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), 0 8px 24px rgba(0, 0, 0, 0.14);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border-radius: var(--r-xl);
+}
+
+.qb-bnode.sel {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 2px var(--gold-a40), var(--shadow-2, 0 4px 18px rgba(0, 0, 0, 0.25));
+}
+
+.qb-bnode.ayah {
+  border-top: 3px solid var(--hl-ink);
+}
+
+.qb-bnode.ayah header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px 0;
+}
+
+.qb-bnode.ayah .ref {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold-text);
+}
+
+.qb-bnode.ayah .acts {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.qb-bnode.ayah .acts button {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+.qb-bnode.ayah .acts button:hover {
+  background: var(--gold-a08);
+  color: var(--gold-text);
+}
+
+.qb-bnode.ayah .text {
+  margin: 0;
+  padding: 6px 14px 14px;
+  font-family: var(--font-arabic-display);
+  direction: rtl;
+  font-size: 17px;
+  line-height: 2;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  /* Room for Uthmani marks inside the clamp. */
+  padding-block: 0.3em;
+}
+
+.qb-bnode.ayah .mini {
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 6px 6px 8px;
+  padding: 4px 8px;
+  border-radius: var(--r-md);
+  background: rgba(0, 0, 0, 0.12);
+  overscroll-behavior: contain;
+  cursor: auto;
+}
+
+.light .qb-bnode.ayah .mini {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.qb-bnode.ayah .mini p {
+  margin: 0;
+  padding: 6px 4px;
+  font-family: var(--font-arabic-display);
+  direction: rtl;
+  font-size: 16px;
+  line-height: 1.9;
+  color: var(--fg-2);
+  border-bottom: 1px solid var(--divider, var(--border));
+  border-image: var(--divider-fade) 1;
+}
+
+.qb-bnode.ayah .mini p.center {
+  color: var(--fg-1);
+  background: var(--hl);
+  border-radius: 6px;
+}
+
+.qb-bnode.ayah .mini .n {
+  color: var(--gold-text);
+  font-size: 13px;
+}
+
+.qb-bnode.ayah .mini .state {
+  font-family: var(--font-arabic-ui);
+  font-size: 12px;
+  color: var(--fg-3);
+  border: 0;
+}
+
+.qb-bnode.note {
+  min-width: 180px;
+  min-height: 80px;
+  width: 100%;
+  height: 100%;
+  background: rgba(196, 150, 104, 0.14);
+  border-color: rgba(196, 150, 104, 0.45);
+}
+
+.qb-bnode.note textarea {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 80px;
+  min-width: 180px;
+  padding: 12px 14px;
+  border: 0;
+  background: none;
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-size: 14px;
+  line-height: 1.8;
+  resize: none;
+  outline: none;
+}
+
+.qb-bnode.heading {
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+.qb-bnode.heading.sel {
+  box-shadow: 0 0 0 2px var(--gold-a40);
+}
+
+.qb-bnode.heading input {
+  width: 320px;
+  padding: 4px 8px;
+  border: 0;
+  border-bottom: 2px solid var(--gold-a40);
+  background: none;
+  color: var(--gold-text);
+  font-family: var(--font-arabic-heading, var(--font-arabic-display));
+  font-size: 28px;
+  line-height: 1.5;
+  outline: none;
+}
+
+/* --- Per-node style (board-style.ts): text colour, fill, border, size, font.
+   Unset variables keep each node type's own look. --- */
+
+.qb-bnode[style*="--bn-bg"] {
+  background: var(--bn-bg);
+}
+
+.qb-bnode[style*="--bn-border"] {
+  border-color: var(--bn-border, var(--glass-rim));
+  border-style: var(--bn-border-style, solid);
+  border-width: var(--bn-border-width, 1px);
+}
+
+.qb-bnode.ayah[style*="--bn-border"] {
+  border-top-width: var(--bn-border-width, 3px);
+}
+
+.qb-bnode.ayah .text,
+.qb-bnode.note textarea,
+.qb-bnode.note .note-text,
+.qb-bnode.heading input,
+.qb-bnode.heading .heading-text,
+.qb-bnode.shape .shape-text {
+  color: var(--bn-fg, inherit);
+}
+
+.qb-bnode[style*="--bn-font"] :is(.text, textarea, input, .note-text, .heading-text, .shape-text) {
+  font-family: var(--bn-font);
+}
+
+.qb-bnode[style*="--bn-size"] :is(.text, textarea, .note-text, .shape-text) {
+  font-size: var(--bn-size);
+}
+
+.qb-bnode.heading[style*="--bn-size"] :is(input, .heading-text) {
+  font-size: calc(var(--bn-size) * 1.8);
+}
+
+.qb-bnode.heading input {
+  color: var(--bn-fg, var(--gold-text));
+}
+
+/* Shapes: the outline is an SVG (so ellipses and diamonds get real borders). */
+.qb-bnode.shape {
+  width: 100%;
+  height: 100%;
+  min-width: 60px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.qb-bnode.shape.sel {
+  box-shadow: none;
+}
+
+.qb-bnode.shape .outline {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.qb-bnode.shape .outline :is(rect, ellipse, polygon) {
+  fill: var(--bn-bg, var(--gold-a08));
+  stroke: var(--bn-border, var(--gold-400));
+  stroke-width: var(--bn-border-width, 1.5px);
+  stroke-dasharray: none;
+}
+
+.qb-bnode.shape[style*="dashed"] .outline :is(rect, ellipse, polygon) {
+  stroke-dasharray: 6 4;
+}
+
+.qb-bnode.shape.sel .outline :is(rect, ellipse, polygon) {
+  stroke: var(--border-focus);
+  stroke-width: 2px;
+}
+
+.qb-bnode.shape .shape-text {
+  position: relative;
+  width: 72%;
+  max-height: 80%;
+  margin: 0;
+  padding: 4px;
+  border: 0;
+  background: none;
+  font-family: var(--font-arabic-ui);
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+  resize: none;
+  outline: none;
+  overflow: hidden;
+}
+
+.qb-bnode.shape.diamond .shape-text {
+  width: 52%;
+}
+
+/* --- Style panel (one or more selected nodes) --- */
+
+.qb-style-panel {
+  width: min(300px, calc(100vw - 32px));
+  padding: 10px 12px 12px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-strong, var(--border));
+  background: var(--bg-elev-2);
+  box-shadow: var(--shadow-3);
+  font-family: var(--font-arabic-ui);
+  direction: rtl;
+}
+
+.qb-style-panel .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-3);
+}
+
+.qb-style-panel .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+}
+
+.qb-style-panel .row > .lbl {
+  flex: 0 0 64px;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.qb-style-panel .opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.qb-style-panel .opts button {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.qb-style-panel .opts button.on {
+  border-color: var(--border-accent);
+  background: var(--gold-a12);
+  color: var(--gold-text);
+}
+
+.qb-style-panel .opts button.swatch {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: var(--sw);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+
+.qb-style-panel .opts button.swatch.on {
+  border-color: var(--fg-1);
+}
+
+.qb-style-panel .opts button.swatch.none {
+  background: linear-gradient(135deg, transparent 45%, var(--danger-fg) 45% 55%, transparent 55%);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.qb-style-panel .foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.qb-style-panel .foot button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.qb-style-panel .foot button.danger {
+  border-color: transparent;
+  color: var(--danger-fg);
+}
+
+.qb-board-bar .tools button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.qb-board-bar .tools button.on {
+  border-color: var(--border-accent);
+  color: var(--gold-text);
+  background-color: var(--gold-a12);
+}
+
+.qb-board-bar .tools .badge {
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--gold-400);
+  color: var(--ink-900, #140f00);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+
+.qb-board-bar .tools-sep {
+  flex-shrink: 0;
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 2px;
+}
+
+/* Shape menu: portaled, placed under its button (board-screen.tsx). */
+.qb-shape-menu-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+}
+
+.qb-shape-menu {
+  position: fixed;
+  z-index: 61;
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 18px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-overlay);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow-lift, var(--shadow-3));
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  animation: qbPopIn var(--motion-dur-fast) var(--motion-ease-settle) both;
+}
+
+.qb-shape-menu button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: none;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.qb-shape-menu button:hover,
+.qb-shape-menu button:focus-visible {
+  border-color: var(--border-accent);
+  background: var(--gold-a08);
+  color: var(--gold-text);
+}
+
+.qb-shape-icon :is(rect, ellipse, polygon) {
+  fill: var(--gold-a12);
+  stroke: var(--gold-400);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+/* --- Theme ayahs: shown / hidden on the board --- */
+
+.qb-verses-panel {
+  width: min(320px, calc(100vw - 32px));
+  max-height: min(420px, 55vh);
+  display: flex;
+  flex-direction: column;
+  padding: 10px 10px 8px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-strong, var(--border));
+  background: var(--bg-elev-2);
+  box-shadow: var(--shadow-3);
+  font-family: var(--font-arabic-ui);
+  direction: rtl;
+}
+
+.qb-verses-panel .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-3);
+}
+
+.qb-verses-panel .head .close {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+.qb-verses-panel ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.qb-verses-panel li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-top: 1px solid var(--border);
+}
+
+.qb-verses-panel li.is-hidden .meta {
+  opacity: 0.5;
+}
+
+.qb-verses-panel .meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.qb-verses-panel .ref {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold-text);
+}
+
+.qb-verses-panel .text {
+  font-family: var(--font-arabic-display);
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--fg-2);
+  white-space: nowrap;
+  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
+  text-overflow: ellipsis;
+}
+
+.qb-verses-panel li button {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--gold-text);
+  cursor: pointer;
+}
+
+.qb-verses-panel li.is-hidden button {
+  color: var(--fg-3);
+}
+
+.qb-verses-panel .empty {
+  margin: 6px 4px;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.qb-resize-line {
+  border-color: var(--border-focus) !important;
+}
+
+.qb-resize-handle {
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 3px;
+  background: var(--gold-400) !important;
+}
+
+/* --- Edge label editor --- */
+
+.qb-edge-editor {
+  width: min(360px, calc(100vw - 32px));
+  padding: 10px 12px 12px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-strong, var(--border));
+  background: var(--bg-elev-2);
+  box-shadow: var(--shadow-3);
+}
+
+.qb-edge-editor .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--fg-3);
+}
+
+.qb-edge-editor .head button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+.qb-edge-editor .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.qb-edge-editor .chips button,
+.qb-edge-editor form button,
+.qb-edge-editor .remove {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg-2);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.qb-edge-editor .chips button:hover {
+  border-color: var(--border-accent);
+  color: var(--gold-text);
+}
+
+.qb-edge-editor form {
+  display: flex;
+  gap: 6px;
+}
+
+.qb-edge-editor input {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.14);
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  font-size: 16px;
+}
+
+.qb-edge-editor .remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  border: 0;
+  color: var(--danger-fg);
+}
+
+/* Phones: a compact bar (back · title · save state) over ONE scrolling row of
+   icon tools, so the canvas keeps the height. */
+@media (max-width: 768px) {
+  .qb-board-bar {
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    margin: 4px 8px 8px;
+    padding: 6px 8px;
+    border-radius: 18px;
+  }
+
+  .qb-board-bar .back {
+    width: 34px;
+    height: 34px;
+  }
+
+  .qb-board-bar .title {
+    flex: 1;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .qb-board-bar h1 {
+    font-size: 18px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .qb-board-bar .title .meta {
+    display: none;
+  }
+
+  .qb-board-bar .tools {
+    order: 3;
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    gap: 4px;
+  }
+
+  .qb-board-bar .tools::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Icon over a small label: every tool says what it does (like the tab bar). */
+  .qb-board-bar .tools button {
+    position: relative;
+    flex-shrink: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-width: 54px;
+    height: 48px;
+    padding: 0 8px;
+    border-radius: 14px;
+  }
+
+  .qb-board-bar .tools .lbl {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .qb-board-bar .tools .badge {
+    position: absolute;
+    top: 3px;
+    inset-inline-end: 6px;
+  }
+
+  .qb-board-bar .tools-sep {
+    height: 30px;
+  }
+
+  .qb-board-bar .save {
+    position: absolute;
+    inset-inline-end: 12px;
+    top: 14px;
+    min-width: 0;
+    font-size: 11px;
+  }
+
+  /* The save state sits in the title row's end corner: the name keeps clear
+     of it (it was written over the board's name). */
+  .qb-board-bar:has(.save:not(:empty)) .title {
+    padding-inline-end: 64px;
+  }
+
+  .qb-board-bar {
+    position: relative;
+  }
+}
+
+/* --- Phones: selection pill + style sheet (above the tab bar) --- */
+
+.qb-style-pill,
+.qb-style-sheet {
+  position: fixed;
+  inset-inline: 0;
+  bottom: calc(8px + 64px + 10px + env(safe-area-inset-bottom, 0px));
+  z-index: 46;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.qb-style-pill > button {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  color: var(--gold-text);
+  font-family: var(--font-arabic-ui);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-style-pill {
+  gap: 6px;
+}
+
+.qb-style-pill > button.danger,
+.qb-style-pill > button.icon {
+  width: 42px;
+  padding: 0;
+  justify-content: center;
+}
+
+.qb-style-pill > button.danger {
+  color: var(--danger-fg);
+}
+
+.qb-style-sheet {
+  padding: 0 10px;
+}
+
+/* The compact strip: a row of categories over a row of options, both
+   scrolling sideways — about 96px tall, so the element stays in view. */
+.qb-style-strip {
+  pointer-events: auto;
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 8px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint-overlay);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  font-family: var(--font-arabic-ui);
+  animation: qbRise var(--motion-dur-base) var(--motion-ease-settle) both;
+}
+
+.qb-style-strip .cats,
+.qb-style-strip .opts {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.qb-style-strip .cats::-webkit-scrollbar,
+.qb-style-strip .opts::-webkit-scrollbar {
+  display: none;
+}
+
+.qb-style-strip .cats button {
+  flex-shrink: 0;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 0;
+  background: none;
+  color: var(--fg-3);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.qb-style-strip .cats button.on {
+  background: var(--gold-a12);
+  color: var(--gold-text);
+}
+
+.qb-style-strip .opts {
+  min-height: 40px;
+  padding: 0 2px;
+}
+
+.qb-style-strip .opts button {
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.qb-style-strip .swatch {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: var(--sw);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+
+.qb-style-strip .swatch.on {
+  border-color: var(--fg-1);
+}
+
+.qb-style-strip .swatch.none {
+  background: linear-gradient(135deg, transparent 45%, var(--danger-fg) 45% 55%, transparent 55%);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.qb-style-strip .chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.qb-style-strip .chip.on {
+  border-color: var(--border-accent);
+  background: var(--gold-a12);
+  color: var(--gold-text);
+}
+
+.qb-style-strip .chip.danger {
+  color: var(--danger-fg);
+}
+
+.qb-style-strip .sep {
+  flex-shrink: 0;
+  width: 1px;
+  height: 24px;
+  margin: 0 2px;
+  background: var(--border);
+}
+
+.qb-style-panel .head .close {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+/* The board's own name (editable), with its theme beside it. */
+.qb-board-bar .board-name {
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 auto;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  background: none;
+  color: var(--gold-text);
+  font-family: var(--font-arabic-heading);
+  font-size: var(--fs-title-section);
+  line-height: var(--lh-heading);
+  field-sizing: content;
+}
+
+.qb-board-bar .board-name:hover,
+.qb-board-bar .board-name:focus {
+  border-color: var(--border);
+  outline: none;
+}
+
+.qb-board-bar .theme-name {
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+@media (max-width: 768px) {
+  .qb-board-bar .board-name {
+    font-size: 18px;
+    flex: 1 1 auto;
+    /* field-sizing isn't everywhere yet: the name takes the row, never more. */
+    width: 100%;
+    text-overflow: ellipsis;
+  }
+
+  .qb-board-bar .theme-name {
+    display: none;
+  }
+}

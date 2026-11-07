@@ -1,0 +1,331 @@
+/* =====================================================================
+   Basair Al-Quran — Foundation Tokens (colors + typography)
+   ---------------------------------------------------------------------
+   RTL-native, Arabic-primary. Two themes. Warm, dignified palette.
+   The :root defaults to dark (the scholar's reading-room default).
+   Toggle .light on <html> or <body> to flip.
+
+   Source of truth — every component should read from these variables.
+   Do not introduce new design tokens without updating this file.
+   ===================================================================== */
+
+/* Brand-supplied Quran face (mushaf-quality Amiri Quran) — self-hosted */
+@font-face {
+  font-family: 'Amiri Quran';
+  src: url('/fonts/AmiriQuran-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Cairo (UI) and Amiri (titles, names), self-hosted (public/fonts/ui, SIL OFL):
+   no request to a third party, available offline from the first launch, and no
+   reflow when a remote stylesheet arrives late. Amiri Quran is the primary Quran
+   face; the others fill gaps it doesn't cover. Unicode ranges as served by
+   Google Fonts, so each script's file loads only when that script is shown. */
+@font-face {
+  font-family: 'Amiri';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ui/amiri-400-arabic.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4, U+10EFC-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24, U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47, U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57, U+1EE59, U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64, U+1EE67-1EE6A, U+1EE6C-1EE72, U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E, U+1EE80-1EE89, U+1EE8B-1EE9B, U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1;
+}
+@font-face {
+  font-family: 'Amiri';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ui/amiri-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Amiri';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/ui/amiri-400-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Amiri';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/ui/amiri-700-arabic.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4, U+10EFC-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24, U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47, U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57, U+1EE59, U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64, U+1EE67-1EE6A, U+1EE6C-1EE72, U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E, U+1EE80-1EE89, U+1EE8B-1EE9B, U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1;
+}
+@font-face {
+  font-family: 'Amiri';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/ui/amiri-700-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Amiri';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/ui/amiri-700-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url('/fonts/ui/cairo-300-800-arabic.woff2') format('woff2');
+  unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4, U+10EFC-10EFF, U+1EE00-1EE03, U+1EE05-1EE1F, U+1EE21-1EE22, U+1EE24, U+1EE27, U+1EE29-1EE32, U+1EE34-1EE37, U+1EE39, U+1EE3B, U+1EE42, U+1EE47, U+1EE49, U+1EE4B, U+1EE4D-1EE4F, U+1EE51-1EE52, U+1EE54, U+1EE57, U+1EE59, U+1EE5B, U+1EE5D, U+1EE5F, U+1EE61-1EE62, U+1EE64, U+1EE67-1EE6A, U+1EE6C-1EE72, U+1EE74-1EE77, U+1EE79-1EE7C, U+1EE7E, U+1EE80-1EE89, U+1EE8B-1EE9B, U+1EEA1-1EEA3, U+1EEA5-1EEA9, U+1EEAB-1EEBB, U+1EEF0-1EEF1;
+}
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url('/fonts/ui/cairo-300-800-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Cairo';
+  font-style: normal;
+  font-weight: 300 800;
+  font-display: swap;
+  src: url('/fonts/ui/cairo-300-800-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  /* ---------- Brand / accent ---------- */
+  --gold-50:  #fbf6e2;
+  --gold-100: #f5e9b6;
+  --gold-200: #ecd57a;
+  --gold-300: #e0c14a;
+  --gold-400: #d4af37;   /* primary */
+  --gold-500: #b38b10;
+  --gold-600: #8a6a0c;
+  --gold-700: #5e4708;
+  --gold-800: #3a2c05;
+  --gold-900: #1f1702;
+
+  /* Brand seal (BrandMark) tones. Theme-aware so a CSS-driven mark follows the
+     stored theme without a JS `light` prop (which caused an SSR/client hydration
+     mismatch for light-theme users). Dark values here; light override in .light. */
+  --brand-mark-stroke: #d4af37;
+  --brand-mark-fill: #e9cf73;
+  --brand-mark-glow: rgba(212, 175, 55, 0.22);
+  --brand-mark-filter: drop-shadow(0 4px 14px rgba(212, 175, 55, 0.18));
+
+  /* ---------- Ink (text) ---------- */
+  --ink-0:   #ffffff;
+  --ink-50:  #f7f3e8;
+  --ink-100: #e8e3d4;
+  --ink-200: #c7c0a8;
+  --ink-300: #9a917a;
+  --ink-400: #6a624f;
+  --ink-500: #3f3a2d;
+  --ink-600: #2a2519;
+  --ink-700: #1f1b13;
+  --ink-800: #15120c;
+  --ink-900: #0c0a07;
+
+  /* ---------- Semantic — strict evidence vs. tafssir interpretation ---------- */
+  --evidence-fg:  #d4af37;          /* gold = strict Quran evidence */
+  --evidence-bg:  rgba(212,175,55,0.10);
+  --evidence-border: rgba(212,175,55,0.45);
+
+  --tafssir-fg:   #c98a5b;          /* warmer copper = experimental */
+  --tafssir-bg:   rgba(201,138,91,0.10);
+  --tafssir-border: rgba(201,138,91,0.45);
+  --tafssir-stripe: repeating-linear-gradient(
+    -45deg,
+    rgba(201,138,91,0.16) 0 6px,
+    transparent 6px 14px
+  );
+
+  --info-fg:    #8ab4d8;
+  --warn-fg:    #d8b46a;
+  --danger-fg:  #c97a7a;
+  --success-fg: #8ab09a;
+
+  /* ---------- Dark theme (default) ---------- */
+  --bg:        #131210;
+  --bg-elev-1: #1a1813;
+  --bg-elev-2: #221f17;
+  --bg-elev-3: #2c281d;
+  --surface:   rgba(33, 30, 22, 0.78);
+  --surface-soft: rgba(255,255,255,0.03);
+  /* Borders are implicit: shape comes from light (glass highlight, shadow),
+     outlines only whisper. */
+  --border:    rgba(212,175,55,0.075);
+  --border-strong: rgba(212,175,55,0.15);
+  --border-accent: rgba(212,175,55,0.16);
+  --border-focus: rgba(212,175,55,0.42);
+  --focus-glow: 0 0 0 3px rgba(212,175,55,0.08), 0 0 18px rgba(212,175,55,0.12);
+  --divider:   rgba(255,255,255,0.045);
+  --divider-fade: linear-gradient(90deg, transparent, var(--divider) 14%, var(--divider) 86%, transparent);
+
+  --fg-1: #f4ecd8;   /* primary copy */
+  --fg-2: #c7bfa8;   /* secondary copy */
+  --fg-3: #8d8674;   /* tertiary / meta */
+  --fg-mute: #5a5547;
+
+  --verse-fg: var(--ink-50);  /* warm off-white; pure #fff blooms on dense diacritics at night */
+  --verse-bg: rgba(0,0,0,0.20);
+  --highlight-bg: rgba(212,175,55,0.22);
+  --highlight-fg: var(--gold-300);
+
+  /* Gold UI text (headings, kickers, meta, chips). Theme-aware so gold text
+     stays readable on light surfaces: identical to gold-400 in dark (no change),
+     a darker gold in light (see .light) to clear WCAG-AA contrast. Use this for
+     gold TEXT; keep --gold-400 for gold fills, borders, and icons. */
+  --gold-text: var(--gold-400);
+  /* Brighter emphasis gold text (hover/active/highlight). Brightest gold in dark;
+     collapses to the same readable dark gold as --gold-text in light. */
+  --gold-text-bright: var(--gold-300);
+
+  /* Page background — warm radial wash, the "manuscript at night" feel */
+  --page-bg:
+    radial-gradient(circle at top right, rgba(212,175,55,0.13), transparent 26%),
+    radial-gradient(circle at 15% 18%, rgba(255,255,255,0.04), transparent 18%),
+    linear-gradient(180deg, #131210 0%, #181612 52%, #121009 100%);
+
+  /* ---------- Spacing scale (4px base) ---------- */
+  --sp-0: 0;
+  --sp-1: 0.25rem;   /* 4 */
+  --sp-2: 0.5rem;    /* 8 */
+  --sp-3: 0.75rem;   /* 12 */
+  --sp-4: 1rem;      /* 16 */
+  --sp-5: 1.25rem;   /* 20 */
+  --sp-6: 1.5rem;    /* 24 */
+  --sp-8: 2rem;      /* 32 */
+  --sp-10: 2.5rem;   /* 40 */
+  --sp-12: 3rem;     /* 48 */
+  --sp-16: 4rem;     /* 64 */
+
+  /* ---------- Radii ---------- */
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 22px;
+  --r-2xl: 28px;
+  --r-pill: 999px;
+
+  /* ---------- Shadows / elevation ---------- */
+  --shadow-1: 0 4px 10px rgba(0,0,0,0.18);
+  --shadow-2: 0 10px 24px rgba(0,0,0,0.22);
+  --shadow-3: 0 18px 40px rgba(0,0,0,0.28);
+  --shadow-glow: 0 0 0 1px rgba(212,175,55,0.18), 0 0 24px rgba(212,175,55,0.10);
+  --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.04);
+
+  /* ---------- Motion ---------- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 140ms;
+  --dur: 240ms;
+  --dur-slow: 380ms;
+
+  /* ---------- Typography — families ---------- */
+  --font-arabic-display: 'Amiri Quran', 'Amiri', serif;  /* Quran text only (mushaf, ayahs, quoted verses) */
+  --font-arabic-heading: 'Amiri', 'Amiri Quran', serif;  /* UI headings: Amiri's metrics fit a line box (Amiri Quran's tall marks overflow it) */
+  --font-arabic-mushaf:  'Amiri Quran', 'Amiri', serif;              /* alias — mushaf-only contexts */
+  --font-arabic-ui:      'Cairo', 'Inter', system-ui, sans-serif;    /* UI chrome, body */
+  /* Legacy alias: titles now use the heading face (three families in the UI:
+     Amiri Quran for Quran text, Amiri for titles/names, Cairo for everything else). */
+  --font-arabic-kufi:    var(--font-arabic-heading);
+  --font-mono:           'Cairo', ui-monospace, monospace;
+
+  /* ---------- Type scale (Arabic runs ~1.05x larger; values calibrated) ---------- */
+  --fs-xs:   0.78rem;  /* 12.5 */
+  --fs-sm:   0.88rem;  /* 14   */
+  --fs-base: 1rem;     /* 16   */
+  --fs-md:   1.125rem; /* 18   */
+  --fs-lg:   1.3rem;   /* 20.8 */
+  --fs-xl:   1.6rem;   /* 25.6 */
+  --fs-2xl:  2rem;     /* 32   */
+  --fs-3xl:  2.6rem;   /* 41.6 */
+  --fs-4xl:  3.5rem;   /* 56   */
+
+  /* Mushaf reading sizes (these MUST stay generous) */
+  --fs-ayah:        1.6rem;
+  --fs-ayah-reader: 1.72rem;
+  --fs-ayah-large:  2.05rem;
+  /* Basmala size relative to the ayah font — one shared value for the Unicode
+     line and the glyph-page basmala so they no longer drift (0.72 vs 0.92). */
+  --basmala-scale:  0.8;
+
+  --lh-tight: 1.4;
+  --lh-heading: 1.6;
+  /* Title tiers (Amiri): one size per role across every screen. */
+  --fs-title-page: clamp(28px, 2.4vw + 14px, 38px);
+  --fs-title-section: 22px;
+  --fs-title-card: 19px;    /* UI titles in Amiri: room for stacked marks above and below */      /* Arabic display faces carry tashkeel above/below — 1.2 clipped/overlapped */
+  --lh-snug: 1.45;
+  --lh-body: 1.7;
+  --lh-mushaf: 2.25;     /* mushaf reading */
+
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0; /* Arabic-first UI: tracking breaks cursive joins */
+  --tracking-uppercase: 0; /* kept as a token for Latin-only labels */
+}
+
+/* =====================================================================
+   Light theme — warm parchment, illuminated manuscript
+   Apply with <html class="light">, <body class="light">, or
+   <body class="light-mode"> (legacy alias kept for compatibility).
+   ===================================================================== */
+.light, .light-mode, [data-theme="light"] {
+  --bg:        #faf6ec;
+  --bg-elev-1: #f5efdd;
+  --bg-elev-2: #efe7cf;
+  --bg-elev-3: #e8dfc1;
+  --surface:   rgba(255,255,255,0.78);
+  --surface-soft: rgba(255,255,255,0.55);
+  --border:    rgba(164,129,41,0.11);
+  --border-strong: rgba(164,129,41,0.22);
+  --border-accent: rgba(164,129,41,0.2);
+  --border-focus: rgba(164,129,41,0.48);
+  --focus-glow: 0 0 0 3px rgba(164,129,41,0.08), 0 0 18px rgba(212,175,55,0.16);
+  --divider:   rgba(60,46,18,0.07);
+  --divider-fade: linear-gradient(90deg, transparent, var(--divider) 14%, var(--divider) 86%, transparent);
+
+  --fg-1: #1a160d;
+  --fg-2: #4a4232;
+  --fg-3: #6b6248;  /* was #7a7155 — sat exactly on the 4.5:1 AA floor on parchment */
+  --fg-mute: #a89f80;
+
+  --verse-fg: #0e0c08;
+  --verse-bg: rgba(212,175,55,0.10);
+  --highlight-bg: rgba(212,175,55,0.30);
+  --highlight-fg: #6a4d05;
+
+  /* Darker gold for text on the light parchment (matches the design's evidence
+     gold); gold-400 itself is too light to read on cream surfaces. */
+  --gold-text: #8a6a0c;
+  --gold-text-bright: #8a6a0c;
+
+  --brand-mark-stroke: #a4812a;
+  --brand-mark-fill: #8a6a0c;
+  --brand-mark-glow: rgba(212, 175, 55, 0.18);
+  --brand-mark-filter: none;
+
+  --evidence-fg: #8a6a0c;
+  --evidence-bg: rgba(212,175,55,0.14);
+  --evidence-border: rgba(164,129,41,0.45);
+
+  --tafssir-fg: #8a4f25;
+  --tafssir-bg: rgba(174,108,62,0.12);
+  --tafssir-border: rgba(174,108,62,0.45);
+
+  --page-bg:
+    radial-gradient(circle at top right, rgba(212,175,55,0.16), transparent 26%),
+    radial-gradient(circle at 15% 18%, rgba(179,139,16,0.08), transparent 18%),
+    linear-gradient(180deg, #fbf8ef 0%, #f3eddc 52%, #eee4cf 100%);
+
+  --shadow-1: 0 4px 10px rgba(120,90,30,0.10);
+  --shadow-2: 0 10px 24px rgba(120,90,30,0.12);
+  --shadow-3: 0 18px 40px rgba(120,90,30,0.16);
+}

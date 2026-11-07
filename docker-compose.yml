@@ -3,12 +3,18 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.api
-    environment:
+    environment: &api-environment
       PORT: "8001"
       QBASAIR_DB_PATH: /app/data/quran.db
       QBASAIR_AUTH_DB_PATH: /app/data/auth.db
       QBASAIR_RESEARCH_INDEX_PATH: /app/data/research_agent.db
       QBASAIR_RESEARCH_SOURCES_PATH: /app/data/research_sources
+      QBASAIR_TRANSLATIONS_DB_PATH: /app/data/translations.db
+      # Shared cache (e.g. verse audio durations), computed once, served to all.
+      QBASAIR_CACHE_DB_PATH: /app/data/cache.db
+      # The standalone app's downloadable packs (/api/offline), built by the
+      # deploy from quran.db + translations.db (scripts/build_offline_packs.py).
+      QBASAIR_OFFLINE_PACKS_PATH: /app/data/offline
       QBASAIR_AUTH_ENABLED: ${QBASAIR_AUTH_ENABLED:-0}
       QBASAIR_BUILD_DB_ON_START: ${QBASAIR_BUILD_DB_ON_START:-auto}
       QBASAIR_CORS_ORIGINS: ${QBASAIR_CORS_ORIGINS:-http://localhost}
@@ -19,21 +25,77 @@ services:
       QBASAIR_LLM_EMBED_MODEL: ${QBASAIR_LLM_EMBED_MODEL:-nomic-embed-text}
       QBASAIR_LLM_TIMEOUT_SECONDS: ${QBASAIR_LLM_TIMEOUT_SECONDS:-120}
       QBASAIR_SESSION_COOKIE_NAME: ${QBASAIR_SESSION_COOKIE_NAME:-qbasair_session}
-      QBASAIR_SESSION_SECRET: ${QBASAIR_SESSION_SECRET:-qbasair-dev-session-secret}
-      QBASAIR_SESSION_SECURE: ${QBASAIR_SESSION_SECURE:-0}
+      QBASAIR_SESSION_SECRET: ${QBASAIR_SESSION_SECRET:?set a strong QBASAIR_SESSION_SECRET in .env.production}
+      QBASAIR_SESSION_SECURE: ${QBASAIR_SESSION_SECURE:-1}
       OLLAMA_API_KEY: ${OLLAMA_API_KEY:-}
+      # Invite-only signup when set (comma-separated codes); open signup when empty.
+      QBASAIR_INVITE_CODES: ${QBASAIR_INVITE_CODES:-}
+      # Extra Ollama hosts a client may target (ollama.com is always allowed).
+      QBASAIR_OLLAMA_ALLOWED_HOSTS: ${QBASAIR_OLLAMA_ALLOWED_HOSTS:-}
+      # Reported by /api/ready so the deploy gate can see what is running.
+      QBASAIR_COMMIT_SHA: ${QBASAIR_COMMIT_SHA:-unknown}
+      # Password-reset email (optional — without SMTP the token is only logged).
+      QBASAIR_PUBLIC_URL: ${QBASAIR_PUBLIC_URL:-}
+      QBASAIR_SMTP_HOST: ${QBASAIR_SMTP_HOST:-}
+      QBASAIR_SMTP_PORT: ${QBASAIR_SMTP_PORT:-587}
+      QBASAIR_SMTP_USER: ${QBASAIR_SMTP_USER:-}
+      QBASAIR_SMTP_PASSWORD: ${QBASAIR_SMTP_PASSWORD:-}
+      QBASAIR_SMTP_SECURITY: ${QBASAIR_SMTP_SECURITY:-starttls}
+      QBASAIR_MAIL_FROM: ${QBASAIR_MAIL_FROM:-}
+      # Community moderation (docs/community-moderation-design.md): the batches
+      # run in the `worker` service below, not in the API.
+      QBASAIR_MODERATION_WORKER: external
+      QBASAIR_MODERATION_INTERVAL_SECONDS: ${QBASAIR_MODERATION_INTERVAL_SECONDS:-900}
+      QBASAIR_MODERATION_DAILY_BUDGET: ${QBASAIR_MODERATION_DAILY_BUDGET:-2000}
+      QBASAIR_MODERATION_MIN_CONFIDENCE: ${QBASAIR_MODERATION_MIN_CONFIDENCE:-0.7}
+      QBASAIR_RATE_LIMIT_FEEDBACK_MAX: ${QBASAIR_RATE_LIMIT_FEEDBACK_MAX:-10}
     volumes:
       - ./data:/app/data
     expose:
       - "8001"
     networks:
       - app
+    # Bounded container logs so a chatty process can't fill the host disk.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Resource ceilings (env-tunable per host). Generous for the api since DB /
+    # index rebuilds run inside it; drop if the box is small.
+    mem_limit: ${QBASAIR_API_MEM_LIMIT:-1g}
+    cpus: ${QBASAIR_API_CPUS:-1.5}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/api/health', timeout=5).read()"]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 30s
+    restart: unless-stopped
+
+  # The moderation batches: the API's image and settings, its own process
+  # (src/app/workers/moderation_worker.py). Restarting it loses nothing — the
+  # work waits in the database.
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    command: ["python", "-m", "src.app.workers.moderation_worker"]
+    environment: *api-environment
+    volumes:
+      - ./data:/app/data
+    networks:
+      - app
+    depends_on:
+      api:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: ${QBASAIR_WORKER_MEM_LIMIT:-384m}
+    cpus: ${QBASAIR_WORKER_CPUS:-0.5}
     restart: unless-stopped
 
   web:
@@ -44,6 +106,7 @@ services:
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-/api}
         NEXT_PUBLIC_ENABLE_YAMLI: ${NEXT_PUBLIC_ENABLE_YAMLI:-0}
         NEXT_PUBLIC_AUTH_ENABLED: ${NEXT_PUBLIC_AUTH_ENABLED:-0}
+        NEXT_PUBLIC_SITE_URL: ${QBASAIR_PUBLIC_URL:-}
         QBASAIR_API_ORIGIN: ${QBASAIR_API_ORIGIN:-http://api:8001}
         QBASAIR_SESSION_COOKIE_NAME: ${QBASAIR_SESSION_COOKIE_NAME:-qbasair_session}
     environment:
@@ -63,6 +126,13 @@ services:
         condition: service_healthy
     networks:
       - app
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: ${QBASAIR_WEB_MEM_LIMIT:-512m}
+    cpus: ${QBASAIR_WEB_CPUS:-1.0}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then((res)=>process.exit(res.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 30s
@@ -87,6 +157,10 @@ services:
     environment:
       QBASAIR_ENABLE_TLS: ${QBASAIR_ENABLE_TLS:-0}
       QBASAIR_PUBLIC_DOMAIN: ${QBASAIR_PUBLIC_DOMAIN:-}
+      # Behind a CDN only (docs/caching.md): its address ranges (comma-separated
+      # CIDRs) and the header carrying the visitor's IP (e.g. CF-Connecting-IP).
+      QBASAIR_CDN_TRUSTED_RANGES: ${QBASAIR_CDN_TRUSTED_RANGES:-}
+      QBASAIR_CDN_REAL_IP_HEADER: ${QBASAIR_CDN_REAL_IP_HEADER:-}
     # Allows nginx to reach services exposed on the host loopback (e.g. co-located
     # stacks that publish ports on 127.0.0.1). Required for /srv/nginx-vhosts.d
     # conf files that proxy to host-bound ports.
@@ -106,6 +180,13 @@ services:
     networks:
       - edge
       - app
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    mem_limit: ${QBASAIR_NGINX_MEM_LIMIT:-128m}
+    cpus: ${QBASAIR_NGINX_CPUS:-0.5}
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/healthz || exit 1"]
       interval: 30s

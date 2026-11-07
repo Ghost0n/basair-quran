@@ -1,0 +1,101 @@
+/* =====================================================================
+   Q-Basair — Motion Token Extension  (diff against apps/web/app/tokens.css)
+   ---------------------------------------------------------------------
+   ADDITIVE ONLY. Existing --dur-* / --ease-* stay valid; they become
+   aliases of the new semantic ramp (see bottom).
+   Emotional target: calm authority — "a page settling, not a UI performing."
+   ===================================================================== */
+
+:root {
+  /* ---------- Duration ramp ---------- */
+  --motion-dur-instant: 90ms;   /* hover, press, focus ring            */
+  --motion-dur-fast:    140ms;  /* exits, dismissals, micro-feedback   */
+  --motion-dur-base:    240ms;  /* standard state changes              */
+  --motion-dur-slow:    380ms;  /* panel enter, mode transitions       */
+  --motion-dur-travel:  640ms;  /* long jumps, theme sweep             */
+  --motion-dur-thread:  420ms;  /* evidence thread draw (citation→ayah) */
+  --motion-dur-hero:    900ms;  /* first-run reveal, highlight bloom   */
+
+  /* ---------- Easing vocabulary ---------- */
+  /* enters — decelerate hard, land softly: "the page settles"          */
+  --motion-ease-settle:   cubic-bezier(0.22, 1, 0.36, 1);
+  /* exits — leave quickly and quietly, no lingering                    */
+  --motion-ease-exit:     cubic-bezier(0.4, 0, 1, 1);
+  /* symmetric journeys — page travel, theme sweep                      */
+  --motion-ease-travel:   cubic-bezier(0.65, 0, 0.35, 1);
+  /* bounded emphasis — badge pop, nuqṭa. Overshoot capped ≈4%, never a
+     spring. The ONLY curve allowed to overshoot.                        */
+  --motion-ease-emphasis: cubic-bezier(0.34, 1.26, 0.64, 1);
+
+  /* ---------- Orchestration ---------- */
+  --motion-stagger-tight: 40ms;  /* chips, small lists                  */
+  --motion-stagger-base:  60ms;  /* result cards (cap at 8, then batch) */
+  --motion-stagger-loose: 90ms;  /* evidence cards — the hero moment    */
+  --motion-delay-content: 120ms; /* panel body after its frame lands    */
+  --motion-delay-answer:  150ms; /* shimmer after evidence card lands   */
+
+  /* ---------- Depth ramp (the "room" behind a summoned panel) ---------- */
+  --depth-room-scale: 0.99;      /* mushaf settles back 1%              */
+  --depth-room-dim:   0.94;      /* and dims — never blurs              */
+  --depth-panel-shadow: var(--shadow-3);
+
+  /* ---------- Elevation ramp — one z-order for the whole app ---------- */
+  /* Layer:        z       shadow          material                       */
+  --elev-room:     0;   /* --shadow-1     opaque — the mushaf, results   */
+  --elev-panel:    10;  /* --shadow-2     glass — concordance, studio    */
+  --elev-drawer:   20;  /* --shadow-3     glass — notebook, tweaks       */
+  --elev-popover:  30;  /* --shadow-3     glass — morph popover, menus   */
+  --elev-overlay:  40;  /* --shadow-3     dim scrim — export modal        */
+  --elev-toast:    50;  /* --shadow-2     opaque — sync/offline badges    */
+
+  /* ---------- Gold alpha ramp (semantic, replaces ad-hoc rgba) ---------- */
+  --gold-a04: rgba(212,175,55,0.04);
+  --gold-a08: rgba(212,175,55,0.08);
+  --gold-a12: rgba(212,175,55,0.12);
+  --gold-a18: rgba(212,175,55,0.18);
+  --gold-a26: rgba(212,175,55,0.26);
+  --gold-a40: rgba(212,175,55,0.40);
+  --gold-a55: rgba(212,175,55,0.55);
+
+  /* ---------- Copper alpha ramp (tafssir — mirrors gold, never mixed) ---------- */
+  --copper-a04: rgba(201,138,91,0.04);
+  --copper-a08: rgba(201,138,91,0.08);
+  --copper-a12: rgba(201,138,91,0.12);
+  --copper-a18: rgba(201,138,91,0.18);
+  --copper-a26: rgba(201,138,91,0.26);
+  --copper-a40: rgba(201,138,91,0.40);
+
+  /* ---------- Legacy aliases (do not use in new code) ---------- */
+  --dur-fast: var(--motion-dur-fast);
+  --dur:      var(--motion-dur-base);
+  --dur-slow: var(--motion-dur-slow);
+  --ease-out:    var(--motion-ease-settle);
+  --ease-in-out: var(--motion-ease-travel);
+}
+
+/* =====================================================================
+   Reduced motion — a complete, dignified variant, not a kill switch.
+   Position/scale/parallax collapse; opacity choreography REMAINS
+   (staggers included) so the app still breathes, calmly.
+   Component rule: every keyframe pair ships a *-reduced twin that
+   animates opacity only. Transforms are declared via these vars so the
+   media query neutralizes them in one place.
+   ===================================================================== */
+:root {
+  --motion-rise: translateY(12px);      /* generic enter offset          */
+  --motion-turn-fwd: translateX(-26px); /* RTL: next page from the left  */
+  --motion-turn-back: translateX(26px);
+  --motion-travel-rise: translateY(22px);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-rise: none;
+    --motion-turn-fwd: none;
+    --motion-turn-back: none;
+    --motion-travel-rise: none;
+    --depth-room-scale: 1;
+    --motion-dur-travel: var(--motion-dur-base);
+    --motion-dur-hero: var(--motion-dur-slow);
+    --motion-ease-emphasis: var(--motion-ease-settle);
+  }
+}

@@ -1,0 +1,141 @@
+/* =====================================================================
+   Account menu — rail medallion + popover (profile, theme, settings, sync,
+   sign out). Elevation: popover (--elev-popover). Token-driven.
+   ===================================================================== */
+
+.qb-account-btn {
+  padding-block: 6px;
+}
+
+.qb-account-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--elev-popover);
+}
+
+.qb-account-pop {
+  position: fixed;
+  z-index: calc(var(--elev-popover) + 1);
+  width: 264px;
+  overflow: hidden;
+  animation: qbRise var(--motion-dur-base) var(--motion-ease-settle) both;
+  background: var(--glass-tint-overlay);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur-strong)) saturate(var(--glass-saturate));
+  border-radius: var(--r-xl);
+}
+
+.qb-account-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
+  background: linear-gradient(135deg, var(--gold-a08), transparent);
+}
+
+.qb-account-head .who {
+  min-width: 0;
+}
+
+.qb-account-head .name {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--fg-1);
+  overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qb-account-head .email {
+  font-size: 10.5px;
+  color: var(--fg-3);
+  direction: ltr;
+  text-align: start;
+  overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qb-account-body {
+  padding: 6px;
+}
+
+.qb-account-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font-size: 12.5px;
+  color: var(--fg-1);
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  text-align: start;
+  transition: background var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-account-link:hover {
+  background: var(--surface-soft);
+}
+
+.qb-account-link .chev {
+  margin-inline-start: auto;
+  color: var(--fg-3);
+}
+
+.qb-account-sync {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  font-size: 11px;
+  color: var(--fg-3);
+}
+
+.qb-account-sync .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success-fg);
+}
+
+.qb-account-foot {
+  border-top: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
+  padding: 6px;
+}
+
+.qb-account-signout {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  font-size: 12.5px;
+  color: var(--danger-fg);
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  text-align: start;
+  transition: background var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-account-signout:hover {
+  background: rgba(201, 90, 90, 0.08);
+}

@@ -1,0 +1,473 @@
+/* =====================================================================
+   Home (home-screen.tsx) — one tree, two arrangements.
+
+   Phones: the upper part is for looking (the greeting), the lower part
+   for acting — the actions stack from the bottom up, just above the tab
+   bar, where the thumb rests (docs/mobile-ergonomics.md).
+
+   Wide screens: the rotating āyah holds the centre, with the same continue
+   card, shortcuts and search beneath it; the rail carries the account.
+   ===================================================================== */
+
+.qb-home {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  max-width: 480px;
+  margin-inline: auto;
+  /* Clears the floating tab bar (app/globals.css). */
+  padding: 6px 16px var(--page-bottom, 96px);
+  font-family: var(--font-arabic-ui);
+  color: var(--fg-1);
+}
+
+.qb-home-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+}
+
+.qb-home-account {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--glass-tint);
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+.qb-home-greeting {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.qb-home-greeting h1 {
+  margin: 0;
+  font-family: var(--font-arabic-heading);
+  font-size: 24px;
+  line-height: var(--lh-heading, 1.6);
+  font-weight: 700;
+}
+
+.qb-home-greeting p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fg-3);
+}
+
+/* Pushed to the bottom of the screen; on a short screen it simply scrolls. */
+.qb-home-reach {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+/* ---------- Continue: the one primary action ---------- */
+
+.qb-home-continue {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 24px;
+  border: 1px solid color-mix(in srgb, var(--world-reading) 28%, transparent);
+  background-color: var(--glass-tint-overlay, var(--glass-tint-strong));
+  background-image: linear-gradient(160deg, var(--world-reading-a), transparent 60%), var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+}
+
+.qb-home-continue .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--world-reading-text);
+}
+
+.qb-home-continue .row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qb-home-continue .txt {
+  flex: 1;
+  min-width: 0;
+}
+
+.qb-home-continue h2 {
+  margin: 0;
+  font-family: var(--font-arabic-heading);
+  font-size: 28px;
+  line-height: var(--lh-heading, 1.6);
+  font-weight: 700;
+  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.qb-home-continue h2.sm {
+  font-size: 20px;
+}
+
+.qb-home-continue p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--fg-3);
+}
+
+.qb-home-continue .listen {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--world-reading) 30%, transparent);
+  background: var(--world-reading-a);
+  color: var(--world-reading-text);
+  cursor: pointer;
+}
+
+.qb-home-continue .go {
+  min-height: 52px;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: var(--gold-gel, var(--gold-400));
+  box-shadow: var(--gold-gel-shadow, none);
+  color: #140f00;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-home-continue .go:active,
+.qb-home-tile:active,
+.qb-home-search:active {
+  transform: scale(var(--press-scale, 0.97));
+}
+
+/* ---------- Four labelled shortcuts ---------- */
+
+.qb-home-grid {
+  display: grid;
+  /* minmax(0, …): a long subtitle must ellipsize, not widen the column. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+/* Tiles hidden in Settings: an odd last tile takes the whole row. */
+.qb-home-grid.is-odd > .qb-home-tile:last-child {
+  grid-column: 1 / -1;
+}
+
+.qb-home-tile {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge);
+  color: var(--fg-1);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.qb-home-tile .ico {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--gold-a12);
+  color: var(--gold-text);
+}
+
+.qb-home-tile .ico .dot {
+  position: absolute;
+  top: 4px;
+  inset-inline-end: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--world-community);
+}
+
+.qb-home-tile .txt {
+  display: grid;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.qb-home-tile b {
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.qb-home-tile small {
+  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
+  font-size: 12px;
+  color: var(--fg-3);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ---------- The search field, last: closest to the thumb ---------- */
+
+.qb-home-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 16px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background-color: var(--glass-tint-strong);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge);
+  color: var(--fg-3);
+  font: inherit;
+  font-size: 15px;
+  text-align: start;
+  cursor: text;
+}
+
+.qb-home-search span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.qb-home-search .qb-icon {
+  color: var(--gold-text);
+  flex-shrink: 0;
+}
+
+/* ---------- The verse (wide screens) ---------- */
+
+.qb-home-verse {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .qb-home {
+    max-width: 760px;
+    gap: 18px;
+    padding: 28px 32px 40px;
+  }
+
+  /* The rail carries the account menu; the greeting stays, centred. */
+  .qb-home-top {
+    display: contents;
+  }
+
+  .qb-home-account {
+    display: none;
+  }
+
+  .qb-home-greeting {
+    margin-top: auto;
+    text-align: center;
+  }
+
+  .qb-home-verse {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0 10px;
+    text-align: center;
+  }
+
+  .qb-home-verse .ayah-text {
+    margin: 0;
+    max-width: 20ch;
+    /* Two wrapped lines are reserved so the rotation never reflows what is
+       below (the verses alternate between one and two lines at this measure). */
+    min-height: calc(2em * var(--lh-mushaf, 2));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-arabic-display);
+    direction: rtl;
+    font-size: var(--fs-3xl, 40px);
+    line-height: var(--lh-mushaf, 2);
+    color: var(--verse-fg);
+    text-wrap: balance;
+    animation: qbFade var(--dur-slow, 400ms) var(--ease-out, ease-out);
+  }
+
+  /* Reference: سورة · آية in gold, flanked by hairline rules. */
+  .qb-home-verse .ayah-ref {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: var(--gold-text);
+    font-family: var(--font-arabic-ui);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--fs-sm, 14px);
+  }
+
+  .qb-home-verse .ayah-ref::before,
+  .qb-home-verse .ayah-ref::after {
+    content: "";
+    width: 56px;
+    height: 1px;
+    background: var(--border-strong);
+  }
+
+  /* The actions sit under the verse rather than at the bottom of the screen. */
+  .qb-home-reach {
+    margin-top: 0;
+    margin-bottom: auto;
+    gap: 14px;
+  }
+
+  .qb-home-grid {
+    grid-template-columns: repeat(var(--tiles, 4), minmax(0, 1fr));
+  }
+
+  .qb-home-grid.is-odd > .qb-home-tile:last-child {
+    grid-column: auto;
+  }
+
+  .qb-home-tile {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 112px;
+    padding: 14px 10px;
+    text-align: center;
+  }
+
+  .qb-home-tile .txt {
+    justify-items: center;
+    max-width: 100%;
+  }
+
+  .qb-home-tile small {
+    max-width: 100%;
+  }
+
+  .qb-home-tile:hover,
+  .qb-home-search:hover {
+    border-color: color-mix(in srgb, var(--gold-400) 40%, transparent);
+  }
+
+  /* The continue card lays its title and its button side by side. */
+  .qb-home-continue {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 18px;
+    padding: 18px 22px;
+  }
+
+  .qb-home-continue .eyebrow {
+    grid-column: 1 / -1;
+  }
+
+  .qb-home-continue .go {
+    min-width: 168px;
+    padding: 0 28px;
+  }
+
+  .qb-home-continue .go:hover {
+    filter: brightness(1.05);
+  }
+}
+
+@media (min-width: 769px) and (prefers-reduced-motion: reduce) {
+  .qb-home-verse .ayah-text {
+    animation: none;
+  }
+}
+
+/* ---------- The account sheet ---------- */
+
+.qb-account-sheet .head .sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.qb-account-sheet .menu-list {
+  display: grid;
+  gap: 4px;
+  padding: 6px 12px 18px;
+}
+
+.qb-account-sheet .menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px;
+  border: 0;
+  border-radius: var(--r-lg);
+  background: transparent;
+  color: var(--fg-1);
+  font: inherit;
+  font-size: 15px;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.qb-account-sheet .menu-item:hover {
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.qb-account-sheet .menu-item .ico {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--gold-text);
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.qb-account-sheet .menu-item .txt {
+  display: grid;
+  min-width: 0;
+}
+
+.qb-account-sheet .menu-item small {
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+
+.qb-account-sheet .menu-item > .qb-icon:last-child {
+  margin-inline-start: auto;
+  color: var(--fg-3);
+}
+
+.qb-account-sheet .menu-item.quiet {
+  color: var(--fg-2);
+}

@@ -1,0 +1,799 @@
+/* =====================================================================
+   Studio — the research panel. Gold = strict (Qurʾān-only evidence),
+   copper = tafssir (experimental interpretation). Never mixed.
+   ===================================================================== */
+
+.qb-studio {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---------- Session tabs ---------- */
+
+.qb-studio-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px 0;
+  border-bottom: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.qb-studio-tab {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--fg-3);
+  border-radius: 8px 8px 0 0;
+  border: 1px solid transparent;
+  border-bottom: none;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 180px;
+  min-width: 0;
+}
+
+.qb-studio-tab > .qb-icon,
+.qb-studio-tab .x {
+  flex-shrink: 0;
+}
+
+.qb-studio-tab .label {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 1px 2px;
+  font: inherit;
+  text-align: start;
+  overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* A long session title in the panel head: two lines, then an ellipsis. */
+.qb-studio .qb-side-head > div:first-child {
+  min-width: 0;
+}
+
+.qb-studio .qb-side-head h3 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.qb-studio-tab.active {
+  color: var(--gold-text);
+  background: rgba(212, 175, 55, 0.08);
+  border-color: var(--border);
+  margin-bottom: -1px;
+}
+
+.qb-studio-tab .x {
+  color: var(--fg-mute);
+  margin-inline-start: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.qb-studio-tab .x:hover {
+  color: var(--tafssir-fg);
+}
+
+.qb-studio-tab.add {
+  color: var(--fg-mute);
+}
+
+/* ---------- Mode toggle (strict / tafssir) ---------- */
+
+.qb-mode-tabs {
+  display: flex;
+  padding: 4px;
+  background: var(--glass-tint-soft);
+  border: 1px solid var(--glass-rim);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+  border-radius: var(--r-pill);
+  margin: 14px 20px 8px;
+  flex-shrink: 0;
+}
+
+.qb-mode-tab {
+  flex: 1;
+  padding: 9px 10px;
+  border-radius: var(--r-pill);
+  transition: background-color var(--motion-dur-base) var(--spring-soft), color var(--motion-dur-fast),
+    box-shadow var(--motion-dur-base);
+  font-size: 12px;
+  color: var(--fg-2);
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.qb-mode-tab.active.strict {
+  background: var(--seg-on-bg);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--seg-on-shadow);
+  color: var(--gold-text);
+}
+
+.qb-mode-tab.active.tafssir {
+  background: var(--seg-copper-bg);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), inset 0 0 0 1px rgba(201, 138, 91, 0.4);
+  color: var(--tafssir-fg);
+}
+
+/* ---------- Tafssir disclaimer ---------- */
+
+.qb-tafssir-warn {
+  margin: 0 20px 14px;
+  background: var(--tafssir-bg);
+  background-image: var(--tafssir-stripe);
+  border: 1px solid var(--tafssir-border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--fg-1);
+  flex-shrink: 0;
+}
+
+.qb-tafssir-warn strong {
+  color: var(--tafssir-fg);
+  display: block;
+  font-size: 11px;
+  margin-bottom: 2px;
+  font-weight: 700;
+}
+
+/* ---------- Thread ---------- */
+
+.qb-thread {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.qb-msg {
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.qb-msg.user {
+  background: var(--glass-tint-soft);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge);
+}
+
+.qb-msg.user .lbl {
+  color: var(--fg-3);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
+  margin-bottom: 4px;
+}
+
+.qb-msg.user p {
+  margin: 0;
+  color: var(--fg-1);
+  font-size: 14px;
+}
+
+.qb-msg.bot {
+  background: rgba(212, 175, 55, 0.06);
+  border: 1px solid var(--border-accent);
+  padding: 14px;
+  /* Skeleton→answer crossfade: the answer arrives in place, container keeps its
+     dimensions (no pop-in). */
+  animation: qbFade var(--motion-dur-base) var(--motion-ease-settle) both;
+}
+
+.qb-msg.bot.tafssir {
+  background: rgba(201, 138, 91, 0.06);
+  border-color: rgba(201, 138, 91, 0.30);
+}
+
+.qb-msg.bot .lbl {
+  color: var(--gold-text);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qb-msg.bot.tafssir .lbl {
+  color: var(--tafssir-fg);
+}
+
+.qb-msg.bot p {
+  margin: 0 0 10px;
+  color: var(--fg-1);
+  font-size: 13.5px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+.qb-msg.bot .section {
+  padding: 8px 0;
+  border-top: 1px dashed rgba(201, 138, 91, 0.22);
+  margin-top: 8px;
+}
+
+.qb-msg.bot .section h5 {
+  font-size: 11px;
+  color: var(--tafssir-fg);
+  margin: 0 0 4px;
+  font-weight: 700;
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
+}
+
+/* ---------- Evidence ---------- */
+
+.qb-msg.bot .evidence {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(212, 175, 55, 0.2);
+}
+
+.qb-msg.bot .evidence-label {
+  font-size: 10px;
+  color: var(--fg-3);
+  font-weight: 700;
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
+}
+
+.qb-msg.bot .ev-row {
+  background: rgba(0, 0, 0, 0.20);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  transition: border-color 180ms var(--ease-out);
+  width: 100%;
+  text-align: start;
+  /* Evidence cards arrive with a 90ms LOOSE stagger — slower than search results
+     on purpose; this is the hero moment. `backwards` holds opacity 0 through the
+     delay so the cascade reads cleanly. */
+  animation: qbRise var(--motion-dur-base) var(--motion-ease-settle) backwards;
+  animation-delay: calc(var(--i, 0) * var(--motion-stagger-loose));
+}
+
+.light .qb-msg.bot .ev-row {
+  background: rgba(255, 253, 246, 0.6);
+}
+
+.qb-msg.bot .ev-row:hover {
+  border-color: var(--border-accent);
+}
+
+.qb-msg.bot .ev-row .num {
+  color: var(--gold-text);
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+  padding-top: 4px;
+  /* A gold light band sweeps across the [n] reference once the card has landed
+     (card delay + answer-delay). Webkit/Chromium show the gradient sweep; other
+     engines fall back to the plain gold number above. */
+  background: linear-gradient(110deg, var(--gold-text) 38%, #f2dc8a 50%, var(--gold-text) 62%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: qbShimmer var(--motion-dur-hero) var(--motion-ease-travel) both;
+  animation-delay: calc(var(--i, 0) * var(--motion-stagger-loose) + var(--motion-delay-answer));
+}
+
+/* Reduced motion: no shimmer — restore the plain gold reference number. */
+@media (prefers-reduced-motion: reduce) {
+  .qb-msg.bot .ev-row .num {
+    animation: none;
+    background: none;
+    -webkit-text-fill-color: var(--gold-text);
+  }
+}
+
+.qb-msg.bot .ev-row .ev-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.qb-msg.bot .ev-row .ev-meta {
+  color: var(--fg-3);
+  font-size: 10px;
+}
+
+.qb-msg.bot .ev-row .ev-text {
+  font-family: var(--font-arabic-display);
+  direction: rtl;
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--verse-fg);
+}
+
+/* ---------- States ---------- */
+
+.qb-studio-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--fg-3);
+  font-size: 13px;
+  line-height: 1.7;
+  text-align: center;
+  padding: 32px 24px;
+}
+
+.qb-studio-error {
+  margin: 0 20px 12px;
+  background: var(--tafssir-bg);
+  border: 1px solid var(--tafssir-border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  color: var(--fg-1);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.qb-studio-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gold-text);
+  font-size: 12px;
+}
+
+/* ---------- Composer ---------- */
+
+.qb-composer {
+  flex-shrink: 0;
+  padding: 14px 20px 18px;
+  border-top: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.light .qb-composer {
+  background: rgba(255, 253, 246, 0.6);
+}
+
+.qb-composer .input-wrap {
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.light .qb-composer .input-wrap {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.qb-composer .input-wrap:focus-within {
+  border-color: var(--border-accent);
+}
+
+.qb-composer textarea {
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  width: 100%;
+  min-height: 36px;
+  max-height: 120px;
+  font-family: var(--font-arabic-ui);
+  font-size: 16px;
+  color: var(--fg-1);
+}
+
+.qb-composer textarea::placeholder {
+  color: var(--fg-mute);
+  font-family: var(--font-arabic-ui);
+  font-size: 14px;
+}
+
+.qb-composer .row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.qb-composer .row .grow {
+  flex: 1;
+}
+
+.qb-composer .send {
+  background: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
+  color: #140f00;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 12px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qb-composer .send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.qb-composer .tool-chip {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--fg-3);
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.qb-composer .tool-chip:hover {
+  color: var(--gold-text);
+}
+
+.qb-composer .tool-chip.active {
+  color: var(--gold-text);
+  border-color: var(--border-accent);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+/* ---------- Settings block ---------- */
+
+.qb-studio-settings {
+  margin: 0 20px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(0, 0, 0, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.light .qb-studio-settings {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.qb-studio-settings label {
+  font-size: 11px;
+  color: var(--fg-3);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qb-studio-settings input {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.24);
+  border: 1px solid var(--border);
+  color: var(--fg-1);
+  font-size: 12px;
+  font-family: var(--font-arabic-ui);
+}
+
+.light .qb-studio-settings input {
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.qb-studio-settings input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+/* A session centred on one ayah (reader «تفسير» tool). */
+.qb-studio-focus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--tafssir-border, var(--border));
+  background: var(--gold-a08);
+  color: var(--fg-2);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* ---------- Session title, conversion banner, sessions sheet ---------- */
+
+.qb-studio-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.qb-studio-title .txt {
+  min-width: 0;
+  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Wide screens keep the tab strip; the chevron is the phone's way in. */
+.qb-studio-title > .qb-icon {
+  display: none;
+  flex-shrink: 0;
+  color: var(--fg-3);
+}
+
+.qb-studio .qb-side-head .close.on {
+  color: var(--gold-text);
+  background: var(--gold-a12);
+}
+
+.qb-studio-confirm {
+  flex-shrink: 0;
+  margin: 6px 20px 4px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 10px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-accent);
+  background: rgba(212, 175, 55, 0.08);
+  animation: qbFade var(--motion-dur-fast) var(--motion-ease-settle) both;
+}
+
+.qb-studio-confirm p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--fg-1);
+}
+
+.qb-studio-confirm[role="alert"] p {
+  color: var(--danger-fg);
+}
+
+.qb-studio-confirm .actions {
+  display: flex;
+  gap: 8px;
+}
+
+.qb-studio-confirm button {
+  min-height: 40px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-studio-confirm .ok {
+  border: 0;
+  background: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
+  color: #140f00;
+}
+
+.qb-studio-confirm .ok:disabled {
+  opacity: 0.6;
+}
+
+.qb-studio-confirm .cancel {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-2);
+}
+
+.qb-composer .tool-chip.phone-only {
+  display: none;
+}
+
+.qb-composer .tool-chip.tafssir.active {
+  color: var(--tafssir-fg);
+  border-color: rgba(217, 162, 122, 0.45);
+  background: rgba(217, 162, 122, 0.1);
+}
+
+.qb-studio-sessions .menu-list {
+  display: grid;
+  gap: 4px;
+  padding: 6px 12px 18px;
+}
+
+.qb-studio-session {
+  display: flex;
+  align-items: center;
+  border-radius: var(--r-lg);
+}
+
+.qb-studio-session.active {
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.qb-studio-sessions .menu-item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px;
+  border: 0;
+  border-radius: var(--r-lg);
+  background: transparent;
+  color: var(--fg-1);
+  font: inherit;
+  font-size: 15px;
+  text-align: start;
+  cursor: pointer;
+}
+
+.qb-studio-sessions .menu-item .ico {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--gold-text);
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.qb-studio-sessions .menu-item .txt {
+  display: grid;
+  min-width: 0;
+}
+
+.qb-studio-sessions .menu-item small {
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+
+.qb-studio-session .x {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+/* ---------- Phones: a conversation, not a panel ----------
+   The page is the thread itself, like the notebook: no frame, no tab strip
+   (the title opens the sessions), no close or export; the strict/tafssir
+   switch sits in the composer, by the field. */
+@media (max-width: 768px) {
+  html:root .qb-side-panel.qb-side-panel-wide {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    animation: none;
+  }
+
+  html:root .qb-studio-tabs,
+  html:root .qb-studio .qb-mode-tabs,
+  html:root .qb-studio .close.desk-only {
+    display: none;
+  }
+
+  html:root .qb-studio .qb-studio-head {
+    align-items: center;
+    padding: 12px 16px 6px !important;
+  }
+
+  html:root .qb-studio-head .kicker,
+  html:root .qb-studio-head .meta {
+    display: none;
+  }
+
+  html:root .qb-studio-head-main {
+    flex: 1;
+  }
+
+  html:root .qb-studio .qb-studio-head h3 {
+    margin: 0;
+    display: block;
+    font-size: 22px !important;
+  }
+
+  html:root .qb-studio-title > .qb-icon {
+    display: inline-block;
+  }
+
+  html:root .qb-composer .tool-chip.phone-only {
+    display: inline-flex;
+  }
+
+  html:root .qb-composer {
+    padding: 8px 12px 10px;
+    border-top: 0;
+    background: none;
+  }
+
+  html:root .qb-composer .input-wrap {
+    border-radius: 20px;
+    padding: 8px 10px;
+  }
+
+  html:root .qb-composer .send {
+    min-height: 40px;
+    border-radius: 12px;
+  }
+
+  html:root .qb-thread {
+    padding-inline: 16px;
+  }
+}

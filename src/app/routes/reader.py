@@ -1,10 +1,17 @@
 import time
 from typing import Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
-from src.app.models.api import AyahReaderMoreResponse, AyahReaderResponse, QuranPageResponse
-from src.app.services import quran_service
+from src.app.models.api import (
+    AyahReaderMoreResponse,
+    AyahReaderResponse,
+    MorphologyResponse,
+    TextCountResponse,
+    MushafPageLayoutResponse,
+    QuranPageResponse,
+)
+from src.app.services import morphology_service, quran_service
 
 router = APIRouter(prefix="/api", tags=["reader"])
 
@@ -77,10 +84,15 @@ def quran_page(
     page: Optional[int] = Query(None, ge=1),
     ayah_id: Optional[int] = Query(None, ge=1),
     selected_ayah_id: Optional[int] = Query(None, ge=1),
+    surah: Optional[int] = Query(None, ge=1, le=114, description="Jump to this surah"),
+    ayah: Optional[int] = Query(None, ge=1, description="Jump to this ayah within the surah"),
+    juz: Optional[int] = Query(None, ge=1, le=30, description="Jump to the first page of this juz"),
 ) -> QuranPageResponse:
     start = time.time()
     cursor = quran_service.get_db().cursor()
-    payload = quran_service.build_quran_page_payload(cursor, mushaf, page, ayah_id, selected_ayah_id)
+    payload = quran_service.build_quran_page_payload(
+        cursor, mushaf, page, ayah_id, selected_ayah_id, surah, ayah, juz
+    )
     elapsed = (time.time() - start) * 1000
 
     if not payload["found"]:
@@ -103,3 +115,70 @@ def quran_page(
         len(payload["ayahs"]),
     )
     return QuranPageResponse(**payload)
+
+
+@router.get("/mushaf-page-layout", response_model=MushafPageLayoutResponse, response_model_exclude_none=True)
+def mushaf_page_layout(
+    mushaf: int = Query(2, description="Mushaf ID — the authentic Madani layout is Hafs-only"),
+    page: Optional[int] = Query(None, ge=1, le=604),
+    selected_ayah_id: Optional[int] = Query(None, ge=1),
+) -> MushafPageLayoutResponse:
+    start = time.time()
+    cursor = quran_service.get_db().cursor()
+    payload = quran_service.build_mushaf_page_layout(cursor, mushaf, page, selected_ayah_id)
+    elapsed = (time.time() - start) * 1000
+
+    status = (
+        "fallback:reader" if payload.get("fallback")
+        else (f"page {payload['page']}, {len(payload['lines'])} lines" if payload["found"] else "not found")
+    )
+    quran_service.logger.info(
+        "GET /api/mushaf-page-layout?mushaf=%s&page=%s - %.1fms - %s", mushaf, page, elapsed, status
+    )
+    return MushafPageLayoutResponse(**payload)
+
+
+@router.get("/text-count", response_model=TextCountResponse)
+def text_count(
+    text: str = Query(..., min_length=1, max_length=300, description="Selected word(s), any script form"),
+    mushaf: int = Query(2, ge=1),
+    surah: int | None = Query(None, ge=1, le=114),
+    page: int | None = Query(None, ge=1, le=700),
+) -> TextCountResponse:
+    """Occurrences of a word/phrase and of each of its letters in page / surah / Quran."""
+    if len(text.split()) > 12:
+        raise HTTPException(status_code=422, detail="Select at most 12 words to count.")
+    result = quran_service.count_text(mushaf, text, surah, page)
+    if not result["text"]:
+        raise HTTPException(status_code=422, detail="The selection has no Arabic letters to count.")
+    return TextCountResponse(**result)
+
+
+@router.get("/morphology", response_model=MorphologyResponse, response_model_exclude_none=True)
+def morphology(
+    surah: int = Query(..., ge=1, le=114, description="Surah number"),
+    ayah: int = Query(..., ge=1, description="Ayah number within the surah"),
+    mushaf: int | None = Query(
+        None,
+        ge=1,
+        description="Mushaf ID of the displayed verse. The server reads that riwāyah's "
+        "ayah text itself and matches it by skeleton, so the lookup is correct across "
+        "riwāyāt with different ayah numbering (preferred over `text`).",
+    ),
+    text: str | None = Query(
+        None,
+        description="Deprecated: the displayed ayah text (long URLs — use `mushaf`).",
+    ),
+) -> MorphologyResponse:
+    start = time.time()
+    if text is None and mushaf is not None:
+        text = quran_service.get_ayah_text(mushaf, surah, ayah)
+    payload = morphology_service.get_ayah_morphology(surah, ayah, text)
+    quran_service.logger.info(
+        "GET /api/morphology?surah=%s&ayah=%s - %.1fms - %s words",
+        surah,
+        ayah,
+        (time.time() - start) * 1000,
+        len(payload["words"]),
+    )
+    return MorphologyResponse(**payload)

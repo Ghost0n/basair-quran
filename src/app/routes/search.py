@@ -8,6 +8,7 @@ from src.app.models.api import (
     BatchSuggestRequest,
     LegacySearchResponse,
     PaginatedSearchResponse,
+    RootDistributionResponse,
     SearchResultPageResponse,
     SuggestionItem,
 )
@@ -162,11 +163,12 @@ def search_v2(
     mode: Literal["root", "exact"] = Query("root", description="Search mode: 'root' or 'exact'"),
     mushaf: int = Query(1, description="Mushaf ID"),
     page_size: int = Query(config.DEFAULT_PAGE_SIZE, ge=1, le=config.MAX_PAGE_SIZE),
+    surah: int | None = Query(None, ge=1, le=114, description="Only the verses of this surah"),
 ) -> PaginatedSearchResponse:
     start = time.time()
     cursor = quran_service.get_db().cursor()
     q_simple = quran_service.build_exact_query_simple(q) if mode == "exact" else quran_service.normalize_query_search(q)
-    results, did_you_mean = quran_service.build_paginated_search_results(cursor, q, q_simple, mode, mushaf, page_size)
+    results, did_you_mean = quran_service.build_paginated_search_results(cursor, q, q_simple, mode, mushaf, page_size, surah)
 
     if not results:
         quran_service.logger.info(
@@ -202,11 +204,12 @@ def search_result_page(
     result_key: str = Query(..., min_length=1),
     page: int = Query(1, ge=1),
     page_size: int = Query(config.DEFAULT_PAGE_SIZE, ge=1, le=config.MAX_PAGE_SIZE),
+    surah: int | None = Query(None, ge=1, le=114, description="Only the verses of this surah"),
 ) -> SearchResultPageResponse:
     start = time.time()
     cursor = quran_service.get_db().cursor()
     q_simple = quran_service.build_exact_query_simple(q) if mode == "exact" else quran_service.normalize_query_search(q)
-    result = quran_service.build_single_result_page(cursor, q, q_simple, mode, mushaf, result_key, page, page_size)
+    result = quran_service.build_single_result_page(cursor, q, q_simple, mode, mushaf, result_key, page, page_size, surah)
 
     if result is None:
         quran_service.logger.info(
@@ -226,3 +229,21 @@ def search_result_page(
         (time.time() - start) * 1000,
     )
     return SearchResultPageResponse(found=True, result=result)
+
+
+@router.get("/root-distribution", response_model=RootDistributionResponse, response_model_exclude_none=True)
+def root_distribution(
+    root: str = Query(..., max_length=config.MAX_QUERY_LENGTH, description="Root or word to map across the Quran"),
+    mushaf: int = Query(1, description="Mushaf ID"),
+) -> RootDistributionResponse:
+    start = time.time()
+    cursor = quran_service.get_db().cursor()
+    payload = quran_service.build_root_distribution(cursor, root, mushaf)
+    quran_service.logger.info(
+        "GET /api/root-distribution?root=%s&mushaf=%s - %.1fms - %s surahs",
+        root[:10],
+        mushaf,
+        (time.time() - start) * 1000,
+        payload["surah_count"],
+    )
+    return RootDistributionResponse(**payload)

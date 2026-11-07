@@ -3,131 +3,357 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { createQBasairApiClient } from "@q-basair/api-client";
+import { BrandMark } from "@/components/brand-mark";
+import { AUTH_ENABLED } from "@/lib/config";
 
-import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import "./auth.css";
+import "./auth.web.css";
 
-const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
+import { GirihPattern } from "@/components/girih";
+import { useWebDesign } from "@/lib/use-web-design";
+import { continueAsGuest, identityApi, routeAfterAuth, sanitizeNextPath } from "./identity-flow";
 
-function sanitizeNextPath(rawValue: string | null): string {
-  if (!rawValue || !rawValue.startsWith("/")) {
-    return "/";
-  }
-  if (rawValue.startsWith("//")) {
-    return "/";
-  }
-  return rawValue;
+import { t } from "@/lib/i18n";
+
+type AuthTab = "in" | "up";
+
+function messageForError(error: unknown, tab: AuthTab): string {
+  const text = error instanceof Error ? error.message : "";
+  if (text.includes(" 409")) return t("هذا البريد مُسجَّل بالفعل — جرّب تسجيل الدخول.");
+  if (text.includes(" 401")) return t("البريد أو كلمة المرور غير صحيحة.");
+  if (text.includes(" 422")) return t("تحقّق من البريد وكلمة المرور (ثمانية أحرف فأكثر).");
+  return tab === "up" ? t("تعذّر إنشاء الحساب.") : t("تعذّر تسجيل الدخول.");
 }
 
 export function LoginPageShell() {
   const searchParams = useSearchParams();
   const nextPath = useMemo(() => sanitizeNextPath(searchParams.get("next")), [searchParams]);
+
+  const [tab, setTab] = useState<AuthTab>(searchParams.get("tab") === "signup" ? "up" : "in");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [invite, setInvite] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [checkingSession, setCheckingSession] = useState(true);
+  // Password-reset sub-flow. The emailed link (/login?reset=<token>) opens the
+  // reset step with the code pre-filled; the code can also be pasted by hand.
+  const linkToken = searchParams.get("reset") ?? "";
+  const [view, setView] = useState<"auth" | "forgot" | "reset">(linkToken ? "reset" : "auth");
+  const [resetToken, setResetToken] = useState(linkToken);
+  const [notice, setNotice] = useState("");
+
+  const isSignup = tab === "up";
 
   useEffect(() => {
     if (!AUTH_ENABLED) {
       window.location.assign("/");
       return;
     }
-
     let active = true;
-
     async function checkSession() {
       try {
-        const session = await api.getAuthSession({ suppressAuthRedirect: true });
-        if (!active) {
-          return;
-        }
+        const session = await identityApi.getAuthSession({ suppressAuthRedirect: true });
+        if (!active) return;
         if (!session.enabled) {
           window.location.assign("/");
           return;
         }
         if (session.authenticated) {
-          window.location.assign(nextPath);
+          await routeAfterAuth(session, nextPath);
           return;
         }
       } catch {
-        // Keep the login form visible when the session check fails.
+        // Keep the form visible when the session probe fails.
       } finally {
-        if (active) {
-          setCheckingSession(false);
-        }
+        if (active) setCheckingSession(false);
       }
     }
-
     void checkSession();
     return () => {
       active = false;
     };
   }, [nextPath]);
 
+  function switchTab(next: AuthTab) {
+    setTab(next);
+    setError("");
+  }
+
+  async function requestReset() {
+    if (!email.trim()) {
+      setError(t("أدخل بريدك الإلكتروني أولاً."));
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      await identityApi.forgotPassword(email, { suppressAuthRedirect: true });
+    } catch {
+      // Deliberately ignore — never reveal whether the email exists.
+    }
+    setLoading(false);
+    setNotice(t("إن كان البريد مُسجَّلاً، فقد أرسلنا إليه رابطاً ورمزاً لإعادة التعيين (صالحَين لساعة). افتح الرابط أو أدخِل الرمز هنا."));
+    setView("reset");
+  }
+
+  async function submitReset(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!resetToken.trim() || !password.trim()) {
+      setError(t("أدخل الرمز وكلمة المرور الجديدة (ثمانية أحرف فأكثر)."));
+      return;
+    }
+    setLoading(true);
+    setError("");
+    try {
+      await identityApi.resetPassword(resetToken.trim(), password, { suppressAuthRedirect: true });
+      setNotice(t("تم تغيير كلمة المرور. سجّل الدخول بها الآن."));
+      setView("auth");
+      setPassword("");
+      setResetToken("");
+    } catch (err) {
+      const text = err instanceof Error ? err.message : "";
+      setError(text.includes(" 422") ? t("كلمة المرور قصيرة (ثمانية أحرف فأكثر).") : t("الرمز غير صالح أو منتهٍ."));
+    }
+    setLoading(false);
+  }
+
+  function backToAuth() {
+    setView("auth");
+    setError("");
+    setNotice("");
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSubmitting(true);
-    setErrorMessage("");
+    if (!email.trim() || !password.trim() || (isSignup && !name.trim())) {
+      setError(
+        isSignup
+          ? t("أكمِل الحقول — البريد وكلمة المرور مطلوبان، والاسم أيضاً.")
+          : t("أكمِل الحقول — البريد وكلمة المرور مطلوبان."),
+      );
+      return;
+    }
+    setLoading(true);
+    setError("");
     try {
-      const response = await api.login({ email, password }, { suppressAuthRedirect: true });
-      if (!response.authenticated) {
-        throw new Error("تعذّر إنشاء الجلسة.");
+      const session = isSignup
+        ? await identityApi.signup(
+            { email, password, name, invite_code: invite || null, platform: "web" },
+            { suppressAuthRedirect: true },
+          )
+        : await identityApi.login({ email, password, platform: "web" }, { suppressAuthRedirect: true });
+      if (!session.authenticated) {
+        throw new Error(t("تعذّر إنشاء الجلسة."));
       }
-      window.location.assign(nextPath);
-    } catch (error) {
-      setErrorMessage(error instanceof Error ? error.message : "تعذّر تسجيل الدخول.");
-    } finally {
-      setSubmitting(false);
+      await routeAfterAuth(session, nextPath);
+    } catch (err) {
+      setError(messageForError(err, tab));
+      setLoading(false);
     }
   }
 
+  const web = useWebDesign();
+
+  if (checkingSession) {
+    return (
+      <div className="qb-auth">
+        <div className="qb-auth-guest-note" style={{ animation: "none" }}>
+          {t("جارٍ التحقّق من الجلسة…")}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="login-page-shell">
-      <div className="login-card">
-        <div className="login-copy">
-          <span className="login-eyebrow">دخول خاص</span>
-          <h1>تسجيل الدخول إلى بصائر القرآن</h1>
-          <p>هذا النشر محميّ بحسابات تُدار من الخادم مباشرة. استخدم البريد وكلمة المرور الممنوحين لك.</p>
+    <div className="qb-auth">
+      {/* Web design: the landing's rosette, drawn once behind the form. */}
+      {web ? <GirihPattern className="qb-auth-girih" drawn /> : null}
+      <div style={{ animation: "qbRise 500ms var(--motion-ease-settle) both" }}>
+        <BrandMark size={66} />
+      </div>
+      <div className="qb-auth-head" style={{ animation: "qbRise 500ms var(--motion-ease-settle) 80ms both" }}>
+        <div className="qb-auth-wordmark">{t("بَصَائِر القُرآن")}</div>
+        <div className="qb-auth-sub">BASAIR · THE SCHOLAR&apos;S ROOM</div>
+      </div>
+
+      {notice ? <div className="qb-auth-notice" role="status">{notice}</div> : null}
+
+      {view === "forgot" ? (
+        <div className="qb-auth-card" style={{ animation: "qbRise 500ms var(--motion-ease-settle) 160ms both" }}>
+          <div className="qb-auth-reset-title">{t("إعادة تعيين كلمة المرور")}</div>
+          <label className="qb-auth-field">
+            <span className="label">{t("البريد الإلكتروني")}</span>
+            <input
+              className="qb-auth-input ltr"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="name@example.com"
+              autoComplete="username"
+            />
+          </label>
+          {error ? <div className="qb-auth-error" role="alert">{error}</div> : null}
+          <button type="button" className="qb-auth-cta" onClick={requestReset} disabled={loading}>
+            {loading ? t("لحظة…") : t("أرسِل رمز إعادة التعيين")}
+          </button>
+          <button type="button" className="forgot" onClick={backToAuth}>
+            {t("← العودة لتسجيل الدخول")}
+          </button>
+        </div>
+      ) : view === "reset" ? (
+        <form
+          className="qb-auth-card"
+          onSubmit={submitReset}
+          style={{ animation: "qbRise 500ms var(--motion-ease-settle) 160ms both" }}
+        >
+          <div className="qb-auth-reset-title">{t("أدخِل الرمز وكلمة المرور الجديدة")}</div>
+          <label className="qb-auth-field">
+            <span className="label">{t("رمز إعادة التعيين")}</span>
+            <input
+              className="qb-auth-input ltr"
+              value={resetToken}
+              onChange={(event) => setResetToken(event.target.value)}
+              placeholder="RESET-TOKEN"
+              autoComplete="one-time-code"
+            />
+          </label>
+          <label className="qb-auth-field">
+            <span className="label">{t("كلمة المرور الجديدة")}</span>
+            <input
+              className="qb-auth-input"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder={t("ثمانية أحرف فأكثر")}
+              autoComplete="new-password"
+            />
+          </label>
+          {error ? <div className="qb-auth-error" role="alert">{error}</div> : null}
+          <button type="submit" className="qb-auth-cta" disabled={loading}>
+            {loading ? t("لحظة…") : t("غيّر كلمة المرور")}
+          </button>
+          <button type="button" className="forgot" onClick={backToAuth}>
+            {t("← العودة لتسجيل الدخول")}
+          </button>
+        </form>
+      ) : (
+      <form
+        className="qb-auth-card"
+        onSubmit={handleSubmit}
+        style={{ animation: "qbRise 500ms var(--motion-ease-settle) 160ms both" }}
+      >
+        <div className="qb-auth-tabs qb-fit-choice" data-autofit="2" suppressHydrationWarning role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!isSignup}
+            className={`qb-auth-tab ${!isSignup ? "active" : ""}`}
+            onClick={() => switchTab("in")}
+          >
+            {t("دخول")}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={isSignup}
+            className={`qb-auth-tab ${isSignup ? "active" : ""}`}
+            onClick={() => switchTab("up")}
+          >
+            {t("حساب جديد")}
+          </button>
         </div>
 
-        {checkingSession ? (
-          <div className="login-state">جارٍ التحقق من الجلسة...</div>
-        ) : (
-          <form className="login-form" onSubmit={handleSubmit}>
-            <label className="login-field">
-              <span>البريد الإلكتروني</span>
-              <input
-                type="email"
-                dir="ltr"
-                autoComplete="username"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                placeholder="user@example.com"
-                required
-              />
-            </label>
+        {isSignup ? (
+          <label className="qb-auth-field qb-auth-signup-name">
+            <span className="label">{t("اسمك — كما تحبّ أن تُنادى")}</span>
+            <input
+              className="qb-auth-input"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder={t("أبو محمد")}
+              autoComplete="name"
+            />
+          </label>
+        ) : null}
 
-            <label className="login-field">
-              <span>كلمة المرور</span>
-              <input
-                type="password"
-                dir="ltr"
-                autoComplete="current-password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder="••••••••"
-                required
-              />
-            </label>
+        <label className="qb-auth-field">
+          <span className="label">{t("البريد الإلكتروني")}</span>
+          <input
+            className="qb-auth-input ltr"
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="name@example.com"
+            autoComplete="username"
+          />
+        </label>
 
-            {errorMessage ? <div className="login-error">{errorMessage}</div> : null}
+        <label className="qb-auth-field">
+          <span className="label-row">
+            <span className="label">{t("كلمة المرور")}</span>
+            {!isSignup ? (
+              <button
+                type="button"
+                className="forgot"
+                onClick={() => {
+                  setError("");
+                  setNotice("");
+                  setView("forgot");
+                }}
+              >
+                {t("نسيتها؟")}
+              </button>
+            ) : null}
+          </span>
+          <input
+            className="qb-auth-input"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            placeholder={t("ثمانية أحرف فأكثر")}
+            autoComplete={isSignup ? "new-password" : "current-password"}
+          />
+        </label>
 
-            <button type="submit" className="login-submit" disabled={submitting}>
-              {submitting ? "جارٍ الدخول..." : "دخول"}
-            </button>
-          </form>
-        )}
+        {error ? <div className="qb-auth-error" role="alert">{error}</div> : null}
+
+        <button type="submit" className="qb-auth-cta" disabled={loading}>
+          {loading ? <span className="qb-auth-spinner" aria-hidden /> : null}
+          {loading ? t("لحظة…") : isSignup ? t("أنشئ حسابك") : t("دخول")}
+        </button>
+
+        {isSignup ? (
+          <div className="qb-auth-invite">
+            <div className="qb-auth-invite-head">
+              <span>{t("رمز دعوة؟")}</span>
+              <span className="optional">{t("اختياري")}</span>
+            </div>
+            <input
+              value={invite}
+              onChange={(event) => setInvite(event.target.value)}
+              placeholder="INVITE-CODE"
+              aria-label={t("رمز دعوة اختياري")}
+            />
+          </div>
+        ) : null}
+      </form>
+      )}
+
+      <button
+        type="button"
+        className="qb-landing-guest"
+        onClick={() => {
+          continueAsGuest();
+          window.location.assign("/");
+        }}
+      >
+        {t("تصفّح كضيف ←")}
+      </button>
+
+      <div className="qb-auth-guest-note">
+        {t("عند إنشاء الحساب نضمّ محفوظاتك تلقائياً")}
       </div>
     </div>
   );

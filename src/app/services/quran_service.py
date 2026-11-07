@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import re
 import sqlite3
+import threading
 from typing import Optional
 
 from src.app.core import config
@@ -14,14 +15,24 @@ from src.app.core import config
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Connection pool (reuse connections)
-_db_connection = None
+# Per-thread read-only SQLite connections. A single shared connection used from
+# multiple worker threads (uvicorn's sync threadpool) is a data-race hazard even
+# with check_same_thread=False; each thread gets its own read-only handle instead.
+# A generation counter lets close_db_connection() (called from a *different*
+# thread on teardown / DB-path change) invalidate every thread's cached handle:
+# a thread whose cached generation is stale transparently reopens.
+_thread_local = threading.local()
+_open_connections: list[sqlite3.Connection] = []
+_connections_lock = threading.Lock()
+_connection_generation = 0
 _mushaf_page_index_cache = OrderedDict()
 _mushaf_latin_word_index_cache = OrderedDict()
 _mushaf_latin_root_index_cache = OrderedDict()
 _mushaf_word_suggestion_candidates_cache = OrderedDict()
+_mushaf_phrase_metadata_cache = OrderedDict()
 _phrase_did_you_mean_cache = OrderedDict()
 _word_did_you_mean_cache = OrderedDict()
+_mushaf_layout_index_cache = OrderedDict()
 
 
 def get_cache_entry(cache, key):
@@ -48,19 +59,31 @@ def put_cache_entry(cache, key, value, limit=None):
 
 
 def close_db_connection():
-    """Close the cached SQLite connection."""
-    global _db_connection, _mushaf_page_index_cache
+    """Close every per-thread SQLite connection and reset the in-process caches."""
+    global _open_connections, _connection_generation, _mushaf_page_index_cache
     global _mushaf_latin_word_index_cache, _mushaf_latin_root_index_cache, _mushaf_word_suggestion_candidates_cache
-    global _phrase_did_you_mean_cache, _word_did_you_mean_cache
-    if _db_connection is not None:
-        _db_connection.close()
-        _db_connection = None
+    global _mushaf_phrase_metadata_cache
+    global _phrase_did_you_mean_cache, _word_did_you_mean_cache, _mushaf_layout_index_cache
+    with _connections_lock:
+        for connection in _open_connections:
+            try:
+                connection.close()
+            except sqlite3.Error:
+                pass
+        _open_connections = []
+        # Bump the generation so other threads' cached handles are seen as stale
+        # and get reopened on their next get_db() call.
+        _connection_generation += 1
     _mushaf_page_index_cache = OrderedDict()
     _mushaf_latin_word_index_cache = OrderedDict()
     _mushaf_latin_root_index_cache = OrderedDict()
     _mushaf_word_suggestion_candidates_cache = OrderedDict()
+    _mushaf_phrase_metadata_cache = OrderedDict()
     _phrase_did_you_mean_cache = OrderedDict()
     _word_did_you_mean_cache = OrderedDict()
+    _mushaf_layout_index_cache = OrderedDict()
+    with _count_corpus_lock:
+        _count_corpus_cache.clear()
 
 
 def reset_morphology_search_index():
@@ -68,22 +91,196 @@ def reset_morphology_search_index():
     return None
 
 
+def get_ayah_text(mushaf_id: int, surah: int, ayah: int) -> str | None:
+    """The Uthmani text of one ayah in one mushaf, or None if it doesn't exist."""
+    row = get_db().execute(
+        "SELECT text_uthmani FROM ayahs WHERE mushaf_id = ? AND surah_id = ? AND number_in_surah = ?",
+        (mushaf_id, surah, ayah),
+    ).fetchone()
+    return row["text_uthmani"] if row else None
+
+
+def get_ayah_verse(mushaf_id: int, surah: int, ayah: int) -> dict | None:
+    """One ayah as a search-verse record (no highlights), or None."""
+    row = get_db().execute(
+        """
+        SELECT a.id AS ayah_id, a.mushaf_id, s.name_arabic AS surah_name, a.surah_id,
+               a.number_in_surah, a.text_uthmani, a.global_index
+        FROM ayahs a JOIN surahs s ON s.id = a.surah_id
+        WHERE a.mushaf_id = ? AND a.surah_id = ? AND a.number_in_surah = ?
+        """,
+        (mushaf_id, surah, ayah),
+    ).fetchone()
+    if row is None:
+        return None
+    return {
+        "ayah_id": row["ayah_id"],
+        "mushaf_id": row["mushaf_id"],
+        "surah": row["surah_name"],
+        "surah_id": row["surah_id"],
+        "ayah": row["number_in_surah"],
+        "text": row["text_uthmani"],
+        "global_index": row["global_index"],
+        "highlights": [],
+    }
+
+
+def get_ayah_context(mushaf_id: int, surah: int, ayah: int, before: int = 2, after: int = 2) -> dict | None:
+    """The ayah's place in its surah: surah metadata plus up to `before` /
+    `after` neighbouring ayahs (never crossing into another surah).
+
+    Used to read an ayah in context (tafssir) rather than as an isolated fragment.
+    """
+    cursor = get_db().cursor()
+    surah_row = cursor.execute(
+        """
+        SELECT s.id, s.name_arabic, s.name_english, s.type, COUNT(a.id) AS ayah_count
+        FROM surahs s JOIN ayahs a ON a.surah_id = s.id AND a.mushaf_id = ?
+        WHERE s.id = ?
+        GROUP BY s.id
+        """,
+        (mushaf_id, surah),
+    ).fetchone()
+    if surah_row is None or not 1 <= ayah <= surah_row["ayah_count"]:
+        return None
+    before = max(0, before)
+    after = max(0, after)
+    rows = cursor.execute(
+        """
+        SELECT number_in_surah, text_uthmani FROM ayahs
+        WHERE mushaf_id = ? AND surah_id = ? AND number_in_surah BETWEEN ? AND ?
+        ORDER BY number_in_surah
+        """,
+        (mushaf_id, surah, ayah - before, ayah + after),
+    ).fetchall()
+    return {
+        "surah": {
+            "id": surah_row["id"],
+            "name_arabic": surah_row["name_arabic"],
+            "name_english": surah_row["name_english"],
+            "type": surah_row["type"],
+            "ayah_count": surah_row["ayah_count"],
+        },
+        "ayah": ayah,
+        "before": [{"ayah": r["number_in_surah"], "text": r["text_uthmani"]} for r in rows if r["number_in_surah"] < ayah],
+        "after": [{"ayah": r["number_in_surah"], "text": r["text_uthmani"]} for r in rows if r["number_in_surah"] > ayah],
+    }
+
+
+# --- Counting (reader «تحديد» → «إحصاء») ---------------------------------------
+
+_TATWEEL = "\u0640"
+_count_corpus_cache: dict[int, list[tuple[int, int, tuple[str, ...], str]]] = {}
+_count_corpus_lock = threading.Lock()
+
+
+def normalize_count_text(text: str) -> str:
+    """The rasm used for counting: search normalization, no tatweel, single spaces."""
+    return " ".join(normalize_text_search(text).replace(_TATWEEL, "").split())
+
+
+def _count_corpus(mushaf_id: int) -> list[tuple[int, int, tuple[str, ...], str]]:
+    """(surah, page, tokens, letters-only text) per ayah of one mushaf, cached."""
+    with _count_corpus_lock:
+        cached = _count_corpus_cache.get(mushaf_id)
+        if cached is not None:
+            return cached
+    rows = get_db().execute(
+        "SELECT surah_id, page, text_simple FROM ayahs WHERE mushaf_id = ? ORDER BY global_index",
+        (mushaf_id,),
+    ).fetchall()
+    corpus = []
+    for row in rows:
+        simple = normalize_count_text(row["text_simple"] or "")
+        # A page value can be a boundary range ("85-86"): the ayah counts on its starting page.
+        page_span = parse_page_span(row["page"])
+        corpus.append((int(row["surah_id"]), page_span[0] if page_span else 0, tuple(simple.split()), simple.replace(" ", "")))
+    with _count_corpus_lock:
+        _count_corpus_cache[mushaf_id] = corpus
+    return corpus
+
+
+def _phrase_occurrences(tokens: tuple[str, ...], phrase: tuple[str, ...]) -> int:
+    size = len(phrase)
+    if size == 0 or size > len(tokens):
+        return 0
+    return sum(1 for start in range(len(tokens) - size + 1) if tokens[start : start + size] == phrase)
+
+
+def count_text(mushaf_id: int, text: str, surah: int | None = None, page: int | None = None) -> dict:
+    """Occurrences of a word/phrase and of each of its letters in page / surah / Quran.
+
+    Deterministic and rasm-based: counted on the mushaf's undiacritized text with
+    the search normalization (alif forms folded, lone hamza and tatweel dropped).
+    A phrase counts as a whole-word sequence inside one ayah; `page` is the
+    ayah's starting page (the first page of a boundary range like "85-86").
+    """
+    normalized = normalize_count_text(text)
+    phrase = tuple(normalized.split())
+    letters = sorted({char for char in normalized if char != " "})
+    phrase_counts = {"quran": 0, "surah": 0 if surah else None, "page": 0 if page else None}
+    letter_counts = {letter: {"quran": 0, "surah": 0 if surah else None, "page": 0 if page else None} for letter in letters}
+    for ayah_surah, ayah_page, tokens, letters_text in _count_corpus(mushaf_id):
+        in_scope = {
+            "quran": True,
+            "surah": surah is not None and ayah_surah == surah,
+            "page": page is not None and ayah_page == page,
+        }
+        occurrences = _phrase_occurrences(tokens, phrase)
+        for scope, inside in in_scope.items():
+            if not inside:
+                continue
+            phrase_counts[scope] += occurrences
+            for letter in letters:
+                letter_counts[letter][scope] += letters_text.count(letter)
+    return {
+        "text": normalized,
+        "word_count": len(phrase),
+        "phrase": phrase_counts,
+        "letters": [
+            {"letter": letter, "in_selection": normalized.count(letter), **letter_counts[letter]}
+            for letter in letters
+        ],
+    }
+
+
 def get_db():
-    global _db_connection
-    if _db_connection is None:
-        db_uri = Path(config.get_db_path()).resolve().as_uri() + "?mode=ro"
-        _db_connection = sqlite3.connect(db_uri, uri=True, check_same_thread=False)
-        _db_connection.row_factory = sqlite3.Row
-        _db_connection.execute("PRAGMA query_only=ON")
-        _db_connection.execute(f"PRAGMA cache_size={config.get_runtime_sqlite_cache_pages()}")
-        _db_connection.execute("PRAGMA temp_store=MEMORY")
-        if config.is_low_memory_mode():
-            logger.info("Low-memory runtime mode enabled; using constrained in-process caches.")
-    return _db_connection
+    """Return this thread's read-only connection, reopening if it went stale."""
+    entry = getattr(_thread_local, "entry", None)
+    if entry is not None and entry[1] == _connection_generation:
+        return entry[0]
+
+    db_uri = Path(config.get_db_path()).resolve().as_uri() + "?mode=ro"
+    connection = sqlite3.connect(db_uri, uri=True, check_same_thread=False)
+    connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA query_only=ON")
+    connection.execute(f"PRAGMA cache_size={config.get_runtime_sqlite_cache_pages()}")
+    connection.execute("PRAGMA temp_store=MEMORY")
+    if config.is_low_memory_mode():
+        logger.info("Low-memory runtime mode enabled; using constrained in-process caches.")
+
+    with _connections_lock:
+        _open_connections.append(connection)
+        _thread_local.entry = (connection, _connection_generation)
+    return connection
+
+
+# Qālūn and Warsh write some letters the other narrations write otherwise: a
+# yā' barī «ے» is a yā' (فِے, رَبِّے), and a yā' carrying a separate hamza
+# mark is «ئ» (يَسْتَهْزِۓُ). Folded before any other normalization so that
+# a word reads, and is searched, the same in every narration.
+_SEATED_HAMZA_RE = re.compile(r"[\u064A\u06D2]([\u064B-\u0653\u0655-\u065F\u0670]*)\u0654")
+
+
+def fold_narration_letters(text):
+    """Fold the narrations' spellings of yā' and seated hamza (see above)."""
+    text = _SEATED_HAMZA_RE.sub(lambda match: "\u0626" + match.group(1), text)
+    return text.replace("\u06D2", "\u064A")
 
 
 def normalize_text_search(text):
     """Matches build_db normalization logic."""
+    text = fold_narration_letters(text)
     text = re.sub(r"[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]", "", text)
     text = re.sub(r"[\u0623\u0625\u0622\u0671]", "\u0627", text)
     text = text.replace("\u0621", "")
@@ -237,6 +434,7 @@ def rank_latin_variant_match(query_full, query_skeleton, variants):
 
 def standardize_uthmani(text):
     """Normalize Uthmani script peculiarities for exact comparison."""
+    text = fold_narration_letters(text)
     text = re.sub(r"\u0671", "\u0627", text)
     text = re.sub(r"\u0670", "\u0627", text)
     text = re.sub(r"[\u06E5\u06E6]", "", text)
@@ -844,8 +1042,9 @@ def get_mushaf_latin_root_index(cursor, mushaf):
             continue
         items.append({"text": row["root_text"], "variants": variants})
 
-    if not config.is_low_memory_mode():
-        put_cache_entry(_mushaf_latin_root_index_cache, cache_key, items, config.get_runtime_mushaf_cache_limit())
+    # Cache even in low-memory mode: the runtime limit (1 entry) already bounds
+    # memory, and skipping entirely would rebuild this index on every request.
+    put_cache_entry(_mushaf_latin_root_index_cache, cache_key, items, config.get_runtime_mushaf_cache_limit())
     return items
 
 
@@ -937,8 +1136,7 @@ def get_mushaf_latin_word_index(cursor, mushaf):
             }
         )
 
-    if not config.is_low_memory_mode():
-        put_cache_entry(_mushaf_latin_word_index_cache, cache_key, items, config.get_runtime_mushaf_cache_limit())
+    put_cache_entry(_mushaf_latin_word_index_cache, cache_key, items, config.get_runtime_mushaf_cache_limit())
     return items
 
 
@@ -1154,6 +1352,44 @@ def get_root_ids(cursor, q_simple, mushaf):
     return sorted(root_ids)
 
 
+def build_root_distribution(cursor, root_query, mushaf):
+    """Return per-surah occurrence counts for a root across the whole Quran."""
+    q_simple = normalize_query_search(root_query)
+    root_ids = get_root_ids(cursor, q_simple, mushaf)
+    if not root_ids:
+        return {"found": False, "root": root_query, "total": 0, "surah_count": 0, "surahs": []}
+
+    placeholders = ",".join("?" for _ in root_ids)
+    cursor.execute(
+        f"""
+        SELECT a.surah_id AS surah_id, s.name_arabic AS surah, COUNT(*) AS count
+        FROM word_occurrences wo
+        JOIN ayahs a ON wo.ayah_id = a.id
+        JOIN surahs s ON a.surah_id = s.id
+        WHERE wo.root_id IN ({placeholders}) AND a.mushaf_id = ?
+        GROUP BY a.surah_id, s.name_arabic
+        ORDER BY a.surah_id
+        """,
+        [*root_ids, mushaf],
+    )
+    surahs = [
+        {"surah_id": row["surah_id"], "surah": row["surah"], "count": row["count"]}
+        for row in cursor.fetchall()
+    ]
+
+    cursor.execute(f"SELECT root_text FROM roots WHERE id IN ({placeholders})", root_ids)
+    root_row = cursor.fetchone()
+    root_text = root_row["root_text"] if root_row else root_query
+
+    return {
+        "found": True,
+        "root": root_text,
+        "total": sum(item["count"] for item in surahs),
+        "surah_count": len(surahs),
+        "surahs": surahs,
+    }
+
+
 def fetch_mushaf_ayah_tokens(cursor, mushaf):
     """Fetch all Quran tokens for one mushaf grouped by ayah."""
     cursor.execute(
@@ -1212,7 +1448,18 @@ def fetch_mushaf_ayah_tokens(cursor, mushaf):
 
 
 def get_mushaf_phrase_metadata(cursor, mushaf):
-    """Return cached phrase-search metadata for one mushaf."""
+    """Return phrase-search metadata for one mushaf, memoized per mushaf.
+
+    Building it scans every ayah token against the candidate phrase records — an
+    expensive full-mushaf pass that was previously repeated on every phrase
+    search (and twice within a single request path). It is deterministic per
+    mushaf, so it is cached like the other per-mushaf indexes.
+    """
+    cache_key = (config.get_db_path(), mushaf)
+    cached = get_cache_entry(_mushaf_phrase_metadata_cache, cache_key)
+    if cached is not None:
+        return cached
+
     ayahs = fetch_mushaf_ayah_tokens(cursor, mushaf)
     phrase_forms = set()
     positions_by_form = defaultdict(list)
@@ -1229,11 +1476,15 @@ def get_mushaf_phrase_metadata(cursor, mushaf):
                 seen_positions.add(position_key)
                 positions_by_form[form].append((ayah_index, token_index))
 
-    return {
+    metadata = {
         "ayahs": ayahs,
         "phrase_forms": phrase_forms,
         "positions_by_form": dict(positions_by_form),
     }
+    put_cache_entry(
+        _mushaf_phrase_metadata_cache, cache_key, metadata, config.get_runtime_mushaf_cache_limit()
+    )
+    return metadata
 
 
 def has_consecutive_word_positions(window):
@@ -1451,13 +1702,12 @@ def collect_word_suggestion_candidates(cursor, mushaf):
                 }
 
     candidate_list = list(candidates.values())
-    if not config.is_low_memory_mode():
-        put_cache_entry(
-            _mushaf_word_suggestion_candidates_cache,
-            cache_key,
-            candidate_list,
-            config.get_runtime_mushaf_cache_limit(),
-        )
+    put_cache_entry(
+        _mushaf_word_suggestion_candidates_cache,
+        cache_key,
+        candidate_list,
+        config.get_runtime_mushaf_cache_limit(),
+    )
     return candidate_list
 
 
@@ -1664,28 +1914,31 @@ def fetch_root_occurrence_rows(cursor, root_id, mushaf):
     return cursor.fetchall()
 
 
-def fetch_root_summary(cursor, root_id, mushaf):
-    """Fetch root counts for paginated search responses."""
+def fetch_root_summary(cursor, root_id, mushaf, surah=None):
+    """Fetch root counts for paginated search responses (within one surah when given)."""
+    surah_clause = " AND a.surah_id = ?" if surah is not None else ""
     cursor.execute(
-        """
+        f"""
         SELECT
             COUNT(*) AS total_occurrences,
-            COUNT(DISTINCT wo.ayah_id) AS total_verses
+            COUNT(DISTINCT wo.ayah_id) AS total_verses,
+            COUNT(DISTINCT a.surah_id) AS total_surahs
         FROM word_occurrences wo
         JOIN ayahs a ON wo.ayah_id = a.id
-        WHERE wo.root_id = ? AND a.mushaf_id = ?
+        WHERE wo.root_id = ? AND a.mushaf_id = ?{surah_clause}
         """,
-        (root_id, mushaf),
+        (root_id, mushaf, *([surah] if surah is not None else [])),
     )
     row = cursor.fetchone()
-    return row["total_occurrences"], row["total_verses"]
+    return row["total_occurrences"], row["total_verses"], row["total_surahs"]
 
 
-def fetch_root_page_verses(cursor, root_id, mushaf, page, page_size):
-    """Fetch a single page of verses for one root."""
+def fetch_root_page_verses(cursor, root_id, mushaf, page, page_size, surah=None):
+    """Fetch a single page of verses for one root (within one surah when given)."""
     offset = (page - 1) * page_size
+    surah_clause = " AND a.surah_id = ?" if surah is not None else ""
     cursor.execute(
-        """
+        f"""
         SELECT
             a.id AS ayah_id,
             a.mushaf_id,
@@ -1697,12 +1950,12 @@ def fetch_root_page_verses(cursor, root_id, mushaf, page, page_size):
         FROM word_occurrences wo
         JOIN ayahs a ON wo.ayah_id = a.id
         JOIN surahs s ON a.surah_id = s.id
-        WHERE wo.root_id = ? AND a.mushaf_id = ?
+        WHERE wo.root_id = ? AND a.mushaf_id = ?{surah_clause}
         GROUP BY a.id, s.name_arabic, a.surah_id, a.number_in_surah, a.text_uthmani
         ORDER BY a.surah_id, a.number_in_surah
         LIMIT ? OFFSET ?
         """,
-        (root_id, mushaf, page_size, offset),
+        (root_id, mushaf, *([surah] if surah is not None else []), page_size, offset),
     )
     ayah_rows = cursor.fetchall()
     ayah_ids = [row["ayah_id"] for row in ayah_rows]
@@ -1902,6 +2155,7 @@ def get_mushaf_page_index(cursor, mushaf):
             a.text_uthmani,
             a.global_index,
             a.page,
+            a.juz,
             a.line_start,
             a.line_end,
             s.name_arabic AS surah_name
@@ -1932,6 +2186,7 @@ def get_mushaf_page_index(cursor, mushaf):
             "text": row["text_uthmani"],
             "global_index": row["global_index"],
             "page": row["page"],
+            "juz": row["juz"],
             "line_start": row["line_start"],
             "line_end": row["line_end"],
         }
@@ -1953,6 +2208,152 @@ def get_mushaf_page_index(cursor, mushaf):
         }
 
     return put_cache_entry(_mushaf_page_index_cache, cache_key, index, config.get_runtime_mushaf_cache_limit())
+
+
+# Frontend static base for the per-page QCF fonts (QPC V1 WOFF2 — the set
+# distributed unmodified as WOFF2; V2 ships only as TTF).
+_MUSHAF_FONT_BASE_PATH = "/fonts/qpc-hafs-v1"
+
+
+def _layout_tables_present(cursor):
+    row = cursor.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'mushaf_layout_meta'"
+    ).fetchone()
+    return row is not None
+
+
+def get_mushaf_layout_index(cursor):
+    """Cached authentic-layout index: page -> ordered lines (each with glyphs).
+
+    Returns {"present": False} when the layout tables are absent (a DB built
+    without scripts/build_mushaf_layout.py), so the reader can fall back.
+    """
+    cache_key = config.get_db_path()
+    cached = get_cache_entry(_mushaf_layout_index_cache, cache_key)
+    if cached is not None:
+        return cached
+
+    limit = config.get_runtime_mushaf_cache_limit()
+    if not _layout_tables_present(cursor):
+        return put_cache_entry(_mushaf_layout_index_cache, cache_key, {"present": False}, limit)
+
+    meta = cursor.execute(
+        "SELECT layout_id, mushaf_id, page_count FROM mushaf_layout_meta LIMIT 1"
+    ).fetchone()
+    if meta is None:
+        return put_cache_entry(_mushaf_layout_index_cache, cache_key, {"present": False}, limit)
+
+    surah_names = {row["id"]: row["name_arabic"] for row in cursor.execute("SELECT id, name_arabic FROM surahs")}
+
+    cursor.execute(
+        """
+        SELECT
+            l.id AS line_id, l.page, l.line_number, l.line_type, l.is_centered,
+            l.surah_number, l.line_glyph_v1,
+            w.surah_number AS w_surah, w.ayah_number, w.word_position, w.ayah_id, w.glyph_v1, w.word_text
+        FROM mushaf_layout_lines l
+        LEFT JOIN mushaf_layout_words w ON w.line_id = l.id
+        WHERE l.mushaf_id = ?
+        ORDER BY l.page, l.line_number, w.position_in_line
+        """,
+        (meta["mushaf_id"],),
+    )
+
+    pages = defaultdict(list)
+    page_surahs = defaultdict(OrderedDict)
+    line_by_id = {}
+
+    for row in cursor.fetchall():
+        line = line_by_id.get(row["line_id"])
+        if line is None:
+            line_type = row["line_type"]
+            # Font per line: ayah words use the per-page QCF font; the basmala
+            # uses the shared ligature (BSML) font; surah-name lines are text.
+            if line_type == "ayah":
+                font_family = f"qcf-p{row['page']}"
+            elif line_type == "basmalah":
+                font_family = "qcf-bsml"
+            else:
+                font_family = None
+            line = {
+                "line_number": row["line_number"],
+                "line_type": line_type,
+                "is_centered": bool(row["is_centered"]),
+                "surah_number": row["surah_number"],
+                "surah_name": surah_names.get(row["surah_number"]) if line_type == "surah_name" else None,
+                "glyph": row["line_glyph_v1"] if line_type == "basmalah" else None,
+                "font_family": font_family,
+                "words": [],
+            }
+            line_by_id[row["line_id"]] = line
+            pages[row["page"]].append(line)
+        if row["w_surah"] is not None:
+            surah, ayah, position = row["w_surah"], row["ayah_number"], row["word_position"]
+            line["words"].append({
+                "glyph": row["glyph_v1"],
+                "surah": surah,
+                "ayah": ayah,
+                "word_position": position,
+                "ayah_id": row["ayah_id"],
+                "word_key": f"{surah}:{ayah}:{position}",
+                "text": row["word_text"],
+            })
+            page_surahs[row["page"]].setdefault(surah, surah_names.get(surah, ""))
+
+    page_numbers = sorted(pages.keys())
+    index = {
+        "present": True,
+        "layout_id": meta["layout_id"],
+        "min_page": page_numbers[0] if page_numbers else None,
+        "max_page": page_numbers[-1] if page_numbers else None,
+        "pages": dict(pages),
+        "page_surahs": dict(page_surahs),
+    }
+    return put_cache_entry(_mushaf_layout_index_cache, cache_key, index, limit)
+
+
+def build_mushaf_page_layout(cursor, mushaf, page=None, selected_ayah_id=None):
+    """Authentic Madani page layout — Hafs only; fall back to the reader otherwise."""
+    if mushaf != config.get_hafs_mushaf_id():
+        return {"found": False, "fallback": "reader"}
+
+    index = get_mushaf_layout_index(cursor)
+    if not index.get("present"):
+        return {"found": False, "fallback": "reader"}
+
+    min_page, max_page = index["min_page"], index["max_page"]
+    if min_page is None:
+        return {"found": False, "fallback": "reader"}
+
+    if page is None:
+        page = min_page
+    if page < min_page or page > max_page:
+        return {"found": False}
+
+    lines = []
+    for line in index["pages"].get(page, []):
+        words = [
+            {**word, "is_selected": selected_ayah_id is not None and word["ayah_id"] == selected_ayah_id}
+            for word in line["words"]
+        ]
+        lines.append({**line, "words": words})
+
+    surahs = [{"id": sid, "name": name} for sid, name in index["page_surahs"].get(page, {}).items()]
+
+    return {
+        "found": True,
+        "mushaf_id": mushaf,
+        "page": page,
+        "min_page": min_page,
+        "max_page": max_page,
+        "has_previous": page > min_page,
+        "has_next": page < max_page,
+        "selected_ayah_id": selected_ayah_id,
+        "layout_id": index["layout_id"],
+        "font_base_path": _MUSHAF_FONT_BASE_PATH,
+        "surahs": surahs,
+        "lines": lines,
+    }
 
 
 def fetch_mushaf_page_bounds(cursor, mushaf):
@@ -1990,8 +2391,45 @@ def coerce_optional_int(value):
     return int(value)
 
 
-def build_quran_page_payload(cursor, mushaf, page=None, ayah_id=None, selected_ayah_id=None):
-    """Build one page of Quran text, optionally resolving the page from a selected ayah."""
+def resolve_locator_ayah_id(cursor, mushaf, surah=None, ayah=None, juz=None):
+    """Resolve a surah/ayah or juz locator to an ayah id for one mushaf."""
+    surah = coerce_optional_int(surah)
+    ayah = coerce_optional_int(ayah)
+    juz = coerce_optional_int(juz)
+
+    if juz is not None:
+        cursor.execute(
+            "SELECT id FROM ayahs WHERE mushaf_id = ? AND juz = ? ORDER BY global_index LIMIT 1",
+            (mushaf, juz),
+        )
+        row = cursor.fetchone()
+        return row["id"] if row else None
+
+    if surah is not None:
+        target_ayah = ayah if ayah is not None else 1
+        cursor.execute(
+            "SELECT id FROM ayahs WHERE mushaf_id = ? AND surah_id = ? AND number_in_surah = ?",
+            (mushaf, surah, target_ayah),
+        )
+        row = cursor.fetchone()
+        if row:
+            return row["id"]
+        # Requested ayah is out of range — fall back to the surah's first ayah.
+        cursor.execute(
+            "SELECT id FROM ayahs WHERE mushaf_id = ? AND surah_id = ? ORDER BY number_in_surah LIMIT 1",
+            (mushaf, surah),
+        )
+        row = cursor.fetchone()
+        return row["id"] if row else None
+
+    return None
+
+
+def build_quran_page_payload(
+    cursor, mushaf, page=None, ayah_id=None, selected_ayah_id=None, surah=None, ayah=None, juz=None
+):
+    """Build one page of Quran text, optionally resolving the page from a selected ayah,
+    a surah/ayah locator, or a juz number."""
     page = coerce_optional_int(page)
     ayah_id = coerce_optional_int(ayah_id)
     selected_ayah_id = coerce_optional_int(selected_ayah_id)
@@ -2003,6 +2441,11 @@ def build_quran_page_payload(cursor, mushaf, page=None, ayah_id=None, selected_a
     min_page = bounds["min_page"]
     max_page = bounds["max_page"]
     target_page = page
+
+    if ayah_id is None:
+        locator_ayah_id = resolve_locator_ayah_id(cursor, mushaf, surah, ayah, juz)
+        if locator_ayah_id is not None:
+            ayah_id = locator_ayah_id
 
     if ayah_id is not None:
         ayah_page = fetch_ayah_page(cursor, mushaf, ayah_id)
@@ -2022,11 +2465,19 @@ def build_quran_page_payload(cursor, mushaf, page=None, ayah_id=None, selected_a
 
     surahs = []
     seen_surahs = set()
+    juzs_in_order = []
+    seen_juzs = set()
     for ayah in ayahs:
-        if ayah["surah_id"] in seen_surahs:
-            continue
-        seen_surahs.add(ayah["surah_id"])
-        surahs.append({"id": ayah["surah_id"], "name": ayah["surah"]})
+        if ayah["surah_id"] not in seen_surahs:
+            seen_surahs.add(ayah["surah_id"])
+            surahs.append({"id": ayah["surah_id"], "name": ayah["surah"]})
+        juz_value = ayah.get("juz")
+        if juz_value is not None and juz_value not in seen_juzs:
+            seen_juzs.add(juz_value)
+            juzs_in_order.append(juz_value)
+
+    juz_primary = juzs_in_order[0] if juzs_in_order else None
+    juz_secondary = juzs_in_order[1] if len(juzs_in_order) > 1 else None
 
     return {
         "found": True,
@@ -2039,6 +2490,8 @@ def build_quran_page_payload(cursor, mushaf, page=None, ayah_id=None, selected_a
         "has_previous": target_page > min_page,
         "has_next": target_page < max_page,
         "selected_ayah_id": selected_ayah_id,
+        "juz": juz_primary,
+        "juz_secondary": juz_secondary,
         "surahs": surahs,
         "ayahs": ayahs,
     }
@@ -2112,19 +2565,22 @@ def build_legacy_root_results(cursor, q_simple, mushaf):
     return results
 
 
-def build_paginated_exact_result(cursor, q, q_simple, mushaf, page, page_size):
-    """Build a single exact-search card with one page of verses."""
+def build_paginated_exact_result(cursor, q, q_simple, mushaf, page, page_size, surah=None):
+    """Build a single exact-search card with one page of verses (within one surah when given)."""
     query_tokens = tokenize_exact_query(q)
     display_query = build_exact_query_label(q, query_tokens)
 
     if len(query_tokens) > 1:
         phrase_tokens, matches, _did_you_mean = search_exact_phrase_matches(cursor, q, mushaf)
+        if surah is not None:
+            matches = [match for match in matches if match["surah_id"] == surah]
         if not matches:
             return None
 
         verse_list = phrase_matches_to_verse_list(matches)
         total_occurrences = len(matches)
         total_verses = len(verse_list)
+        total_surahs = len({v["surah_id"] for v in verse_list})
         total_pages = compute_total_pages(total_verses, page_size)
         page = clamp_page(page, total_pages)
         start = (page - 1) * page_size
@@ -2141,16 +2597,20 @@ def build_paginated_exact_result(cursor, q, q_simple, mushaf, page, page_size):
             "total_pages": total_pages,
             "total_occurrences": total_occurrences,
             "total_verses": total_verses,
+            "total_surahs": total_surahs,
             "verses": verses,
         }
 
     occurrences = filter_exact_occurrences(cursor, fetch_exact_candidate_rows(cursor, q_simple, mushaf), q, q_simple)
+    if surah is not None:
+        occurrences = [occurrence for occurrence in occurrences if occurrence["surah_id"] == surah]
     if not occurrences:
         return None
 
     verse_list = occurrences_to_verse_list(occurrences)
     total_occurrences = len(occurrences)
     total_verses = len(verse_list)
+    total_surahs = len({v["surah_id"] for v in verse_list})
     total_pages = compute_total_pages(total_verses, page_size)
     page = clamp_page(page, total_pages)
     start = (page - 1) * page_size
@@ -2167,24 +2627,25 @@ def build_paginated_exact_result(cursor, q, q_simple, mushaf, page, page_size):
         "total_pages": total_pages,
         "total_occurrences": total_occurrences,
         "total_verses": total_verses,
+        "total_surahs": total_surahs,
         "verses": verses,
     }
 
 
-def build_paginated_root_result(cursor, root_id, mushaf, page, page_size):
-    """Build a single root-search card with one page of verses."""
+def build_paginated_root_result(cursor, root_id, mushaf, page, page_size, surah=None):
+    """Build a single root-search card with one page of verses (within one surah when given)."""
     cursor.execute("SELECT root_text FROM roots WHERE id = ?", (root_id,))
     root_info = cursor.fetchone()
     if not root_info:
         return None
 
-    total_occurrences, total_verses = fetch_root_summary(cursor, root_id, mushaf)
+    total_occurrences, total_verses, total_surahs = fetch_root_summary(cursor, root_id, mushaf, surah)
     if not total_occurrences or not total_verses:
         return None
 
     total_pages = compute_total_pages(total_verses, page_size)
     page = clamp_page(page, total_pages)
-    verses = fetch_root_page_verses(cursor, root_id, mushaf, page, page_size)
+    verses = fetch_root_page_verses(cursor, root_id, mushaf, page, page_size, surah)
 
     return {
         "result_key": build_result_key("root", root_id=root_id),
@@ -2196,12 +2657,13 @@ def build_paginated_root_result(cursor, root_id, mushaf, page, page_size):
         "total_pages": total_pages,
         "total_occurrences": total_occurrences,
         "total_verses": total_verses,
+        "total_surahs": total_surahs,
         "verses": verses,
     }
 
 
-def build_paginated_search_results(cursor, q, q_simple, mode, mushaf, page_size):
-    """Build the initial paginated search payload."""
+def build_paginated_search_results(cursor, q, q_simple, mode, mushaf, page_size, surah=None):
+    """Build the initial paginated search payload (results within one surah when given)."""
     if not q_simple:
         return [], None
 
@@ -2212,23 +2674,26 @@ def build_paginated_search_results(cursor, q, q_simple, mode, mushaf, page_size)
             _phrase_tokens, matches, did_you_mean = search_exact_phrase_matches(cursor, q, mushaf)
             if not matches:
                 return [], did_you_mean
-        result = build_paginated_exact_result(cursor, q, q_simple, mushaf, page=1, page_size=page_size)
+        result = build_paginated_exact_result(cursor, q, q_simple, mushaf, page=1, page_size=page_size, surah=surah)
         if result:
             return [result], did_you_mean
+        if surah is not None:
+            # The words exist elsewhere: no spelling suggestion for an empty surah.
+            return [], None
         if len(query_tokens) == 1:
             did_you_mean = build_word_did_you_mean(cursor, q_simple, mushaf)
         return [], did_you_mean
 
     results = []
     for root_id in get_root_ids(cursor, q_simple, mushaf):
-        result = build_paginated_root_result(cursor, root_id, mushaf, page=1, page_size=page_size)
+        result = build_paginated_root_result(cursor, root_id, mushaf, page=1, page_size=page_size, surah=surah)
         if result is not None:
             results.append(result)
     return results, None
 
 
-def build_single_result_page(cursor, q, q_simple, mode, mushaf, result_key, page, page_size):
-    """Build a single paginated result card for follow-up page fetches."""
+def build_single_result_page(cursor, q, q_simple, mode, mushaf, result_key, page, page_size, surah=None):
+    """Build a single paginated result card for follow-up page fetches (within one surah when given)."""
     if not q_simple:
         return None
 
@@ -2236,7 +2701,7 @@ def build_single_result_page(cursor, q, q_simple, mode, mushaf, result_key, page
         expected_key = build_result_key("exact", q_simple=q_simple)
         if result_key != expected_key:
             return None
-        return build_paginated_exact_result(cursor, q, q_simple, mushaf, page=page, page_size=page_size)
+        return build_paginated_exact_result(cursor, q, q_simple, mushaf, page=page, page_size=page_size, surah=surah)
 
     if not result_key.startswith("root:"):
         return None
@@ -2249,4 +2714,4 @@ def build_single_result_page(cursor, q, q_simple, mode, mushaf, result_key, page
     if root_id not in get_root_ids(cursor, q_simple, mushaf):
         return None
 
-    return build_paginated_root_result(cursor, root_id, mushaf, page=page, page_size=page_size)
+    return build_paginated_root_result(cursor, root_id, mushaf, page=page, page_size=page_size, surah=surah)

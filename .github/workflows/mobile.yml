@@ -1,0 +1,299 @@
+name: Mobile
+
+# The standalone app for Android and iOS (docs/offline-app.md). One job builds
+# the Quran data, the offline core and the app-mode web bundle; the Android and
+# iOS jobs package that same bundle.
+#
+# Server: repository variable QBASAIR_REMOTE_ORIGIN (accounts, Studio, packs).
+# Android signing (optional): secrets ANDROID_KEYSTORE_BASE64,
+#   ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.
+# iOS signing (optional, Xcode cloud-managed signing): secrets APPLE_TEAM_ID,
+#   APPSTORE_API_KEY_ID, APPSTORE_API_ISSUER_ID, APPSTORE_API_KEY_P8 (the .p8
+#   file's contents). A `mobile-v*` tag also uploads the build to TestFlight.
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop, main]
+    tags: ["mobile-v*", "android-v*"]
+    paths:
+      - "apps/**"
+      - "packages/**"
+      - "scripts/build_db.py"
+      - "scripts/build_mushaf_layout.py"
+      - "scripts/build_offline_packs.py"
+      - "scripts/build_translations.py"
+      - "scripts/translation_sources.json"
+      - "scripts/fetch_mushaf_fonts.py"
+      - "data/quran-narrations/**"
+      - "data/quran-morphology.txt"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/mobile.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERSION_CODE: ${{ github.run_number }}
+  VERSION_NAME: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('0.1.{0}', github.run_number) }}
+
+jobs:
+  bundle:
+    name: Data and app bundle
+    runs-on: ubuntu-latest
+    # Translations are bounded by their own step timeout; the rest takes ~15 min.
+    timeout-minutes: 60
+    env:
+      NEXT_PUBLIC_REMOTE_ORIGIN: ${{ vars.QBASAIR_REMOTE_ORIGIN }}
+      # The public site, for the links on shared cards and posts (lib/site.ts).
+      NEXT_PUBLIC_SITE_URL: ${{ vars.QBASAIR_SITE_URL }}
+      NEXT_PUBLIC_AUTH_ENABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Python dependencies
+        run: python -m pip install -r requirements-dev.txt
+      - name: Quran data (fonts, database, Madani layout)
+        env:
+          PYTHONPATH: .
+          PYTHONUNBUFFERED: "1"
+          QBASAIR_BUILD_DB_ON_START: never
+        run: |
+          python scripts/fetch_mushaf_fonts.py
+          python scripts/build_db.py
+          python scripts/build_mushaf_layout.py
+      # Translation downloads (QuranEnc / Tanzil, ~6,800 files) are cached
+      # between runs. Restore and save are separate so a failed, timed-out or
+      # cancelled run still keeps what it downloaded: the next run resumes.
+      - name: Restore the translation downloads
+        uses: actions/cache/restore@v4
+        with:
+          path: data/translation_cache
+          key: translations-${{ hashFiles('scripts/translation_sources.json', 'scripts/build_translations.py') }}-${{ github.run_id }}
+          restore-keys: translations-
+      - name: Translations of meanings
+        id: translations
+        # Never blocks the app: without translations the packs simply ship none
+        # (and this step shows as failed).
+        continue-on-error: true
+        timeout-minutes: 30
+        env:
+          PYTHONPATH: .
+          PYTHONUNBUFFERED: "1"
+        run: python scripts/build_translations.py
+      - name: Save the translation downloads
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data/translation_cache
+          key: translations-${{ hashFiles('scripts/translation_sources.json', 'scripts/build_translations.py') }}-${{ github.run_id }}
+      - name: Offline core and packs
+        env:
+          PYTHONPATH: .
+          PYTHONUNBUFFERED: "1"
+          QBASAIR_BUILD_DB_ON_START: never
+        run: python scripts/build_offline_packs.py --verify
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Node dependencies
+        run: pnpm install --frozen-lockfile
+      - name: App bundle (static export + bundled core)
+        run: pnpm --filter @q-basair/web build:app
+      # Test branch only: the bundle goes through the Actions cache because the
+      # artifact storage quota is full.
+      - uses: actions/cache/save@v4
+        with:
+          path: apps/web/out/
+          key: app-bundle-${{ github.run_id }}
+
+  android:
+    name: Android (APK / AAB)
+    if: false
+    needs: bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      QBASAIR_VERSION_CODE: ${{ github.run_number }}
+      QBASAIR_VERSION_NAME: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('0.1.{0}', github.run_number) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Node dependencies
+        run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v4
+        with:
+          name: app-bundle
+          path: apps/web/out/
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v3
+        with:
+          # The default ("tools") no longer exists in the SDK repository.
+          packages: platform-tools
+      - name: Android SDK packages
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Capacitor sync
+        run: pnpm --filter @q-basair/mobile exec cap sync android
+      - name: Release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ]; then
+            echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            {
+              echo "QBASAIR_KEYSTORE_PATH=$RUNNER_TEMP/release.jks"
+              echo "QBASAIR_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD"
+              echo "QBASAIR_KEY_ALIAS=$ANDROID_KEY_ALIAS"
+              echo "QBASAIR_KEY_PASSWORD=$ANDROID_KEY_PASSWORD"
+              echo "QBASAIR_RELEASE_SIGNED=1"
+            } >> "$GITHUB_ENV"
+          else
+            echo "::notice::No Android signing secrets: only the debug APK is published (Android refuses unsigned packages)."
+          fi
+      - name: Gradle build
+        working-directory: apps/mobile/android
+        run: ./gradlew --no-daemon assembleDebug assembleRelease bundleRelease
+      # Unsigned release outputs cannot be installed ("App not installed as
+      # package appears to be invalid") nor uploaded to Play: without signing
+      # secrets they are left out, so the artifact holds only installable files.
+      - name: Drop unsigned release outputs
+        if: env.QBASAIR_RELEASE_SIGNED != '1'
+        working-directory: apps/mobile/android/app/build/outputs
+        run: rm -f apk/release/*.apk bundle/release/*.aab
+      - uses: actions/upload-artifact@v4
+        with:
+          name: basair-android-${{ env.VERSION_NAME }}
+          path: |
+            apps/mobile/android/app/build/outputs/apk/debug/*.apk
+            apps/mobile/android/app/build/outputs/apk/release/*.apk
+            apps/mobile/android/app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
+
+  ios:
+    name: iOS (simulator build, IPA)
+    needs: bundle
+    runs-on: macos-15
+    timeout-minutes: 60
+    env:
+      PROJECT: apps/mobile/ios/App/App.xcodeproj
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      APPSTORE_API_KEY_ID: ${{ secrets.APPSTORE_API_KEY_ID }}
+      APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
+      APPSTORE_API_KEY_P8: ${{ secrets.APPSTORE_API_KEY_P8 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.8.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Node dependencies
+        run: pnpm install --frozen-lockfile
+      - uses: actions/cache/restore@v4
+        with:
+          path: apps/web/out/
+          key: app-bundle-${{ github.run_id }}
+          fail-on-cache-miss: true
+      - name: Capacitor sync
+        run: pnpm --filter @q-basair/mobile exec cap sync ios
+      # The newest Xcode 26 on the runner: built against the iOS 26 SDK, the
+      # app takes the system's Liquid Glass (Apple's tab bar included); with
+      # an older SDK, iOS 26 draws it in the older, solid style.
+      - name: Xcode
+        run: |
+          latest=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)
+          if [ -n "$latest" ]; then sudo xcode-select -s "$latest/Contents/Developer"; fi
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i iphoneos || true
+
+      - name: Simulator build (runs in the iOS Simulator, no signing)
+        run: |
+          xcodebuild -project "$PROJECT" -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath "$RUNNER_TEMP/sim" \
+            MARKETING_VERSION="$VERSION_NAME" CURRENT_PROJECT_VERSION="$VERSION_CODE" \
+            CODE_SIGNING_ALLOWED=NO build
+          ditto -c -k --keepParent "$RUNNER_TEMP/sim/Build/Products/Debug-iphonesimulator/App.app" "$RUNNER_TEMP/Basair-simulator.zip"
+
+      - name: Device archive
+        run: |
+          if [ -n "$APPSTORE_API_KEY_P8" ] && [ -n "$APPLE_TEAM_ID" ]; then
+            printf '%s' "$APPSTORE_API_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+            xcodebuild -project "$PROJECT" -scheme App -configuration Release \
+              -destination "generic/platform=iOS" -archivePath "$RUNNER_TEMP/App.xcarchive" \
+              -allowProvisioningUpdates \
+              -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+              -authenticationKeyID "$APPSTORE_API_KEY_ID" \
+              -authenticationKeyIssuerID "$APPSTORE_API_ISSUER_ID" \
+              DEVELOPMENT_TEAM="$APPLE_TEAM_ID" CODE_SIGN_STYLE=Automatic \
+              MARKETING_VERSION="$VERSION_NAME" CURRENT_PROJECT_VERSION="$VERSION_CODE" archive
+            echo "IOS_SIGNED=1" >> "$GITHUB_ENV"
+          else
+            echo "::notice::No Apple signing secrets: the device build is unsigned (re-sign it before installing); the simulator build runs as is."
+            xcodebuild -project "$PROJECT" -scheme App -configuration Release \
+              -destination "generic/platform=iOS" -archivePath "$RUNNER_TEMP/App.xcarchive" \
+              MARKETING_VERSION="$VERSION_NAME" CURRENT_PROJECT_VERSION="$VERSION_CODE" \
+              CODE_SIGNING_ALLOWED=NO archive
+            mkdir -p "$RUNNER_TEMP/unsigned/Payload"
+            cp -R "$RUNNER_TEMP/App.xcarchive/Products/Applications/App.app" "$RUNNER_TEMP/unsigned/Payload/"
+            (cd "$RUNNER_TEMP/unsigned" && zip -qr "$RUNNER_TEMP/Basair-unsigned.ipa" Payload)
+          fi
+
+      - name: Signed IPA (and TestFlight on a mobile-v* tag)
+        if: env.IOS_SIGNED == '1'
+        run: |
+          destination=export
+          case "$GITHUB_REF" in refs/tags/mobile-v*) destination=upload ;; esac
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>$destination</string>
+            <key>teamID</key><string>$APPLE_TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+          </dict></plist>
+          PLIST
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+            -authenticationKeyID "$APPSTORE_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_API_ISSUER_ID"
+          if [ "$destination" = upload ]; then echo "::notice::Uploaded to App Store Connect (TestFlight)."; fi
+
+      # Test branch only: a pre-release instead of an artifact (storage is full).
+      - name: Test pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "iphone-test-$VERSION_NAME" --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "iPhone test build $VERSION_NAME (Q-Basair-52, native phone feel)" \
+            --notes "Unsigned test build of $GITHUB_REF_NAME. Re-sign it before installing." \
+            "$RUNNER_TEMP/Basair-unsigned.ipa" "$RUNNER_TEMP/Basair-simulator.zip"

@@ -1,0 +1,142 @@
+/* =====================================================================
+   The phone's fixed five-tab bar (mobile-tab-bar.tsx).
+   The dock itself (glass, position, safe area) comes from .qb-tabbar in
+   shell.css; this file only lays out its five equal destinations.
+   ===================================================================== */
+
+@media (max-width: 768px) {
+  .qb-tabbar.qb-stable-tabbar {
+    align-items: stretch;
+    gap: 0;
+    padding: 0 4px;
+    height: 66px;
+    /* The bar is never scrolled: a sideways press slides the lens instead. */
+    touch-action: none;
+    view-transition-name: qb-nav-dock;
+  }
+
+  .qb-stab.brand {
+    view-transition-name: qb-nav-lead;
+  }
+}
+
+/* The lens over the current tab: a drop of brighter glass that glides from
+   tab to tab with a little overshoot, and swells while a finger drags it. */
+.qb-tab-lens {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 0;
+  z-index: 0;
+  width: 0;
+  border-radius: 999px;
+  background-color: var(--gold-a12, rgba(212, 175, 55, 0.12));
+  background-image: radial-gradient(120% 100% at 30% 0%, rgba(255, 248, 228, 0.16), transparent 60%);
+  box-shadow: inset 0 1px 1px rgba(255, 250, 235, 0.22), inset 0 -1px 1px rgba(0, 0, 0, 0.14), 0 2px 10px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
+  opacity: 0;
+  transition: transform 420ms cubic-bezier(0.3, 1.32, 0.45, 1), width 320ms ease, opacity 200ms ease, scale 260ms ease;
+}
+
+.light .qb-tab-lens {
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9), inset 0 -1px 1px rgba(120, 90, 30, 0.08), 0 2px 10px rgba(120, 90, 30, 0.12);
+}
+
+.qb-tabbar.is-dragging .qb-tab-lens {
+  scale: 1.08 1.14;
+  background-color: rgba(212, 175, 55, 0.2);
+  transition: width 320ms ease, opacity 200ms ease, scale 200ms ease;
+}
+
+.qb-stab {
+  position: relative;
+  z-index: 1;
+}
+
+.qb-stab {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--fg-3);
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The selected destination: a pill behind the icon (Material 3's active
+   indicator), always in the app's gold — the bar is one constant control,
+   it doesn't take the page's world tint. */
+.qb-stab .pill {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  max-width: 100%;
+  height: 32px;
+  border-radius: var(--r-pill, 999px);
+  transition: background-color var(--motion-dur-base, 200ms) var(--spring-soft, ease-out),
+    transform var(--motion-dur-instant, 90ms);
+}
+
+.qb-stab:active .pill {
+  transform: scale(var(--press-scale, 0.94));
+}
+
+.qb-stab .label {
+  max-width: 100%;
+  /* clip, not hidden: `hidden` + `visible` turns the other axis into `auto`,
+     and the label grew a scrollbar beside the Arabic descenders. */
+  overflow-x: clip;
+  overflow-y: visible;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.qb-stab.active {
+  color: var(--gold-text);
+}
+
+/* The lens draws the current tab's background. */
+
+.qb-stab.active .label {
+  font-weight: 800;
+}
+
+/* Home is the app's own mark, without a label. */
+.qb-stab.brand .pill {
+  height: 40px;
+}
+
+.qb-stab.brand:not(.active) .pill {
+  opacity: 0.78;
+}
+
+.qb-stab:focus-visible {
+  outline: none;
+}
+
+.qb-stab:focus-visible .pill {
+  box-shadow: 0 0 0 2px var(--border-focus, var(--gold-400));
+}
+
+/* Typing: the keyboard covers the bottom of the screen, so the bar steps aside
+   (the field being typed into sits above the keyboard instead). */
+html[data-kb="open"] .qb-stable-tabbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-stab .pill,
+  .qb-tab-lens {
+    transition: none;
+  }
+}

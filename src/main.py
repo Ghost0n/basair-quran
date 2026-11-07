@@ -38,6 +38,14 @@ def set_auth_db_path(path: str) -> None:
     config.set_auth_db_path(path)
 
 
+def get_app_db_path() -> str:
+    return config.get_app_db_path()
+
+
+def set_app_db_path(path: str) -> None:
+    config.set_app_db_path(path)
+
+
 if __name__ == "__main__":
     import uvicorn
 

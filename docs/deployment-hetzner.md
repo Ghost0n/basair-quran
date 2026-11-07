@@ -258,6 +258,25 @@ python scripts/manage_users.py set-password --email user@example.com
 
 For Q-Basair specifically, the current implementation stores auth data in a separate `data/auth.db` file rather than mixing it into `quran.db` or `research_agent.db`.
 
+### Password-reset email
+
+Set these in `/srv/q-basair/.env.production` to email reset links (any SMTP provider —
+e.g. a transactional service or your mail host):
+
+```text
+QBASAIR_PUBLIC_URL=https://your-domain.example
+QBASAIR_SMTP_HOST=smtp.provider.example
+QBASAIR_SMTP_PORT=587
+QBASAIR_SMTP_USER=...
+QBASAIR_SMTP_PASSWORD=...
+QBASAIR_SMTP_SECURITY=starttls   # or ssl (465) / none
+QBASAIR_MAIL_FROM="بصائر <no-reply@your-domain.example>"
+```
+
+Without `QBASAIR_SMTP_HOST` the token is written to the API log
+(`docker compose logs api | grep "Password reset"`) for manual delivery. Configure SPF/DKIM
+for the sender domain so the message isn't filtered as spam.
+
 ## Continuous deployment
 
 Pushes and merges to `main` trigger automatic deployment via a GitHub Actions self-hosted runner registered on the Hetzner server. The workflow is defined in `.github/workflows/deploy.yml`.

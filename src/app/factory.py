@@ -2,39 +2,117 @@ from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
-from src.app.core import config
-from src.app.routes import auth_router, health_router, mushafs_router, reader_router, research_router, search_router
-from src.app.services import auth_service, quran_service
+from src.app.core import config, http_cache, rate_limit
+from src.app.routes import (
+    auth_router,
+    community_router,
+    translations_router,
+    companions_router,
+    feedback_router,
+    health_router,
+    moderation_router,
+    mushafs_router,
+    offline_router,
+    reader_router,
+    research_router,
+    search_router,
+)
+from src.app.services import app_data_service, auth_service, quran_service
+from src.app.workers import moderation_worker
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # The moderation batches run in this process unless a worker container does.
+    moderation_worker.start_embedded()
     yield
+    moderation_worker.stop_embedded()
     quran_service.close_db_connection()
     quran_service.reset_morphology_search_index()
 
 
+def _extract_token(request: Request) -> str | None:
+    """Read the session token from a Bearer header (native) or cookie (web)."""
+    header = request.headers.get("Authorization") or request.headers.get("authorization")
+    if header and header.lower().startswith("bearer "):
+        candidate = header[7:].strip()
+        if candidate:
+            return candidate
+    return request.cookies.get(config.get_session_cookie_name()) or None
+
+
+def require_authenticated_session(request: Request) -> None:
+    """Hard gate — 401 unless a live session token is presented.
+
+    Attached to the Studio/research router only: reading + search stay open to
+    guests, but the LLM research surface requires an account.
+    """
+    resolved = auth_service.resolve_session(_extract_token(request))
+    if resolved is None:
+        raise HTTPException(
+            status_code=401,
+            detail={"code": "auth_required", "gate": "studio", "message": "Authentication required."},
+        )
+    request.state.auth_user = resolved.user
+    request.state.session_id = resolved.session_id
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    """Per-IP sliding-window throttle on abuse-prone POST endpoints.
+
+    In-memory (single-process uvicorn); limits are configurable via env. Returns
+    429 with a sanitized Arabic detail when a bucket's window is exhausted.
+    """
+
+    async def dispatch(self, request: Request, call_next):
+        bucket = rate_limit.bucket_for_path(request.url.path)
+        if bucket is not None and request.method == "POST":
+            client_ip = request.client.host if request.client else "unknown"
+            if not rate_limit.check_and_record(client_ip, bucket):
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "طلبات كثيرة جدًا. الرجاء المحاولة بعد قليل."},
+                )
+        return await call_next(request)
+
+
+class CacheControlMiddleware(BaseHTTPMiddleware):
+    """Adds Cache-Control to the read-only Quran endpoints (see core.http_cache)."""
+
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        policy = http_cache.cache_control_for(request.method, request.url.path, response.status_code)
+        if policy and "cache-control" not in response.headers:
+            response.headers["Cache-Control"] = policy
+        return response
+
+
+def attach_optional_session(request: Request) -> None:
+    """Soft auth — resolve the token if present, never 401.
+
+    Attached to the open routers (reader, search, mushafs, companions) so an
+    authenticated user's notebook/preferences resolve to *their* user_id
+    instead of silently reading/writing as the guest (user_id=0).
+    """
+    resolved = auth_service.resolve_session(_extract_token(request))
+    if resolved is not None:
+        request.state.auth_user = resolved.user
+        request.state.session_id = resolved.session_id
+
+
 def create_app() -> FastAPI:
-    def require_authenticated_session(request: Request) -> None:
-        user_id = request.session.get("user_id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Authentication required.")
-
-        try:
-            resolved_user_id = int(user_id)
-        except (TypeError, ValueError):
-            request.session.clear()
-            raise HTTPException(status_code=401, detail="Authentication required.")
-
-        user = auth_service.get_user_by_id(resolved_user_id)
-        if user is None or not user.is_active:
-            request.session.clear()
-            raise HTTPException(status_code=401, detail="Authentication required.")
-
-        request.state.auth_user = user
-
+    # Fail hard rather than run production auth on the shared dev secret: a known
+    # session secret means forgeable/predictable session state once any code path
+    # relies on it. Local http dev (auth disabled) keeps the dev default.
+    if config.is_auth_enabled() and config.is_default_session_secret():
+        raise RuntimeError(
+            "QBASAIR_SESSION_SECRET must be overridden with a strong secret when "
+            "QBASAIR_AUTH_ENABLED=1; refusing to start with the dev default."
+        )
     app = FastAPI(
         title="Q-Basair API",
         version="1.0.0",
@@ -47,6 +125,10 @@ def create_app() -> FastAPI:
             {"name": "search", "description": "Suggestion and search endpoints."},
             {"name": "reader", "description": "Reader and Quran page endpoints."},
             {"name": "research", "description": "Strict-context Quran research agent endpoints."},
+            {"name": "community", "description": "Publishing, feed, likes, comments, reports and appeals."},
+            {"name": "moderation", "description": "The supervision panel: queue, decisions, bans, appeals, team."},
+            {"name": "feedback", "description": "Contact, bug, help, feature requests and diagnostic reports."},
+            {"name": "offline", "description": "Downloadable data packs for the standalone app."},
         ],
     )
     app.add_middleware(
@@ -57,22 +139,40 @@ def create_app() -> FastAPI:
         https_only=config.is_session_secure(),
         max_age=60 * 60 * 24 * 14,
     )
+    app.add_middleware(CacheControlMiddleware)
+    # Added before CORS so CORS stays the outermost layer and decorates 429s too.
+    app.add_middleware(RateLimitMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=config.get_cors_origins(),
         allow_credentials=True,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
     if config.is_auth_enabled():
         auth_service.ensure_auth_db()
+    app_data_service.ensure_app_db()
+
+    # Hybrid gating: reading + search are open to guests (soft auth resolves the
+    # user when signed in); only the Studio/research surface is hard-gated.
+    open_dependencies = [Depends(attach_optional_session)] if config.is_auth_enabled() else []
+    gated_dependencies = [Depends(require_authenticated_session)] if config.is_auth_enabled() else []
+
     app.include_router(auth_router)
     app.include_router(health_router)
-    protected_dependencies = [Depends(require_authenticated_session)] if config.is_auth_enabled() else []
-    app.include_router(mushafs_router, dependencies=protected_dependencies)
-    app.include_router(search_router, dependencies=protected_dependencies)
-    app.include_router(research_router, dependencies=protected_dependencies)
-    app.include_router(reader_router, dependencies=protected_dependencies)
+    app.include_router(mushafs_router, dependencies=open_dependencies)
+    app.include_router(search_router, dependencies=open_dependencies)
+    app.include_router(reader_router, dependencies=open_dependencies)
+    app.include_router(companions_router, dependencies=open_dependencies)
+    # Community: reading is open; writes check the resolved user in the route.
+    app.include_router(community_router, dependencies=open_dependencies)
+    # Moderation checks staff in each route; feedback is open to guests.
+    app.include_router(moderation_router, dependencies=open_dependencies)
+    app.include_router(feedback_router, dependencies=open_dependencies)
+    app.include_router(translations_router, dependencies=open_dependencies)
+    # The standalone app's pack downloads (open: a phone installs before any sign-in).
+    app.include_router(offline_router)
+    app.include_router(research_router, dependencies=gated_dependencies)
     return app
 
 

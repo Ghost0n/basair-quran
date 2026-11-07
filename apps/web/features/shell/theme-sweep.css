@@ -1,0 +1,21 @@
+/* Theme sweep beam — a blurred gold band that kneads the scene right→left on
+   theme change. Physical `right` so the motion is reading-direction in RTL. */
+.qb-theme-sweep {
+  position: fixed;
+  top: -20%;
+  bottom: -20%;
+  right: -10%;
+  width: 55%;
+  z-index: calc(var(--elev-toast) + 40);
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent,
+    rgba(212, 175, 55, 0.32) 30%,
+    rgba(244, 236, 216, 0.5) 50%,
+    rgba(212, 175, 55, 0.32) 70%,
+    transparent
+  );
+  filter: blur(14px);
+  animation: qbSweep var(--motion-dur-travel) var(--motion-ease-travel) both;
+}

@@ -1,0 +1,340 @@
+/* =====================================================================
+   Q-Basair — Motion vocabulary (keyframes) + the designed reduced-motion
+   variant. Loaded globally after tokens-motion.css.
+   ---------------------------------------------------------------------
+   Principle: "a page settling, not a UI performing." Every transform is
+   expressed through a neutralizable var (see tokens-motion.css) so the
+   reduced-motion media query collapses position/scale/parallax in ONE
+   place while opacity choreography + staggers REMAIN. The handful of
+   effects that can't be a single var (bloom ring, shimmer, sweep, fly,
+   pop) get an explicit opacity-only / static twin in the reduced block
+   at the bottom — this is a dignified variant, never a blanket freeze.
+   ===================================================================== */
+
+:root {
+  /* Scale-based transforms collapse to identity under reduced motion. */
+  --motion-pop-scale: 0.96;     /* overlay/popover enter                */
+  --motion-press-scale: 0.97;   /* tactile button press                 */
+  --motion-travel-scale: 0.992; /* far-jump page settle-in              */
+  /* Pin ghost flight target — set inline by the component from geometry. */
+  --fly-x: 0px;
+  --fly-y: 0px;
+}
+
+/* ---------- Enters ---------- */
+
+/* Overlays & popovers: fade + gentle scale up. */
+@keyframes qbPopIn {
+  from { opacity: 0; transform: scale(var(--motion-pop-scale)); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* List items & cards: fade + rise. Pair with `animation-delay` for a stagger. */
+@keyframes qbRise {
+  from { opacity: 0; transform: var(--motion-rise); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Plain fade — backdrops, in-place crossfades (scaling would show edges). */
+@keyframes qbFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* A calm pulse for indeterminate loading (opacity only — reduced-safe). */
+@keyframes qbPulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+/* ---------- Page turns (RTL) ---------- */
+/* Forward = next page enters from the left; back = from the right. Whole
+   page block only — never per-glyph / never layout on QCF text. */
+@keyframes qbTurnFwd {
+  from { opacity: 0; transform: var(--motion-turn-fwd); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes qbTurnBack {
+  from { opacity: 0; transform: var(--motion-turn-back); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Far jump: the page lands with a soft vertical settle-in. */
+@keyframes qbTravelIn {
+  0%   { opacity: 0; transform: var(--motion-travel-rise) scale(var(--motion-travel-scale)); }
+  100% { opacity: 1; transform: none; }
+}
+
+/* ---------- Highlight bloom (search / evidence answer) ---------- */
+/* A gold wash blooms on the matched ayah, then settles to the resting
+   highlight. Background + box-shadow ring only — never moves the text. */
+@keyframes qbBloom {
+  0%   { background-color: var(--gold-a55); box-shadow: 0 0 0 10px var(--gold-a18); }
+  100% { background-color: var(--gold-a26); box-shadow: 0 0 0 0 transparent; }
+}
+
+/* ---------- Evidence reference-number shimmer ---------- */
+/* A gold light band sweeps across the ﴿n﴾ chip. Background-position only. */
+@keyframes qbShimmer {
+  from { background-position: 140% 0; }
+  to   { background-position: -40% 0; }
+}
+
+/* ---------- Theme sweep beam ---------- */
+/* A blurred gold beam kneads the scene right→left (reading direction). */
+@keyframes qbSweep {
+  from { transform: translateX(70%); }
+  to   { transform: translateX(-280%); }
+}
+
+/* ---------- Pin-to-notebook ghost flight ---------- */
+/* A ghost copy flies toward the notebook icon and shrinks away. The
+   target offset is supplied inline as --fly-x / --fly-y. */
+@keyframes qbFly {
+  0%   { opacity: 1;    transform: translate(0, 0) scale(1); }
+  72%  { opacity: 0.85; }
+  100% { opacity: 0;    transform: translate(var(--fly-x), var(--fly-y)) scale(0.1); }
+}
+
+/* ---------- Badge pop — the ONLY overshoot in the whole app ---------- */
+/* Bounded emphasis (≤4%). Use with --motion-ease-emphasis. */
+@keyframes qbPop {
+  0%   { transform: scale(0.5); }
+  62%  { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+
+/* ---------- Notebook icon ring pulse ---------- */
+@keyframes qbPulseRing {
+  0%   { box-shadow: 0 0 0 0 var(--gold-a40); }
+  100% { box-shadow: 0 0 0 14px transparent; }
+}
+
+/* ---------- Skeleton (loading) — no spinners; blocks pulse ---------- */
+@keyframes qbSkeleton {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 0.9; }
+}
+
+/* ---------- Caret blink (command-bar typed preview) ---------- */
+@keyframes qbBlink {
+  0%, 55%   { opacity: 1; }
+  56%, 100% { opacity: 0; }
+}
+
+/* ---------- Auth CTA spinner (the one sanctioned spinner) ---------- */
+@keyframes qbSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---------- Universal tactile press ---------- */
+/* Targets real <button>s only, so span-based word tokens (role=button)
+   in the reader are left alone. */
+button:not(:disabled):active {
+  transform: scale(var(--motion-press-scale));
+}
+
+/* ---------- Pin-to-notebook ghost flight ---------- */
+/* A ghost copy of the pinned card flies to the rail notebook icon (qbFly, with
+   --fly-x/--fly-y set inline from geometry); the icon then pulses (qbPulseRing).
+   Spawned imperatively — see lib/fly-to-notebook.ts. */
+.qb-pin-ghost {
+  position: fixed;
+  z-index: calc(var(--elev-toast) + 10);
+  pointer-events: none;
+  max-width: 190px;
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev-3);
+  box-shadow: var(--shadow-3);
+  font-family: var(--font-arabic-display);
+  direction: rtl;
+  font-size: 12.5px;
+  color: var(--fg-1);
+  white-space: nowrap;
+  overflow: hidden;
+  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
+  overflow-x: clip;
+  overflow-y: visible;
+  text-overflow: ellipsis;
+  transform-origin: top center;
+  animation: qbFly var(--motion-dur-travel) var(--motion-ease-travel) forwards;
+}
+
+.qb-notebook-pulse {
+  animation: qbPulseRing 500ms var(--motion-ease-settle) both;
+}
+
+/* ---------- Evidence thread (citation ﴿n﴾ → target ayah) ---------- */
+/* A fine gold line drawn from a Studio evidence citation to the ayah it lands on
+   in the reader, tying evidence to its place in the muṣḥaf. Spawned imperatively
+   on a fixed, viewport-space SVG (see lib/draw-evidence-thread.ts); the draw is a
+   WAAPI stroke-dashoffset animation. Only appears where the panel + reader are
+   co-visible (desktop); skipped under reduced motion. */
+.qb-evidence-thread {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  /* Above panels (10), popovers (30), overlays (40), toasts (50) so the line is
+     never occluded by a summoned surface. */
+  z-index: calc(var(--elev-toast) + 10);
+}
+
+.qb-evidence-thread-path {
+  fill: none;
+  stroke: var(--gold-400);
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px var(--gold-a40));
+}
+
+.qb-evidence-thread-dot {
+  fill: var(--gold-400);
+  filter: drop-shadow(0 0 5px var(--gold-a55));
+}
+
+.qb-evidence-thread-dot.target {
+  fill: var(--gold-200);
+}
+
+/* ---------- Shared-element omnibar transition ---------- */
+/* The Home center ask bar and the workspace top command bar share one
+   view-transition-name, so entering/leaving Home MORPHS the search field from
+   the centre up to the top (and back) — the design's "command bar never moves"
+   made literal. They never coexist (the top bar is hidden on Home), so the name
+   is never duplicated. Progressive enhancement: a no-op where the View
+   Transitions API is unsupported (see mode-context setMode). */
+.qb-home-search,
+.qb-cmd {
+  view-transition-name: qb-omnibar;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-home-search,
+  .qb-cmd {
+    view-transition-name: none;
+  }
+}
+
+/* ---------- Entering and leaving the reader (phones) ---------- */
+/* The tab bar and the reader's controls share two names (mobile-tab-bar.css,
+   phone-ergonomics.css): the bar's capsule is `qb-nav-dock`, its Home mark
+   `qb-nav-lead`; in the reader the dock and the round back button carry them.
+   Entering the reader the bar visibly splits — the Home mark slides off into
+   the back button and the capsule draws in to become the toolbox — and the
+   page arrives from the reading direction; leaving reverses it. Plain screen
+   changes only cross-fade (glass.css). Names are set by navigation.ts via
+   html[data-nav]; browsers without view transitions just switch. */
+::view-transition-group(qb-nav-dock),
+::view-transition-group(qb-nav-lead) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.3, 1.25, 0.4, 1);
+}
+
+::view-transition-old(qb-nav-dock),
+::view-transition-new(qb-nav-dock),
+::view-transition-old(qb-nav-lead),
+::view-transition-new(qb-nav-lead) {
+  /* The contents cross-fade while the glass changes shape (no stretched text). */
+  height: 100%;
+  object-fit: none;
+  animation-duration: 300ms;
+}
+
+html[data-nav="reader-in"]::view-transition-new(root) {
+  animation: qbReaderIn 340ms var(--motion-ease-settle, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
+}
+
+html[data-nav="reader-in"]::view-transition-old(root) {
+  animation: qbScreenAway 240ms var(--motion-ease-exit, ease-in) both;
+}
+
+html[data-nav="reader-out"]::view-transition-old(root),
+html[data-nav="back"]::view-transition-old(root) {
+  animation: qbReaderOut 200ms var(--motion-ease-exit, ease-in) both;
+}
+
+html[data-nav="reader-out"]::view-transition-new(root),
+html[data-nav="back"]::view-transition-new(root) {
+  animation: qbScreenBack 260ms var(--motion-ease-settle, ease-out) both;
+}
+
+/* The reader comes in from the side the reading goes towards (the left in
+   Arabic, the right in left-to-right languages). */
+@keyframes qbReaderIn {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--qb-forward, -1) * 18%));
+  }
+}
+
+@keyframes qbScreenAway {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+    filter: blur(2px);
+  }
+}
+
+@keyframes qbReaderOut {
+  to {
+    opacity: 0;
+    transform: translateX(calc(var(--qb-forward, -1) * 18%));
+  }
+}
+
+@keyframes qbScreenBack {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+    filter: blur(2px);
+  }
+}
+
+html[dir="ltr"] {
+  --qb-forward: 1;
+}
+
+/* =====================================================================
+   Reduced motion — the designed variant.
+   tokens-motion.css already neutralizes the position/turn/depth vars and
+   remaps travel/hero/emphasis. Here we (a) collapse the scale + press
+   vars to identity, (b) give the non-var keyframes an opacity-only or
+   static twin, and (c) disable smooth-scroll. Opacity fades + stagger
+   delays are deliberately preserved — the app still breathes, calmly.
+   ===================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-pop-scale: 1;
+    --motion-press-scale: 1;
+    --motion-travel-scale: 1;
+  }
+
+  /* Bloom: settle to a static highlight, no expanding ring. */
+  .qb-bloom,
+  [data-motion="bloom"] {
+    animation: none !important;
+    background-color: var(--highlight-bg);
+  }
+
+  /* Shimmer / sweep / fly / pop: no movement — final state only. */
+  [data-motion="shimmer"],
+  [data-motion="sweep"],
+  [data-motion="fly"],
+  [data-motion="pop"] {
+    animation: none !important;
+  }
+
+  /* Skeleton holds a steady dim rather than pulsing. */
+  [data-motion="skeleton"] {
+    animation: none !important;
+    opacity: 0.6;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}

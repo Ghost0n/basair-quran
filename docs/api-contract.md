@@ -10,7 +10,12 @@ This document freezes the backend contract that the future frontend migration wi
 - Reader endpoints remain additive and backward-compatible.
 - `/api/research-agent` is additive and returns strict-context Quran research responses.
 - `GET /api/research-agent/settings` is additive and exposes the active Ollama provider, available models, and plan-limit guidance for the research UI.
-- `/api/auth/*` is additive and supports invite-only session authentication when enabled.
+- `/api/auth/*` provides the identity layer (signup, login, profile, devices, guest-merge) with hybrid
+  gating: reading + search stay open to guests; only the Studio/research surface requires an account.
+- `GET /api/health` is pure liveness (never touches the DB; used by the container healthcheck).
+  `GET /api/ready` is the deploy gate: `{ status, db, commit, timestamp }` — runs `SELECT 1` against the
+  Quran DB and reports the running commit (`QBASAIR_COMMIT_SHA`); returns `503` when the DB is unreachable.
+  It is an ops endpoint with no frontend client method.
 
 ## Canonical schema source
 
@@ -21,35 +26,472 @@ This document freezes the backend contract that the future frontend migration wi
 ## Stable endpoints
 
 - `GET /api/health`
+- `GET /api/ready`
 - `GET /api/auth/session`
 - `POST /api/auth/login`
+- `POST /api/auth/signup`
 - `POST /api/auth/logout`
-- `GET /api/mushafs`
+- `DELETE /api/auth/account`
+- `POST /api/auth/forgot-password`
+- `POST /api/auth/reset-password`
+- `PATCH /api/auth/profile`
+- `GET /api/auth/devices`
+- `DELETE /api/auth/devices/{session_id}`
+- `POST /api/auth/merge-guest-data`
+- `POST /api/auth/merge-guest-data/undo`
+- `GET /api/mushafs` — each `MushafItem` now includes a normalized `riwayah` key (matches
+  `ReciterItem.riwayah`), so the UI can flag a reciter/mushaf riwāyah mismatch during recitation.
+- `GET /api/surahs` — optional `mushaf` (default `1`): `ayah_count` follows that mushaf's
+  numbering (e.g. al-Baqarah: Hafs 286, Qaloun 285). The web client passes the selected riwāyah.
+- `GET /api/reciters`
+- `GET /api/reciters/{reciter_id}/durations/{surah}` → `ReciterDurations`
+  `{reciter_id, surah, durations: (number|null)[], complete}` — every verse's audio
+  duration (seconds) for the recitation bar's whole-surah progress. **Shared server
+  cache:** each reciter's surah is measured once on the server (the first 16 KB of
+  each MP3: ID3 size + frame header, Xing/VBRI frame count for VBR, bytes × 8 /
+  bitrate for CBR — `src/app/services/audio_duration.py`) and stored in
+  `data/cache.db` (`QBASAIR_CACHE_DB_PATH`), then served to every user. A request
+  never waits on the network: an incomplete surah returns what is known (`null`
+  for the rest, `complete: false`, `no-store`) and starts one background job per
+  reciter+surah; the client asks again every 2.5 s. A complete surah is sent with
+  `Cache-Control: public, max-age=31536000, immutable`. Only the catalogue's
+  audio host (`everyayah.com`, HTTPS) is ever fetched. `404` unknown reciter,
+  `422` surah outside 1–114. The web client falls back to reading durations
+  itself only when this route can't be reached (offline / standalone app).
+- `GET /api/root-distribution`
 - `GET /api/suggest`
 - `POST /api/suggest-batch`
 - `GET /api/search`
 - `GET /api/search-v2`
 - `GET /api/search-result-page`
+  - Both take an optional `surah` (1–114): only that surah's verses are returned, and each card's
+    `total_occurrences`, `total_verses`, `total_surahs` and `total_pages` then describe that surah.
+    A card whose root or word has no verse there is left out; nothing found gives `found: false`
+    without a spelling suggestion. Out-of-range values are rejected (422). The concordance's surah
+    ribbon uses it; the on-device engine (`packages/offline-engine`) answers it the same way.
 - `GET /api/research-agent/settings`
 - `POST /api/research-agent`
 - `GET /api/ayah-reader`
 - `GET /api/ayah-reader-more`
 - `GET /api/quran-page`
+- `GET /api/mushaf-page-layout`
+- `GET /api/morphology`
+- `GET /api/text-count`
+- `GET /api/notebook` · `POST /api/notebook` · `DELETE /api/notebook/{item_id}` · `PUT /api/notebook/{item_id}/themes`
+- `GET /api/documents` · `POST /api/documents` · `GET /api/documents/{id}` · `PUT /api/documents/{id}` · `GET /api/documents/{id}/audit` · `DELETE /api/documents/{id}`
+- `POST /api/documents/{id}/publish` · `GET /api/community/feed` · `GET /api/community/tags` · `GET /api/community/mine` · `GET|DELETE /api/community/posts/{id}` · `POST|DELETE /api/community/posts/{id}/like` · `PUT|DELETE /api/community/posts/{id}/save` · `GET|POST /api/community/posts/{id}/comments` · `DELETE /api/community/comments/{id}` · `POST /api/community/reports` · `GET /api/community/me/standing` · `GET|POST /api/community/appeals`
+- `GET /api/moderation/queue` · `POST /api/moderation/posts/{id}/decision` · `POST /api/moderation/comments/{id}/decision` · `POST /api/moderation/appeals/{id}/decision` · `GET /api/moderation/users?kind=suspicious|banned` · `POST /api/moderation/users/{id}/ban` · `POST /api/moderation/users/{id}/unban` · `GET /api/moderation/actions` · `GET|POST /api/moderation/team` · `GET /api/moderation/health` · `POST /api/moderation/run` · `GET /api/moderation/feedback` · `PATCH /api/moderation/feedback/{id}`
+- `POST /api/feedback` · `GET /api/feedback/mine`
+- `GET /api/themes` · `POST /api/themes` · `GET /api/themes/{theme_id}` · `PATCH /api/themes/{theme_id}` · `PUT /api/themes/{theme_id}/board` · `DELETE /api/themes/{theme_id}`
+- `GET /api/sessions` · `GET /api/sessions/{session_id}` · `POST /api/sessions` · `DELETE /api/sessions/{session_id}`
+- `GET /api/roots` · `POST /api/roots` · `DELETE /api/roots/{root_id}`
+- `GET /api/user/preferences` · `PATCH /api/user/preferences`
+- `GET /api/offline/{name}` — the standalone app's downloadable packs (see below)
+
+## Standalone app notes
+
+- The Android app answers the Quran routes (catalog, search, suggestions, reader, layout, count,
+  morphology, translations) and the user-data routes (notebook, themes, documents, sessions, roots,
+  preferences) **on the device**, with `packages/offline-engine`, and must return the same JSON as
+  this API. A change to any of those routes or to their models is ported there too; the parity suite
+  (`docs/offline-engine.md`) fails otherwise.
+- `GET /api/offline/{name}` serves the files of `scripts/build_offline_packs.py`
+  (`QBASAIR_OFFLINE_PACKS_PATH`, default `build/offline/`): `manifest.json` (`Cache-Control:
+  no-cache`), `narration-<id>.db`, `translation-<slug>.db`, `interface-<code>.json`
+  (`public, max-age=86400`). Other names are `404`. Open without sign-in.
+- The app calls the server from its own origin (`https://localhost` on Android,
+  `capacitor://localhost` on iOS): add both to `QBASAIR_CORS_ORIGINS`. It authenticates with `Authorization: Bearer <token>` (the `token` of
+  `AuthSessionResponse`), never cookies.
+
+## Text count notes (reader «تحديد» → «إحصاء»)
+
+- `GET /api/text-count?text=…&mushaf=2[&surah=N][&page=P]` → `TextCountResponse {text, word_count,
+  phrase: {quran, surah?, page?}, letters: [{letter, in_selection, quran, surah?, page?}]}`.
+  `surah` / `page` counts are `null` unless that scope is requested.
+- Deterministic and rasm-based: counted on the mushaf's undiacritized text with the search
+  normalization (alif forms folded to ا, lone hamza and tatweel dropped, Qālūn/Warsh «ے» read as ي
+  and a yā' with a separate hamza mark as ئ). A phrase counts as a
+  whole-word sequence inside one ayah (so «رب العالمين» does not count «لرب العالمين»); `page` is the
+  ayah's starting page (the first page of a boundary range such as `"85-86"`).
+- `text` is 1–300 chars and at most 12 words (`422` otherwise, or when it has no letters to count).
+  Cached like search (`public, max-age=600`).
+
+## Research documents notes
+
+The shareable research format (design: `docs/research-workspace-spec.md` §5–6). Documents are
+private to their author; sharing happens by publishing a snapshot to the community (see Community notes).
+
+- `ResearchDocumentSave {title (1–200), summary?, language, tags[≤12], theme_ids[], sections[≤60],
+  references[≤80], provenance, visibility: "private"}`; the whole document is ≤ 512 KB (`413`), and a
+  user keeps at most 300 documents.
+  - `sections[]`: `{id (unique), kind: text|ayahs|note|question|ai_answer, title?, body (≤ 8000, a
+    markdown subset rendered as text), ayahs[≤40]: AyahRef}`.
+  - `AyahRef`: `{mushaf_id, surah_id, ayah, ayah_id?, text}`.
+  - `references[]`: `{kind: ayah|tafsir|book|url, label, locator?}`; an `ayah` locator is `"S:A"`.
+  - `provenance`: `{mode: strict|tafssir|null, ai_sections[], created_from: studio|board|manual,
+    source_id?}`. For `board`, `source_id` is `"<theme id>:<board id>"` (a bare `"<theme id>"` from
+    older exports means that theme's first board); the post snapshot copies that board.
+- **Quote verification on every save.** Each `AyahRef` is checked against the Quran DB:
+  - An empty `text` is filled with the mushaf text, and `ayah_id` is set.
+  - A quote whose normalized rasm differs is kept as written and reported in
+    `verification.issues[] {section_id, surah_id, ayah, problem: text_mismatch|not_found, expected?}`.
+- `ResearchDocument` = save body + `{id, v: 1, version (incremented on each PUT), created_at,
+  updated_at, verification?}` (`verification` is present on create/replace responses).
+- `GET /api/documents/{id}/audit` → `DocumentAudit {publishable, checks[{rule, passed, detail?}]}`.
+  These are the deterministic, blocking pre-publication checks:
+  - `quotes_verified`, `has_content`, `ai_sections_labelled` (`ai_answer` sections ⇔
+    `provenance.ai_sections`), `ayah_references_resolve`;
+  - `tafssir_disclaimer` for tafssir documents: the summary or a section must carry the «تجريبي»
+    note.
+
+  The advisory AI audit is designed in `docs/ai-audit-agent.md`.
+- Guest→account merge moves the device's documents; account deletion erases them.
+
+## Translations of meanings
+
+Details in `docs/quran-translations.md`.
+
+- `GET /api/translations` returns `TranslationInfo[]`:
+  `{key, language, kind: translation|transliteration, name, translator, description, source:
+  quranenc|tanzil, source_url, terms, version, direction: ltr|rtl, ayah_count}`. It is `[]` when
+  `data/translations.db` has not been built.
+- `GET /api/translations/ayahs?keys&refs` returns `{translations: TranslationMeta[], ayahs:
+  [{surah, ayah, texts: [{key, text, footnotes?}]}]}`.
+  - At most 3 keys, and unknown keys are dropped. Refs look like `2:255` or `2:1-7`,
+    comma-separated, with at most 400 ayahs; otherwise `422`.
+  - Texts are verbatim and use Ḥafṣ numbering.
+- `UserPreferences.translations: string[]` holds up to 3 keys, in display order (`422` for more).
+
+## Community notes
+
+Publishing and the community (guidelines: `docs/community-guidelines.md`; moderation:
+`docs/community-moderation-design.md`).
+
+- **Access.** Reading the feed and published posts is open to guests. Publish, like, comment, report
+  and appeal need an account when auth is enabled (`401 {code: "auth_required", gate: "community"}`).
+  `/api/moderation/*` needs a moderator or an admin (`403`); the team, the full action log and
+  `POST /api/moderation/run` need an admin. With auth disabled the local user is both.
+  `AuthUserInfo.is_moderator` marks an appointed moderator.
+- **Publish** `POST /api/documents/{id}/publish {visibility: public|unlisted, accept_guidelines}`.
+  - `accept_guidelines: false` returns `422`; a banned author gets
+    `403 {code: "banned", message, banned_until, reason}`.
+  - The server runs the deterministic audit at once. If it fails, the response is
+    `{status: "blocked", audit}` and no post is created.
+  - Otherwise the post is **queued**: `PublishResult {status: "queued", post_id, audit}`. No agent
+    runs in the request.
+  - Republishing a document whose post is published keeps the published version up and queues the new
+    one as a candidate (`PostSummary.review_state`, `PostDetail.candidate`); it replaces the published
+    snapshot only once it passes. Republishing an unpublished post replaces it and re-queues it.
+- **The batches** (`moderation_service.run_batch`, every `QBASAIR_MODERATION_INTERVAL_SECONDS`, 900 by
+  default; reported items between batches) check queued posts, unchecked comments and reported items
+  with the agent in the **author's interface language**, under `QBASAIR_MODERATION_DAILY_BUDGET` agent
+  calls per UTC day.
+  - The agent answers `{verdict: valid|unsure|declined, confidence, issues[{target, rule, severity,
+    quote, explanation, suggestion}]}`. An issue whose quote isn't in the cited text is dropped. The
+    verdict is never laxer than the issues (high → declined, medium → unsure). A confidence under
+    `QBASAIR_MODERATION_MIN_CONFIDENCE` (0.7) is `unsure`. A provider error or invalid output is
+    `unsure` (it **fails closed**).
+  - A **verified** author's valid post is published. Every other outcome sends the post to a person:
+    an unverified author's valid post (`first_post`), `unsure`, `declined`. An agent decline also
+    makes the author unverified again (it is not a strike).
+- **Trust** `GET /api/community/me/standing` → `AuthorStanding {level: unverified|verified,
+  upheld_declines, suspicious, banned, banned_until (-1 = permanent), ban_reason, is_staff}`. Every
+  account starts unverified. A moderator approving one of its posts verifies it. Staff publish as
+  verified.
+- **Posts are snapshots** of a document version. A document exported from a theme board also
+  carries a read-only board copy with the ayahs' mushaf text (`PostDetail.board`).
+- **Visibility.** `unlisted` posts are reachable by link only. Queued, pending, changes-requested and
+  removed posts are visible only to their author and to moderators. `reviews[]` lists the checks
+  (`stage: deterministic|agent|human`, `verdict`, `confidence`, `issues`, `language`, `note`) for them
+  only. A post that three different people reported (or that the agent declines after a report) is
+  `hidden` from readers until a moderator decides (`404` for others, out of the feed).
+- **Feed** `GET /api/community/feed?cursor&limit≤50&sort&q&surah&tag&mode&board&author&saved` returns
+  published public posts.
+  - `sort=latest` (default): newest first, keyset pagination (`next_cursor`).
+  - `sort=top` («الأبرز»): the 500 most recent matches ranked by
+    `(likes + 2·comments + 1) / (age_hours + 2)^1.4`, offset pagination (the cursor is opaque either way).
+    The ranked ids are cached per filter set for 60 s (and dropped on any publish, like, comment,
+    moderation or withdrawal), so paging walks one stable ranking.
+  - `q` (≤120 chars): every word must appear in the title, summary, tags or section text; matching
+    ignores diacritics and folds أ/إ/آ/ٱ→ا, ى→ي, ة→ه.
+  - `surah` (1–114): posts quoting an ayah of that surah. `tag`: a whole tag (a leading `#` is
+    ignored). `mode=strict|tafssir`. `board=true`: posts that carry a theme board. `author`: a user id
+    (`PostSummary.author_id`).
+  - `saved=true`: the viewer's bookmarks (`401` for a guest when auth is enabled).
+- `PostSummary` also carries `author_id`, `tags[]` (≤8, `#`/`|` stripped), `surah_ids[]`,
+  `reading_minutes` (≈180 words a minute, at least 1) and `saved_by_me`.
+- **Tags** `GET /api/community/tags?limit≤50` returns `[{tag, count}]`, the most used tags across the
+  1,000 most recent public posts.
+- **Saved posts** `PUT|DELETE /api/community/posts/{id}/save` → `{saved}`: a private, idempotent
+  bookmark on a published post (`404` otherwise). There is no public save count.
+- **Comments** are 1–2000 chars with at most 2 links (`422` otherwise). A verified author's comment is
+  `visible` at once and checked afterwards; a failing check hides it. An unverified author's comment
+  is `pending` until its check: it is shown to its author only, and a failing check keeps it hidden
+  for a person. To others a hidden comment comes back as `{status: "hidden", body: "", author_name: ""}`
+  («تعليق مخفي»). Its author deletes it (`DELETE /api/community/comments/{id}`); moderators decide
+  through the queue. Likes are idempotent per user.
+- **Reports** `{target_type: post|comment, target_id, rule, note?}`. One's own content can't be reported
+  (`422`). Duplicate open reports from the same user collapse into one. A report queues the item for a
+  person and has the agent re-check it.
+- **Moderation** (staff):
+  - `GET /api/moderation/queue` → `{items[{item_type, item_id, reason: first_post|unsure|declined|reported,
+    checks, reports, post|comment, author: AuthorStanding, is_mine}], appeals[]}`, oldest first.
+  - `POST /api/moderation/posts/{id}/decision` and `/comments/{id}/decision` take
+    `{decision: approve|decline|remove|restore, note}`. `decline` and `remove` need a `note` (`422`),
+    which the author reads.
+  - A decline or removal a moderator takes is a strike (`upheld_declines`); three make the author
+    suspicious. Nobody decides on their own content (`403`).
+  - Bans: `POST /api/moderation/users/{id}/ban {days: 7|30|null, reason}`, where `null` is permanent
+    (admins only); `.../unban`. A ban stops posting and commenting only.
+  - Appeals: `POST /api/community/appeals {target_type: post|comment|ban, target_id, message}`, once
+    per decision (`409`). Another moderator than the one who decided rules on it with
+    `POST /api/moderation/appeals/{id}/decision {outcome: uphold|overturn}`. Overturning restores the
+    item and removes the strike, or lifts the ban.
+  - `GET /api/moderation/users?kind=suspicious|banned`, `GET /api/moderation/actions[?mine=true]`,
+    `GET|POST /api/moderation/team {email, role: moderator|user}` (admins), `GET /api/moderation/health`
+    (backlog, last batch, today's checks against the budget, where the worker runs),
+    `POST /api/moderation/run` (admins: a batch now).
+  - Every check is journalled in `moderation_checks` with the item version, every human action in
+    `moderation_actions`.
+- **Rate limit.** Publish, comment and report share the `community` bucket
+  (`QBASAIR_RATE_LIMIT_COMMUNITY_MAX`, default 30 per window per IP).
+- **Account deletion** removes the user's posts, likes, saves, comments, reports, trust standing,
+  appeals and feedback, and refreshes counts (the action log keeps the actions, without the user).
+
+## Feedback centre notes
+
+`docs/feedback-centre.md`.
+
+- `POST /api/feedback {kind: contact|bug|help|feature|error, message, email?, detail?, url?, language?}`
+  → `FeedbackItem`. It is open to guests and rate-limited per IP (`QBASAIR_RATE_LIMIT_FEEDBACK_MAX`,
+  default 10). Every kind needs a message except `error`. An `error` report needs its diagnostic
+  `detail` (≤32 KB, `413` beyond).
+- `GET /api/feedback/mine` → what the signed-in sender wrote (not their diagnostic reports), with its
+  status.
+- Staff: `GET /api/moderation/feedback?status&kind&before` → `{items, next_before, counts}` (newest
+  first, 50 a page, with the sender, email, detail, page, user agent).
+  `PATCH /api/moderation/feedback/{id} {status: new|in_progress|resolved|closed, staff_note,
+  assigned_to}`.
+
+## Themes (مواضيع) notes
+
+Saving an ayah highlights it with themes — named colours that group saved ayahs by subject
+(design: `docs/research-workspace-spec.md` §1–2).
+
+- `ThemeSummary {id, name, color, description?, item_count, created_at, updated_at}`; `color` is one
+  of a fixed palette: `green, blue, rose, violet, teal, sand, gold, grey` (`422` otherwise). Names are
+  1–60 chars; at most 200 themes per user (`409` beyond).
+- `NotebookItem.theme_ids: int[]` (additive, defaults to `[]`). `POST /api/notebook` accepts
+  `theme_ids`; `PUT /api/notebook/{item_id}/themes {theme_ids}` replaces them (an empty list keeps the
+  ayah saved, untagged). Ids the user doesn't own are dropped silently; duplicates collapse; max 12.
+- `GET /api/themes/{id}` returns `ThemeDetail` = summary + `board` (the theme's boards JSON, `null` until
+  one is created). The list endpoint never includes boards.
+- `PUT /api/themes/{id}/board {board}` stores the boards as opaque JSON (≤ 256 KB for all of a theme's
+  boards, `413` beyond). A theme holds **several named boards, or none** — boards are created on
+  purpose. Shape (`packages/shared` `ThemeBoardSet`): `{v: 2, boards: [{id, name, created_at, updated_at,
+  board: ThemeBoard}]}`. A legacy value (one `ThemeBoard`, `v: 1`) reads as a set of one board with id
+  `b-1`, and is rewritten as `v: 2` on the next save.
+- `ThemeBoard`: `{v: 1, nodes: [{id, type: ayah|note|heading|shape, x, y, w?, h?, data}], edges: [{id,
+  source, target, label?}], viewport?, hidden?}`. Ayah node ids are `a-<mushaf_id>-<ayah_id>`
+  (`data: {ayah_id, mushaf_id, expanded?}`); any node may carry `data.style` (text colour, fill, border,
+  size, font); shapes carry `data.shape: rect|ellipse|diamond`. `hidden` lists ayah node ids taken off the
+  board (they stay in the theme; their edges are kept). The web app reconciles ayah nodes with the
+  theme's ayahs on open (skipping hidden ones; a newly themed ayah appears) and always fits the view
+  (it saves `viewport: null` — viewports are per-device).
+- `DELETE /api/themes/{id}` deletes the theme and its board; its ayahs stay saved without it.
+- Migration: when `theme_ids` is added to an existing store, each distinct free-text `collection`
+  becomes a theme (per owner, colours in palette order). `collection` is still returned for compatibility.
+- Guest→account merge moves the device's themes with its notebook rows; undo moves them back; account
+  deletion erases them.
+
+## Authentic Madani layout notes
+
+- `GET /api/mushaf-page-layout?page=N` returns the line-by-line QCF glyph layout
+  for the printed Madani page. It is **Hafs-only** and **additive** — it does not
+  change `/api/quran-page`. For non-Hafs riwāyāt, or a DB built without
+  `scripts/build_mushaf_layout.py`, it returns `{ "found": false, "fallback": "reader" }`
+  (never a 500); the client then renders the Unicode reader.
+- Each line carries `line_type` (`ayah` | `surah_name` | `basmalah`), `is_centered`,
+  and for ayah/basmalah lines the QCF glyph(s). Each ayah-line word carries `glyph`,
+  `word_key` (`surah:ayah:word_position`), `ayah_id`, and `text`.
+- `word_position` matches `ayah_words.word_position` (the text-split tokenization the
+  Unicode reader also uses), guaranteed by a build-time alignment in
+  `build_mushaf_layout.py`. The printed mushaf's "disconnected words" (e.g. `لَّوْ مَا`,
+  `بَعْدَ مَا`) are reconciled there.
+- Glyph strings are **trusted, server-generated** private-use codepoints, rendered
+  via `dangerouslySetInnerHTML` with the page font; they are never user input.
+- Per line, `font_family` is `qcf-p{page}` for ayah lines and `qcf-bsml` for the
+  basmala line; the frontend loads `${font_base_path}/p{page}.woff2` and
+  `${font_base_path}/bsml.woff2` on demand via the FontFace API.
+- The page WOFF2 fonts are **QPC V1** static assets under `font_base_path`
+  (`/fonts/qpc-hafs-v1`), fetched at deploy by `scripts/fetch_mushaf_fonts.py`
+  — not served by the API. (V1 because only V1 ships as redistributable WOFF2;
+  see `docs/authentic-mushaf-reader.md`.)
+- The authentic renderer is gated on the `mushaf_render: "authentic" | "simple"`
+  account preference (default `"simple"`). When `"authentic"` and the current
+  riwāyah is Hafs and the layout/fonts load, the client renders the glyph page;
+  otherwise it renders the Unicode reader. Non-Hafs always degrades gracefully
+  via `fallback: "reader"`.
+
+## Reader layout notes
+
+- `mushaf_edition` is the account preference that picks **which mushaf** the reader shows. An
+  edition fixes the riwāyah and how it is drawn. Version 1 offers a single edition,
+  `"madani-hafs"` (the Madani mushaf: Ḥafṣ, mushaf id `2`, authentic QCF glyph pages), which is
+  also the default. PATCH rejects unknown ids (422); a stored id that is no longer offered reads
+  back as the default. Future standard editions are added to `MUSHAF_EDITION_IDS`
+  (`src/app/models/api.py`) and `MUSHAF_EDITIONS` (`apps/web/lib/mushaf-defaults.ts`).
+- `riwayah` and `mushaf_render` are **deprecated** since `mushaf_edition`: still returned and
+  accepted for compatibility (defaults `2` / `"authentic"`), but the web client ignores them.
+  The other riwāyāt stay in the database and API (`GET /api/mushafs`, `mushaf=` on search/reader
+  endpoints, whose query default remains `1`); the web client always sends the edition's mushaf.
+  A page or verse arriving in another riwāyah (e.g. a notebook item saved under Qālūn) is
+  re-opened in the edition by `surah:ayah`.
+- `reader_layout` is an account preference on `GET/PATCH /api/user/preferences`.
+  The API keeps its five values for compatibility; the web client offers **two
+  reading modes** and maps them:
+  - «صفحات» (pages) ← `"single"` or `"spread"`: the printed page; the client shows
+    a facing spread by itself only when two pages keep (almost) single-page size
+    in the reading area (`spreadFits` in `features/reading/reader-modes.ts`).
+    Choosing «صفحات» stores `"single"`.
+  - «آية آية» ← `"ayah"`: one verse per row at the chosen text size.
+  - `"auto"` (default) reads as «صفحات» on every device (phones turn pages by
+    swipe). `"scroll"` — the retired continuous mode — is still accepted and also
+    reads as «صفحات».
+- It is a **presentation** preference consumed by the client only; no server
+  reader endpoint changes shape.
+- `last_position` (a `ReadingPosition`: `ayah_id`, `mushaf_id`, optional
+  `surah`/`ayah`/`page`/`updated_at`) is written by the reader as you read
+  (debounced) and read back on open, so the reader **resumes to the exact last
+  verse** rather than the top of the last page (the verse is marked for ~2.5 s,
+  then the mark clears without changing the saved position). A position saved in
+  another riwāyah resumes by its `surah:ayah`; with no saved verse the client
+  falls back to the local last page.
+
+## Saved pages
+
+- `saved_pages` is an account preference on `GET/PATCH /api/user/preferences`: a
+  list of bookmarked muṣḥaf pages, each `{ page, mushaf_id, surah?, surah_id?,
+  saved_at? }`. Defaults to `[]`. It uses **wholesale-replace** semantics like
+  `last_position` — the client sends the full array on every change (add/remove),
+  so PATCHing `[]` clears it. Stored in the `user_preferences` JSON, so it roams
+  with the account and merges from guest on sign-up. The Home screen lists them to
+  reopen the reader at that page; the reader footer toggles the current page.
+
+## Home sections
+
+- `home_hidden` is an account preference on `GET/PATCH /api/user/preferences`:
+  the Home sections the reader hid in Settings («الرئيسية»), from `greeting`,
+  `verse` (wide screens), `continue`, `index`, `saved`, `study`, `community`,
+  `search`. Defaults to `[]` (everything shown); unknown ids are rejected (422).
+  Wholesale-replace semantics like `saved_pages`. Sections are listed as
+  hidden so that a section added later shows by default.
+
+## Morphology notes
+
+- `GET /api/morphology?surah=N&ayah=M` returns per-word morphology (root, lemma,
+  POS, case, features) sourced from the Quranic Arabic Corpus, which is
+  **Kufan/Hafs-numbered**.
+- It accepts an optional `mushaf` param (preferred): the server reads that mushaf's
+  ayah text itself and matches it as described below, so the client never sends the
+  verse in the URL (2:282 made a ~7 KB request line with `text`). The web client
+  always sends `mushaf`.
+- It also accepts a **deprecated** `text` param (the displayed ayah). When present, the
+  verse is matched by its normalized consonant skeleton — first as a whole verse,
+  then (if boundaries differ) as a **contiguous word run** in the surah's word
+  stream. This is correct even for riwāyāt whose ayah **numbering** differs
+  (e.g. Madani/Qalūn) *and* where a verse is **split or merged** relative to the
+  Kufan source (the run is re-indexed to the displayed word positions). Without
+  `text`, it falls back to the `(surah, ayah)` number — correct only for
+  Kufan-numbered riwāyāt (Hafs). Clients should send `mushaf` for non-Hafs reading.
+- `position` is the 1-based word index within the verse; word counts are stable
+  across riwāyāt, so the displayed word index aligns once the verse is matched.
+
+## HTTP caching
+
+- Read-only Quran endpoints (a pure function of `quran.db`) send
+  `Cache-Control: public, max-age=3600, stale-while-revalidate=86400`:
+  `/api/quran-page`, `/api/mushaf-page-layout`, `/api/ayah-reader`,
+  `/api/ayah-reader-more`, `/api/morphology`, `/api/surahs`, `/api/mushafs`,
+  `/api/reciters`, `/api/root-distribution`.
+- Search endpoints (`/api/search`, `/api/search-v2`, `/api/search-result-page`,
+  `/api/suggest`) send `public, max-age=600, stale-while-revalidate=3600`.
+- `/api/community/tags` (the same for everyone) sends
+  `public, max-age=60, stale-while-revalidate=300`.
+- Only successful `GET`s are marked; per-user surfaces (auth, preferences,
+  notebook, sessions, followed roots, research, the community feed) are never
+  cached. Policy lives in `src/app/core/http_cache.py`.
+- In production, nginx keeps **one shared copy** of every response marked this
+  way (edge cache with request collapsing and stale serving; `X-Cache-Status`
+  header) — see `docs/caching.md` for the layers, rules and audit.
+- The web server serves `/fonts/*` (versioned glyph fonts) with
+  `public, max-age=31536000, immutable`; nginx gzips JSON/CSS/JS.
 
 ## Authentication notes
 
 - Authentication is controlled by `QBASAIR_AUTH_ENABLED`.
-- When enabled, all application API routes except `GET /api/health` and `/api/auth/*` require a valid session.
-- Sessions are stored in signed cookies. The backend expects:
-  - `QBASAIR_SESSION_SECRET`
+- **Hybrid gating.** When enabled, reading + search + the notebook (companions) stay **open to guests**
+  (`user_id=0`); only the Studio/research surface (`GET /api/research-agent/settings`, `POST /api/research-agent`)
+  is hard-gated. Open routers use *soft* auth: if a valid token is present the request resolves to that user,
+  otherwise it proceeds as guest. `GET /api/health` and `/api/auth/*` are always open.
+- **Gate contract.** A gated endpoint reached by a guest returns
+  `401 { "detail": { "code": "auth_required", "gate": "studio", "message": "Authentication required." } }`.
+  The frontend intercepts this code to open the on-demand auth prompt and resume the pending action.
+- **Session model — opaque tokens, cross-platform.** Identity resolves from an opaque token presented as
+  **either** an httpOnly cookie (web) **or** an `Authorization: Bearer` header (native; Bearer takes
+  precedence). Each token is one row of the `sessions` table (also the devices registry); only its sha256
+  hash is stored, and every authenticated request slides the 14-day expiry. Config env:
+  - `QBASAIR_SESSION_SECRET` (required when auth is enabled — the app refuses to start on the dev default)
   - `QBASAIR_SESSION_COOKIE_NAME`
   - `QBASAIR_SESSION_SECURE`
-- Public signup is intentionally absent in this slice. Accounts are managed through `scripts/manage_users.py`.
-- `GET /api/auth/session` returns whether auth is enabled and whether the current browser session is authenticated.
-- `POST /api/auth/login` accepts:
-  - `email`
-  - `password`
-- `POST /api/auth/logout` clears the current session.
+- **Rate limiting.** `POST /api/auth/login`, `POST /api/auth/signup`, and `POST /api/research-agent` carry a
+  per-IP sliding-window throttle (in-memory, single-process). Exhausting a window returns
+  `429 { "detail": "…" }`. Tunable via `QBASAIR_RATE_LIMIT_WINDOW_SECONDS`, `QBASAIR_RATE_LIMIT_AUTH_MAX`
+  (default 20), and `QBASAIR_RATE_LIMIT_RESEARCH_MAX` (default 60).
+- **One-time re-login on deploy.** Switching the identity source from signed-cookie sessions to the token
+  table invalidates any pre-existing signed-cookie sessions — users sign in once after this ships.
+- `GET /api/auth/session` returns `{ enabled, authenticated, user }`. `user` carries `name`, `avatar`
+  (a calligraphic medallion character/index — not an image URL), and `onboarded`.
+- `POST /api/auth/login` accepts `email`, `password`, and optional `device_label` / `platform`; it mints a
+  session and returns the raw `token` (native clients keep it; the web app uses the cookie).
+- `POST /api/auth/signup` accepts `email`, `password`, optional `name`, optional `invite_code`, and optional
+  `device_label` / `platform`. Duplicate email → `409` with a **static** detail (never reflects whether the
+  email exists). When `QBASAIR_INVITE_CODES` (comma-separated) is set, a missing/wrong `invite_code` → `403`;
+  when unset, registration stays open. Login runs a constant-time hash on unknown emails to avoid an
+  enumeration timing oracle.
+- `POST /api/auth/logout` revokes the current session row and clears the cookie.
+- `POST /api/auth/forgot-password` `{ email }` always returns `{ ok: true }` (no account enumeration).
+  When the account exists it mints a single-use, 1-hour reset token and **emails** it (Arabic message with
+  a link `${QBASAIR_PUBLIC_URL}/login?reset=<token>` that opens the reset step pre-filled, plus the raw
+  code) when `QBASAIR_SMTP_HOST` is configured; otherwise the token is only logged server-side for manual
+  delivery. Delivery errors are logged, never surfaced. Rate-limited (auth bucket).
+- `POST /api/auth/reset-password` `{ token, password }` consumes the token, sets the new password, and
+  **revokes all sessions**. `400` on invalid/expired/used token, `422` on a weak password. Rate-limited.
+- `DELETE /api/auth/account` (auth) permanently deletes the account: all app data (notebook, sessions,
+  followed roots, preferences, merge log), then the user row and **every** session (all devices), and clears
+  the cookie. Returns `{ deleted }`. Irreversible; guest (`user_id=0`) data is never touched.
+- `PATCH /api/auth/profile` (auth) sets `name` / `avatar` / `onboarded` — used by the avatar picker and the
+  once-per-account onboarding.
+- `GET /api/auth/devices` (auth) lists active sessions with an `is_current` flag;
+  `DELETE /api/auth/devices/{session_id}` (auth) ejects a device (ejecting the current row == logout).
+- **Guest identity header.** Guest (`user_id=0`) writes to the notebook, sessions, roots, and preferences
+  are stamped with the per-device `X-QBasair-Guest-Id` token the web app sends on every request. This scopes
+  the merge to the caller's own device rows.
+- `POST /api/auth/merge-guest-data` (auth) re-attributes **only the caller's own** guest (`user_id=0`) rows —
+  those whose `guest_id` matches the presented `X-QBasair-Guest-Id` header — to the account (notebook,
+  themes, sessions, followed roots, optionally preferences). A missing token merges nothing (fail-safe; no
+  cross-guest harvesting). Rows are **moved, never deleted**; the exact ids are journalled under an
+  `undo_token`. The merge is idempotent and re-runnable (moved rows leave the guest scope), so later guest
+  data stays claimable. `POST /api/auth/merge-guest-data/undo` flips those exact ids back to the guest,
+  deleting nothing.
+- Accounts can also be managed offline through `scripts/manage_users.py`.
+- **Storage caps.** `POST /api/sessions` (`ResearchSessionSave`) bounds `messages` to at most
+  `500` entries and `512 KB` serialized; oversized payloads are rejected with `422` (guests reach this
+  endpoint, so the cap protects the shared `app_data.db`).
+- **Persisted messages** use the versioned `StoredMessage` shape (`{ v?, role, content, response? }`).
+  Assistant messages carry their full research `response`, so restoring a saved session rebuilds its
+  evidence cards; legacy rows without `response` restore as plain text. The backend stores `messages` as
+  opaque JSON (`List[Dict[str, Any]]`) — the shape is a frontend contract, bounded by the caps above.
 
 ## Research agent notes
 
@@ -59,10 +501,29 @@ This document freezes the backend contract that the future frontend migration wi
   - `X-QBasair-Ollama-Embed-Model`
   - `X-QBasair-Ollama-Base-Url`
 - The intended browser flow is session-scoped user keys supplied by the frontend. The backend should use the headers for the current request only and must not persist them.
+- **`X-QBasair-Ollama-Base-Url` is treated as an untrusted client override** (SSRF closure):
+  - It must be `https://` and its host must be on the allowlist (`ollama.com` by default, extendable via `QBASAIR_OLLAMA_ALLOWED_HOSTS`). Otherwise the request fails with `503` and a sanitized detail.
+  - When a client supplies a base-URL override, the server's own Ollama key is **never** attached — only a client-supplied `X-QBasair-Ollama-Key` is honored for that request.
+  - The server's own `QBASAIR_OLLAMA_BASE_URL` (no client override) is trusted and not subject to the allowlist.
+  - Upstream provider error details reflected back to the client are collapsed and capped (≤200 chars) so a 5xx cannot become an exfiltration oracle.
 - `POST /api/research-agent` may now include:
   - provider metadata
   - per-request usage metrics
   - structured Tafssir sections when `response_mode="tafssir"`
+- **Contextual Tafssir.** In `response_mode="tafssir"` every ayah sent to the final stage
+  carries its context from the Quran DB: `context.surah` (name, Meccan/Medinan type, ayah
+  count), `context.position`, and `context.before` / `context.after` — neighbouring ayahs of
+  the same surah (±1 fast, ±2 balanced, ±3 deep; ±5 for the focus ayah; each clipped to 600
+  chars). The system prompt requires reading each ayah with its neighbours and the whole
+  surah's themes before interpreting, and saying when context changes the reading.
+  Neighbours are context only: kept ayahs still come from the evidence list. Strict mode is
+  unchanged.
+- **Focus ayah (additive).** `ResearchAgentRequest.focus = {surah, ayah}` (optional, read in
+  the request's `mushaf`) centres the research on one ayah: its reference and DB text are
+  appended to the latest user message for every stage, it leads the evidence list, it is
+  always kept after review, the answer is never turned into a clarifying question, and a
+  search with no hits still answers from it. An unknown ayah returns `422`. Works in both
+  modes (in strict mode it is Quran evidence like any other ayah).
 - `GET /api/research-agent/settings` returns:
   - current provider metadata
   - `available_models`

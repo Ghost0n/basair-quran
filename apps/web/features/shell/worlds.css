@@ -1,0 +1,178 @@
+/* =====================================================================
+   Worlds (shell/worlds.ts): reading, research, community. Each borrows one
+   hue of the ambient glow — gold, teal, copper — to tint the page's active
+   destination in the tab bar and the rail.
+   ===================================================================== */
+
+:root {
+  --world-reading: #d4af37;
+  --world-reading-text: #d4af37;
+  --world-reading-a: rgba(212, 175, 55, 0.14);
+  --world-research: #5fb3a6;
+  --world-research-text: #7cc7bb;
+  --world-research-a: rgba(95, 179, 166, 0.15);
+  --world-community: #d3956a;
+  --world-community-text: #e0a77f;
+  --world-community-a: rgba(211, 149, 106, 0.15);
+  --world: var(--world-reading);
+  --world-text: var(--world-reading-text);
+  --world-a: var(--world-reading-a);
+}
+
+.light,
+.light-mode,
+[data-theme="light"] {
+  --world-reading: #c99a22;
+  --world-reading-text: #8a6a0c;
+  --world-reading-a: rgba(164, 129, 41, 0.13);
+  --world-research: #2f8f80;
+  --world-research-text: #1f6e62;
+  --world-research-a: rgba(31, 122, 108, 0.12);
+  --world-community: #c0703f;
+  --world-community-text: #9a4f22;
+  --world-community-a: rgba(165, 88, 44, 0.12);
+}
+
+html[data-world="reading"] body,
+[data-w="reading"] {
+  --world: var(--world-reading);
+  --world-text: var(--world-reading-text);
+  --world-a: var(--world-reading-a);
+}
+
+html[data-world="research"] body,
+[data-w="research"] {
+  --world: var(--world-research);
+  --world-text: var(--world-research-text);
+  --world-a: var(--world-research-a);
+}
+
+html[data-world="community"] body,
+[data-w="community"] {
+  --world: var(--world-community);
+  --world-text: var(--world-community-text);
+  --world-a: var(--world-community-a);
+}
+
+/* ---------- The desktop rail: each destination lit in its world's colour ---------- */
+
+.qb-rail .qb-rail-btn.is-world.active {
+  color: var(--world-text);
+}
+
+.qb-rail .qb-rail-btn.is-world.active .qb-icon {
+  color: var(--world-text);
+}
+
+/* ---------- The reading world's pages ---------- */
+
+.qb-world-page {
+  padding: 16px 20px 24px;
+  font-family: var(--font-arabic-ui);
+}
+
+.qb-world-page .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--world-text);
+}
+
+.qb-world-page h2 {
+  margin: 6px 0 14px;
+  font-family: var(--font-arabic-heading);
+  font-size: 28px;
+  color: var(--fg-1);
+}
+
+.qb-world-page .lead {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--fg-3);
+}
+
+.qb-saved-pages {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.qb-saved-pages button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  color: var(--fg-1);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.qb-saved-pages .ribbon {
+  color: #c0453a;
+  fill: currentColor;
+}
+
+.qb-saved-pages .txt {
+  display: grid;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.qb-saved-pages b {
+  font-family: var(--font-arabic-heading);
+  font-size: 18px;
+}
+
+.qb-saved-pages small {
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.qb-saved-pages button > .qb-icon:last-child {
+  margin-inline-start: auto;
+  color: var(--fg-3);
+}
+
+/* «الفهرس»: the navigate sheet as a page. */
+.qb-index-page {
+  padding: 0;
+  height: 100%;
+}
+
+.qb-rsheet.qb-nav-sheet.is-inline {
+  position: static;
+  height: 100%;
+  padding: 0;
+  display: block;
+  z-index: auto;
+}
+
+.qb-rsheet.qb-nav-sheet.is-inline .panel {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  animation: none;
+  padding-bottom: 0;
+}
+
+.qb-rsheet.qb-nav-sheet.is-inline .grip {
+  display: none;
+}

@@ -1,0 +1,120 @@
+/* Themed dropdown (components/select-menu.tsx) — replaces native <select>
+   so the open list matches the theme. */
+
+.qb-select {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.qb-select-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  height: 38px;
+  padding-inline: 12px 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.20);
+  border: 1px solid var(--border);
+  /* A filled well: depth instead of an outline. */
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.16);
+  color: var(--fg-2);
+  font-size: 13px;
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  min-width: 0;
+  transition: border-color 160ms var(--ease-out), box-shadow 160ms var(--ease-out);
+}
+
+.light .qb-select-btn {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.qb-select-btn:hover:not(:disabled) {
+  border-color: var(--border-accent);
+}
+
+.qb-select-btn[aria-expanded="true"] {
+  border-color: var(--border-focus);
+  box-shadow: var(--focus-glow);
+}
+
+.qb-select-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.qb-select-btn > .qb-icon {
+  color: var(--gold-text);
+  flex-shrink: 0;
+}
+
+.qb-select-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+/* Positioned inline (fixed) by the component and portalled to <body>. */
+.qb-select-list {
+  overflow-y: auto;
+  margin: 0;
+  padding: 5px;
+  list-style: none;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-3);
+  z-index: 400;
+  animation: qbPopIn var(--dur-fast) var(--ease-out);
+  transform-origin: top;
+}
+
+.light .qb-select-list {
+  background: #fffdf7;
+}
+
+.light .qb-select-list {
+  background: #fffdf7;
+}
+
+.qb-select-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: var(--font-arabic-ui);
+  color: var(--fg-1);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.qb-select-opt .qb-icon {
+  color: var(--gold-text);
+  flex-shrink: 0;
+}
+
+.qb-select-check {
+  width: 13px;
+  flex-shrink: 0;
+}
+
+.qb-select-opt-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.qb-select-opt.active,
+.qb-select-opt:hover {
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--gold-text-bright);
+}
+
+.qb-select-opt.selected {
+  color: var(--gold-text);
+}

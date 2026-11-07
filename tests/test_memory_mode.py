@@ -10,7 +10,9 @@ def test_low_memory_mode_runtime_settings_follow_env(monkeypatch):
     assert config.is_low_memory_mode() is False
     assert config.get_runtime_sqlite_cache_pages() == config.DEFAULT_SQLITE_CACHE_PAGES
     assert config.get_runtime_mushaf_cache_limit() is None
-    assert config.get_runtime_query_cache_limit() is None
+    # Query caches are keyed by arbitrary user input, so they are bounded even in
+    # normal mode (previously None/unbounded — a memory leak).
+    assert config.get_runtime_query_cache_limit() == config.DEFAULT_QUERY_CACHE_LIMIT
 
     monkeypatch.setenv("QBASAIR_LOW_MEMORY_MODE", "1")
 

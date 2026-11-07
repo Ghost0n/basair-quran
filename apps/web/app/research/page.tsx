@@ -1,5 +1,9 @@
-import { ResearchPageShell } from "@/features/research/research-page-shell";
+import { redirect } from "next/navigation";
 
+/**
+ * The standalone research page has been folded into the Studio panel
+ * (Phase 4). This route now redirects into the workspace shell.
+ */
 export default function ResearchPage() {
-  return <ResearchPageShell />;
+  redirect("/?mode=studio");
 }

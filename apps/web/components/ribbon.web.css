@@ -1,0 +1,71 @@
+/* The surah ribbon, the rosette and the hero reveal — shared marks of the web
+   design (components/ribbon.tsx, components/girih.tsx). Desktop web only. */
+
+.qb-web .qb-ribbon-wrap { min-width: 0; }
+
+/* Al-Fātiḥa on the right in every language: the Mushaf's order. */
+.qb-web .qb-ribbon {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: var(--rh, 60px);
+  border-bottom: 1px solid var(--gold-line);
+  direction: rtl;
+}
+.qb-web .qb-ribbon .bar {
+  flex: 1;
+  min-width: 0;
+  height: calc(var(--h) * 100%);
+  border-radius: 2px 2px 0 0;
+  background: var(--bar-off);
+  transform-origin: bottom;
+  transition: opacity 160ms, background 160ms;
+}
+.qb-web .qb-ribbon .bar.on { background: var(--bar-on); }
+.qb-web .qb-ribbon .bar.dim { opacity: 0.25; }
+.qb-web .qb-ribbon .bar.here { background: var(--gold-here); box-shadow: 0 0 10px var(--gold-glow); }
+.qb-web .qb-ribbon .bar.hov { background: var(--gold-here); }
+.qb-web .qb-ribbon.is-live { cursor: pointer; touch-action: none; }
+.qb-web .qb-ribbon.is-live:focus-visible { outline: 2px solid var(--gold-400); outline-offset: 4px; border-radius: 4px; }
+.qb-web .qb-ribbon.is-grow .bar { animation: qbRibbonUp 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(200ms + var(--i) * 5ms); }
+@keyframes qbRibbonUp { from { transform: scaleY(0); } }
+
+.qb-web .qb-ribbon-axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--fg-3);
+  direction: rtl;
+}
+.qb-web .qb-ribbon-axis .readout { color: var(--gold-text); font-weight: 700; text-align: center; }
+
+.qb-web .qb-mini-ribbon { display: inline-flex; align-items: flex-end; width: 114px; height: 22px; direction: rtl; flex: none; }
+.qb-web .qb-mini-ribbon i { flex: 1; min-width: 0; background: var(--bar-on); border-radius: 1px 1px 0 0; }
+
+/* The rosette (components/girih.tsx): drawn line by line once, then still. */
+.qb-web .qb-girih { pointer-events: none; }
+.qb-web .qb-girih path {
+  fill: none;
+  stroke: var(--gold-400);
+  stroke-width: 0.9;
+  stroke-opacity: 0.3;
+}
+.qb-web .qb-girih.is-drawn path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: qbGirihDraw 2.4s cubic-bezier(0.5, 0, 0.2, 1) forwards;
+  animation-delay: calc(var(--ring, 0) * 160ms);
+}
+@keyframes qbGirihDraw { to { stroke-dashoffset: 0; } }
+
+/* Hero verse, word by word. */
+.qb-web .qb-word-in span { display: inline-block; white-space: pre; animation: qbWordIn 900ms cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(400ms + var(--w) * 140ms); }
+@keyframes qbWordIn { from { opacity: 0; filter: blur(6px); transform: translateY(8px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-web .qb-ribbon.is-grow .bar,
+  .qb-web .qb-girih.is-drawn path,
+  .qb-web .qb-word-in span { animation: none; stroke-dashoffset: 0; }
+}

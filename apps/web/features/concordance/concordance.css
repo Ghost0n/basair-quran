@@ -1,0 +1,623 @@
+/* =====================================================================
+   Concordance — the search panel that overlays the Mushaf.
+   ===================================================================== */
+
+.qb-workspace-canvas {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* ---------- U5: Companion split layout ---------- */
+
+.qb-companion-panel {
+  width: 400px;
+  flex: 0 0 400px;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  /* The same floating glass pane as the search / Studio panels. */
+  margin-block: 4px 10px;
+  margin-inline-start: 10px;
+  border-radius: 26px;
+  border: 1px solid var(--glass-rim);
+  background-color: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  animation: qbPanelIn var(--dur) var(--ease-out);
+}
+
+/* Side panels settle in with a fade + a short horizontal glide as they open. */
+@keyframes qbPanelIn {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Tighten the aux page padding inside the compact panel */
+.qb-companion-panel .qb-aux {
+  padding: 20px 22px 32px;
+}
+
+.qb-companion-panel .qb-aux-h h2 {
+  font-size: var(--fs-title-page);
+}
+
+/* Settings inside the companion panel */
+.qb-companion-panel .qb-settings {
+  flex: 1;
+}
+
+/* ---------- Side panel shell ---------- */
+
+.qb-side-panel {
+  width: 440px;
+  flex: 0 0 440px;
+  min-width: 0;
+  /* A floating glass pane beside the mushaf. */
+  margin-block: 4px 10px;
+  margin-inline-start: 10px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  animation: qbPanelIn var(--dur) var(--ease-out);
+  background: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge), var(--glass-shadow);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  border-radius: 26px;
+}
+
+.qb-side-head {
+  flex-shrink: 0;
+  padding: 18px 20px 14px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
+}
+
+.qb-side-head .kicker {
+  color: var(--gold-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
+}
+
+.qb-side-head h3 {
+  font-family: var(--font-arabic-heading);
+  font-size: var(--fs-title-section);
+  color: var(--fg-1);
+  margin: 4px 0 6px;
+  overflow-wrap: anywhere;
+  line-height: var(--lh-heading);
+}
+
+.qb-side-head .meta {
+  color: var(--fg-3);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.qb-side-head-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.qb-side-head .close {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--fg-3);
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.qb-side-head .close:hover {
+  color: var(--gold-text);
+  background: rgba(212, 175, 55, 0.06);
+  border-color: var(--border);
+}
+
+.qb-side-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+/* ---------- Root summary ---------- */
+
+.qb-root-summary {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.10), rgba(212, 175, 55, 0.02));
+  border: 1px solid var(--border-accent);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.qb-root-summary .root-disp {
+  font-family: var(--font-arabic-heading);
+  color: var(--gold-text);
+  font-size: 30px;
+  line-height: var(--lh-heading);
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
+}
+
+.qb-root-summary .root-gloss {
+  color: var(--fg-2);
+  font-size: 13px;
+  margin-top: 6px;
+  line-height: 1.6;
+}
+
+.qb-root-summary .root-stats {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.qb-root-summary .root-stats .s {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.qb-root-summary .root-stats .s .v {
+  color: var(--gold-text-bright);
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--font-arabic-heading);
+  line-height: var(--lh-heading);
+}
+
+.qb-root-summary .root-stats .s .l {
+  color: var(--fg-3);
+  font-size: 11px;
+}
+
+.qb-follow-root {
+  margin-top: 10px;
+  width: 100%;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border-accent);
+  background: rgba(212, 175, 55, 0.08);
+  color: var(--gold-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.qb-follow-root:hover:not(:disabled) {
+  background: rgba(212, 175, 55, 0.14);
+}
+
+.qb-follow-root.on {
+  cursor: default;
+  opacity: 0.8;
+}
+
+/* ---------- Verse rows ---------- */
+
+.qb-verse-row {
+  padding: 10px 14px 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 200ms var(--ease-out), transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+  position: relative;
+  width: 100%;
+  text-align: start;
+  /* Results mount with a staggered fade + rise (design: 60ms cascade, cap 8 then
+     batch — the cap is applied on --i in the component). `backwards` (not forwards)
+     so the completed animation never locks `transform` and breaks the hover lift. */
+  animation: qbRise var(--motion-dur-base) var(--motion-ease-settle) backwards;
+  animation-delay: calc(var(--i, 0) * var(--motion-stagger-base));
+  background: var(--glass-tint-soft);
+  background-image: var(--glass-sheen);
+  border: 1px solid var(--glass-rim);
+  box-shadow: var(--glass-edge);
+  border-radius: var(--r-lg);
+}
+
+.qb-verse-row:hover {
+  border-color: var(--border-accent);
+  transform: translateY(-1px);
+}
+
+.qb-verse-row.selected {
+  background: rgba(212, 175, 55, 0.10);
+  border-color: var(--border-accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.qb-verse-row .vmeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+
+.qb-verse-row .vmeta .surah {
+  color: var(--gold-text);
+  font-weight: 700;
+}
+
+.qb-verse-row .vmeta .ayah-ref {
+  color: var(--fg-3);
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+}
+
+.qb-verse-row .vmeta .pin {
+  margin-inline-start: auto;
+  /* 36px hit area; the negative margin keeps the visual row height. */
+  width: 36px;
+  height: 36px;
+  margin-block: -8px;
+  margin-inline-end: -8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fg-mute);
+  cursor: pointer;
+  /* real <button> now — reset the UA chrome */
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+.qb-verse-row .vmeta .pin:hover {
+  color: var(--gold-text);
+  background: rgba(212, 175, 55, 0.08);
+}
+
+.qb-verse-row .vmeta .pin.on {
+  color: var(--gold-text);
+}
+
+/* ▶ sits beside the pin, both at the row's end. */
+.qb-verse-row .vmeta .pin.listen + .pin {
+  margin-inline-start: 0;
+}
+
+.qb-verse-row .vtext {
+  font-family: var(--font-arabic-display);
+  direction: rtl;
+  /* Denser than the reader: results are scanned, then opened in the mushaf. */
+  font-size: 20px;
+  line-height: 1.85;
+  color: var(--verse-fg);
+  font-weight: 500;
+}
+
+.qb-verse-row .vtext .highlight {
+  background: rgba(212, 175, 55, 0.30);
+  color: var(--gold-text-bright);
+  padding: 0 3px;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.light .qb-verse-row .vtext .highlight {
+  color: var(--gold-600);
+  background: rgba(212, 175, 55, 0.42);
+}
+
+/* ---------- Result-group pagination ---------- */
+
+.qb-conc-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 6px 0 18px;
+}
+
+.qb-conc-pager button {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(212, 175, 55, 0.06);
+  color: var(--gold-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.qb-conc-pager button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.qb-conc-pager .count {
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--fg-3);
+}
+
+/* ---------- Empty / loading / error ---------- */
+
+.qb-conc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  padding: 40px 16px 24px;
+}
+
+.qb-conc-empty-art {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  color: var(--gold-text);
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid var(--border-accent);
+}
+
+.qb-conc-empty-lead {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--fg-2);
+  max-width: 280px;
+}
+
+.qb-conc-examples {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.qb-conc-examples .lbl {
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.qb-conc-examples button {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(212, 175, 55, 0.08);
+  border: 1px solid var(--border-accent);
+  color: var(--gold-text-bright);
+  font-family: var(--font-arabic-display);
+  direction: rtl;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 160ms var(--ease-out);
+}
+
+.qb-conc-examples button:hover {
+  background: rgba(212, 175, 55, 0.18);
+}
+
+.qb-conc-watermark {
+  margin-top: 8px;
+  font-family: var(--font-arabic-display);
+  direction: rtl;
+  font-size: 26px;
+  color: rgba(212, 175, 55, 0.22);
+  letter-spacing: 0; /* Arabic: tracking breaks the joins */
+}
+
+.qb-conc-error {
+  background: var(--tafssir-bg);
+  background-image: var(--tafssir-stripe);
+  border: 1px solid var(--tafssir-border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  color: var(--fg-1);
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.qb-conc-error .did-you-mean {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.qb-conc-error .did-you-mean button {
+  background: transparent;
+  border: 1px solid var(--tafssir-border);
+  color: var(--tafssir-fg);
+  font-family: var(--font-arabic-display);
+  direction: rtl;
+  font-size: 16px;
+  padding: 2px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* No spinners — loading is a pulsing skeleton (opacity 0.45↔0.9, per the design
+   motion spec), with a 120ms internal stagger across the three blocks. */
+.qb-conc-skeleton {
+  height: 88px;
+  border-radius: 14px;
+  margin-bottom: 10px;
+  background: var(--gold-a08);
+  animation: qbSkeleton 1200ms ease-in-out infinite;
+}
+
+.qb-conc-skeleton:nth-of-type(2) {
+  animation-delay: 120ms;
+}
+
+.qb-conc-skeleton:nth-of-type(3) {
+  animation-delay: 240ms;
+}
+
+/* ---------- Riwāyah selector (TopBar) ---------- */
+
+.qb-riwayah-select {
+  appearance: none;
+  -webkit-appearance: none;
+  height: 38px;
+  padding-inline: 12px 30px; /* caret room on the inline-end */
+  border-radius: 10px;
+  background-color: rgba(0, 0, 0, 0.20);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23d4af37' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: left 10px center; /* inline-end in RTL */
+  border: 1px solid var(--border);
+  color: var(--fg-2);
+  font-size: 13px;
+  font-family: var(--font-arabic-ui);
+  cursor: pointer;
+  max-width: 170px;
+}
+
+.light .qb-riwayah-select {
+  background-color: rgba(255, 255, 255, 0.55);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a07a10' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.qb-riwayah-select:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+/* ---------- Heatmap (root panorama) ---------- */
+
+.qb-heatmap-grid {
+  display: grid;
+  /* Fluid: ~19 columns on desktop, ~8 on phones — cells never overflow the
+     viewport (minmax(0,…) lets tracks shrink below their content width). */
+  grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+  gap: 6px;
+  max-width: 860px;
+}
+
+.qb-heat-cell {
+  aspect-ratio: 1;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: rgba(212, 175, 55, 0.04);
+  color: var(--fg-mute);
+  font-size: 11px;
+  font-family: var(--font-arabic-ui);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 140ms var(--ease-out);
+}
+
+@media (hover: hover) {
+  .qb-heat-cell:hover {
+    transform: scale(1.35);
+    z-index: 2;
+    border-color: var(--border-focus);
+  }
+}
+
+.qb-heat-cell:focus-visible {
+  transform: scale(1.35);
+  z-index: 2;
+  border-color: var(--border-focus);
+}
+
+.qb-heat-cell[data-level="0"] { background: rgba(212, 175, 55, 0.04); }
+.qb-heat-cell[data-level="1"] { background: rgba(212, 175, 55, 0.16); color: var(--fg-3); }
+.qb-heat-cell[data-level="2"] { background: rgba(212, 175, 55, 0.30); color: var(--fg-2); }
+.qb-heat-cell[data-level="3"] { background: rgba(212, 175, 55, 0.46); color: #1a1207; }
+.qb-heat-cell[data-level="4"] { background: rgba(212, 175, 55, 0.62); color: #1a1207; }
+.qb-heat-cell[data-level="5"] { background: rgba(212, 175, 55, 0.80); color: #1a1207; }
+.qb-heat-cell[data-level="6"] { background: var(--gold-400); color: #1a1207; }
+
+/* ---------- Responsive ---------- */
+
+.qb-side-panel-wide {
+  width: 460px;
+  flex: 0 0 460px;
+}
+
+/* Focus mode: below the desk threshold the workspace renders a single surface
+   (see COMPACT_WORKSPACE in workspace-canvas.tsx), so the active panel fills the
+   whole column instead of sitting at its desk width beside an empty gap where
+   the Mushaf used to be. Keep this breakpoint in sync with that constant. */
+@media (max-width: 1000px) {
+  .qb-side-panel,
+  .qb-side-panel-wide,
+  .qb-companion-panel,
+  .qb-notebook {
+    width: 100%;
+    flex: 1 1 auto;
+    border-inline-end: none;
+    margin: 0 0 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .qb-aux,
+  .qb-settings {
+    padding: 20px 16px 32px;
+  }
+
+  .qb-aux-grid,
+  .qb-settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* A world page in the single-column canvas (the index, saved pages) takes the
+   whole width: as a flex item it otherwise shrinks to its content. */
+.qb-companion-canvas > .qb-world-page {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The root's insights page: a back arrow before its title. */
+.qb-aux-h.has-back {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.qb-aux-h.has-back .qb-aux-back {
+  flex-shrink: 0;
+}

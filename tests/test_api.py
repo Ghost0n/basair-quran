@@ -267,12 +267,15 @@ def test_quran_page_resolves_selected_ayah_page_and_clamps(api_client):
     assert selected_body["has_previous"] is True
     assert selected_body["has_next"] is False
     assert selected_body["selected_ayah_id"] == 11
+    assert selected_body["juz"] == 1
+    assert "juz_secondary" not in selected_body
     assert [ayah["ayah"] for ayah in selected_body["ayahs"]] == [11, 12, 13, 14, 15]
     assert [ayah["is_selected"] for ayah in selected_body["ayahs"]] == [True, False, False, False, False]
     assert selected_body["ayahs"][0]["ayah_id"] == 11
     assert selected_body["ayahs"][0]["mushaf_id"] == 1
     assert selected_body["ayahs"][0]["surah_id"] == 1
     assert selected_body["ayahs"][0]["global_index"] == 10
+    assert selected_body["ayahs"][0]["juz"] == 1
 
     clamped_response = api_client.get(
         "/api/quran-page",
@@ -308,3 +311,217 @@ def test_quran_page_accepts_url_query_numbers(api_client):
     assert body["page"] == 2
     assert body["selected_ayah_id"] == 11
     assert body["ayahs"][0]["is_selected"] is True
+
+
+def test_quran_page_resolves_surah_ayah_and_juz_locators(api_client):
+    by_surah_ayah = api_client.get("/api/quran-page", params={"mushaf": 1, "surah": 1, "ayah": 11})
+    assert by_surah_ayah.status_code == 200
+    surah_ayah_body = by_surah_ayah.json()
+    assert surah_ayah_body["found"] is True
+    assert surah_ayah_body["page"] == 2
+    assert surah_ayah_body["selected_ayah_id"] == 11
+
+    by_surah_only = api_client.get("/api/quran-page", params={"mushaf": 1, "surah": 1})
+    assert by_surah_only.status_code == 200
+    surah_only_body = by_surah_only.json()
+    assert surah_only_body["found"] is True
+    assert surah_only_body["page"] == 1
+    assert surah_only_body["selected_ayah_id"] == 1
+
+    by_juz = api_client.get("/api/quran-page", params={"mushaf": 1, "juz": 1})
+    assert by_juz.status_code == 200
+    juz_body = by_juz.json()
+    assert juz_body["found"] is True
+    assert juz_body["page"] == 1
+
+
+def test_surahs_catalog_lists_surahs(api_client):
+    response = api_client.get("/api/surahs")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert body[0]["id"] == 1
+    assert body[0]["name"] == "Fixture Surah"
+    assert body[0]["type"] == "meccan"
+    assert body[0]["ayah_count"] == 15
+
+
+def test_surahs_catalog_counts_follow_the_requested_mushaf(api_client):
+    # Ayah counts are per riwāyah (al-Baqarah: Hafs 286, Qaloun 285); the fixture
+    # only holds mushaf 1, so another mushaf lists the surah with no ayahs.
+    assert api_client.get("/api/surahs?mushaf=1").json()[0]["ayah_count"] == 15
+    other = api_client.get("/api/surahs?mushaf=2").json()
+    assert [item["id"] for item in other] == [1]
+    assert other[0]["ayah_count"] == 0
+
+
+def test_reciters_catalog_lists_reciters(api_client):
+    response = api_client.get("/api/reciters")
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) >= 6
+    first = body[0]
+    assert first["id"]
+    assert first["name"]
+    assert first["audio_base"].startswith("https://")
+
+
+def test_root_distribution_aggregates_by_surah(api_client):
+    response = api_client.get("/api/root-distribution", params={"root": "shared", "mushaf": 1})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["found"] is True
+    assert body["surah_count"] == 1
+    assert body["surahs"][0]["surah_id"] == 1
+    assert body["surahs"][0]["count"] == body["total"]
+    assert body["total"] > 0
+
+
+def test_session_save_rejects_oversized_messages(api_client):
+    """Storage caps (T1.7): guests reach /api/sessions, so bound the payload."""
+    too_many = {"id": "cap-count", "messages": [{"role": "user", "content": "x"} for _ in range(501)]}
+    assert api_client.post("/api/sessions", json=too_many).status_code == 422
+
+    huge = {"id": "cap-bytes", "messages": [{"role": "user", "content": "x" * (600 * 1024)}]}
+    assert api_client.post("/api/sessions", json=huge).status_code == 422
+
+    ok = {"id": "cap-ok", "messages": [{"role": "user", "content": "hello"}]}
+    assert api_client.post("/api/sessions", json=ok).status_code == 200
+
+
+def test_ready_endpoint_reports_db_and_commit(api_client, monkeypatch):
+    """/api/ready (T1.8): DB SELECT 1 + commit SHA for the deploy gate."""
+    monkeypatch.setenv("QBASAIR_COMMIT_SHA", "abc1234")
+    response = api_client.get("/api/ready")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ready"
+    assert body["db"] is True
+    assert body["commit"] == "abc1234"
+
+
+def test_health_endpoint_stays_pure_liveness(api_client):
+    response = api_client.get("/api/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
+
+
+def test_get_db_path_honors_env(monkeypatch):
+    """T3.2: QBASAIR_DB_PATH must actually be read (was previously ignored)."""
+    from pathlib import Path
+
+    from src.app.core import config
+
+    original = config.get_db_path()
+    try:
+        monkeypatch.setenv("QBASAIR_DB_PATH", "custom-quran.db")
+        assert config.get_db_path() == str(Path("custom-quran.db"))
+        monkeypatch.delenv("QBASAIR_DB_PATH", raising=False)
+        config.set_db_path("fallback-quran.db")
+        assert config.get_db_path() == str(Path("fallback-quran.db"))
+    finally:
+        config.set_db_path(original)
+
+
+def test_query_cache_limit_is_bounded_in_normal_mode(monkeypatch):
+    """T3.5: the did-you-mean caches must be bounded even in normal mode."""
+    from src.app.core import config
+
+    monkeypatch.delenv("QBASAIR_LOW_MEMORY_MODE", raising=False)
+    limit = config.get_runtime_query_cache_limit()
+    assert isinstance(limit, int) and limit > 0
+
+
+def test_get_db_is_per_thread_and_reopens_after_close(api_client):
+    """T3.3: each thread gets its own read-only connection; close reopens cleanly."""
+    import threading
+
+    from src.app.services import quran_service
+
+    main_conn = quran_service.get_db()
+    worker_conn = {}
+
+    def grab():
+        worker_conn["conn"] = quran_service.get_db()
+
+    thread = threading.Thread(target=grab)
+    thread.start()
+    thread.join()
+
+    # Distinct connection objects per thread (no shared cross-thread handle).
+    assert worker_conn["conn"] is not main_conn
+    # Same thread reuses its own handle.
+    assert quran_service.get_db() is main_conn
+
+    # After a close, the next get_db reopens a working connection.
+    quran_service.close_db_connection()
+    reopened = quran_service.get_db()
+    assert reopened is not main_conn
+    assert reopened.execute("SELECT 1").fetchone()[0] == 1
+
+
+def test_phrase_metadata_is_memoized_per_mushaf(api_client):
+    """T3.1: the per-mushaf phrase metadata is cached (no repeated full scan)."""
+    from src.app.services import quran_service
+
+    cursor = quran_service.get_db().cursor()
+    first = quran_service.get_mushaf_phrase_metadata(cursor, 1)
+    second = quran_service.get_mushaf_phrase_metadata(cursor, 1)
+    assert first is second
+
+
+def test_mushafs_expose_normalized_riwayah(api_client):
+    """T8.2: each mushaf carries a normalized riwāyah key for mismatch detection."""
+    from src.app.routes.mushafs import _riwayah_for_mushaf
+
+    assert _riwayah_for_mushaf("حفص") == "hafs"
+    assert _riwayah_for_mushaf("ورش") == "warsh"
+    assert _riwayah_for_mushaf("قالون") == "qaloun"
+    assert _riwayah_for_mushaf("السوسي") == "sousi"
+    assert _riwayah_for_mushaf("unknown name") == "hafs"
+
+    response = api_client.get("/api/mushafs")
+    assert response.status_code == 200
+    for mushaf in response.json():
+        assert "riwayah" in mushaf and mushaf["riwayah"]
+
+
+def test_text_count_phrase_and_letters_by_scope(api_client):
+    # Fixture: surah 1 holds "shared verse N" (1–12 on pages 1–2) plus other ayahs.
+    response = api_client.get("/api/text-count", params={"text": "shared verse", "mushaf": 1, "surah": 1, "page": 2})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["word_count"] == 2
+    assert body["phrase"]["page"] == 2  # ayahs 11–12 start on page 2
+    assert body["phrase"]["surah"] == body["phrase"]["quran"] >= 12
+    letters = {entry["letter"]: entry for entry in body["letters"]}
+    assert letters["s"]["in_selection"] == 2
+    assert letters["e"]["in_selection"] == 3
+    assert letters["e"]["quran"] >= letters["e"]["surah"] >= letters["e"]["page"] > 0
+
+
+def test_text_count_without_scopes_and_validation(api_client):
+    body = api_client.get("/api/text-count", params={"text": "verse", "mushaf": 1}).json()
+    assert body["phrase"]["surah"] is None and body["phrase"]["page"] is None
+    assert body["phrase"]["quran"] >= 12
+    assert api_client.get("/api/text-count", params={"text": " ".join(["w"] * 13), "mushaf": 1}).status_code == 422
+    assert api_client.get("/api/text-count", params={"text": "ًٌ", "mushaf": 1}).status_code == 422
+
+
+def test_text_count_counts_boundary_ayahs_on_their_starting_page(api_client):
+    # Some narrations store an ayah that straddles two pages as "85-86".
+    import sqlite3
+
+    with sqlite3.connect(main.get_db_path()) as connection:
+        connection.execute("UPDATE ayahs SET page = '2-3' WHERE mushaf_id = 1 AND surah_id = 1 AND number_in_surah = 11")
+    main.close_db_connection()
+    body = api_client.get("/api/text-count", params={"text": "shared verse", "mushaf": 1, "surah": 1, "page": 2}).json()
+    assert body["phrase"]["page"] == 2
+
+
+def test_text_count_arabic_normalization():
+    from src.app.services import quran_service
+
+    assert quran_service.normalize_count_text("ٱلسَّمَٰوَٰتِ   وَٱلۡأَرۡضَ") == "السموت والارض"
+    assert quran_service.normalize_count_text("يَـُٔودُهُۥ") == "يوده"
+    assert quran_service._phrase_occurrences(("a", "b", "a", "b"), ("a", "b")) == 2

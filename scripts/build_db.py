@@ -2,8 +2,12 @@
 Quran Database Builder V7 - Rich Metadata & Decoupled Morphology
 
 This script builds the quran.db database from normalized mushaf JSON files.
-It uses a pre-generated word-to-root dictionary for checking roots, ensuring
-consistently high-quality morphology across all narrations (Riwayat).
+Each word's root comes from the morphology source (the Quranic Arabic Corpus,
+Ḥafṣ), word by word: by its position when the words line up, else from the
+same word nearby in the same surah (narrations number some verses
+differently), else from the source's usual reading of that spelling. Particles
+have no root. The word-to-root dictionary is only the fallback for spellings
+the source never uses (see ``RootResolver``).
 """
 
 import json
@@ -11,7 +15,7 @@ import os
 import re
 import sqlite3
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 # Force UTF-8 encoding on Windows
 if sys.stdout.encoding != "utf-8":
@@ -74,8 +78,22 @@ MORPHOLOGY_PATH = os.path.join(DATA_DIR, "quran-morphology.txt")
 # =============================================================================
 
 
+# Qālūn and Warsh write some letters the other narrations write otherwise: a
+# yā' barī «ے» is a yā' (فِے, رَبِّے), and a yā' carrying a separate hamza
+# mark is «ئ» (يَسْتَهْزِۓُ). Folded before any other normalization so that
+# a word reads, and is searched, the same in every narration.
+_SEATED_HAMZA_RE = re.compile(r"[\u064A\u06D2]([\u064B-\u0653\u0655-\u065F\u0670]*)\u0654")
+
+
+def fold_narration_letters(text):
+    """Fold the narrations' spellings of yā' and seated hamza (see above)."""
+    text = _SEATED_HAMZA_RE.sub(lambda match: "\u0626" + match.group(1), text)
+    return text.replace("\u06D2", "\u064A")
+
+
 def normalize_text_search(text):
     """Standard normalization for search matching."""
+    text = fold_narration_letters(text)
     text = re.sub(r"[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E8\u06EA-\u06ED]", "", text)
     text = re.sub(r"[\u0623\u0625\u0622\u0671]", "\u0627", text)
     text = text.replace("\u0621", "")
@@ -84,6 +102,7 @@ def normalize_text_search(text):
 
 def normalize_for_matching(text):
     """Aggressive normalization for word-root matching."""
+    text = fold_narration_letters(text)
     text = re.sub(r"[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]", "", text)
     text = re.sub(r"[\u0623\u0625\u0622\u0671\u0627]", "\u0627", text)
     text = text.replace("\u0621", "")
@@ -343,6 +362,113 @@ def build_morphology_variant_rows(morphology_text):
 # =============================================================================
 
 
+# How far (in verses, within the surah) a word is looked for in the morphology
+# source when its position doesn't line up: covers the verse-numbering
+# differences between the narrations (Kufan vs Madinan counts, …).
+ROOT_SEARCH_WINDOW = 8
+
+
+def loose_letters(text):
+    """Letters of a word with hamza seats and alifs set aside, so that the
+    narrations' spellings of one word meet (يومنون / يؤمنون, بيسما / بئسما)."""
+    return normalize_for_matching(text).replace("\u0624", "\u0648").replace("\u0626", "\u064A").replace("\u0627", "")
+
+
+class RootResolver:
+    """The root of each word of a mushaf, from the morphology source.
+
+    Looking roots up by spelling alone is wrong: «قل» is قول in «قُلۡ» but قلل
+    in «قَلَّ», and the particle «مِن» shares its letters with «مَنّ» (منن).
+    The source gives a root per word position (none for particles), so a word
+    takes, in order:
+
+    1. ``position`` — the source's word at the same surah:verse:word, when it
+       has the same letters (Ḥafṣ and Shuʿba, nearly everywhere);
+    2. ``nearby`` — the nearest source word with the same letters in the same
+       surah, within ``ROOT_SEARCH_WINDOW`` verses (narrations that number or
+       split verses differently), then the nearest one with the same letters
+       once hamza seats and alifs are set aside (``loose_letters``: Warsh's
+       «يُومِنُونَ» is «يُؤْمِنُونَ»);
+    3. ``spelling`` — the source's most frequent reading of that spelling
+       (a root, or none);
+    4. ``dictionary`` — the word-to-root dictionary, for spellings the source
+       never uses (other narrations' orthography).
+    """
+
+    def __init__(self, morphology_text, word_root_map):
+        self.word_root_map = word_root_map
+        forms = defaultdict(str)
+        roots = {}
+        for raw_line in morphology_text.splitlines():
+            fields = raw_line.strip().split("\t")
+            if len(fields) != 4:
+                continue
+            ref, form, _pos, features = fields
+            try:
+                surah, ayah, word = (int(part) for part in ref.split(":")[:3])
+            except ValueError:
+                continue
+            key = (surah, ayah, word)
+            forms[key] += form
+            match = re.search(r"ROOT:([^|]+)", features)
+            if match and key not in roots:
+                roots[key] = match.group(1)
+
+        self.by_position = {}
+        self.by_ayah = defaultdict(lambda: defaultdict(list))
+        self.by_ayah_loose = defaultdict(lambda: defaultdict(list))
+        readings = defaultdict(Counter)
+        for key, form in forms.items():
+            normalized = normalize_for_matching(form)
+            root = roots.get(key)
+            self.by_position[key] = (normalized, root)
+            self.by_ayah[key[:2]][normalized].append((key[2], root))
+            self.by_ayah_loose[key[:2]][loose_letters(form)].append((key[2], root))
+            readings[normalized][root] += 1
+        # Most frequent first; ties broken by the root's text (none first), so
+        # the build stays deterministic.
+        self.by_spelling = {
+            normalized: min(counts.items(), key=lambda item: (-item[1], item[0] or ""))[0]
+            for normalized, counts in readings.items()
+        }
+        self.sources = Counter()
+
+    def resolve(self, surah, ayah, word, normalized):
+        """The roots of one word (none, one, or the dictionary's list)."""
+        at_position = self.by_position.get((surah, ayah, word))
+        if at_position and at_position[0] == normalized:
+            self.sources["position"] += 1
+            return [at_position[1]] if at_position[1] else []
+
+        for index, letters in ((self.by_ayah, normalized), (self.by_ayah_loose, loose_letters(normalized))):
+            found, root = self._nearest(index, surah, ayah, word, letters)
+            if found:
+                self.sources["nearby"] += 1
+                return [root] if root else []
+
+        if normalized in self.by_spelling:
+            self.sources["spelling"] += 1
+            root = self.by_spelling[normalized]
+            return [root] if root else []
+
+        self.sources["dictionary"] += 1
+        return list(self.word_root_map.get(normalized, []))
+
+    def _nearest(self, index, surah, ayah, word, letters):
+        """The source word spelt ``letters`` closest to surah:ayah:word (the
+        nearest verse, then the nearest position): (found, its root)."""
+        best = None
+        for distance in range(ROOT_SEARCH_WINDOW + 1):
+            for candidate in {ayah - distance, ayah + distance}:
+                for position, root in index.get((surah, candidate), {}).get(letters, ()):
+                    rank = (distance, abs(position - word))
+                    if best is None or rank < best[0]:
+                        best = (rank, root)
+            if best is not None:
+                return True, best[1]
+        return False, None
+
+
 def create_database_schema(cursor):
     """Create database tables and indexes."""
     cursor.executescript(
@@ -442,7 +568,7 @@ def create_database_schema(cursor):
     )
 
 
-def process_mushaf(cursor, mushaf, quran_data, word_root_map, root_cache, insert_surahs):
+def process_mushaf(cursor, mushaf, quran_data, root_resolver, root_cache, insert_surahs):
     """Process a single mushaf and insert its data."""
     mushaf_id = mushaf["id"]
     print(f"\nProcessing Mushaf: {mushaf['name']} ({mushaf['file']})")
@@ -499,7 +625,7 @@ def process_mushaf(cursor, mushaf, quran_data, word_root_map, root_cache, insert
             for index, word_text in enumerate(text_clean.split(" "), start=1):
                 word_simple = normalize_text_search(word_text)
                 word_normalized = normalize_for_matching(word_text)
-                roots_found = word_root_map.get(word_normalized, [])
+                roots_found = root_resolver.resolve(surah_id, ayah_number, index, word_normalized)
 
                 cursor.execute(
                     """
@@ -557,6 +683,12 @@ def process_mushaf(cursor, mushaf, quran_data, word_root_map, root_cache, insert
     print(f"  Processed {global_idx} verses")
     print(f"  Words with roots: {words_with_roots} ({match_rate:.1f}%)")
     print(f"  Words without roots: {words_without_roots}")
+    sources = root_resolver.sources
+    print(
+        "  Roots taken by "
+        + ", ".join(f"{name}: {sources[name]}" for name in ("position", "nearby", "spelling", "dictionary"))
+    )
+    sources.clear()
 
 
 def populate_morphology_variants(cursor, morphology_text):
@@ -620,13 +752,14 @@ def build_db():
             )
 
         root_cache = {}
+        root_resolver = RootResolver(morphology_text, word_root_map)
         first_mushaf = True
         for mushaf in MUSHAFS:
             process_mushaf(
                 cursor,
                 mushaf,
                 mushaf_payloads[mushaf["id"]],
-                word_root_map,
+                root_resolver,
                 root_cache,
                 first_mushaf,
             )
