@@ -276,8 +276,12 @@ public class NativeTabBarPlugin: CAPPlugin, CAPBridgedPlugin, UITabBarDelegate {
     }
 
     /// The tab bar and the dock hand over at the bar's own capsule (the same
-    /// glass, the same place), then the dock's Home part pulls away as a
+    /// glass, the same place) while the dock's Home part pulls away as a
     /// drop and the rest draws in to the toolbox; the way back reverses it.
+    /// Every step overlaps the next — the tabs' icons give way to the
+    /// toolbox's as the glass changes shape, never an empty capsule between
+    /// them — and the tabs come back while the shapes are still flowing
+    /// together, not once the spring has settled.
     @available(iOS 26.0, *)
     private func morph(bar: UITabBar, dock: GlassDock, toDock: Bool) {
         let reduce = UIAccessibility.isReduceMotionEnabled
@@ -286,25 +290,23 @@ public class NativeTabBarPlugin: CAPPlugin, CAPBridgedPlugin, UITabBarDelegate {
         if toDock {
             dock.setSplit(false, animated: false)
             dock.setContentVisible(false, animated: false)
-            UIView.animate(withDuration: 0.16, delay: 0, options: [.beginFromCurrentState, .curveEaseOut], animations: {
+            UIView.animate(withDuration: 0.12, delay: 0, options: [.beginFromCurrentState, .curveEaseOut], animations: {
                 bar.alpha = 0
                 dock.alpha = 1
             }, completion: { _ in
                 if self.shown != .tabs { bar.isHidden = true }
             })
-            dock.setSplit(true, animated: !reduce, delay: 0.06)
-            dock.setContentVisible(true, animated: true, delay: 0.2)
+            dock.setSplit(true, animated: !reduce)
+            dock.setContentVisible(true, animated: true, delay: 0.05)
         } else {
             dock.setContentVisible(false, animated: true)
-            dock.setSplit(false, animated: !reduce, delay: 0.04) {
-                guard self.shown == .tabs else { return }
-                UIView.animate(withDuration: 0.18, delay: 0, options: [.beginFromCurrentState], animations: {
-                    bar.alpha = 1
-                    dock.alpha = 0
-                }, completion: { _ in
-                    if self.shown != .dock { dock.isHidden = true }
-                })
-            }
+            dock.setSplit(false, animated: !reduce)
+            UIView.animate(withDuration: 0.18, delay: reduce ? 0 : 0.14, options: [.beginFromCurrentState, .curveEaseInOut], animations: {
+                bar.alpha = 1
+                dock.alpha = 0
+            }, completion: { _ in
+                if self.shown != .dock { dock.isHidden = true }
+            })
         }
     }
 
@@ -429,8 +431,8 @@ final class GlassDock: UIView {
             return
         }
         UIView.animate(
-            springDuration: value ? 0.6 : 0.5,
-            bounce: value ? 0.22 : 0.12,
+            springDuration: value ? 0.5 : 0.36,
+            bounce: value ? 0.2 : 0,
             initialSpringVelocity: 0,
             delay: delay,
             options: [.beginFromCurrentState, .allowUserInteraction],
@@ -448,7 +450,7 @@ final class GlassDock: UIView {
             apply()
             return
         }
-        UIView.animate(withDuration: visible ? 0.26 : 0.14, delay: delay, options: [.beginFromCurrentState, .curveEaseInOut], animations: apply)
+        UIView.animate(withDuration: visible ? 0.22 : 0.1, delay: delay, options: [.beginFromCurrentState, .curveEaseInOut], animations: apply)
     }
 
     func apply(view: String, lead: Lead, items: [Item], tint: UIColor, rtl: Bool, light: Bool, animated: Bool) {

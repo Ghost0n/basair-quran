@@ -174,7 +174,9 @@ export function nativeDockPayload(dock: ReaderDock, tint: string, render: GlyphR
 /**
  * The reader's dock as the page shows it, kept in step while `enabled` (the
  * Mushaf on a phone, in the iPhone app): it follows every change of its
- * buttons, read once per frame at most.
+ * buttons, read once per task at most. Not once per frame: the page
+ * transition holds frames back while the new page settles, and the native
+ * bar would only start turning into the dock after it.
  */
 export function useReaderDock(enabled: boolean): ReaderDock | null {
   const [dock, setDock] = useState<ReaderDock | null>(null);
@@ -183,10 +185,10 @@ export function useReaderDock(enabled: boolean): ReaderDock | null {
       setDock(null);
       return;
     }
-    let frame = 0;
+    let timer = 0;
     let key = "";
     const read = () => {
-      frame = 0;
+      timer = 0;
       const next = readReaderDock(document, document.documentElement.dir === "rtl" ? "rtl" : "ltr");
       const nextKey = next ? dockKey(next) : "";
       if (nextKey === key) return;
@@ -195,7 +197,7 @@ export function useReaderDock(enabled: boolean): ReaderDock | null {
     };
     read();
     const schedule = () => {
-      if (!frame) frame = requestAnimationFrame(read);
+      if (!timer) timer = window.setTimeout(read, 0);
     };
     const observer = new MutationObserver(schedule);
     observer.observe(document.body, {
@@ -208,7 +210,7 @@ export function useReaderDock(enabled: boolean): ReaderDock | null {
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["dir"] });
     return () => {
       observer.disconnect();
-      if (frame) cancelAnimationFrame(frame);
+      if (timer) window.clearTimeout(timer);
     };
   }, [enabled]);
   return dock;
