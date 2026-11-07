@@ -220,8 +220,15 @@ jobs:
           fail-on-cache-miss: true
       - name: Capacitor sync
         run: pnpm --filter @q-basair/mobile exec cap sync ios
+      # The newest Xcode 26 on the runner: built against the iOS 26 SDK, the
+      # app takes the system's Liquid Glass (Apple's tab bar included); with
+      # an older SDK, iOS 26 draws it in the older, solid style.
       - name: Xcode
-        run: xcodebuild -version
+        run: |
+          latest=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1 || true)
+          if [ -n "$latest" ]; then sudo xcode-select -s "$latest/Contents/Developer"; fi
+          xcodebuild -version
+          xcodebuild -showsdks | grep -i iphoneos || true
 
       - name: Simulator build (runs in the iOS Simulator, no signing)
         run: |

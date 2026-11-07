@@ -1,0 +1,95 @@
+/* Notebook (prefix nb-) */
+.nb { display: flex; flex-direction: column; gap: 18px; padding: 22px 26px 40px; }
+.nb-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.nb-title { font-size: 30px; line-height: 1.3; margin-top: 2px; }
+.nb-counts { margin: 2px 0 0; }
+
+.nb-tabs { width: 100%; max-width: 560px; }
+/* Widened panel (Mushaf hidden): a reading measure, not a 1100px spread. */
+.room.wide .nb { max-width: 880px; }
+.nb-tabs button { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 8px; }
+.nb-c { font-size: 11.5px; font-weight: 400; color: var(--fg-mute); font-variant-numeric: tabular-nums; }
+.nb-tabs [aria-selected="true"] .nb-c { color: var(--gold-text); font-weight: 700; }
+
+.nb-pane { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.nb-bar { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 6px; }
+
+/* Rows: a main button (opens) and its own quiet actions beside it, never nested. */
+.nb-row { display: flex; align-items: center; gap: 8px; }
+.nb-main { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: stretch; gap: 1px; padding: 12px 0; text-align: start; border-radius: var(--r-ctl); }
+.nb-ref { display: flex; align-items: center; gap: 8px; min-width: 0; font-size: 14.5px; }
+.nb-ref b { font-weight: 700; color: var(--fg-1); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; transition: color 160ms; }
+.nb-main:hover .nb-ref b { color: var(--gold-text); }
+.nb-ref .pill { margin-inline-start: auto; }
+.nb-glyph { color: var(--fg-3); display: inline-grid; flex: none; }
+.nb-dots { display: inline-flex; gap: 4px; flex: none; }
+.nb-snip { font-family: var(--font-quran); font-size: 19px; line-height: 2.05; color: var(--fg-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nb-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; color: var(--fg-3); }
+.nb-acts { display: flex; align-items: center; gap: 2px; flex: none; }
+.nb-q-btn { height: 32px; padding: 0 10px; font-size: 12.5px; color: var(--fg-3); }
+.icon-btn.nb-x { width: 32px; height: 32px; border-color: transparent; color: var(--fg-3); }
+.icon-btn.nb-x:hover { border-color: var(--gold-line); color: var(--gold-text); }
+.icon-btn.nb-x[data-act$="del"]:hover, .icon-btn.nb-x[data-act="del-verse"]:hover { border-color: var(--bad-soft); color: var(--bad); background: var(--bad-soft); }
+
+/* The one bold device on this screen: where your saved verses sit in the Quran. */
+.nb-rib { padding: 2px 0 10px; }
+.nb-rib .block-title { margin-bottom: 10px; align-items: center; }
+.nb-rib .ribbon { --rh: 46px; }
+.nb-filter { margin: 0; color: var(--gold-text); }
+
+/* Theme sections: open, hairline-separated, a small colour dot is the only theme colour. */
+.nb-sec { padding-top: 16px; margin-top: 8px; border-top: 1px solid var(--border); scroll-margin-top: 12px; transition: background 600ms, box-shadow 600ms; }
+.nb-sec-head { display: flex; align-items: center; gap: 10px; min-height: 36px; }
+.nb-sec-head .h3 { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nb-sec-head .label { flex: 1; white-space: nowrap; }
+.nb-sec-head .th-dot { width: 10px; height: 10px; }
+.nb-sec > .empty { margin: 4px 0 10px; }
+.nb-sec.nb-focus { background: linear-gradient(90deg, transparent, var(--gold-soft)); box-shadow: inset -2px 0 0 var(--gold); }
+.nb-add { margin: 2px 0 6px; color: var(--gold-text); font-weight: 700; padding-inline: 0; }
+.nb-add:hover { background: none; color: var(--gold-glow); }
+
+.nb-mini { padding: 10px 0; }
+.nb-mini-ref { font-size: 12.5px; font-weight: 700; color: var(--fg-3); border-radius: 6px; }
+.nb-mini-ref:hover { color: var(--gold-text); }
+.nb-q { margin: 2px 0 0; font-family: var(--font-quran); font-size: 20px; line-height: 2.1; color: var(--fg-1); }
+.nb-more { font-size: 12.5px; }
+
+/* Inline forms and confirmations */
+.nb-form { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 0; }
+.nb-form .input { flex: 1; min-width: 160px; min-height: 38px; }
+.nb-ask { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 12px 0; font-size: 13.5px; color: var(--fg-2); }
+.nb-ask span { flex: 1; min-width: 180px; }
+.ghost.nb-danger { color: var(--bad); border-color: var(--bad); }
+.ghost.nb-danger:hover { background: var(--bad-soft); }
+
+/* Roots */
+.nb-root-line { display: flex; align-items: center; gap: 14px; }
+.nb-root-line .letters { font-size: 22px; line-height: 1.5; min-width: 5.5em; }
+/* core .mini-rib is 92px with 1px gaps: 113 gaps leave the 114 bars no width. Here it gets room and no gaps. */
+.nb-root .mini-rib { width: 172px; height: 26px; gap: 0; border-bottom: 1px solid var(--gold-line); }
+.nb-root .mini-rib i { border-radius: 0; }
+.nb-unf { font-size: 12.5px; color: var(--fg-3); flex: none; }
+
+.nb-empty { margin-top: 6px; padding: 36px 20px; gap: 14px; }
+.nb-empty .lede { text-align: center; color: var(--fg-2); }
+
+/* Theme edit sheet */
+.nb-err { font-size: 12.5px; color: var(--bad); min-height: 1em; }
+.nb-err:empty { display: none; }
+.nb-sheet-acts { display: flex; gap: 10px; align-items: center; margin-top: auto; }
+.nb-sheet-acts .cta { flex: 1; }
+.nb-field .input, .nb-form .input { box-sizing: border-box; }
+.nb-field > label { font-size: 12.5px; color: var(--fg-2); font-weight: 600; }
+
+/* Undo bar (QB.toast has no action button) */
+.nb-undo { position: sticky; bottom: 16px; z-index: 3; align-self: center; display: flex; align-items: center; gap: 16px; margin-top: 8px; padding: 9px 16px; border-radius: 12px; background: var(--bg-elev-3); border: 1px solid var(--border-strong); box-shadow: 0 20px 40px -20px var(--shade); font-size: 13.5px; color: var(--fg-1); animation: viewIn 200ms var(--ease); max-width: 100%; }
+
+@media (max-width: 720px) {
+  .nb { padding: 14px 16px 32px; }
+  .nb-tabs button { padding: 6px 4px; gap: 4px; font-size: 12.5px; }
+}
+@media (max-width: 480px) {
+  .nb-q-btn { width: 32px; padding: 0; justify-content: center; font-size: 0; gap: 0; }
+  .nb-root .mini-rib { width: 114px; }
+  .nb-sec-head { flex-wrap: wrap; }
+}

@@ -1914,29 +1914,31 @@ def fetch_root_occurrence_rows(cursor, root_id, mushaf):
     return cursor.fetchall()
 
 
-def fetch_root_summary(cursor, root_id, mushaf):
-    """Fetch root counts for paginated search responses."""
+def fetch_root_summary(cursor, root_id, mushaf, surah=None):
+    """Fetch root counts for paginated search responses (within one surah when given)."""
+    surah_clause = " AND a.surah_id = ?" if surah is not None else ""
     cursor.execute(
-        """
+        f"""
         SELECT
             COUNT(*) AS total_occurrences,
             COUNT(DISTINCT wo.ayah_id) AS total_verses,
             COUNT(DISTINCT a.surah_id) AS total_surahs
         FROM word_occurrences wo
         JOIN ayahs a ON wo.ayah_id = a.id
-        WHERE wo.root_id = ? AND a.mushaf_id = ?
+        WHERE wo.root_id = ? AND a.mushaf_id = ?{surah_clause}
         """,
-        (root_id, mushaf),
+        (root_id, mushaf, *([surah] if surah is not None else [])),
     )
     row = cursor.fetchone()
     return row["total_occurrences"], row["total_verses"], row["total_surahs"]
 
 
-def fetch_root_page_verses(cursor, root_id, mushaf, page, page_size):
-    """Fetch a single page of verses for one root."""
+def fetch_root_page_verses(cursor, root_id, mushaf, page, page_size, surah=None):
+    """Fetch a single page of verses for one root (within one surah when given)."""
     offset = (page - 1) * page_size
+    surah_clause = " AND a.surah_id = ?" if surah is not None else ""
     cursor.execute(
-        """
+        f"""
         SELECT
             a.id AS ayah_id,
             a.mushaf_id,
@@ -1948,12 +1950,12 @@ def fetch_root_page_verses(cursor, root_id, mushaf, page, page_size):
         FROM word_occurrences wo
         JOIN ayahs a ON wo.ayah_id = a.id
         JOIN surahs s ON a.surah_id = s.id
-        WHERE wo.root_id = ? AND a.mushaf_id = ?
+        WHERE wo.root_id = ? AND a.mushaf_id = ?{surah_clause}
         GROUP BY a.id, s.name_arabic, a.surah_id, a.number_in_surah, a.text_uthmani
         ORDER BY a.surah_id, a.number_in_surah
         LIMIT ? OFFSET ?
         """,
-        (root_id, mushaf, page_size, offset),
+        (root_id, mushaf, *([surah] if surah is not None else []), page_size, offset),
     )
     ayah_rows = cursor.fetchall()
     ayah_ids = [row["ayah_id"] for row in ayah_rows]
@@ -2563,13 +2565,15 @@ def build_legacy_root_results(cursor, q_simple, mushaf):
     return results
 
 
-def build_paginated_exact_result(cursor, q, q_simple, mushaf, page, page_size):
-    """Build a single exact-search card with one page of verses."""
+def build_paginated_exact_result(cursor, q, q_simple, mushaf, page, page_size, surah=None):
+    """Build a single exact-search card with one page of verses (within one surah when given)."""
     query_tokens = tokenize_exact_query(q)
     display_query = build_exact_query_label(q, query_tokens)
 
     if len(query_tokens) > 1:
         phrase_tokens, matches, _did_you_mean = search_exact_phrase_matches(cursor, q, mushaf)
+        if surah is not None:
+            matches = [match for match in matches if match["surah_id"] == surah]
         if not matches:
             return None
 
@@ -2598,6 +2602,8 @@ def build_paginated_exact_result(cursor, q, q_simple, mushaf, page, page_size):
         }
 
     occurrences = filter_exact_occurrences(cursor, fetch_exact_candidate_rows(cursor, q_simple, mushaf), q, q_simple)
+    if surah is not None:
+        occurrences = [occurrence for occurrence in occurrences if occurrence["surah_id"] == surah]
     if not occurrences:
         return None
 
@@ -2626,20 +2632,20 @@ def build_paginated_exact_result(cursor, q, q_simple, mushaf, page, page_size):
     }
 
 
-def build_paginated_root_result(cursor, root_id, mushaf, page, page_size):
-    """Build a single root-search card with one page of verses."""
+def build_paginated_root_result(cursor, root_id, mushaf, page, page_size, surah=None):
+    """Build a single root-search card with one page of verses (within one surah when given)."""
     cursor.execute("SELECT root_text FROM roots WHERE id = ?", (root_id,))
     root_info = cursor.fetchone()
     if not root_info:
         return None
 
-    total_occurrences, total_verses, total_surahs = fetch_root_summary(cursor, root_id, mushaf)
+    total_occurrences, total_verses, total_surahs = fetch_root_summary(cursor, root_id, mushaf, surah)
     if not total_occurrences or not total_verses:
         return None
 
     total_pages = compute_total_pages(total_verses, page_size)
     page = clamp_page(page, total_pages)
-    verses = fetch_root_page_verses(cursor, root_id, mushaf, page, page_size)
+    verses = fetch_root_page_verses(cursor, root_id, mushaf, page, page_size, surah)
 
     return {
         "result_key": build_result_key("root", root_id=root_id),
@@ -2656,8 +2662,8 @@ def build_paginated_root_result(cursor, root_id, mushaf, page, page_size):
     }
 
 
-def build_paginated_search_results(cursor, q, q_simple, mode, mushaf, page_size):
-    """Build the initial paginated search payload."""
+def build_paginated_search_results(cursor, q, q_simple, mode, mushaf, page_size, surah=None):
+    """Build the initial paginated search payload (results within one surah when given)."""
     if not q_simple:
         return [], None
 
@@ -2668,23 +2674,26 @@ def build_paginated_search_results(cursor, q, q_simple, mode, mushaf, page_size)
             _phrase_tokens, matches, did_you_mean = search_exact_phrase_matches(cursor, q, mushaf)
             if not matches:
                 return [], did_you_mean
-        result = build_paginated_exact_result(cursor, q, q_simple, mushaf, page=1, page_size=page_size)
+        result = build_paginated_exact_result(cursor, q, q_simple, mushaf, page=1, page_size=page_size, surah=surah)
         if result:
             return [result], did_you_mean
+        if surah is not None:
+            # The words exist elsewhere: no spelling suggestion for an empty surah.
+            return [], None
         if len(query_tokens) == 1:
             did_you_mean = build_word_did_you_mean(cursor, q_simple, mushaf)
         return [], did_you_mean
 
     results = []
     for root_id in get_root_ids(cursor, q_simple, mushaf):
-        result = build_paginated_root_result(cursor, root_id, mushaf, page=1, page_size=page_size)
+        result = build_paginated_root_result(cursor, root_id, mushaf, page=1, page_size=page_size, surah=surah)
         if result is not None:
             results.append(result)
     return results, None
 
 
-def build_single_result_page(cursor, q, q_simple, mode, mushaf, result_key, page, page_size):
-    """Build a single paginated result card for follow-up page fetches."""
+def build_single_result_page(cursor, q, q_simple, mode, mushaf, result_key, page, page_size, surah=None):
+    """Build a single paginated result card for follow-up page fetches (within one surah when given)."""
     if not q_simple:
         return None
 
@@ -2692,7 +2701,7 @@ def build_single_result_page(cursor, q, q_simple, mode, mushaf, result_key, page
         expected_key = build_result_key("exact", q_simple=q_simple)
         if result_key != expected_key:
             return None
-        return build_paginated_exact_result(cursor, q, q_simple, mushaf, page=page, page_size=page_size)
+        return build_paginated_exact_result(cursor, q, q_simple, mushaf, page=page, page_size=page_size, surah=surah)
 
     if not result_key.startswith("root:"):
         return None
@@ -2705,4 +2714,4 @@ def build_single_result_page(cursor, q, q_simple, mode, mushaf, result_key, page
     if root_id not in get_root_ids(cursor, q_simple, mushaf):
         return None
 
-    return build_paginated_root_result(cursor, root_id, mushaf, page=page, page_size=page_size)
+    return build_paginated_root_result(cursor, root_id, mushaf, page=page, page_size=page_size, surah=surah)

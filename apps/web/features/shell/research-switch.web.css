@@ -1,0 +1,76 @@
+/* =====================================================================
+   The research switch (research-switch.tsx): on a phone, search and study
+   share one tab, and this pill at the top of both pages moves between them.
+   Search's floating bar and study's header step down under it.
+   ===================================================================== */
+
+.qb-web .qb-research-switch {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  html.qb-web:root {
+    --qb-research-top: calc(env(safe-area-inset-top, 0px) + 8px);
+  }
+
+  /* While a recitation plays, its capsule takes the top (phone-ergonomics.css). */
+  html.qb-web.qb-reciting:root {
+    --qb-research-top: calc(env(safe-area-inset-top, 0px) + 8px + 50px);
+  }
+
+  html.qb-web .qb-research-switch {
+    position: fixed;
+    z-index: 47;
+    top: var(--qb-research-top);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    border-radius: 999px;
+    background: var(--bg-elev-1);
+    box-shadow: inset 0 0 0 1px var(--border-strong), var(--shadow-1);
+  }
+
+  html.qb-web .qb-research-switch button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 112px;
+    height: 34px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--fg-2);
+    font: inherit;
+    font-size: 13.5px;
+    font-weight: 600;
+    line-height: 1.6;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  /* Nastaliq needs taller lines than the Arabic and Latin labels. */
+  html.qb-web[lang="ur"] .qb-research-switch button {
+    line-height: 2.3;
+  }
+
+  html.qb-web .qb-research-switch button.on {
+    background: var(--gold-soft);
+    color: var(--gold-text);
+  }
+
+  /* Search: its floating bar sits under the switch. */
+  html.qb-web:root[data-shell-mode="search"] {
+    --search-top: calc(var(--qb-research-top) + 40px + 8px);
+  }
+
+  /* Study: its header starts under the switch. The switch is fixed to the
+     viewport, but the page body already pads the status bar
+     (app/globals.css), so the safe area is not counted a second time. */
+  html.qb-web:root[data-shell-mode="studio"] .qb-main {
+    padding-top: calc(var(--qb-research-top) - env(safe-area-inset-top, 0px) + 40px + 4px);
+  }
+}

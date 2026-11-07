@@ -7,6 +7,7 @@ import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-
 import { AUTH_ENABLED } from "@/lib/config";
 
 import "@/features/auth/auth.css";
+import "@/features/auth/auth.web.css";
 import { identityApi, maybeMergeGuestData, sanitizeNextPath } from "@/features/auth/identity-flow";
 
 import { t } from "@/lib/i18n";

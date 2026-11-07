@@ -3,10 +3,12 @@
 import "@xyflow/react/dist/style.css";
 import "@/features/themes/themes.css";
 import "./board.css";
+import "./board.web.css";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
+import { goTo } from "@/features/shell/navigation";
 import {
   Background,
   BackgroundVariant,
@@ -38,6 +40,7 @@ import { useBackToNotebook, useShellMode } from "@/features/shell/mode-context";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { useStickyState } from "@/lib/use-sticky-state";
+import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 
 import {
   RELATION_LABELS,
@@ -470,6 +473,8 @@ export function BoardScreen() {
 
 function Board() {
   const params = useSearchParams();
+  // The web design: the bar's name and tools live in the top bar.
+  const topSlots = useTopBarSlots();
   const themeId = Number(params.get("theme"));
   const boardParam = params.get("board");
   // The theme's boards as loaded/saved, and the one on this canvas.
@@ -566,7 +571,7 @@ function Board() {
         if (entry.id !== boardParam) {
           const sp = new URLSearchParams(window.location.search);
           sp.set("board", entry.id);
-          router.replace(`/?${sp.toString()}`, { scroll: false });
+          goTo(`/?${sp.toString()}`, true);
         }
         boardsRef.current = boards;
         entryRef.current = entry;
@@ -918,30 +923,13 @@ function Board() {
   const saveLabel =
     saveState === "saving" ? t("جارٍ الحفظ…") : saveState === "error" ? t("تعذّر الحفظ") : saveState === "saved" ? t("محفوظ") : "";
 
-  return (
-    <BoardContext.Provider value={context}>
-      <div className="qb-board" data-hl={theme?.color ?? undefined}>
-        <div className="qb-board-bar">
-          <button type="button" className="back" onClick={backToNotebook} aria-label={t("العودة إلى الدفتر")}>
+  const barBack = (
+    <button type="button" className="back" onClick={backToNotebook} aria-label={t("العودة إلى الدفتر")}>
             <Icon name="chevRight" size={18} />
           </button>
-          {shapeMenu && typeof document !== "undefined"
-            ? createPortal(
-                <>
-                  <div className="qb-shape-menu-scrim" onClick={() => setShapeMenu(false)} aria-hidden />
-                  <div className="qb-shape-menu" role="menu" aria-label={t("شكل")} style={shapeMenuStyle}>
-                    {SHAPES.map((shape) => (
-                      <button key={shape.value} type="button" role="menuitem" onClick={() => addNode("shape", shape.value)}>
-                        <ShapeIcon shape={shape.value} />
-                        <span>{shape.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </>,
-                document.body,
-              )
-            : null}
-          <div className="title">
+  );
+  const barTitle = (
+    <div className="title">
             <span className="dot" aria-hidden />
             <input
               className="board-name"
@@ -956,7 +944,9 @@ function Board() {
               {t("لوحة الموضوع،")} {formatNumber(ayahCount)} {ayahCount === 1 ? t("آية") : t("آيات")}
             </span>
           </div>
-          <div className="tools">
+  );
+  const barTools = (
+    <div className="tools">
             <button type="button" onClick={() => stepHistory(-1)} disabled={!canUndo} title={t("تراجع (Ctrl+Z)")} aria-label={t("تراجع")}>
               <Icon name="undo" size={15} /> <span className="lbl">{t("تراجع")}</span>
             </button>
@@ -964,13 +954,13 @@ function Board() {
               <Icon name="redo" size={15} /> <span className="lbl">{t("إعادة")}</span>
             </button>
             <span className="tools-sep" aria-hidden />
-            <button type="button" onClick={() => addNode("note")}>
+            <button type="button" onClick={() => addNode("note")} title={t("ملاحظة")}>
               <Icon name="edit" size={15} /> <span className="lbl">{t("ملاحظة")}</span>
             </button>
-            <button type="button" onClick={() => addNode("heading")}>
+            <button type="button" onClick={() => addNode("heading")} title={t("عنوان")}>
               <Icon name="flag" size={15} /> <span className="lbl">{t("عنوان")}</span>
             </button>
-            <button type="button" ref={shapeButtonRef} onClick={toggleShapeMenu} aria-haspopup="menu" aria-expanded={shapeMenu}>
+            <button type="button" ref={shapeButtonRef} onClick={toggleShapeMenu} aria-haspopup="menu" aria-expanded={shapeMenu} title={t("شكل")}>
               <Icon name="shapes" size={15} /> <span className="lbl">{t("شكل")}</span>
             </button>
             <button
@@ -994,14 +984,46 @@ function Board() {
             <button type="button" onClick={arrange} title={t("ترتيب الآيات حسب ترتيب المصحف")}>
               <Icon name="layers" size={15} /> <span className="lbl">{t("ترتيب")}</span>
             </button>
-            <button type="button" onClick={() => void exportAsDocument()} disabled={exporting || items.length === 0}>
+            <button type="button" onClick={() => void exportAsDocument()} disabled={exporting || items.length === 0} title={t("صدّر كبحث")}>
               <Icon name="page" size={15} /> <span className="lbl">{t("صدّر كبحث")}</span>
             </button>
             <span className={`save ${saveState}`} role="status" aria-live="polite">
               {saveLabel}
             </span>
           </div>
-        </div>
+  );
+
+  return (
+    <BoardContext.Provider value={context}>
+      <div className="qb-board" data-hl={theme?.color ?? undefined}>
+        {shapeMenu && typeof document !== "undefined"
+            ? createPortal(
+                <>
+                  <div className="qb-shape-menu-scrim" onClick={() => setShapeMenu(false)} aria-hidden />
+                  <div className="qb-shape-menu" role="menu" aria-label={t("شكل")} style={shapeMenuStyle}>
+                    {SHAPES.map((shape) => (
+                      <button key={shape.value} type="button" role="menuitem" onClick={() => addNode("shape", shape.value)}>
+                        <ShapeIcon shape={shape.value} />
+                        <span>{shape.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>,
+                document.body,
+              )
+            : null}
+        {topSlots ? (
+          <>
+            {createPortal(<div className="qb-board-bar in-topbar">{barBack}{barTitle}</div>, topSlots.start)}
+            {createPortal(<div className="qb-board-bar in-topbar">{barTools}</div>, topSlots.end)}
+          </>
+        ) : (
+          <div className="qb-board-bar">
+            {barBack}
+            {barTitle}
+            {barTools}
+          </div>
+        )}
 
         <div className="qb-board-canvas" dir="ltr">
           <ReactFlow

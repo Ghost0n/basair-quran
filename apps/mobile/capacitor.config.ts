@@ -22,11 +22,13 @@ const config: CapacitorConfig = {
     androidScheme: "https",
   },
   plugins: {
-    // Held over the cold start until the first screen is ready to draw
-    // (apps/web/lib/app-mode/boot.ts lifts it, at most ~3s on a normal start).
+    // Only the plain launch colour (LaunchScreen.storyboard, light or dark
+    // with the phone): held until the web app draws its own splash, the
+    // home's rosette (apps/web/features/app-mode/launch-splash.tsx), which
+    // then stays over the cold start (apps/web/lib/app-mode/boot.ts). No
+    // backgroundColor here: it would paint over the storyboard's colour.
     SplashScreen: {
       launchAutoHide: false,
-      backgroundColor: "#131210",
       showSpinner: false,
       launchFadeOutDuration: 300,
     },

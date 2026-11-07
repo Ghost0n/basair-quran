@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { APP_MODE } from "@/lib/app-mode/config";
 
+import { coverArtwork } from "./media-cover";
 import { useNowPlaying } from "./phone-player";
 import { useRecitation } from "./recitation-context";
 
@@ -70,19 +71,20 @@ async function androidSession(): Promise<Session | null> {
   };
 }
 
-/** The app's mark as the cover: a page URL on the web and iPhone, inline data on Android (its plugin can't read app files). */
+/** The cover: page URLs on the web and iPhone, inline data on Android (its plugin can't read app files). */
 async function artwork(inline: boolean): Promise<Metadata["artwork"]> {
-  const path = "/icon-512.png";
-  if (!inline) return [{ src: new URL(path, window.location.href).href, sizes: "512x512", type: "image/png" }];
+  const covers = coverArtwork(window.location.href);
+  if (!inline) return covers;
+  const cover = covers[0];
   try {
-    const blob = await (await fetch(path)).blob();
+    const blob = await (await fetch(cover.src)).blob();
     const data = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result));
       reader.onerror = () => reject(reader.error);
       reader.readAsDataURL(blob);
     });
-    return [{ src: data, sizes: "512x512", type: "image/png" }];
+    return [{ ...cover, src: data }];
   } catch {
     return [];
   }

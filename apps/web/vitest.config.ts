@@ -6,6 +6,8 @@ import { defineConfig } from "vitest/config";
 const rootDir = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  // Same JSX runtime as Next, so component modules can be rendered in tests (react-dom/server).
+  esbuild: { jsx: "automatic" },
   resolve: {
     alias: {
       "@": rootDir,
@@ -13,7 +15,8 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["**/*.test.ts"],
+    // *.test.tsx: hook and component tests that opt into a DOM per file (`@vitest-environment happy-dom`).
+    include: ["**/*.test.ts", "**/*.test.tsx"],
     exclude: ["node_modules/**", ".next/**"],
   },
 });

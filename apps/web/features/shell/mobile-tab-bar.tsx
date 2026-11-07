@@ -1,22 +1,29 @@
 "use client";
 
 import "./mobile-tab-bar.css";
+import "./mobile-tab-bar.web.css";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 
 import { BrandMark } from "@/components/brand-mark";
-import { Icon } from "@/components/icon";
+import { Icon, ICON_PATHS } from "@/components/icon";
+import { haptic } from "@/lib/haptics";
+import { useIsMobile } from "@/lib/use-is-mobile";
+import { useReaderDock } from "@/lib/native-dock";
+import { nativeBarMode, nativeTabBarAvailable, useNativeTabBar } from "@/lib/native-tab-bar";
+
 
 import { useShellMode } from "./mode-context";
-import { PHONE_TABS, useOpenDestination } from "./worlds";
+import { PHONE_TABS, rememberResearch, researchTarget, tabTap, useOpenDestination, type Destination } from "./worlds";
 
 import { t } from "@/lib/i18n";
 
 /**
  * The phone's bottom navigation bar: the same five destinations (Home ·
- * المصحف · البحث · الدراسة · الدفتر), in the same place, on every screen,
+ * المصحف · البحث (search and study) · الدفتر · المجتمع), in the same place, on every screen,
  * each with its label (docs/mobile-ergonomics.md). A second tap on the
- * current tab scrolls back to the top. Hidden on desktop (the rail lists
+ * current tab scrolls back to the top, or comes back to its main page from
+ * one of its sub-pages. Hidden on desktop (the rail lists
  * every destination there).
  *
  * Home is the app's logo, without a label. The index and saved pages are
@@ -30,11 +37,55 @@ import { t } from "@/lib/i18n";
  * It also tracks the on-screen keyboard (`html[data-kb]`, `--qb-kb`): the bar
  * steps aside while a field is typed into, and the bottom search bar rides on
  * top of the keyboard.
+ *
+ * In the iPhone app the bar is Apple's own (lib/native-tab-bar.ts): this
+ * component drives it, and its web bar is hidden (`html.qb-native-tabbar`).
  */
 export function MobileTabBar() {
   const { mode } = useShellMode();
-  const open = useOpenDestination();
+  const openDestination = useOpenDestination();
+  // A tab change answers with a light tap (the app, and Chrome on Android).
+  // The research tab reopens search or study, whichever was used last.
+  const open = (item: Destination) => {
+    haptic("light");
+    openDestination(item.id === "search" ? researchTarget() : item);
+  };
+  useEffect(() => rememberResearch(mode), [mode]);
+  // A tap on a tab: back to the top on its own main page, back to its main
+  // page from one of its sub-pages (a board, a post…), or open it (worlds.ts).
+  const tap = (item: Destination) => {
+    const action = tabTap(item, mode);
+    if (action === "top") scrollCanvasToTop();
+    else if (action === "main") {
+      haptic("light");
+      openDestination(item, { main: true });
+    } else open(item);
+  };
   useKeyboardInset();
+  const narrow = useIsMobile(768);
+  const activeId = PHONE_TABS.find((item) => item.owns.includes(mode))?.id ?? "";
+  const reading = mode === "reading";
+  const immersive = useImmersive(reading);
+  const barMode = nativeBarMode({ narrow, reading, immersive });
+  // The reader's dock, read from the page for the native one (iPhone app only).
+  const dock = useReaderDock(barMode === "dock" && nativeTabBarAvailable());
+  useNativeTabBar({
+    // The app's own icons (the logo for Home), as on the web bar; the SF Symbol is the fallback.
+    tabs: PHONE_TABS.map((item) => ({
+      id: item.id,
+      title: item.label,
+      symbol: NATIVE_SYMBOLS[item.id] ?? "circle",
+      glyph: item.id === "home" ? { kind: "brand" as const } : { kind: "icon" as const, d: ICON_PATHS[item.icon] },
+    })),
+    active: activeId,
+    // In the Mushaf the bar turns into the reader's dock; focus mode and the side menu put it away.
+    mode: barMode,
+    dock,
+    onSelect: (id) => {
+      const item = PHONE_TABS.find((tab) => tab.id === id);
+      if (item) tap(item);
+    },
+  });
   const navRef = useRef<HTMLElement | null>(null);
   const lensRef = useRef<HTMLSpanElement | null>(null);
   const activeIndex = PHONE_TABS.findIndex((item) => item.owns.includes(mode));
@@ -115,44 +166,66 @@ export function MobileTabBar() {
 
   return (
     <nav
-      ref={navRef}
-      className="qb-tabbar qb-stable-tabbar"
-      aria-label={t("التنقل")}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerEnd}
-      onPointerCancel={onPointerEnd}
-    >
-      <span ref={lensRef} className="qb-tab-lens" aria-hidden="true" />
-      {PHONE_TABS.map((item) => {
-        const current = item.owns.includes(mode);
-        const brand = item.id === "home";
-        return (
-          <button
-            key={item.id}
-            type="button"
-            className={`qb-stab${brand ? " brand" : ""}${current ? " active" : ""}`}
-            aria-current={current ? "page" : undefined}
-            aria-label={brand ? item.label : undefined}
-            onClick={() => {
-              if (suppressClickRef.current) return;
-              if (current && item.mode === mode) {
-                // A second tap on the current tab: back to its top.
-                scrollCanvasToTop();
-                return;
-              }
-              open(item);
-            }}
-          >
-            <span className="pill" aria-hidden="true">
-              {brand ? <BrandMark size={34} themed /> : <Icon name={item.icon} size={22} stroke={current ? 2.1 : 1.7} />}
-            </span>
-            {brand ? null : <span className="label">{item.label}</span>}
-          </button>
-        );
-      })}
-    </nav>
+        ref={navRef}
+        className="qb-tabbar qb-stable-tabbar"
+        aria-label={t("التنقل")}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerEnd}
+        onPointerCancel={onPointerEnd}
+      >
+        <span ref={lensRef} className="qb-tab-lens" aria-hidden="true" />
+        {PHONE_TABS.map((item) => {
+          const current = item.owns.includes(mode);
+          const brand = item.id === "home";
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={`qb-stab${brand ? " brand" : ""}${current ? " active" : ""}`}
+              aria-current={current ? "page" : undefined}
+              aria-label={brand ? item.label : undefined}
+              onClick={() => {
+                if (!suppressClickRef.current) tap(item);
+              }}
+            >
+              <span className="pill" aria-hidden="true">
+                {brand ? <BrandMark size={34} themed /> : <Icon name={item.icon} size={22} stroke={current ? 2.1 : 1.7} />}
+              </span>
+              {brand ? null : <span className="label">{item.label}</span>}
+            </button>
+          );
+        })}
+      </nav>
   );
+}
+
+/** The native iPhone bar's SF Symbols, by tab id: only if its own icons cannot be drawn. */
+const NATIVE_SYMBOLS: Record<string, string> = {
+  home: "house",
+  reader: "book",
+  search: "magnifyingglass",
+  study: "sparkles",
+  notebook: "note.text",
+  community: "person.3",
+};
+
+/** Whether the reader's focus mode is on (`html.qb-immersive`), while in the reader. */
+function useImmersive(reading: boolean): boolean {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    if (!reading) {
+      setOn(false);
+      return;
+    }
+    const root = document.documentElement;
+    const check = () => setOn(root.classList.contains("qb-immersive"));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, [reading]);
+  return on;
 }
 
 /** Every scrolled region of the page goes back to its top. */

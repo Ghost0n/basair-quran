@@ -5,14 +5,16 @@ import { useLayoutEffect, useRef } from "react";
 import { blocks, outlinePath, rowsFromRects, separate } from "../verse-outline";
 
 const SVG = "http://www.w3.org/2000/svg";
-/** Drawing order: theme highlights under the opened verse under hover under focus under the recited verse. */
-const KINDS = ["mark", "select", "hover", "focus", "recite"] as const;
+/** Drawing order: theme highlights under the opened verse under the «تحديد» pick under hover under focus under the recited verse. */
+const KINDS = ["mark", "select", "pick", "hover", "focus", "recite"] as const;
 type Kind = (typeof KINDS)[number];
 
 type Box = { left: number; right: number; top: number; bottom: number };
 type Verse = { kind: Kind; color: string | null; rects: Box[]; bands: Map<number, { top: number; bottom: number }> };
 
 function kindOf(element: Element): Kind {
+  // The words picked with «تحديد» (web design): one block, like a lit verse.
+  if (element.classList.contains("qb-word-picked")) return "pick";
   if (element.classList.contains("is-recite")) return "recite";
   if (element.classList.contains("is-hover")) return "hover";
   if (element.classList.contains("qb-verse-focus")) return "focus";
@@ -44,12 +46,15 @@ export function VerseOutlines() {
     const draw = () => {
       frame = 0;
       const base = host.getBoundingClientRect();
-      const pieces = Array.from(host.querySelectorAll<HTMLElement>("[data-vf]"));
+      // The web design keeps a verse one block even where its lines barely
+      // meet, and draws the picked words as one block too.
+      const web = document.documentElement.classList.contains("qb-web");
+      const pieces = Array.from(host.querySelectorAll<HTMLElement>(web ? "[data-vf], .qb-word-picked" : "[data-vf]"));
       const verses = new Map<string, Verse>();
       for (const piece of pieces) {
         const kind = kindOf(piece);
         const color = kind === "mark" ? piece.dataset.hl ?? null : null;
-        const id = `${kind}:${color ?? ""}:${piece.dataset.vf}`;
+        const id = `${kind}:${color ?? ""}:${kind === "pick" ? "" : piece.dataset.vf}`;
         const verse: Verse = verses.get(id) ?? { kind, color, rects: [], bands: new Map() };
         // The line's own band (glyph pages have one element per printed line).
         const line = piece.closest<HTMLElement>(".qb-glyph-line")?.getBoundingClientRect();
@@ -61,16 +66,20 @@ export function VerseOutlines() {
         verses.set(id, verse);
       }
       const width = host.clientWidth;
+      const bridge = web;
       const drawn = Array.from(verses.values()).map((verse) => ({
         kind: verse.kind,
         color: verse.color,
         rows: rowsFromRects(verse.rects, width, (rect) => verse.bands.get(verse.rects.indexOf(rect)) ?? rect),
       }));
-      for (let i = 0; i < drawn.length; i++) for (let j = i + 1; j < drawn.length; j++) separate(drawn[i].rows, drawn[j].rows);
+      // The pick lies over the verses it is part of: it never pushes them apart.
+      for (let i = 0; i < drawn.length; i++)
+        for (let j = i + 1; j < drawn.length; j++)
+          if (drawn[i].kind !== "pick" && drawn[j].kind !== "pick") separate(drawn[i].rows, drawn[j].rows);
       const paths = drawn.map((verse) => ({
         kind: verse.kind,
         color: verse.color,
-        d: blocks(verse.rows).map(outlinePath).join(""),
+        d: blocks(verse.rows, { bridge }).map(outlinePath).join(""),
       }));
       const key = `${width}|${paths.map((item) => `${item.kind}${item.color ?? ""}${item.d}`).join("|")}`;
       if (key === lastKey) return;

@@ -1,15 +1,23 @@
 "use client";
 
 import "./community.css";
+import "./community.web.css";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter, useSearchParams } from "next/navigation";
+import { goTo } from "@/features/shell/navigation";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type { PostSummary, SurahListItem, TagCount } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
+import { GirihPattern } from "@/components/girih";
+import { Ribbon, SURAH_NAMES } from "@/components/ribbon";
+import { citedSurahCounts } from "@/features/studio/cited-surahs";
+import { useWebDesign } from "@/lib/use-web-design";
+import { useTopBarSlots } from "@/features/shell/top-bar-slots";
+import { useNumerals } from "@/lib/preferences-context";
 import { SelectMenu } from "@/components/select-menu";
 import { API_BASE_URL } from "@/lib/config";
 
@@ -19,7 +27,8 @@ import { PostCard, type PostCardActions } from "./post-card";
 import { sharePostLink } from "./share-link";
 import { useCommunityAccess } from "./use-community-access";
 
-import { t } from "@/lib/i18n";
+import { TAFSSIR_ENABLED } from "@/lib/features";
+import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -60,7 +69,7 @@ export function CommunityScreen() {
       const sp = new URLSearchParams(window.location.search);
       if (next === "feed") sp.delete("tab");
       else sp.set("tab", next);
-      router.replace(`/?${sp.toString()}`, { scroll: false });
+      goTo(`/?${sp.toString()}`, true);
     },
     [router],
   );
@@ -71,6 +80,10 @@ export function CommunityScreen() {
   }));
   const [debouncedQ, setDebouncedQ] = useState(filters.q);
   const [posts, setPosts] = useState<PostSummary[]>([]);
+  // Web design: which surahs the shown posts discuss (a ribbon that filters the feed).
+  const web = useWebDesign();
+  const topSlots = useTopBarSlots();
+  const formatNumber = useNumerals();
   const [cursor, setCursor] = useState<string | null>(null);
   const [mine, setMine] = useState<PostSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -223,6 +236,7 @@ export function CommunityScreen() {
     ...(access.isModerator ? [{ value: "moderation" as Tab, label: t("الإشراف"), icon: "gavel" as const }] : []),
   ];
 
+  const postSurahCounts = useMemo(() => citedSurahCounts(posts.flatMap((post) => (post.surah_ids ?? []).map((surah_id) => ({ surah_id })))), [posts]);
   const surahOptions = useMemo(
     () => [{ value: "", label: t("كل السور") }, ...surahs.map((surah) => ({ value: String(surah.id), label: `${surah.id}. ${surah.name}` }))],
     [surahs],
@@ -230,35 +244,80 @@ export function CommunityScreen() {
   const filterCount = activeFilterCount(filters);
   const narrowed = filterCount > 0;
 
-  return (
-    <div className="qb-community qb-page-enter">
+  // Web design, desktop: the tabs and «شارك بحثاً» go up into the top bar.
+  const shareButton = (
+    <button type="button" className="qb-btn primary" onClick={() => router.push("/?mode=notebook&tab=documents")}>
+      <Icon name="plus" size={15} /> {t("شارك بحثاً")}
+    </button>
+  );
+  const tabStrip = (
+    <div className="qb-segmented qb-fit-track qb-community-tabs" data-autofit="1" suppressHydrationWarning role="tablist" aria-label={t("المجتمع")}>
+      {tabs.map((entry) => (
+        <button
+          key={entry.value}
+          type="button"
+          role="tab"
+          aria-selected={tab === entry.value}
+          className={tab === entry.value ? "on" : ""}
+          onClick={() => setTab(entry.value)}
+        >
+          <Icon name={entry.icon} size={14} /> {entry.label}
+        </button>
+      ))}
+    </div>
+  );
+
+  const hero = (
+    <>
       <header className="qb-community-hero">
         <div>
           <div className="kicker">{t("المجتمع")}</div>
           <h1>{t("أبحاث يتشاركها المتدبّرون")}</h1>
           <p>
-            {t("كل بحث هنا مرّ بفحص نصوص الآيات ومراجعة وفق")} <a href="#guidelines">{t("إرشادات المجتمع")}</a>{t(". القرآن هو الدليل، وما سواه فهمٌ يُناقش.")}
+            {t("كل بحث هنا مرّ بفحص نصوص الآيات ومراجعة وفق")} <a
+              href="#guidelines"
+              onClick={
+                web
+                  ? (event) => {
+                      // The guidelines close the page, under the feed: glide there.
+                      const target = document.getElementById("guidelines");
+                      if (!target) return;
+                      event.preventDefault();
+                      const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                      target.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "start" });
+                    }
+                  : undefined
+              }
+            >
+              {t("إرشادات المجتمع")}
+            </a>{t(". القرآن هو الدليل، وما سواه فهمٌ يُناقش.")}
           </p>
         </div>
-        <button type="button" className="qb-btn primary" onClick={() => router.push("/?mode=notebook&tab=documents")}>
-          <Icon name="plus" size={15} /> {t("شارك بحثاً")}
-        </button>
+        {topSlots ? null : shareButton}
       </header>
 
-      <div className="qb-segmented qb-fit-track qb-community-tabs" data-autofit="1" suppressHydrationWarning role="tablist" aria-label={t("المجتمع")}>
-        {tabs.map((entry) => (
-          <button
-            key={entry.value}
-            type="button"
-            role="tab"
-            aria-selected={tab === entry.value}
-            className={tab === entry.value ? "on" : ""}
-            onClick={() => setTab(entry.value)}
-          >
-            <Icon name={entry.icon} size={14} /> {entry.label}
-          </button>
-        ))}
-      </div>
+    </>
+  );
+  const ribbon = (
+    <>
+      {web && tab === "feed" && posts.length ? (
+        <Ribbon
+          className="qb-community-ribbon"
+          counts={postSurahCounts}
+          label={t("السور التي تتناولها الأبحاث المعروضة")}
+          focus={filters.surah ? filters.surah - 1 : null}
+          height={56}
+          readout={(i) => t("{0}: {1}", { 0: SURAH_NAMES[i], 1: tn("{0} بحث", postSurahCounts[i], { 0: formatNumber(postSurahCounts[i]) }) })}
+          restReadout={t("المس سورة لتعرض أبحاثها")}
+          onPick={(i) => setFilter("surah", i == null || (filters.surah === i + 1) ? null : i + 1)}
+        />
+      ) : null}
+
+    </>
+  );
+  const body = (
+    <>
+      {topSlots ? null : tabStrip}
 
       {listTab ? (
         <section className="qb-feed-tools qb-glass" aria-label={t("تصفية المنشورات")}>
@@ -310,26 +369,29 @@ export function CommunityScreen() {
                 options={surahOptions}
                 onChange={(value) => setFilter("surah", value ? Number(value) : null)}
               />
-              <div className="qb-segmented qb-fit-track" data-autofit="1" suppressHydrationWarning role="radiogroup" aria-label={t("نوع البحث")}>
-                {(
-                  [
-                    [null, t("الكل")],
-                    ["strict", t("القرآن وحدَه")],
-                    ["tafssir", t("تفسيرية")],
-                  ] as const
-                ).map(([value, label]) => (
-                  <button
-                    key={label}
-                    type="button"
-                    role="radio"
-                    aria-checked={filters.mode === value}
-                    className={filters.mode === value ? (value === "tafssir" ? "on copper" : "on") : ""}
-                    onClick={() => setFilter("mode", value)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              {/* The reading kind: only in a build with the explanatory reading (lib/features.ts). */}
+              {TAFSSIR_ENABLED ? (
+                <div className="qb-segmented qb-fit-track" data-autofit="1" suppressHydrationWarning role="radiogroup" aria-label={t("نوع البحث")}>
+                  {(
+                    [
+                      [null, t("الكل")],
+                      ["strict", t("القرآن وحدَه")],
+                      ["tafssir", t("تفسيرية")],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      key={label}
+                      type="button"
+                      role="radio"
+                      aria-checked={filters.mode === value}
+                      className={filters.mode === value ? (value === "tafssir" ? "on copper" : "on") : ""}
+                      onClick={() => setFilter("mode", value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               <button
                 type="button"
                 className={`qb-chip toggle${filters.board ? " on" : ""}`}
@@ -437,6 +499,9 @@ export function CommunityScreen() {
         </div>
       )}
 
+    </>
+  );
+  const guidelines = (
       <section id="guidelines" className="qb-guidelines qb-glass">
         <h2>{t("إرشادات المجتمع باختصار")}</h2>
         <ul>
@@ -450,6 +515,35 @@ export function CommunityScreen() {
           {t("تمرّ المنشورات بفحوص آلية ثم بمراجعة وكيل آلي استشاري، والقرار الأخير للمشرفين.")}
         </p>
       </section>
+  );
+
+  // The web design: the page spans the screen like Home — a hero band over the
+  // rosette carrying the surah ribbon, then the feed, and the guidelines close
+  // the page under it (the hero's link jumps there).
+  if (web) {
+    return (
+      <div className="qb-community qb-community-web qb-page-enter">
+        {topSlots ? createPortal(tabStrip, topSlots.start) : null}
+        {topSlots ? createPortal(shareButton, topSlots.end) : null}
+        <section className="qbc-hero">
+          <GirihPattern className="qbc-hero-girih" drawn />
+          {hero}
+          {ribbon}
+        </section>
+        <div className="qbc-grid">
+          <div className="qbc-main">{body}</div>
+        </div>
+        <aside className="qbc-aside">{guidelines}</aside>
+      </div>
+    );
+  }
+
+  return (
+    <div className="qb-community qb-page-enter">
+      {hero}
+      {ribbon}
+      {body}
+      {guidelines}
     </div>
   );
 }

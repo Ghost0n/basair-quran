@@ -331,9 +331,11 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
         }),
       });
     },
-    searchV2(query: string, mode: SearchMode, mushaf: number, pageSize: number): Promise<PaginatedSearchResponse> {
+    /** `surah` (1–114) keeps only that surah's verses: their counts and pages describe that surah. */
+    searchV2(query: string, mode: SearchMode, mushaf: number, pageSize: number, surah?: number | null): Promise<PaginatedSearchResponse> {
+      const surahPart = typeof surah === "number" ? `&surah=${surah}` : "";
       return request<PaginatedSearchResponse>(
-        `/search-v2?q=${encodeURIComponent(query)}&mode=${mode}&mushaf=${mushaf}&page_size=${pageSize}`,
+        `/search-v2?q=${encodeURIComponent(query)}&mode=${mode}&mushaf=${mushaf}&page_size=${pageSize}${surahPart}`,
       );
     },
     researchAgent(req: ResearchAgentRequest, options?: RequestOptions): Promise<ResearchAgentResponse> {
@@ -363,9 +365,11 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
       resultKey: string,
       page: number,
       pageSize: number,
+      surah?: number | null,
     ): Promise<SearchResultPageResponse> {
+      const surahPart = typeof surah === "number" ? `&surah=${surah}` : "";
       return request<SearchResultPageResponse>(
-        `/search-result-page?q=${encodeURIComponent(query)}&mode=${mode}&mushaf=${mushaf}&result_key=${encodeURIComponent(resultKey)}&page=${page}&page_size=${pageSize}`,
+        `/search-result-page?q=${encodeURIComponent(query)}&mode=${mode}&mushaf=${mushaf}&result_key=${encodeURIComponent(resultKey)}&page=${page}&page_size=${pageSize}${surahPart}`,
       );
     },
     getQuranPage(mushaf: number, page: number, selectedAyahId?: number): Promise<QuranPageResponse> {

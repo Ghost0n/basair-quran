@@ -1,0 +1,275 @@
+/* The reader in the web design (desktop web). */
+
+/* Focus mode: the page's folio stays the only page number, as in normal mode,
+   so entering or leaving focus moves nothing. The way back is a quiet icon in
+   the bottom corner on the inline end, clear of the folio. */
+.qb-web .qb-immersive-exit {
+  left: auto;
+  inset-inline-end: calc(16px + env(safe-area-inset-right, 0px));
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: none;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+/* Page turning (pointer screens): the whole space on each side of the page is
+   its turn zone — under the page, so the page itself keeps every click — with
+   no glow; the pointer becomes an arrow pointing where the page goes.
+   RTL book: the next page lies to the left. */
+@media (hover: hover) and (pointer: fine) {
+  .qb-web .qb-reader-surface { isolation: isolate; }
+  .qb-web .qb-turn-zone {
+    width: 50%;
+    z-index: -1;
+    opacity: 1;
+    background: none;
+    border-radius: 0;
+    outline: none;
+    transition: none;
+  }
+  /* A bare gold arrow, no disc, no band: the base rules' gold gradient on each
+     side is dropped whatever the stylesheet order. */
+  .qb-web .qb-turn-zone.next,
+  .qb-web .qb-turn-zone.prev,
+  .qb-web .qb-turn-zone:hover:not(:disabled) { background: none; box-shadow: none; border-radius: 0; }
+  .qb-web .qb-turn-zone.next { cursor: url("/cursors/turn-next.svg?v=2") 16 16, w-resize; }
+  .qb-web .qb-turn-zone.prev { cursor: url("/cursors/turn-prev.svg?v=2") 16 16, e-resize; }
+  .qb-web .qb-turn-zone:disabled { cursor: default; }
+  /* The stage is a centred column: each zone reaches out over its side margin
+     to the canvas edge (clipped there), and the panels beside the Mushaf stay
+     above it so they keep their own clicks. */
+  .qb-web .qb-workspace-canvas { overflow-x: clip; }
+  .qb-web .qb-turn-zone.next { left: -100vw; width: calc(50% + 100vw); }
+  .qb-web .qb-turn-zone.prev { right: -100vw; width: calc(50% + 100vw); }
+  .qb-web .qb-workspace-canvas > .qb-study-slot,
+  .qb-web .qb-workspace-canvas > .qb-side-panel,
+  .qb-web .qb-workspace-canvas > .qb-companion-panel { position: relative; z-index: 1; }
+}
+
+/* The surah name opens «انتقل»: no press scale — the name and the page line
+   under it stay put (app/motion.css presses every other button). */
+.qb-web .qb-reader-bar .identity:active { transform: none; }
+
+/* The surah's name leads the bar: larger and brighter, with room for its
+   marks; the page line beside it stays quiet. */
+.qb-web .qb-topbar-reader .qb-reader-bar .identity .name {
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.75;
+  padding-bottom: 0;
+  color: var(--gold-text-bright);
+}
+.qb-web .qb-topbar-reader .qb-reader-bar .identity:hover .name,
+.qb-web .qb-topbar-reader .qb-reader-bar .identity:focus-visible .name { color: var(--gold-glow); }
+.qb-web .qb-topbar-reader .qb-reader-bar .identity { align-items: baseline; gap: 12px; }
+
+/* Opening pages (al-Fatiha and the start of al-Baqara): as in the printed
+   Madani mushaf, each line sits centred at its natural width rather than
+   being stretched word to word. Only the alignment changes; the type size
+   and the lines stay as laid out. */
+.qb-web .qb-print-page.is-opening .qb-print-row.qb-glyph-ayah {
+  text-align: center;
+  text-align-last: center;
+  word-spacing: 0.22em;
+}
+
+/* The page arrows follow the Mushaf, which turns right to left in every
+   language: in a left-to-right interface the pair keeps the Arabic order
+   (next ‹ on the left, previous › on the right), like the turning wings. */
+html.qb-web:not([dir="rtl"]) .qb-reader-bar .pager { flex-direction: row-reverse; }
+
+/* The text-size slider in «العرض»: a fine track filled in gold up to the
+   value, and a round gold handle — no native grey bar or square thumb.
+   (Each engine's pseudo-elements stay in rules of their own: one unknown
+   selector would void a whole list.) */
+.qb-web .qb-display-strip .size input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  cursor: pointer;
+}
+.qb-web .qb-display-strip .size input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--gold-400) var(--fill, 50%), var(--border-strong) var(--fill, 50%));
+}
+html.qb-web[dir="rtl"] .qb-display-strip .size input[type="range"]::-webkit-slider-runnable-track {
+  background: linear-gradient(to left, var(--gold-400) var(--fill, 50%), var(--border-strong) var(--fill, 50%));
+}
+.qb-web .qb-display-strip .size input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
+  border: 2px solid var(--bg-elev-1);
+  border-radius: 50%;
+  background: var(--btn-grad);
+  box-shadow: 0 0 0 1px var(--gold-line), 0 2px 8px -2px var(--shade);
+  transition: box-shadow 160ms ease, transform 160ms ease;
+}
+.qb-web .qb-display-strip .size input[type="range"]:hover::-webkit-slider-thumb { transform: scale(1.08); }
+.qb-web .qb-display-strip .size input[type="range"]:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 1px var(--gold-line), 0 0 0 6px var(--gold-soft); }
+.qb-web .qb-display-strip .size input[type="range"]::-moz-range-track { height: 4px; border-radius: 999px; background: var(--border-strong); }
+.qb-web .qb-display-strip .size input[type="range"]::-moz-range-progress { height: 4px; border-radius: 999px; background: var(--gold-400); }
+.qb-web .qb-display-strip .size input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--bg-elev-1);
+  border-radius: 50%;
+  background: var(--btn-grad);
+  box-shadow: 0 0 0 1px var(--gold-line), 0 2px 8px -2px var(--shade);
+}
+.qb-web .qb-display-strip .size input[type="range"]:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 1px var(--gold-line), 0 0 0 6px var(--gold-soft); }
+.qb-web .qb-display-strip .size input[type="range"]:disabled { opacity: 0.45; cursor: default; }
+
+/* ---------- Phones: the reader's own chrome in the web design ---------- */
+/* The dock, the back button and the bookmark (laid out by phone-ergonomics.css):
+   a frosted surface with a token hairline drawn as an inset shadow, so no box
+   changes size and the page keeps fitting through the stabilized path. */
+@media (max-width: 768px) {
+  /* Without a bottom inset (no home indicator or gesture bar) the dock lifts
+     off the edge so the page number under it keeps its own strip; the page
+     re-fits above the dock as before. With an inset nothing moves. */
+  html.qb-web:root {
+    --dock-bottom: max(24px, calc(8px + env(safe-area-inset-bottom, 0px)));
+  }
+
+  /* The pinned page ends above the dock wherever the dock sits (the same
+     8 + 66 + 8px reserve as phone-ergonomics.css when there is an inset). */
+  html.qb-web:root .qb-mushaf-stage:not(.is-ayah) .qb-mushaf-page:has(> .qb-glyph-spread) {
+    bottom: calc(var(--dock-bottom) + 66px + 8px);
+  }
+
+  /* The pinned page sizes its lines by its width (15 rows of about 0.075 of
+     it, under a 40px running head). A short box (a landscape phone, a low
+     window) would squeeze the rows into one another, so the page narrows
+     until they fit the height. A portrait phone has the height and keeps
+     the full width, as stabilized. */
+  html.qb-web:root .qb-mushaf-stage:not(.is-ayah) .qb-glyph-page.qb-print-page {
+    width: min(100%, calc((100cqh - 56px) / 1.15));
+    margin-inline: auto;
+  }
+
+  /* Turning by the screen's edges: a tap or a click on a narrow band at each
+     side turns the page (RTL book: the next page lies to the left), over the
+     page's words but under the corner buttons and the dock. Invisible; a
+     mouse shows the turn arrow (the pointer-screen rules above). Only with
+     «قراءة», where a tap on a word does nothing of its own: «تحديد» and
+     «تظليل» need every word, so the bands step aside there. */
+  html.qb-web:root .qb-mushaf-stage:not(.is-ayah) .qb-turn-zone {
+    display: none;
+  }
+
+  html.qb-web:root .qb-mushaf-stage.tool-read:not(.is-ayah) .qb-turn-zone {
+    display: block;
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 56px);
+    bottom: calc(var(--dock-bottom) + 66px + 8px);
+    z-index: 1;
+    width: clamp(32px, 10vw, 56px);
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    opacity: 1;
+    outline: none;
+    transition: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html.qb-web:root .qb-mushaf-stage.tool-read:not(.is-ayah) .qb-turn-zone.next {
+    left: 0;
+    right: auto;
+  }
+
+  html.qb-web:root .qb-mushaf-stage.tool-read:not(.is-ayah) .qb-turn-zone.prev {
+    right: 0;
+    left: auto;
+  }
+
+  /* No page beyond (the first or the last): the tap reaches the page. */
+  html.qb-web:root .qb-mushaf-stage.tool-read:not(.is-ayah) .qb-turn-zone:disabled {
+    pointer-events: none;
+  }
+
+  /* Frosted on every phone (the owner's call, 2026-11-07): the page shows
+     through only as a blur, so the dock reads as a surface of its own. */
+  html.qb-web .qb-reader-bar.qb-reader-dock,
+  html.qb-web .qb-reader-back,
+  html.qb-web .qb-reader-bookmark {
+    background: color-mix(in srgb, var(--bg-elev-2) 76%, transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fg-1) 10%, transparent),
+      inset 0 0 0 1px var(--border-strong), var(--shadow-2);
+  }
+
+  html.qb-web:root body .qb-reader-bar.qb-reader-dock,
+  html.qb-web:root body .qb-reader-back,
+  html.qb-web:root body .qb-reader-bookmark {
+    -webkit-backdrop-filter: blur(22px) saturate(1.5) !important;
+    backdrop-filter: blur(22px) saturate(1.5) !important;
+  }
+
+  html.qb-web .qb-reader-bar.qb-reader-dock::after,
+  html.qb-web .qb-reader-back::after,
+  html.qb-web .qb-reader-bookmark::after {
+    content: none;
+  }
+
+  html.qb-web .qb-reader-bar.qb-reader-dock .act {
+    color: var(--fg-2);
+  }
+
+  html.qb-web .qb-reader-bar.qb-reader-dock .act.on,
+  html.qb-web .qb-reader-bar.qb-reader-dock .act.is-live,
+  html.qb-web .qb-reader-bar.qb-reader-dock .surah-btn,
+  html.qb-web .qb-reader-bookmark.on {
+    color: var(--gold-text);
+  }
+
+}
+
+/* ---------- The iPhone app: the reader's dock takes Apple's bar's place ---------- */
+/* In the Mushaf Apple's tab bar (lib/native-tab-bar.ts) splits in two, as
+   the web bar does: it fades out and the reader's round button (the Home
+   mark from Home, an arrow back otherwise) and its dock (the toolbox) stand
+   exactly where its capsule stood: 62pt tall like it, 21pt from the bottom
+   and from each side (measured on iOS 26). Only the dock moves: the page
+   keeps the stabilized --dock-bottom and its box, and the page number sits
+   in the strip between the page and the dock. Focus mode hides the dock and
+   the page number goes back under the page. */
+@media (max-width: 768px) {
+  html.qb-web.qb-native-tabbar:root {
+    --qb-bar-inset: 21px;
+    --dock-side: calc(var(--qb-bar-inset) + env(safe-area-inset-left, 0px));
+  }
+
+  html.qb-web.qb-native-tabbar:root .qb-mushaf-stage > .qb-reader-head.is-dock,
+  html.qb-web.qb-native-tabbar:root .qb-reader-back {
+    bottom: var(--qb-bar-inset);
+  }
+
+  html.qb-web.qb-native-tabbar:root:not(.qb-immersive) .qb-page-number {
+    bottom: calc(var(--qb-bar-inset) + var(--dock-h) + 8px);
+  }
+
+  /* iOS 26: the dock is drawn natively in Liquid Glass (lib/native-dock.ts),
+     the tab bar changing shape into it. The web dock stays laid out in the
+     same place, unseen and untouchable, so what it opens (the display
+     choices, the tool menu) still rises from the right spot. */
+  html.qb-web.qb-native-dock:root .qb-reader-dock,
+  html.qb-web.qb-native-dock:root .qb-reader-back {
+    visibility: hidden;
+  }
+}
