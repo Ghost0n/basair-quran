@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { canGoBackInApp, goTo, markReplace, noteReaderOpening, previousScreen, readerBackLeadsHome, recordScreen, resetBackStackForTests } from "./navigation";
+import { canGoBackInApp, goTo, markReplace, noteReaderOpening, previousScreen, readerBackLeadsHome, recordScreen, resetBackStackForTests, screenChange } from "./navigation";
 
 describe("the in-app back stack", () => {
   beforeEach(() => resetBackStackForTests());
@@ -62,6 +62,27 @@ describe("where the reader's back arrow leads", () => {
     noteReaderOpening(false);
     recordScreen("mode=reading");
     expect(readerBackLeadsHome()).toBe(true);
+  });
+});
+
+describe("screenChange", () => {
+  const base = { viewTransitions: true, reduceMotion: false, web: true, phone: true };
+
+  it("cross-fades a phone's full-screen pages, the shell held in place", () => {
+    expect(screenChange(base)).toBe("cross-fade");
+  });
+
+  it("only lets the new page arrive on a wider web screen, the Mushaf beside it untouched", () => {
+    expect(screenChange({ ...base, phone: false })).toBe("arrive");
+  });
+
+  it("keeps the whole-window transition of the classic design", () => {
+    expect(screenChange({ ...base, web: false, phone: false })).toBe("cross-fade");
+  });
+
+  it("switches at once without view transitions or when motion is reduced", () => {
+    expect(screenChange({ ...base, viewTransitions: false })).toBe("arrive");
+    expect(screenChange({ ...base, reduceMotion: true })).toBe("instant");
   });
 });
 

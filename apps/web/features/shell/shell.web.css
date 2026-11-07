@@ -469,3 +469,58 @@ html.qb-web body .qb-selectable * {
     padding: env(safe-area-inset-top, 0px) max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px));
   }
 }
+
+/* ---------- Screen changes (navigation.ts, screenChange) ---------- */
+/* A phone: every page fills the screen, so the old page cross-fades into the
+   new one in a view transition; the tab bar (and the reader's dock it turns
+   into) carries its own name and holds still. Entering the reader the page
+   arrives from the side the reading goes towards; going back, from the
+   other side. No blur (the web design keeps blur off). */
+@keyframes qbWebPageOut {
+  to { opacity: 0; }
+}
+@keyframes qbWebPageIn {
+  from { opacity: 0; transform: translateY(8px); }
+}
+@keyframes qbWebPageForward {
+  from { opacity: 0; transform: translateX(calc(var(--qb-forward, -1) * 6%)); }
+}
+@keyframes qbWebPageBackward {
+  from { opacity: 0; transform: translateX(calc(var(--qb-forward, -1) * -6%)); }
+}
+@media (max-width: 768px) {
+  html.qb-web[data-nav]::view-transition-old(root) {
+    animation: qbWebPageOut 150ms var(--motion-ease-exit, ease-in) both;
+  }
+  html.qb-web[data-nav]::view-transition-new(root) {
+    animation: qbWebPageIn 280ms var(--motion-ease-settle, ease-out) both;
+  }
+  html.qb-web[data-nav="reader-in"]::view-transition-new(root) {
+    animation-name: qbWebPageForward;
+  }
+  html.qb-web[data-nav="reader-out"]::view-transition-new(root),
+  html.qb-web[data-nav="back"]::view-transition-new(root) {
+    animation-name: qbWebPageBackward;
+  }
+}
+/* A wider screen keeps the Mushaf beside its pages: only what appears
+   arrives — a full page, or a side page's content inside its column (the
+   column itself stays put). `backwards`, so nothing is left transformed
+   once it has arrived. */
+@keyframes qbWebArrive {
+  from { opacity: 0; transform: translateY(6px); }
+}
+@media (min-width: 769px) {
+  .qb-web .qb-canvas > *,
+  .qb-web .qb-side-panel > *,
+  .qb-web .qb-companion-panel > * {
+    animation: qbWebArrive 240ms var(--motion-ease-settle, ease-out) backwards;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .qb-web .qb-canvas > *,
+  .qb-web .qb-side-panel > *,
+  .qb-web .qb-companion-panel > * {
+    animation: none;
+  }
+}

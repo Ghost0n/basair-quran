@@ -37,17 +37,38 @@ function settled(timeoutMs = 450): Promise<void> {
 }
 
 /**
- * Run a navigation inside a view transition (when the browser has them and
- * motion is welcome); `html[data-nav]` names the motion for the CSS
+ * How a screen change shows. A phone's pages each fill the screen: the old
+ * page cross-fades into the new one in a view transition while the shell
+ * (bars, rail, search field) holds still (shell.web.css). A wider web screen
+ * keeps the Mushaf mounted beside its pages, so a whole-window fade would
+ * blink it: there only the page that appears arrives (its own short entrance,
+ * shell.web.css), as it does wherever view transitions are missing. The
+ * classic design keeps its whole-window transition. Reduced motion: at once.
+ */
+export function screenChange(state: { viewTransitions: boolean; reduceMotion: boolean; web: boolean; phone: boolean }): "cross-fade" | "arrive" | "instant" {
+  if (state.reduceMotion) return "instant";
+  if (!state.viewTransitions) return "arrive";
+  if (state.web && !state.phone) return "arrive";
+  return "cross-fade";
+}
+
+/**
+ * Run a navigation inside a view transition when the screen change calls
+ * for one (screenChange); `html[data-nav]` names the motion for the CSS
  * (app/motion.css), so entering the reader can split the tab bar into the
  * back button and the reader's dock.
  */
 export function transition(navigate: () => void, motion: NavMotion = "fade"): void {
   const doc = typeof document === "undefined" ? null : (document as ViewTransitionDocument);
-  const reduce = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  // The web design keeps its shell in place and only swaps the page: a
-  // whole-window cross-fade would read as a reload.
-  if (!doc || typeof doc.startViewTransition !== "function" || reduce || isWebDesign()) {
+  const change = doc
+    ? screenChange({
+        viewTransitions: typeof doc.startViewTransition === "function",
+        reduceMotion: Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches),
+        web: isWebDesign(),
+        phone: Boolean(window.matchMedia?.("(max-width: 768px)").matches),
+      })
+    : "instant";
+  if (!doc || change !== "cross-fade" || typeof doc.startViewTransition !== "function") {
     navigate();
     return;
   }
@@ -67,10 +88,7 @@ export function transition(navigate: () => void, motion: NavMotion = "fade"): vo
   }
 }
 
-/**
- * The web design (html.qb-web), now on at every size: screens switch in place,
- * with no whole-window view transition (owner rule: switches feel instant).
- */
+/** The web design (html.qb-web), now on at every size. */
 function isWebDesign(): boolean {
   return typeof document !== "undefined" && document.documentElement.classList.contains("qb-web");
 }

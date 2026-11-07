@@ -218,16 +218,22 @@ html.qb-web[dir="rtl"] .qb-switch-row[aria-checked="true"] .qb-switch::after { t
   .qb-web .qb-settings.is-web .qb-settings-h {
     margin: 0 0 6px;
   }
+  /* The chip row floats as one pill over the page, in the theme's own
+     surface (the track of the page's segmented controls), not a full-width
+     band: its chips sit in it like a segmented control's options. */
   .qb-web .qb-settings-index {
     z-index: 2;
+    top: 8px;
     flex-direction: row;
-    gap: 8px;
-    margin-inline: -16px;
-    padding: 10px 16px;
+    gap: 4px;
+    margin-block: 6px 4px;
+    padding: 4px;
     overflow-x: auto;
     scrollbar-width: none;
-    background: var(--bg);
-    border-bottom: 1px solid var(--border);
+    background: var(--bg-elev-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    box-shadow: var(--shadow-2);
   }
   .qb-web .qb-settings-index::-webkit-scrollbar {
     display: none;
@@ -237,7 +243,7 @@ html.qb-web[dir="rtl"] .qb-switch-row[aria-checked="true"] .qb-switch::after { t
     height: 44px;
     gap: 8px;
     padding: 0 16px;
-    border: 1px solid var(--border-strong);
+    border: 1px solid transparent;
     border-radius: 999px;
     white-space: nowrap;
   }

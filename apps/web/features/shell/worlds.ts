@@ -94,6 +94,19 @@ export function researchTarget(): Destination {
   return lastResearch === "study" ? STUDY : SEARCH;
 }
 
+/**
+ * What a tap on a phone tab does from the page shown: on the tab's own main
+ * page it scrolls back to the top ("top"); from one of its sub-pages (a board
+ * in the notebook, a post in community, Settings under Home) it comes back
+ * to the tab's main page ("main"); from another tab it opens this one where
+ * it was left ("open": the notebook resumes its last board).
+ */
+export function tabTap(item: Destination, mode: ShellMode): "top" | "main" | "open" {
+  if (!item.owns.includes(mode)) return "open";
+  const ownPage = item.mode === mode || (item.id === SEARCH.id && STUDY.owns.includes(mode));
+  return ownPage ? "top" : "main";
+}
+
 /** The same destination lighting on more pages (its label stays live, never copied). */
 function owning(base: Destination, owns: readonly ShellMode[]): Destination {
   const { id, mode, params, icon, world, resume } = base;
@@ -175,5 +188,14 @@ export function useWorldSync(): WorldId {
 /** Open a destination. */
 export function useOpenDestination() {
   const { setMode } = useShellMode();
-  return (item: Destination) => setMode(item.mode, { resume: item.resume, viaTab: true, params: { tab: null, ...item.params } });
+  return (item: Destination, options?: { main?: boolean }) =>
+    setMode(item.mode, {
+      // Its main page: no resumed place, and a sub-page's own parameters dropped.
+      resume: options?.main ? false : item.resume,
+      viaTab: true,
+      params: { tab: null, ...(options?.main ? SUB_PAGE_PARAMS : {}), ...item.params },
+    });
 }
+
+/** The query parameters that name a sub-page (a board, a post, a focused item). */
+const SUB_PAGE_PARAMS: Record<string, null> = { id: null, board: null, tag: null, focus: null };

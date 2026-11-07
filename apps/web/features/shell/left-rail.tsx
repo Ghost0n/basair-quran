@@ -11,7 +11,7 @@ import "./worlds.css";
 
 import { useShellMode } from "./mode-context";
 import { useWorkspace } from "./workspace-context";
-import { RAIL_GROUPS, useOpenDestination, useWorldSync, type WorldId } from "./worlds";
+import { RAIL_GROUPS, tabTap, useOpenDestination, useWorldSync, type WorldId } from "./worlds";
 
 import { t } from "@/lib/i18n";
 
@@ -64,7 +64,8 @@ export function LeftRail() {
               active={item.owns.includes(mode)}
               world={item.world}
               notebook={item.id === "notebook"}
-              onSelect={() => open(item)}
+              // From one of its sub-pages (a board…), back to its main page.
+              onSelect={() => open(item, { main: tabTap(item, mode) === "main" })}
             />
           ))}
         </Fragment>

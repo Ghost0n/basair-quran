@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { PHONE_TABS, RAIL_GROUPS, rememberResearch, researchTarget, worldOfMode } from "./worlds";
+import { PHONE_TABS, RAIL_GROUPS, rememberResearch, researchTarget, tabTap, worldOfMode } from "./worlds";
 
 describe("worlds", () => {
   it("puts every page in its world; Home and Settings keep the current one", () => {
@@ -49,6 +49,28 @@ describe("worlds", () => {
     for (const group of RAIL_GROUPS) {
       expect(new Set(group.map((item) => item.world)).size).toBe(1);
     }
+  });
+
+  describe("tabTap", () => {
+    const tab = (id: string) => PHONE_TABS.find((item) => item.id === id)!;
+
+    it("scrolls back to the top on the tab's own main page", () => {
+      expect(tabTap(tab("notebook"), "notebook")).toBe("top");
+      expect(tabTap(tab("search"), "studio")).toBe("top");
+    });
+
+    it("comes out of a sub-page to the tab's main page", () => {
+      expect(tabTap(tab("notebook"), "board")).toBe("main");
+      expect(tabTap(tab("notebook"), "document")).toBe("main");
+      expect(tabTap(tab("community"), "post")).toBe("main");
+      expect(tabTap(tab("home"), "settings")).toBe("main");
+      expect(tabTap(tab("reader"), "index")).toBe("main");
+    });
+
+    it("opens another tab where it was left", () => {
+      expect(tabTap(tab("notebook"), "home")).toBe("open");
+      expect(tabTap(tab("reader"), "board")).toBe("open");
+    });
   });
 
   it("keeps labels live (translated at read time, never copied)", () => {
