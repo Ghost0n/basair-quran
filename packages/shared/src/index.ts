@@ -38,6 +38,8 @@ export interface AuthUserInfo {
   id: number;
   email: string;
   is_admin: boolean;
+  /** Moderates community content (appointed by an admin). */
+  is_moderator: boolean;
   name?: string | null;
   avatar?: string | null;
   onboarded: boolean;
@@ -345,10 +347,21 @@ export interface DocumentAudit {
 }
 
 // ---------------------------------------------------------------------------
-// Community — publishing, feed, likes, comments, reports, moderation
+// Community — publishing, feed, likes, comments, reports, appeals
+// (docs/community-moderation-design.md)
 // ---------------------------------------------------------------------------
 
-export type PostStatus = "pending_review" | "published" | "changes_requested" | "rejected" | "withdrawn" | "removed";
+/** `queued`: waiting for the next moderation batch; `pending_review`: waiting for a moderator. */
+export type PostStatus =
+  | "queued"
+  | "pending_review"
+  | "published"
+  | "changes_requested"
+  | "rejected"
+  | "withdrawn"
+  | "removed";
+/** The state of a new version of a published post while it is reviewed. */
+export type ReviewState = "queued" | "pending_review" | "changes_requested";
 export type GuidelineRule =
   | "misattribution"
   | "ruling_as_fact"
@@ -358,6 +371,8 @@ export type GuidelineRule =
   | "integrity"
   | "spam_promo"
   | "personal_data"
+  | "off_topic"
+  | "harassment"
   | "other";
 
 export interface PublishRequest {
@@ -365,27 +380,22 @@ export interface PublishRequest {
   accept_guidelines: boolean;
 }
 
+/** One finding of the moderation agent, in the author's interface language. */
 export interface AuditIssue {
-  section_id: string;
+  /** A section id, "summary" (title and summary) or "comment". */
+  target: string;
   rule: GuidelineRule;
   severity: "low" | "medium" | "high";
   quote?: string | null;
-  explanation_ar: string;
-  suggestion_ar?: string | null;
-}
-
-export interface AiAudit {
-  verdict: "pass" | "review" | "reject";
-  issues: AuditIssue[];
-  model?: string | null;
-  fallback_reason?: string | null;
+  explanation: string;
+  suggestion?: string | null;
 }
 
 export interface PublishResult {
-  status: "blocked" | "pending_review" | "published";
+  /** `blocked`: the deterministic audit failed; `queued`: the next batch checks it. */
+  status: "blocked" | "queued";
   post_id?: string | null;
   audit: DocumentAudit;
-  ai_audit?: AiAudit | null;
 }
 
 export interface PostSummary {
@@ -413,12 +423,20 @@ export interface PostSummary {
   published_at?: number | null;
   updated_at: number;
   excerpt?: { surah_id: number; ayah: number; text: string } | null;
+  /** A new version under review while this one stays published. */
+  review_state?: ReviewState | null;
+  /** Hidden from readers by reports until a moderator decides. */
+  hidden?: boolean;
 }
 
+/** One check of a post or comment: the deterministic audit, the agent or a person. */
 export interface PostReview {
-  stage: "deterministic" | "ai" | "human";
+  stage: "deterministic" | "agent" | "human";
   verdict: string;
+  confidence?: number | null;
   issues: Record<string, unknown>[];
+  /** The language the agent wrote its reasons in. */
+  language?: string | null;
   note?: string | null;
   created_at: number;
 }
@@ -434,6 +452,8 @@ export interface PostDetail extends PostSummary {
   document: Omit<ResearchDocumentSave, "visibility"> & { id: string; version: number };
   board?: PostBoardSnapshot | null;
   reviews: PostReview[];
+  /** The new version under review (its document), for its author and moderators. */
+  candidate?: (Omit<ResearchDocumentSave, "visibility"> & { id: string; version: number }) | null;
 }
 
 export interface FeedPage {
@@ -441,13 +461,14 @@ export interface FeedPage {
   next_cursor?: string | null;
 }
 
+/** `pending`: waiting for its check (its author only); `hidden`: «تعليق مخفي» to others. */
 export interface CommentItem {
   id: number;
   post_id: string;
   author_name: string;
   body: string;
   is_mine: boolean;
-  status: "visible" | "hidden";
+  status: "visible" | "pending" | "hidden";
   created_at: number;
 }
 
@@ -495,17 +516,168 @@ export interface ReportItem {
   note?: string | null;
   status: "open" | "resolved";
   created_at: number;
-  target_preview?: string | null;
 }
 
+// --- Moderation: the supervision panel ---------------------------------------
+
+export type TrustLevel = "unverified" | "verified";
+export type QueueReason = "first_post" | "unsure" | "declined" | "reported";
+
+export interface AuthorStanding {
+  user_id: number;
+  level: TrustLevel;
+  /** Declines a moderator upheld; three make the author suspicious. */
+  upheld_declines: number;
+  suspicious: boolean;
+  banned: boolean;
+  /** Unix time, or -1 for a permanent ban. */
+  banned_until?: number | null;
+  ban_reason?: string | null;
+  is_staff: boolean;
+  name?: string | null;
+}
+
+/** `decline` and `remove` need a reason (`note`), shown to the author. */
 export interface ModerationDecision {
-  decision: "publish" | "reject" | "request_changes" | "remove";
+  decision: "approve" | "decline" | "remove" | "restore";
+  note?: string | null;
+}
+
+export interface ModerationQueueItem {
+  id: number;
+  item_type: "post" | "comment";
+  item_id: string;
+  reason: QueueReason;
+  opened_at: number;
+  checks: PostReview[];
+  reports: ReportItem[];
+  post?: PostDetail | null;
+  comment?: CommentItem | null;
+  post_title?: string | null;
+  author: AuthorStanding;
+  /** The viewer's own content: shown, never decided by them. */
+  is_mine: boolean;
+}
+
+export interface AppealCreate {
+  target_type: "post" | "comment" | "ban";
+  target_id?: string;
+  message: string;
+}
+
+export interface AppealItem {
+  id: number;
+  user_id: number;
+  target_type: "post" | "comment" | "user";
+  target_id: string;
+  message: string;
+  status: "open" | "upheld" | "overturned";
+  created_at: number;
+  decision?: string | null;
+  decision_reason?: string | null;
+  decided_by?: number | null;
+  note?: string | null;
+}
+
+export interface AppealDecision {
+  outcome: "uphold" | "overturn";
   note?: string | null;
 }
 
 export interface ModerationQueue {
-  posts: PostDetail[];
-  reports: ReportItem[];
+  items: ModerationQueueItem[];
+  appeals: AppealItem[];
+}
+
+/** 7 or 30 days; no `days` means permanent (admins only). */
+export interface BanRequest {
+  days?: 7 | 30 | null;
+  reason: string;
+}
+
+export interface ModerationUser extends AuthorStanding {
+  history: { action: string; target_type: string; target_id: string; reason?: string | null; created_at: number }[];
+}
+
+export interface ModerationAction {
+  id: number;
+  actor_id: number;
+  action: string;
+  target_type: string;
+  target_id: string;
+  subject_user_id?: number | null;
+  reason?: string | null;
+  created_at: number;
+}
+
+export interface TeamMember {
+  user_id: number;
+  email: string;
+  name?: string | null;
+  role: "admin" | "moderator";
+  actions: number;
+}
+
+export interface ModerationHealth {
+  worker: "embedded" | "external" | "off";
+  interval_seconds: number;
+  backlog: Record<string, number>;
+  last_batch?: { started_at: number; duration_seconds: number; checked: number; errors: number; budget_reached: boolean } | null;
+  today: { checks: number; errors: number; budget: number };
+}
+
+export interface ModerationRun {
+  kind: string;
+  checked: number;
+  errors: number;
+  budget_reached: boolean;
+  skipped?: string | null;
+}
+
+// --- Feedback centre (docs/feedback-centre.md) --------------------------------
+
+export type FeedbackKind = "contact" | "bug" | "help" | "feature" | "error";
+export type FeedbackStatus = "new" | "in_progress" | "resolved" | "closed";
+
+export interface FeedbackCreate {
+  kind: FeedbackKind;
+  message?: string;
+  /** How to answer a guest (optional). */
+  email?: string | null;
+  /** The diagnostic bundle of an `error` report. */
+  detail?: Record<string, unknown> | null;
+  url?: string | null;
+  language?: string | null;
+}
+
+export interface FeedbackItem {
+  id: number;
+  kind: FeedbackKind;
+  status: FeedbackStatus;
+  message: string;
+  created_at: number;
+  updated_at: number;
+  // Staff only:
+  user_id?: number | null;
+  email?: string | null;
+  detail?: Record<string, unknown> | null;
+  url?: string | null;
+  user_agent?: string | null;
+  language?: string | null;
+  assigned_to?: number | null;
+  staff_note?: string | null;
+}
+
+export interface FeedbackPage {
+  items: FeedbackItem[];
+  next_before?: number | null;
+  counts: Record<FeedbackStatus, number>;
+}
+
+export interface FeedbackUpdate {
+  status?: FeedbackStatus;
+  staff_note?: string | null;
+  assigned_to?: number | null;
 }
 
 /** GET /api/ayah-reader — an ayah with its neighbours in the same surah. */

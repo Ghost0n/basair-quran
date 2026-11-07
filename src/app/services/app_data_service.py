@@ -135,9 +135,12 @@ def ensure_app_db() -> None:
             _migrate_collections_to_themes(connection)
         connection.commit()
     # Community tables live in the same store (lazy import: community_service imports this module).
-    from src.app.services import community_service
+    from src.app.services import community_service, feedback_service
 
     community_service.ensure_tables()
+    with _connect() as connection:
+        feedback_service.ensure_tables(connection)
+        connection.commit()
 
 
 def _migrate_collections_to_themes(connection: sqlite3.Connection) -> None:

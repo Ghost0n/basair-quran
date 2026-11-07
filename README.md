@@ -68,7 +68,7 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   «أضف آيات» (from the notebook, a Quran search, or a surah + verse range); exported as Markdown / JSON,
   or through the «مشاركة» studio as a research or verse card, a numbered carousel (ZIP or
   multi-image share) or a print / PDF page — in 4:5, square or story size and three styles. Publishing to the community runs a blocking audit, then
-  an AI audit agent that fails closed to human moderation.
+  queues the research for the moderation batches (below).
 - Translations of the Quran's meanings («ترجمة المعاني»): up to three per reader, shown under each
   ayah in the «آية آية» mode, from trusted sources (QuranEnc — the Noble Quran Encyclopedia —
   first, Tanzil for the gaps; about 60 languages by default, every QuranEnc language with `--all`),
@@ -94,8 +94,17 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 - Community («المجتمع»): a feed of published researches (public or link-only) — latest or trending
   («الأبرز»), searchable, filterable by surah, tag, research mode, board or author, with infinite
   scroll — post pages with the document and its read-only board, likes, private bookmarks
-  («المحفوظة»), link sharing, comments, reports, and a moderation queue for admins — governed by
-  `docs/community-guidelines.md`.
+  («المحفوظة»), link sharing, comments and reports — governed by `docs/community-guidelines.md`.
+- Moderation (`docs/community-moderation-design.md`): every 15 minutes a worker checks new posts,
+  comments and reported items with an agent that applies the guidelines and explains its reasons in
+  the author's interface language, failing closed to a person. Authors earn trust: an unverified
+  author's posts wait for a moderator. Declines a moderator upholds count as strikes, and moderators
+  ban from posting for 7 or 30 days (admins permanently). Authors see the reasons, edit and resubmit,
+  and appeal once. A supervision panel (Community → «الإشراف») holds the queue, suspicious and banned
+  users, appeals, the team (admins appoint moderators) and the batches' health.
+- Feedback centre (`docs/feedback-centre.md`): contact, bug, help and feature messages
+  (Settings → «الدعم والملاحظات», guests included) and the error screens' diagnostic reports, triaged
+  by staff in the same panel.
 - A "liquid glass" design system (`docs/design-system.md`): one translucent material for all chrome
   (floating rail and tab dock, capsule bars, glass sheets and panes), glossy gold for actions, a
   shared selected state, spring micro-interactions and view-transition page changes — with the

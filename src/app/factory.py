@@ -12,7 +12,9 @@ from src.app.routes import (
     community_router,
     translations_router,
     companions_router,
+    feedback_router,
     health_router,
+    moderation_router,
     mushafs_router,
     offline_router,
     reader_router,
@@ -20,11 +22,15 @@ from src.app.routes import (
     search_router,
 )
 from src.app.services import app_data_service, auth_service, quran_service
+from src.app.workers import moderation_worker
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # The moderation batches run in this process unless a worker container does.
+    moderation_worker.start_embedded()
     yield
+    moderation_worker.stop_embedded()
     quran_service.close_db_connection()
     quran_service.reset_morphology_search_index()
 
@@ -119,7 +125,9 @@ def create_app() -> FastAPI:
             {"name": "search", "description": "Suggestion and search endpoints."},
             {"name": "reader", "description": "Reader and Quran page endpoints."},
             {"name": "research", "description": "Strict-context Quran research agent endpoints."},
-            {"name": "community", "description": "Publishing, feed, likes, comments, reports and moderation."},
+            {"name": "community", "description": "Publishing, feed, likes, comments, reports and appeals."},
+            {"name": "moderation", "description": "The supervision panel: queue, decisions, bans, appeals, team."},
+            {"name": "feedback", "description": "Contact, bug, help, feature requests and diagnostic reports."},
             {"name": "offline", "description": "Downloadable data packs for the standalone app."},
         ],
     )
@@ -158,6 +166,9 @@ def create_app() -> FastAPI:
     app.include_router(companions_router, dependencies=open_dependencies)
     # Community: reading is open; writes check the resolved user in the route.
     app.include_router(community_router, dependencies=open_dependencies)
+    # Moderation checks staff in each route; feedback is open to guests.
+    app.include_router(moderation_router, dependencies=open_dependencies)
+    app.include_router(feedback_router, dependencies=open_dependencies)
     app.include_router(translations_router, dependencies=open_dependencies)
     # The standalone app's pack downloads (open: a phone installs before any sign-in).
     app.include_router(offline_router)

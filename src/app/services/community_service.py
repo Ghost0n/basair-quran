@@ -1,15 +1,17 @@
-"""Community — publishing research documents, the feed, likes, comments, reports, moderation.
+"""Community — publishing research documents, the feed, likes, comments, reports.
 
-Publishing pipeline (docs/ai-audit-agent.md, docs/community-guidelines.md §7):
+Publishing pipeline (docs/community-moderation-design.md, docs/community-guidelines.md §7):
 
-1. deterministic audit (blocking) — ``research_document_service.audit_document``;
-2. AI audit agent (advisory) — ``audit_agent_service.run_ai_audit``: ``pass`` publishes,
-   anything else waits for a moderator (the agent fails closed);
-3. human moderation — the final say (publish / request changes / reject / remove).
+1. deterministic audit (blocking, at once) — ``research_document_service.audit_document``;
+2. the post is *queued*: the moderation batches (``moderation_service.run_batch``)
+   check it with the agent in the author's language and route it by the
+   author's trust level — published, or waiting for a moderator;
+3. human moderation — the final say (``moderation_service.decide_post``).
 
 A post is an immutable *snapshot* of a document version (plus, for a document
 exported from a theme board, a read-only copy of that board), so later edits
-never change what readers saw; republishing re-enters the pipeline.
+never change what readers saw. Republishing a published post queues the new
+version as a *candidate*; the published one stays until the candidate passes.
 """
 
 from __future__ import annotations
@@ -22,7 +24,8 @@ import time
 
 from src.app.services import (
     app_data_service,
-    audit_agent_service,
+    feedback_service,
+    moderation_service,
     quran_service,
     research_document_service,
 )
@@ -33,11 +36,14 @@ _URL = re.compile(r"https?://|www\.", re.IGNORECASE)
 
 
 class CommunityError(ValueError):
-    """A rejected community action; ``status`` is the HTTP status to return."""
+    """A rejected community action; ``status`` is the HTTP status to return,
+    ``code`` (with ``extra``) a machine-readable reason for the interface."""
 
-    def __init__(self, message: str, status: int = 422):
+    def __init__(self, message: str, status: int = 422, code: str | None = None, extra: dict | None = None):
         super().__init__(message)
         self.status = status
+        self.code = code
+        self.extra = extra or {}
 
 
 def ensure_tables() -> None:
@@ -121,9 +127,21 @@ def ensure_tables() -> None:
         # Feed filter columns (Q-Basair-23), derived from the snapshot: added to
         # older databases, then backfilled for the rows that predate them.
         columns = {row["name"] for row in connection.execute("PRAGMA table_info(posts)")}
-        for name, ddl in _INDEX_COLUMNS.items():
+        for name, ddl in {**_INDEX_COLUMNS, **_REVIEW_COLUMNS}.items():
             if name not in columns:
                 connection.execute(f"ALTER TABLE posts ADD COLUMN {name} {ddl}")
+        # Moderation columns (docs/community-moderation-design.md): comments and
+        # reports that predate the batches count as already checked.
+        for table, name, ddl in (
+            ("post_comments", "checked", "INTEGER NOT NULL DEFAULT 0"),
+            ("post_comments", "report_hidden", "INTEGER NOT NULL DEFAULT 0"),
+            ("reports", "checked", "INTEGER NOT NULL DEFAULT 0"),
+        ):
+            if name not in {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}:
+                connection.execute(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")
+                if name == "checked":
+                    connection.execute(f"UPDATE {table} SET checked = 1")
+        moderation_service.ensure_tables(connection)
         stale = connection.execute("SELECT id, snapshot FROM posts WHERE indexed = 0").fetchall()
         for row in stale:
             fields = _index_fields(json.loads(row["snapshot"]))
@@ -141,6 +159,14 @@ _INDEX_COLUMNS = {
     "mode": "TEXT",
     "has_board": "INTEGER NOT NULL DEFAULT 0",
     "indexed": "INTEGER NOT NULL DEFAULT 0",
+}
+
+# A new version of a published post waits here while it is reviewed.
+_REVIEW_COLUMNS = {
+    "candidate_snapshot": "TEXT",
+    "candidate_version": "INTEGER",
+    "candidate_state": "TEXT",
+    "report_hidden": "INTEGER NOT NULL DEFAULT 0",
 }
 
 MAX_TAGS = 8
@@ -260,25 +286,6 @@ def _excerpt(document: dict) -> dict | None:
 # ----------------------------------------------------------------------
 
 
-def _record_review(connection, post_id: str, version: int, stage: str, verdict: str, **extra) -> None:
-    connection.execute(
-        "INSERT INTO post_reviews (post_id, document_version, stage, verdict, issues, model, guidelines_version, "
-        "reviewer_id, note, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-        (
-            post_id,
-            version,
-            stage,
-            verdict,
-            json.dumps(extra.get("issues") or [], ensure_ascii=False),
-            extra.get("model"),
-            extra.get("guidelines_version"),
-            extra.get("reviewer_id"),
-            extra.get("note"),
-            int(time.time()),
-        ),
-    )
-
-
 def publish_document(
     document_id: str,
     user_id: int,
@@ -286,47 +293,52 @@ def publish_document(
     visibility: str,
     accept_guidelines: bool,
 ) -> dict:
+    """Run the deterministic audit and queue the post for the next moderation batch."""
     if not accept_guidelines:
         raise CommunityError("Accept the community guidelines before publishing.")
+    moderation_service.ensure_can_post(user_id)
     document = research_document_service.get_document(document_id, user_id)
     if document is None:
         raise CommunityError("Research document not found.", status=404)
 
     audit = research_document_service.audit_document(document)
     if not audit["publishable"]:
-        return {"status": "blocked", "post_id": None, "audit": audit, "ai_audit": None}
+        return {"status": "blocked", "post_id": None, "audit": audit}
 
     snapshot = {key: document[key] for key in ("title", "summary", "language", "tags", "sections", "references", "provenance")}
     snapshot["id"] = document_id
     snapshot["version"] = document["version"]
     board = _board_snapshot(document, user_id)
     payload = {"document": snapshot, "board": board, "excerpt": _excerpt(document)}
-
+    encoded = json.dumps(payload, ensure_ascii=False)
     fields = _index_fields(payload)
-
-    ai_audit = audit_agent_service.run_ai_audit(snapshot)
-    status = "published" if ai_audit["verdict"] == "pass" else "pending_review"
     now = int(time.time())
 
     with app_data_service.connect() as connection:
         existing = connection.execute(
-            "SELECT id, published_at FROM posts WHERE user_id = ? AND document_id = ?", (user_id, document_id)
+            "SELECT id, status FROM posts WHERE user_id = ? AND document_id = ?", (user_id, document_id)
         ).fetchone()
-        if existing:
+        if existing and existing["status"] == "published":
+            # The published version stays up while the new one is reviewed.
             post_id = existing["id"]
             connection.execute(
-                "UPDATE posts SET snapshot = ?, title = ?, visibility = ?, status = ?, document_version = ?, "
-                "author_name = ?, updated_at = ?, published_at = ?, surahs = ?, tags = ?, search_text = ?, mode = ?, "
-                "has_board = ?, indexed = 1 WHERE id = ?",
+                "UPDATE posts SET candidate_snapshot = ?, candidate_version = ?, candidate_state = 'queued', "
+                "visibility = ?, author_name = ?, updated_at = ? WHERE id = ?",
+                (encoded, document["version"], visibility, author_name, now, post_id),
+            )
+        elif existing:
+            post_id = existing["id"]
+            connection.execute(
+                "UPDATE posts SET snapshot = ?, title = ?, visibility = ?, status = 'queued', document_version = ?, "
+                "author_name = ?, updated_at = ?, surahs = ?, tags = ?, search_text = ?, mode = ?, has_board = ?, "
+                "indexed = 1, candidate_snapshot = NULL, candidate_version = NULL, candidate_state = NULL WHERE id = ?",
                 (
-                    json.dumps(payload, ensure_ascii=False),
+                    encoded,
                     document["title"],
                     visibility,
-                    status,
                     document["version"],
                     author_name,
                     now,
-                    (existing["published_at"] or now) if status == "published" else existing["published_at"],
                     fields["surahs"],
                     fields["tags"],
                     fields["search_text"],
@@ -340,20 +352,18 @@ def publish_document(
             connection.execute(
                 "INSERT INTO posts (id, user_id, author_name, document_id, document_version, snapshot, title, "
                 "visibility, status, created_at, updated_at, published_at, surahs, tags, search_text, mode, has_board, "
-                "indexed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)",
+                "indexed) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, NULL, ?, ?, ?, ?, ?, 1)",
                 (
                     post_id,
                     user_id,
                     author_name,
                     document_id,
                     document["version"],
-                    json.dumps(payload, ensure_ascii=False),
+                    encoded,
                     document["title"],
                     visibility,
-                    status,
                     now,
                     now,
-                    now if status == "published" else None,
                     fields["surahs"],
                     fields["tags"],
                     fields["search_text"],
@@ -361,21 +371,50 @@ def publish_document(
                     fields["has_board"],
                 ),
             )
-        _record_review(connection, post_id, document["version"], "deterministic", "pass", issues=audit["checks"])
-        _record_review(
-            connection,
-            post_id,
-            document["version"],
-            "ai",
-            ai_audit["verdict"],
-            issues=ai_audit["issues"],
-            model=ai_audit.get("model"),
-            guidelines_version=audit_agent_service.GUIDELINES_VERSION,
-            note=ai_audit.get("fallback_reason"),
+        # A new version replaces whatever a person was asked to decide on.
+        connection.execute(
+            "UPDATE moderation_queue SET decided_at = ?, decision = 'superseded' WHERE item_type = 'post' "
+            "AND item_id = ? AND decided_at IS NULL",
+            (now, post_id),
+        )
+        moderation_service.record_check(
+            connection, "post", post_id, document["version"], "deterministic", "pass", issues=audit["checks"]
         )
         connection.commit()
         invalidate_trending()
-    return {"status": status, "post_id": post_id, "audit": audit, "ai_audit": ai_audit}
+    return {"status": "queued", "post_id": post_id, "audit": audit}
+
+
+def publish_reviewed_version(connection, row) -> None:
+    """Publish the version a post waits with (its candidate, or itself). Caller commits."""
+    now = int(time.time())
+    if row["candidate_snapshot"]:
+        payload = json.loads(row["candidate_snapshot"])
+        fields = _index_fields(payload)
+        document = payload.get("document") or {}
+        connection.execute(
+            "UPDATE posts SET snapshot = candidate_snapshot, document_version = candidate_version, title = ?, "
+            "status = 'published', published_at = COALESCE(published_at, ?), updated_at = ?, surahs = ?, tags = ?, "
+            "search_text = ?, mode = ?, has_board = ?, candidate_snapshot = NULL, candidate_version = NULL, "
+            "candidate_state = NULL, report_hidden = 0 WHERE id = ?",
+            (
+                document.get("title") or row["title"],
+                now,
+                now,
+                fields["surahs"],
+                fields["tags"],
+                fields["search_text"],
+                fields["mode"],
+                fields["has_board"],
+                row["id"],
+            ),
+        )
+    else:
+        connection.execute(
+            "UPDATE posts SET status = 'published', published_at = COALESCE(published_at, ?), updated_at = ?, "
+            "report_hidden = 0 WHERE id = ?",
+            (now, now, row["id"]),
+        )
 
 
 # ----------------------------------------------------------------------
@@ -427,6 +466,10 @@ def _summary(row, viewer_id: int | None, liked: set[str], saved: set[str] = froz
         "published_at": row["published_at"],
         "updated_at": int(row["updated_at"]),
         "excerpt": payload.get("excerpt"),
+        # A new version under review (queued / pending_review / changes_requested), for its author.
+        "review_state": row["candidate_state"],
+        # Hidden from readers by reports until a moderator decides.
+        "hidden": bool(row["report_hidden"]),
     }
 
 
@@ -540,7 +583,7 @@ def feed(
     (keyset pagination); `top` ranks the most recent ``TRENDING_WINDOW``
     matches by :func:`trending_score` (offset pagination)."""
     limit = max(1, min(limit, 50))
-    where = ["status = 'published'", "visibility = 'public'"]
+    where = ["status = 'published'", "visibility = 'public'", "report_hidden = 0"]
     params: list = []
     for token in search_norm(q or "").split()[:6]:
         where.append("instr(search_text, ?) > 0")
@@ -579,7 +622,11 @@ def feed(
                     for row in connection.execute(f"SELECT * FROM posts WHERE id IN ({placeholders})", page_ids)
                 }
             # A post withdrawn or removed since the ranking was cached simply drops out.
-            page = [by_id[post_id] for post_id in page_ids if post_id in by_id and by_id[post_id]["status"] == "published"]
+            page = [
+                by_id[post_id]
+                for post_id in page_ids
+                if post_id in by_id and by_id[post_id]["status"] == "published" and not by_id[post_id]["report_hidden"]
+            ]
             next_cursor = _encode_offset(offset + limit) if offset + limit < len(ranked_ids) else None
         else:
             position = _decode_cursor(cursor) if cursor else None
@@ -604,7 +651,8 @@ def popular_tags(limit: int = 20) -> list[dict]:
     display: dict[str, str] = {}
     with app_data_service.connect() as connection:
         rows = connection.execute(
-            "SELECT snapshot FROM posts WHERE status = 'published' AND visibility = 'public' AND tags != '' "
+            "SELECT snapshot FROM posts WHERE status = 'published' AND visibility = 'public' AND report_hidden = 0 "
+            "AND tags != '' "
             "ORDER BY published_at DESC LIMIT 1000"
         ).fetchall()
     for row in rows:
@@ -628,54 +676,52 @@ def my_posts(user_id: int) -> list[dict]:
     return [_summary(row, user_id, liked, saved) for row in rows]
 
 
-def _reviews(connection, post_id: str) -> list[dict]:
-    rows = connection.execute(
-        "SELECT stage, verdict, issues, note, created_at FROM post_reviews WHERE post_id = ? ORDER BY id DESC LIMIT 6",
-        (post_id,),
-    ).fetchall()
-    return [
-        {
-            "stage": row["stage"],
-            "verdict": row["verdict"],
-            "issues": json.loads(row["issues"] or "[]"),
-            "note": row["note"],
-            "created_at": int(row["created_at"]),
-        }
-        for row in rows
-    ]
-
-
 def _can_view(row, viewer_id: int | None, is_moderator: bool) -> bool:
+    is_owner = viewer_id is not None and int(row["user_id"]) == viewer_id
     if row["status"] == "published":
-        return True  # public or unlisted (by link)
-    if row["status"] in ("withdrawn", "removed"):
+        # Public or unlisted (by link); hidden by reports for everyone but its author and staff.
+        return not row["report_hidden"] or is_owner or is_moderator
+    if row["status"] == "withdrawn":
         return is_moderator
-    return is_moderator or (viewer_id is not None and int(row["user_id"]) == viewer_id)
+    # A removed post stays readable by its author (to read the reason and appeal).
+    return is_moderator or is_owner
 
 
-def get_post(post_id: str, viewer_id: int | None, is_moderator: bool = False) -> dict | None:
-    with app_data_service.connect() as connection:
-        row = connection.execute("SELECT * FROM posts WHERE id = ?", (post_id,)).fetchone()
-        if row is None or not _can_view(row, viewer_id, is_moderator):
-            return None
-        liked = _liked_set(connection, viewer_id, [post_id])
-        saved = _saved_set(connection, viewer_id, [post_id])
-        is_owner = viewer_id is not None and int(row["user_id"]) == viewer_id
-        reviews = _reviews(connection, post_id) if (is_owner or is_moderator) else []
+def get_post(post_id: str, viewer_id: int | None, is_moderator: bool = False, connection=None) -> dict | None:
+    if connection is None:
+        with app_data_service.connect() as own:
+            return get_post(post_id, viewer_id, is_moderator, own)
+    row = connection.execute("SELECT * FROM posts WHERE id = ?", (post_id,)).fetchone()
+    if row is None or not _can_view(row, viewer_id, is_moderator):
+        return None
+    liked = _liked_set(connection, viewer_id, [post_id])
+    saved = _saved_set(connection, viewer_id, [post_id])
+    is_owner = viewer_id is not None and int(row["user_id"]) == viewer_id
+    insider = is_owner or is_moderator
+    reviews = moderation_service.checks_for(connection, "post", post_id) if insider else []
     payload = json.loads(row["snapshot"])
+    candidate = json.loads(row["candidate_snapshot"]) if insider and row["candidate_snapshot"] else None
     return {
         **_summary(row, viewer_id, liked, saved),
         "document": payload.get("document") or {},
         "board": payload.get("board"),
         "reviews": reviews,
+        # The new version under review, shown to its author and moderators.
+        "candidate": (candidate.get("document") if candidate else None),
     }
 
 
 def withdraw_post(post_id: str, user_id: int) -> bool:
     with app_data_service.connect() as connection:
         cursor = connection.execute(
-            "UPDATE posts SET status = 'withdrawn', updated_at = ? WHERE id = ? AND user_id = ? AND status != 'removed'",
+            "UPDATE posts SET status = 'withdrawn', updated_at = ?, candidate_snapshot = NULL, candidate_version = NULL, "
+            "candidate_state = NULL WHERE id = ? AND user_id = ? AND status != 'removed'",
             (int(time.time()), post_id, user_id),
+        )
+        connection.execute(
+            "UPDATE moderation_queue SET decided_at = ?, decision = 'withdrawn' WHERE item_type = 'post' "
+            "AND item_id = ? AND decided_at IS NULL",
+            (int(time.time()), post_id),
         )
         connection.commit()
         invalidate_trending()
@@ -687,16 +733,16 @@ def withdraw_post(post_id: str, user_id: int) -> bool:
 # ----------------------------------------------------------------------
 
 
-def _published(connection, post_id: str):
+def _published(connection, post_id: str, viewer_id: int | None = None, staff: bool = False):
     row = connection.execute("SELECT * FROM posts WHERE id = ? AND status = 'published'", (post_id,)).fetchone()
-    if row is None:
+    if row is None or not _can_view(row, viewer_id, staff):
         raise CommunityError("Post not found.", status=404)
     return row
 
 
 def set_like(post_id: str, user_id: int, liked: bool) -> dict:
     with app_data_service.connect() as connection:
-        _published(connection, post_id)
+        _published(connection, post_id, user_id)
         if liked:
             connection.execute(
                 "INSERT OR IGNORE INTO post_likes (post_id, user_id, created_at) VALUES (?, ?, ?)",
@@ -714,7 +760,7 @@ def set_like(post_id: str, user_id: int, liked: bool) -> dict:
 def set_saved(post_id: str, user_id: int, saved: bool) -> dict:
     """«احفظ» — a private bookmark; only the viewer sees it (no public count)."""
     with app_data_service.connect() as connection:
-        _published(connection, post_id)
+        _published(connection, post_id, user_id)
         if saved:
             connection.execute(
                 "INSERT OR IGNORE INTO post_saves (post_id, user_id, created_at) VALUES (?, ?, ?)",
@@ -726,25 +772,42 @@ def set_saved(post_id: str, user_id: int, saved: bool) -> dict:
     return {"saved": saved}
 
 
-def _comment_row(row, viewer_id: int | None) -> dict:
+def comment_row(row, viewer_id: int | None, staff: bool = False) -> dict:
+    """A comment as a viewer sees it. A hidden one (by a moderator, the agent
+    or reports) shows to others as «تعليق مخفي» — no author, no text; its
+    author and staff still see it, with its status."""
+    is_mine = viewer_id is not None and int(row["user_id"]) == viewer_id
+    status = row["status"]
+    if status == "visible" and row["report_hidden"]:
+        status = "hidden"
+    if status == "declined":
+        status = "hidden"
+    masked = status == "hidden" and not (is_mine or staff)
     return {
         "id": int(row["id"]),
         "post_id": row["post_id"],
-        "author_name": row["author_name"],
-        "body": row["body"],
-        "is_mine": viewer_id is not None and int(row["user_id"]) == viewer_id,
-        "status": row["status"],
+        "author_name": "" if masked else row["author_name"],
+        "body": "" if masked else row["body"],
+        "is_mine": is_mine,
+        "status": status,
         "created_at": int(row["created_at"]),
     }
 
 
-def list_comments(post_id: str, viewer_id: int | None) -> list[dict]:
+def list_comments(post_id: str, viewer_id: int | None, staff: bool = False) -> list[dict]:
+    """Visible and hidden comments; a pending one (waiting for its check) only for its author and staff."""
     with app_data_service.connect() as connection:
-        _published(connection, post_id)
+        _published(connection, post_id, viewer_id, staff)
         rows = connection.execute(
-            "SELECT * FROM post_comments WHERE post_id = ? AND status = 'visible' ORDER BY created_at, id", (post_id,)
+            "SELECT * FROM post_comments WHERE post_id = ? AND status IN ('visible', 'hidden', 'declined', 'pending') "
+            "ORDER BY created_at, id",
+            (post_id,),
         ).fetchall()
-    return [_comment_row(row, viewer_id) for row in rows]
+    return [
+        comment_row(row, viewer_id, staff)
+        for row in rows
+        if row["status"] != "pending" or staff or (viewer_id is not None and int(row["user_id"]) == viewer_id)
+    ]
 
 
 def check_comment(body: str) -> str:
@@ -758,54 +821,69 @@ def check_comment(body: str) -> str:
 
 
 def add_comment(post_id: str, user_id: int, author_name: str, body: str) -> dict:
+    """A verified author's comment shows at once (checked afterwards); an
+    unverified author's waits for its check (``pending``)."""
     cleaned = check_comment(body)
+    moderation_service.ensure_can_post(user_id)
+    verified = moderation_service.standing(user_id)["level"] == "verified"
     with app_data_service.connect() as connection:
-        _published(connection, post_id)
+        _published(connection, post_id, user_id)
         cursor = connection.execute(
-            "INSERT INTO post_comments (post_id, user_id, author_name, body, created_at) VALUES (?, ?, ?, ?, ?)",
-            (post_id, user_id, author_name, cleaned, int(time.time())),
+            "INSERT INTO post_comments (post_id, user_id, author_name, body, status, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+            (post_id, user_id, author_name, cleaned, "visible" if verified else "pending", int(time.time())),
         )
-        _refresh_comment_count(connection, post_id)
+        refresh_comment_count(connection, post_id)
         connection.commit()
         invalidate_trending()
         row = connection.execute("SELECT * FROM post_comments WHERE id = ?", (cursor.lastrowid,)).fetchone()
-    return _comment_row(row, user_id)
+    return comment_row(row, user_id)
 
 
-def _refresh_comment_count(connection, post_id: str) -> None:
+def refresh_comment_count(connection, post_id: str) -> None:
     (count,) = connection.execute(
-        "SELECT COUNT(*) FROM post_comments WHERE post_id = ? AND status = 'visible'", (post_id,)
+        "SELECT COUNT(*) FROM post_comments WHERE post_id = ? AND status = 'visible' AND report_hidden = 0", (post_id,)
     ).fetchone()
     connection.execute("UPDATE posts SET comment_count = ? WHERE id = ?", (count, post_id))
 
 
-def delete_comment(comment_id: int, user_id: int, is_moderator: bool = False) -> bool:
+def delete_comment(comment_id: int, user_id: int) -> bool:
+    """Its author deletes a comment (moderators decide through the queue)."""
     with app_data_service.connect() as connection:
         row = connection.execute("SELECT * FROM post_comments WHERE id = ?", (comment_id,)).fetchone()
-        if row is None or (int(row["user_id"]) != user_id and not is_moderator):
+        if row is None or int(row["user_id"]) != user_id:
             return False
-        connection.execute("UPDATE post_comments SET status = 'hidden' WHERE id = ?", (comment_id,))
-        _refresh_comment_count(connection, row["post_id"])
+        connection.execute("UPDATE post_comments SET status = 'deleted' WHERE id = ?", (comment_id,))
+        connection.execute(
+            "UPDATE moderation_queue SET decided_at = ?, decision = 'deleted' WHERE item_type = 'comment' "
+            "AND item_id = ? AND decided_at IS NULL",
+            (int(time.time()), str(comment_id)),
+        )
+        refresh_comment_count(connection, row["post_id"])
         connection.commit()
         invalidate_trending()
     return True
 
 
 # ----------------------------------------------------------------------
-# Reports & moderation
+# Reports
 # ----------------------------------------------------------------------
 
 
 def report(target_type: str, target_id: str, user_id: int, rule: str, note: str | None) -> dict:
+    """Report a post or comment: it is re-checked at once, queued for a
+    moderator, and hidden once three different people reported it."""
     with app_data_service.connect() as connection:
         if target_type == "post":
-            exists = connection.execute("SELECT 1 FROM posts WHERE id = ?", (target_id,)).fetchone()
+            target = connection.execute("SELECT user_id FROM posts WHERE id = ?", (target_id,)).fetchone()
         else:
-            exists = connection.execute(
-                "SELECT 1 FROM post_comments WHERE id = ?", (int(target_id) if target_id.isdigit() else -1,)
+            target = connection.execute(
+                "SELECT user_id FROM post_comments WHERE id = ? AND status != 'deleted'",
+                (int(target_id) if target_id.isdigit() else -1,),
             ).fetchone()
-        if not exists:
+        if not target:
             raise CommunityError("Reported content not found.", status=404)
+        if int(target["user_id"]) == user_id:
+            raise CommunityError("You can't report your own content.")
         duplicate = connection.execute(
             "SELECT id FROM reports WHERE target_type = ? AND target_id = ? AND user_id = ? AND status = 'open'",
             (target_type, target_id, user_id),
@@ -818,117 +896,56 @@ def report(target_type: str, target_id: str, user_id: int, rule: str, note: str 
                 (target_type, target_id, user_id, rule, (note or "").strip() or None, int(time.time())),
             )
             report_id = int(cursor.lastrowid)
+            moderation_service.on_report(connection, target_type, target_id)
         connection.commit()
+        invalidate_trending()
     return {"id": report_id}
 
 
-def moderation_queue() -> dict:
-    with app_data_service.connect() as connection:
-        rows = connection.execute(
-            "SELECT id FROM posts WHERE status = 'pending_review' ORDER BY updated_at"
-        ).fetchall()
-        report_rows = connection.execute(
-            "SELECT * FROM reports WHERE status = 'open' ORDER BY created_at"
-        ).fetchall()
-        reports = []
-        for row in report_rows:
-            preview = None
-            if row["target_type"] == "post":
-                target = connection.execute("SELECT title FROM posts WHERE id = ?", (row["target_id"],)).fetchone()
-                preview = target["title"] if target else None
-            elif str(row["target_id"]).isdigit():
-                target = connection.execute(
-                    "SELECT body FROM post_comments WHERE id = ?", (int(row["target_id"]),)
-                ).fetchone()
-                preview = target["body"][:200] if target else None
-            reports.append(
-                {
-                    "id": int(row["id"]),
-                    "target_type": row["target_type"],
-                    "target_id": row["target_id"],
-                    "rule": row["rule"],
-                    "note": row["note"],
-                    "status": row["status"],
-                    "created_at": int(row["created_at"]),
-                    "target_preview": preview,
-                }
-            )
-    posts = [get_post(row["id"], None, is_moderator=True) for row in rows]
-    return {"posts": [post for post in posts if post], "reports": reports}
-
-
-_DECISION_STATUS = {
-    "publish": "published",
-    "reject": "rejected",
-    "request_changes": "changes_requested",
-    "remove": "removed",
-}
-
-
-def decide(post_id: str, decision: str, moderator_id: int, note: str | None) -> dict | None:
-    status = _DECISION_STATUS[decision]
-    now = int(time.time())
-    with app_data_service.connect() as connection:
-        row = connection.execute("SELECT * FROM posts WHERE id = ?", (post_id,)).fetchone()
-        if row is None:
-            return None
-        connection.execute(
-            "UPDATE posts SET status = ?, updated_at = ?, published_at = COALESCE(published_at, ?) WHERE id = ?",
-            (status, now, now if status == "published" else None, post_id),
-        )
-        _record_review(
-            connection, post_id, int(row["document_version"]), "human", decision, reviewer_id=moderator_id, note=note
-        )
-        if decision == "remove":
-            connection.execute(
-                "UPDATE reports SET status = 'resolved' WHERE target_type = 'post' AND target_id = ?", (post_id,)
-            )
-        connection.commit()
-        invalidate_trending()
-    return get_post(post_id, None, is_moderator=True)
-
-
-def hide_comment(comment_id: int) -> bool:
-    with app_data_service.connect() as connection:
-        row = connection.execute("SELECT post_id FROM post_comments WHERE id = ?", (comment_id,)).fetchone()
-        if row is None:
-            return False
-        connection.execute("UPDATE post_comments SET status = 'hidden' WHERE id = ?", (comment_id,))
-        connection.execute(
-            "UPDATE reports SET status = 'resolved' WHERE target_type = 'comment' AND target_id = ?", (str(comment_id),)
-        )
-        _refresh_comment_count(connection, row["post_id"])
-        connection.commit()
-        invalidate_trending()
-    return True
-
-
-def resolve_report(report_id: int) -> bool:
-    with app_data_service.connect() as connection:
-        cursor = connection.execute("UPDATE reports SET status = 'resolved' WHERE id = ?", (report_id,))
-        connection.commit()
-        return cursor.rowcount > 0
+def reports_for(connection, target_type: str, target_id: str) -> list[dict]:
+    rows = connection.execute(
+        "SELECT * FROM reports WHERE target_type = ? AND target_id = ? AND status = 'open' ORDER BY created_at",
+        (target_type, str(target_id)),
+    ).fetchall()
+    return [
+        {
+            "id": int(row["id"]),
+            "target_type": row["target_type"],
+            "target_id": row["target_id"],
+            "rule": row["rule"],
+            "note": row["note"],
+            "status": row["status"],
+            "created_at": int(row["created_at"]),
+        }
+        for row in rows
+    ]
 
 
 def delete_user_content(user_id: int) -> None:
-    """Account deletion: the user's posts, likes, comments and reports go too."""
+    """Account deletion: the user's posts, likes, comments, reports and moderation standing go too."""
     with app_data_service.connect() as connection:
         post_ids = [row["id"] for row in connection.execute("SELECT id FROM posts WHERE user_id = ?", (user_id,))]
         for post_id in post_ids:
             connection.execute("DELETE FROM post_likes WHERE post_id = ?", (post_id,))
             connection.execute("DELETE FROM post_comments WHERE post_id = ?", (post_id,))
-            connection.execute("DELETE FROM post_reviews WHERE post_id = ?", (post_id,))
             connection.execute("DELETE FROM post_saves WHERE post_id = ?", (post_id,))
+            connection.execute("DELETE FROM moderation_checks WHERE item_type = 'post' AND item_id = ?", (post_id,))
+            connection.execute("DELETE FROM moderation_queue WHERE item_type = 'post' AND item_id = ?", (post_id,))
         connection.execute("DELETE FROM posts WHERE user_id = ?", (user_id,))
         connection.execute("DELETE FROM post_saves WHERE user_id = ?", (user_id,))
         affected = {row["post_id"] for row in connection.execute("SELECT DISTINCT post_id FROM post_likes WHERE user_id = ?", (user_id,))}
         affected |= {row["post_id"] for row in connection.execute("SELECT DISTINCT post_id FROM post_comments WHERE user_id = ?", (user_id,))}
+        for (comment_id,) in connection.execute("SELECT id FROM post_comments WHERE user_id = ?", (user_id,)).fetchall():
+            connection.execute("DELETE FROM moderation_checks WHERE item_type = 'comment' AND item_id = ?", (str(comment_id),))
+            connection.execute("DELETE FROM moderation_queue WHERE item_type = 'comment' AND item_id = ?", (str(comment_id),))
         connection.execute("DELETE FROM post_likes WHERE user_id = ?", (user_id,))
         connection.execute("DELETE FROM post_comments WHERE user_id = ?", (user_id,))
         connection.execute("DELETE FROM reports WHERE user_id = ?", (user_id,))
+        moderation_service.delete_user(user_id, connection)
+        feedback_service.delete_user(user_id, connection)
         for post_id in affected:
             (likes,) = connection.execute("SELECT COUNT(*) FROM post_likes WHERE post_id = ?", (post_id,)).fetchone()
             connection.execute("UPDATE posts SET like_count = ? WHERE id = ?", (likes, post_id))
-            _refresh_comment_count(connection, post_id)
+            refresh_comment_count(connection, post_id)
         connection.commit()
         invalidate_trending()

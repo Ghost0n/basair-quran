@@ -18,9 +18,7 @@ scaffolded on the client and awaits a server + admin panel.
 - Catch sites call `reportError(scope, err, context?)` with the RAW error — it
   logs (dev console) + appends a breadcrumb; the raw text never hits the DOM.
 
-## Scaffolded — "send a report to the admin panel" (future)
-
-Client side is in place; server side is not built yet.
+## Shipped — «أبلِغ عن المشكلة» reaches the team
 
 - `error-state.tsx` renders an «أبلِغ عن المشكلة» button when given a `reportScope`
   (the reader passes `reportScope="reader"`).
@@ -36,25 +34,13 @@ Client side is in place; server side is not built yet.
   }
   ```
 
-- Today it **logs the bundle** (`console.warn("[qb:report]", …)`) and returns
-  `true` — the report is captured locally so a dev/admin can retrieve it. It only
-  POSTs to `/api/reports` when `NEXT_PUBLIC_ERROR_REPORTING=1` (off by default).
-
-### To finish the feature
-
-1. **Backend** `POST /api/reports` (new router): accept `DiagnosticReport`, stamp
-   `user_id` (via `attach_optional_session`) + server request id + server-side
-   recent log tail, store in a `reports` table (`data/app_data.db`). Rate-limit
-   per session/IP; strip anything that could be PII beyond what's needed.
-2. **Model + types**: `DiagnosticReport` in `src/app/models/api.py`, mirror in
-   `packages/shared`, add `sendReport` to `packages/api-client` (or keep the
-   direct `fetch` in `error-report.ts`).
-3. **Admin panel**: an admin-only surface (gated by `is_admin`) listing reports
-   with the user message, technical detail, breadcrumbs, url/agent, and the
-   correlated server log tail.
-4. Flip `NEXT_PUBLIC_ERROR_REPORTING=1` in the web build once the endpoint exists.
-5. Tests: `sanitizeErrorMessage` mapping; `/api/reports` accept + rate-limit +
-   admin-only read.
+- It logs the bundle (`console.warn("[qb:report]", …)`) and sends it to the
+  feedback centre: `POST /api/feedback {kind: "error", message, detail}`
+  (`docs/feedback-centre.md`). The person pressed the button, so no opt-in flag
+  is needed. Staff read it in the supervision panel (Community → «الإشراف» →
+  «الملاحظات», filter «تقرير خطأ»).
+- Automatic capture of uncaught errors (`installGlobalErrorHooks`) stays opt-in:
+  `NEXT_PUBLIC_ERROR_REPORTING=1`.
 
 ### Privacy
 

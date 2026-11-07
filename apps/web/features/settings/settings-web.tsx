@@ -8,6 +8,7 @@ import type { NumeralScript, ResearchDefaults } from "@q-basair/shared";
 import { Icon, type IconName } from "@/components/icon";
 import { SelectMenu } from "@/components/select-menu";
 import { DownloadsSettings } from "@/features/app-mode/downloads-settings";
+import { FeedbackCard } from "@/features/feedback/feedback-card";
 import { AccountSettings } from "@/features/identity/account-settings";
 import { READER_MODES, resolveReaderMode } from "@/features/reading/reader-modes";
 import { useRecitation } from "@/features/recitation/recitation-context";
@@ -63,6 +64,7 @@ const SECTIONS: { id: string; icon: IconName; label: () => string }[] = [
   { id: "study", icon: "sparkles", label: () => t("الدراسة") },
   { id: "home", icon: "home", label: () => t("الرئيسية") },
   { id: "downloads", icon: "download", label: () => t("التنزيلات") },
+  { id: "support", icon: "comment", label: () => t("الدعم والملاحظات") },
   { id: "account", icon: "user", label: () => t("الحساب") },
 ];
 
@@ -440,6 +442,7 @@ export function SettingsWeb() {
 
         {section("home", <HomeSettings />)}
         {section("downloads", <DownloadsSettings />)}
+        {section("support", <FeedbackCard />)}
         {section("account", <AccountSettings />)}
       </div>
     </div>

@@ -15,6 +15,7 @@ _LIMITED_PATHS = {
     "/api/auth/forgot-password": "auth",
     "/api/auth/reset-password": "auth",
     "/api/research-agent": "research",
+    "/api/feedback": "feedback",
 }
 
 # key = (client_ip, bucket) -> monotonic timestamps of recent hits.

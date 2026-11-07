@@ -1,11 +1,13 @@
 # Community moderation — design
 
-Status: **agreed design, not implemented yet** (2026-10-20). Part of
-`docs/production-platform-plan.md` (product features). It replaces the
-publish-time flow of `docs/ai-audit-agent.md`: the agent no longer runs when
-«نشر» is pressed but in batches, and trust levels decide when a person must
-approve. The deterministic audit (verse text, references, AI labels,
-Tafssir disclaimer, size) still runs at once and still blocks.
+Status: **implemented** (Q-Basair-58, 2026-10-21) on the current SQLite stack; see
+«Implementation» at the end for what maps where and what waits for the
+production platform. Part of `docs/production-platform-plan.md` (product
+features). It replaces the publish-time flow of `docs/ai-audit-agent.md`: the
+agent no longer runs when «نشر» is pressed but in batches, and trust levels
+decide when a person must approve. The deterministic audit (verse text,
+references, AI labels, Tafssir disclaimer, size) still runs at once and still
+blocks.
 
 The rules applied are `docs/community-guidelines.md` (versioned; each check
 records the version it used).
@@ -163,3 +165,30 @@ agent / human, verdict, confidence, issues JSON, model, guidelines version,
 language), `moderation_queue` (item, reason, assigned to, decided at),
 `reports` (item, reporter, rule, note), `moderation_actions` (actor, action,
 target, reason), `appeals`.
+
+## Implementation
+
+| Design | Code |
+|---|---|
+| Roles | `users.is_moderator` (auth DB) beside `is_admin`; `AuthUser.is_staff`. Admins appoint moderators in the panel (`POST /api/moderation/team`). Keycloak realm roles replace this with the platform. |
+| Trust, strikes, bans | `user_trust` — `moderation_service.standing / ban / unban`; `ensure_can_post` guards publishing and commenting (`403 {code: "banned"}`). |
+| Queued posts, candidates | `posts.status = 'queued'`; a published post's new version waits in `posts.candidate_*` (`community_service.publish_document / publish_reviewed_version`). |
+| The worker | `src/app/workers/moderation_worker.py`: the `worker` container (`QBASAIR_MODERATION_WORKER=external`, docker-compose) or a thread of the API (`embedded`, the default for a single local process). Batches every `QBASAIR_MODERATION_INTERVAL_SECONDS`; reported items every 30 s. |
+| Agent contract | `audit_agent_service.check_post / check_comment` (guidelines `2026-10`, rules incl. `off_topic` and `harassment` for comments), reasons in the author's interface language (`ui_language`). |
+| Daily budget, health | `QBASAIR_MODERATION_DAILY_BUDGET`, `moderation_runs`, `GET /api/moderation/health`. |
+| Checks, queue, actions, appeals | `moderation_checks` (earlier `post_reviews` rows are copied in once), `moderation_queue`, `moderation_actions`, `appeals`. |
+| Reports | `reports.checked` (the priority re-check), three distinct reporters → `report_hidden`. |
+| Panel | `apps/web/features/moderation/` (in Community → «الإشراف»): review, users, feedback, team (admins), health. |
+| Author experience | `apps/web/features/community/review-banner.tsx` (state, reasons, «عدّل وأعد الإرسال», «اعتراض»); pending / hidden comments in `post-screen.tsx`. |
+| Feedback centre | `docs/feedback-centre.md`. |
+
+Not built yet:
+
+- Moderators reading the agent's reasons **translated into their own
+  language** (the panel shows them in the author's language and names it).
+- **2FA** for admins and moderators (with Keycloak).
+- **Notifications** to authors when a decision is taken (the reasons are on
+  their post and in «منشوراتي»).
+- **Abusive reporting** as a moderated behaviour (reports are rate-limited;
+  nothing counts against a reporter yet).
+- The **benchmark** and labelled test set that choose the model.

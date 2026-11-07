@@ -64,6 +64,7 @@ def _user_info(user: auth_service.AuthUser) -> AuthUserInfo:
         id=user.id,
         email=user.email,
         is_admin=user.is_admin,
+        is_moderator=user.is_moderator,
         name=user.name,
         avatar=user.avatar,
         onboarded=user.onboarded,
