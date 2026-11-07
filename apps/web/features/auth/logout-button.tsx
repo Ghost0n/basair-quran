@@ -2,13 +2,10 @@
 
 import { useState } from "react";
 
-import { createQBasairApiClient } from "@q-basair/api-client";
-
-import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { AUTH_ENABLED } from "@/lib/config";
 
 import { t } from "@/lib/i18n";
-
-const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
+import { signOutEverywhere } from "@/features/auth/identity-flow";
 
 export function LogoutButton() {
   const [submitting, setSubmitting] = useState(false);
@@ -19,11 +16,7 @@ export function LogoutButton() {
 
   async function handleLogout() {
     setSubmitting(true);
-    try {
-      await api.logout({ suppressAuthRedirect: true });
-    } finally {
-      window.location.assign("/login");
-    }
+    await signOutEverywhere("/login");
   }
 
   return (

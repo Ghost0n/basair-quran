@@ -945,6 +945,17 @@ def set_role(actor_id: int, email: str, role: str) -> list[dict]:
         raise ModerationError("No account with this email.", status=404)
     if user.is_admin:
         raise ModerationError("An admin's role is managed on the server.", status=409)
+    if config.is_keycloak_auth():
+        # Keycloak holds the roles (and requires 2FA for staff); the mirror follows at once.
+        from src.app.services import oidc_service
+
+        subject = auth_service.get_external_id(user.id)
+        if not subject:
+            raise ModerationError("This account has not signed in with Keycloak yet.", status=409)
+        try:
+            oidc_service.admin_set_role(subject, "moderator", role == "moderator")
+        except oidc_service.OidcError as exc:
+            raise ModerationError("Keycloak could not change the role now.", status=503) from exc
     auth_service.set_moderator(user.id, role == "moderator")
     with app_data_service.connect() as connection:
         _log(connection, actor_id, "appoint_moderator" if role == "moderator" else "remove_moderator", "user", user.id, user.id, None)

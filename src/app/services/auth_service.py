@@ -157,6 +157,14 @@ def ensure_auth_db() -> None:
             connection.execute("ALTER TABLE users ADD COLUMN onboarded INTEGER NOT NULL DEFAULT 0")
         if "is_moderator" not in existing:
             connection.execute("ALTER TABLE users ADD COLUMN is_moderator INTEGER NOT NULL DEFAULT 0")
+        # Keycloak's subject (docs/keycloak.md): the account's identity with
+        # QBASAIR_AUTH_PROVIDER=keycloak; NULL for local accounts.
+        if "external_id" not in existing:
+            connection.execute("ALTER TABLE users ADD COLUMN external_id TEXT")
+        connection.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_external ON users (external_id) WHERE external_id IS NOT NULL")
+        # The identity provider's ID token of a session, for its sign-out (Keycloak).
+        if "idp_id_token" not in _column_names(connection, "sessions"):
+            connection.execute("ALTER TABLE sessions ADD COLUMN idp_id_token TEXT")
         connection.commit()
 
 
@@ -469,6 +477,7 @@ def create_session(
     *,
     device_label: str | None = None,
     platform: str | None = "web",
+    idp_id_token: str | None = None,
 ) -> tuple[str, AuthSession]:
     """Mint a new session for ``user_id``. Returns ``(raw_token, session)``.
 
@@ -487,10 +496,10 @@ def create_session(
         cursor = connection.execute(
             """
             INSERT INTO sessions
-                (user_id, token_hash, device_label, platform, created_at, last_seen_at, expires_at, revoked_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
+                (user_id, token_hash, device_label, platform, created_at, last_seen_at, expires_at, revoked_at, idp_id_token)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NULL, ?)
             """,
-            (user_id, token_hash, label, plat, now, now, expires_at),
+            (user_id, token_hash, label, plat, now, now, expires_at, idp_id_token),
         )
         connection.commit()
         row = connection.execute("SELECT * FROM sessions WHERE id = ?", (cursor.lastrowid,)).fetchone()
@@ -505,6 +514,12 @@ def resolve_session(raw_token: str | None) -> ResolvedSession | None:
     """
     if not raw_token:
         return None
+    # The standalone app signs in with Keycloak and sends its access token (docs/keycloak.md).
+    if config.is_keycloak_auth():
+        from src.app.services import oidc_service
+
+        if oidc_service.looks_like_jwt(raw_token):
+            return _resolve_access_token(raw_token)
     ensure_auth_db()
     token_hash = _hash_token(raw_token)
     now = int(time.time())
@@ -537,6 +552,24 @@ def resolve_session(raw_token: str | None) -> ResolvedSession | None:
         connection.commit()
 
     return ResolvedSession(user=user, session_id=int(row["id"]))
+
+
+def _resolve_access_token(raw_token: str) -> ResolvedSession | None:
+    """A Keycloak access token → its account (created or updated, roles mirrored); no session row."""
+    from src.app.services import oidc_service
+
+    try:
+        identity = oidc_service.verify_access_token(raw_token)
+        user = upsert_external_user(
+            identity.subject,
+            email=identity.email,
+            email_verified=identity.email_verified,
+            name=identity.name,
+            roles=identity.roles,
+        )
+    except (oidc_service.OidcError, AuthError):
+        return None
+    return ResolvedSession(user=user, session_id=0) if user.is_active else None
 
 
 def list_sessions(user_id: int) -> list[AuthSession]:
@@ -652,6 +685,84 @@ def delete_user(user_id: int) -> bool:
         cursor = connection.execute("DELETE FROM users WHERE id = ?", (user_id,))
         connection.commit()
         return cursor.rowcount > 0
+
+
+def session_id_token(raw_token: str | None) -> str | None:
+    """The identity provider's ID token stored with a live session (for its sign-out)."""
+    if not raw_token:
+        return None
+    ensure_auth_db()
+    with _connect() as connection:
+        row = connection.execute(
+            "SELECT idp_id_token FROM sessions WHERE token_hash = ? AND revoked_at IS NULL", (_hash_token(raw_token),)
+        ).fetchone()
+    return str(row["idp_id_token"]) if row and row["idp_id_token"] else None
+
+
+def upsert_external_user(
+    external_id: str,
+    *,
+    email: str | None,
+    email_verified: bool,
+    name: str | None,
+    roles: set[str],
+) -> AuthUser:
+    """The account of a Keycloak identity (docs/keycloak.md), created or updated at each sign-in.
+
+    Found by its subject; else an existing local account with the same email
+    is linked — only when Keycloak verified that email, so nobody takes over an
+    account by claiming its address; else a new account. The roles (``admin``,
+    ``moderator``) are mirrored from Keycloak every time: Keycloak decides.
+    Raises ``EmailAlreadyExistsError`` when an unverified email belongs to
+    another account.
+    """
+    ensure_auth_db()
+    now = int(time.time())
+    address = normalize_email(email) if email and "@" in email else f"{external_id}@users.invalid"
+    cleaned_name = _clean_name(name)
+    is_admin = 1 if "admin" in roles else 0
+    is_moderator = 1 if "moderator" in roles else 0
+    with _connect() as connection:
+        row = connection.execute("SELECT id, name FROM users WHERE external_id = ?", (external_id,)).fetchone()
+        if row is None and email_verified:
+            row = connection.execute(
+                "SELECT id, name FROM users WHERE email = ? AND external_id IS NULL", (address,)
+            ).fetchone()
+        if row is not None:
+            connection.execute(
+                "UPDATE users SET external_id = ?, email = ?, name = COALESCE(name, ?), is_admin = ?, is_moderator = ?, "
+                "updated_at = ? WHERE id = ?",
+                (external_id, address, cleaned_name, is_admin, is_moderator, now, int(row["id"])),
+            )
+            user_id = int(row["id"])
+        else:
+            # No password: the identity provider holds the credentials.
+            salt_hex, unusable = _hash_password(secrets.token_urlsafe(32))
+            try:
+                cursor = connection.execute(
+                    """
+                    INSERT INTO users
+                        (email, password_salt, password_hash, is_active, is_admin, is_moderator, name, onboarded,
+                         external_id, created_at, updated_at)
+                    VALUES (?, ?, ?, 1, ?, ?, ?, 0, ?, ?, ?)
+                    """,
+                    (address, salt_hex, unusable, is_admin, is_moderator, cleaned_name, external_id, now, now),
+                )
+            except sqlite3.IntegrityError as exc:
+                raise EmailAlreadyExistsError("This email belongs to another account; verify it first.") from exc
+            user_id = int(cursor.lastrowid)
+        connection.commit()
+    user = get_user_by_id(user_id)
+    if user is None:
+        raise AuthError("User was not found.")
+    return user
+
+
+def get_external_id(user_id: int) -> str | None:
+    ensure_auth_db()
+    with _connect() as connection:
+        row = connection.execute("SELECT external_id FROM users WHERE id = ?", (user_id,)).fetchone()
+    return str(row["external_id"]) if row and row["external_id"] else None
 
 
 def revoke_session_by_token(raw_token: str | None) -> bool:

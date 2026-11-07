@@ -108,3 +108,19 @@ export async function routeAfterAuth(session: AuthSessionResponse, nextPath: str
   }
   window.location.assign(nextPath);
 }
+
+/**
+ * Sign out of this device, then — with Keycloak (docs/keycloak.md) — visit its
+ * end-session page so the Keycloak session ends too (it comes back to the
+ * home page); otherwise go to `destination`.
+ */
+export async function signOutEverywhere(destination = "/"): Promise<void> {
+  let next = destination;
+  try {
+    const session = await identityApi.logout({ suppressAuthRedirect: true });
+    if (session.logout_url) next = session.logout_url;
+  } catch {
+    /* signed out locally anyway */
+  }
+  window.location.assign(next);
+}

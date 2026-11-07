@@ -1324,5 +1324,11 @@
  "وصلت رسالتك. شكراً لك.": "Mesazhi juaj arriti. Faleminderit.",
  "يراجع الاعتراضَ مشرفٌ غير صاحب القرار.": "Ankesën e shqyrton një moderator tjetër nga ai që mori vendimin.",
  "يراجع مشرفٌ بحثك قبل ظهوره في المجتمع.": "Një moderator e shqyrton kërkimin tuaj para se të shfaqet në komunitet.",
- "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Kërkimi juaj kontrollohet automatikisht brenda rreth një çerek ore, pastaj shfaqet ose e shqyrton një moderator."
+ "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Kërkimi juaj kontrollohet automatikisht brenda rreth një çerek ore, pastaj shfaqet ose e shqyrton një moderator.",
+ "حسابك في بصائر": "Llogaria juaj Basair",
+ "الدخول بالبريد أو بحساب Apple أو Google أو Meta، على صفحة دخول بصائر الآمنة.": "Hyni me email-in ose me llogarinë tuaj Apple, Google ose Meta, në faqen e sigurt të hyrjes së Basair.",
+ "أُلغي الدخول.": "Hyrja u anulua.",
+ "هذا البريد مرتبط بحساب آخر؛ أكِّده أولاً ثم أعد المحاولة.": "Ky email i përket një llogarie tjetër; konfirmojeni së pari, pastaj provoni përsëri.",
+ "هذا الحساب موقوف.": "Kjo llogari është pezulluar.",
+ "تعذّر تسجيل الدخول. حاول مرة أخرى.": "Hyrja nuk u krye. Provoni përsëri."
 }

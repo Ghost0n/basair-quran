@@ -1324,5 +1324,11 @@
  "وصلت رسالتك. شكراً لك.": "Mesajınız çatdı. Təşəkkür edirik.",
  "يراجع الاعتراضَ مشرفٌ غير صاحب القرار.": "Etiraza qərarı verən deyil, başqa moderator baxır.",
  "يراجع مشرفٌ بحثك قبل ظهوره في المجتمع.": "Moderator tədqiqatınıza icmada görünməzdən əvvəl baxır.",
- "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Tədqiqatınız təxminən on beş dəqiqə ərzində avtomatik yoxlanılır, sonra dərc olunur və ya moderator ona baxır."
+ "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Tədqiqatınız təxminən on beş dəqiqə ərzində avtomatik yoxlanılır, sonra dərc olunur və ya moderator ona baxır.",
+ "حسابك في بصائر": "Basair hesabınız",
+ "الدخول بالبريد أو بحساب Apple أو Google أو Meta، على صفحة دخول بصائر الآمنة.": "Basair-in təhlükəsiz giriş səhifəsində e-poçtunuzla və ya Apple, Google, Meta hesabınızla daxil olun.",
+ "أُلغي الدخول.": "Giriş ləğv edildi.",
+ "هذا البريد مرتبط بحساب آخر؛ أكِّده أولاً ثم أعد المحاولة.": "Bu e-poçt başqa hesaba aiddir; əvvəlcə təsdiqləyin, sonra yenidən cəhd edin.",
+ "هذا الحساب موقوف.": "Bu hesab dayandırılıb.",
+ "تعذّر تسجيل الدخول. حاول مرة أخرى.": "Daxil olmaq mümkün olmadı. Yenidən cəhd edin."
 }

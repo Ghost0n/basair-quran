@@ -1324,5 +1324,11 @@
  "وصلت رسالتك. شكراً لك.": "Xabaringiz yetib keldi. Rahmat.",
  "يراجع الاعتراضَ مشرفٌ غير صاحب القرار.": "E’tirozni qaror chiqargan emas, boshqa moderator ko‘rib chiqadi.",
  "يراجع مشرفٌ بحثك قبل ظهوره في المجتمع.": "Tadqiqotingizni hamjamiyatda paydo bo‘lishidan oldin moderator ko‘rib chiqadi.",
- "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Tadqiqotingiz taxminan chorak soat ichida avtomatik tekshiriladi, so‘ng nashr qilinadi yoki moderator ko‘rib chiqadi."
+ "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Tadqiqotingiz taxminan chorak soat ichida avtomatik tekshiriladi, so‘ng nashr qilinadi yoki moderator ko‘rib chiqadi.",
+ "حسابك في بصائر": "Basair hisobingiz",
+ "الدخول بالبريد أو بحساب Apple أو Google أو Meta، على صفحة دخول بصائر الآمنة.": "Basair'ning xavfsiz kirish sahifasida e-pochtangiz yoki Apple, Google, Meta hisobingiz bilan kiring.",
+ "أُلغي الدخول.": "Kirish bekor qilindi.",
+ "هذا البريد مرتبط بحساب آخر؛ أكِّده أولاً ثم أعد المحاولة.": "Bu e-pochta boshqa hisobga tegishli; avval uni tasdiqlang, so‘ng qayta urinib ko‘ring.",
+ "هذا الحساب موقوف.": "Bu hisob to‘xtatilgan.",
+ "تعذّر تسجيل الدخول. حاول مرة أخرى.": "Kirib bo‘lmadi. Qayta urinib ko‘ring."
 }

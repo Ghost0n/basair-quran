@@ -51,3 +51,6 @@ data/translation_cache/
 
 # Standalone app build (static export, see docs/offline-app.md)
 apps/web/out/
+
+# Rendered Keycloak realm (scripts/keycloak_realm.py) — it carries secrets.
+/infra/keycloak/build/

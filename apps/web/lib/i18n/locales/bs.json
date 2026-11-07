@@ -1346,5 +1346,11 @@
  "وصلت رسالتك. شكراً لك.": "Vaša poruka je primljena. Hvala vam.",
  "يراجع الاعتراضَ مشرفٌ غير صاحب القرار.": "Žalbu pregleda moderator koji nije donio odluku.",
  "يراجع مشرفٌ بحثك قبل ظهوره في المجتمع.": "Moderator pregleda vaše istraživanje prije nego što se pojavi u zajednici.",
- "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Vaše istraživanje se automatski provjerava u roku od otprilike četvrt sata, a zatim se pojavljuje ili ga pregleda moderator."
+ "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Vaše istraživanje se automatski provjerava u roku od otprilike četvrt sata, a zatim se pojavljuje ili ga pregleda moderator.",
+ "حسابك في بصائر": "Vaš Basair račun",
+ "الدخول بالبريد أو بحساب Apple أو Google أو Meta، على صفحة دخول بصائر الآمنة.": "Prijavite se e-mailom ili svojim Apple, Google ili Meta računom, na sigurnoj stranici za prijavu Basaira.",
+ "أُلغي الدخول.": "Prijava je otkazana.",
+ "هذا البريد مرتبط بحساب آخر؛ أكِّده أولاً ثم أعد المحاولة.": "Ovaj e-mail pripada drugom računu; prvo ga potvrdite, pa pokušajte ponovo.",
+ "هذا الحساب موقوف.": "Ovaj račun je suspendovan.",
+ "تعذّر تسجيل الدخول. حاول مرة أخرى.": "Prijava nije uspjela. Pokušajte ponovo."
 }

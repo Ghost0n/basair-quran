@@ -82,6 +82,16 @@ class AuthSessionResponse(BaseModel):
     user: Optional[AuthUserInfo] = None
     # Set only for native clients (bearer flow); the web app uses the cookie.
     token: Optional[str] = None
+    # Who holds the credentials: "local" (email + password here) or "keycloak"
+    # (docs/keycloak.md: sign in and sign up on Keycloak's page).
+    provider: Literal["local", "keycloak"] = "local"
+    # Keycloak only: where «دخول» / «إنشاء حساب» send the browser (append `return_to`),
+    # the account console (password, 2FA, linked accounts), and — after sign-out —
+    # Keycloak's end-session URL to visit so its session ends too.
+    login_url: Optional[str] = None
+    signup_url: Optional[str] = None
+    account_url: Optional[str] = None
+    logout_url: Optional[str] = None
 
 
 class DeviceInfo(BaseModel):

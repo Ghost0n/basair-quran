@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Query, Request, Response
+from fastapi.responses import RedirectResponse
+from itsdangerous import BadSignature, URLSafeTimedSerializer
 
 from src.app.core import config
 from src.app.models.api import (
@@ -20,7 +22,7 @@ from src.app.models.api import (
 )
 import logging
 
-from src.app.services import app_data_service, auth_service, mail_service
+from src.app.services import app_data_service, auth_service, mail_service, oidc_service
 
 logger = logging.getLogger(__name__)
 
@@ -83,14 +85,124 @@ def _require_user(request: Request) -> auth_service.ResolvedSession:
 # --------------------------------------------------------------------------
 
 
+def _provider_fields() -> dict:
+    """What the client needs to sign in with Keycloak (empty with local accounts)."""
+    if not config.is_keycloak_auth():
+        return {"provider": "local"}
+    return {
+        "provider": "keycloak",
+        "login_url": "/api/auth/oidc/login",
+        "signup_url": "/api/auth/oidc/login?signup=1",
+        "account_url": oidc_service.account_url(),
+    }
+
+
 @router.get("/session", response_model=AuthSessionResponse)
 def auth_session(request: Request) -> AuthSessionResponse:
     if not config.is_auth_enabled():
         return AuthSessionResponse(enabled=False, authenticated=False, user=None)
     resolved = auth_service.resolve_session(_extract_token(request))
     if resolved is None:
-        return AuthSessionResponse(enabled=True, authenticated=False, user=None)
-    return AuthSessionResponse(enabled=True, authenticated=True, user=_user_info(resolved.user))
+        return AuthSessionResponse(enabled=True, authenticated=False, user=None, **_provider_fields())
+    return AuthSessionResponse(enabled=True, authenticated=True, user=_user_info(resolved.user), **_provider_fields())
+
+
+def _local_only() -> None:
+    """Passwords live in Keycloak when it is the provider: these routes stay closed."""
+    if config.is_keycloak_auth():
+        raise HTTPException(
+            status_code=409,
+            detail={"code": "use_identity_provider", "message": "Sign in with the identity provider."},
+        )
+
+
+# --------------------------------------------------------------------------
+# Keycloak (OpenID Connect code flow with PKCE) — docs/keycloak.md
+# --------------------------------------------------------------------------
+
+_PENDING_COOKIE = "qbasair_oidc"
+
+
+def _pending_serializer() -> URLSafeTimedSerializer:
+    return URLSafeTimedSerializer(config.get_session_secret(), salt="oidc-pending")
+
+
+@router.get("/oidc/login", include_in_schema=True)
+def auth_oidc_login(
+    request: Request,
+    return_to: str | None = Query(None, max_length=500),
+    signup: bool = Query(False),
+    locale: str | None = Query(None, max_length=12),
+) -> RedirectResponse:
+    """Start signing in (or up, `signup=1`) on Keycloak's page; it comes back to the callback."""
+    if not config.is_keycloak_auth():
+        raise HTTPException(status_code=404, detail="Not found.")
+    try:
+        url, pending = oidc_service.begin_login(return_to, signup=signup, locale=locale)
+    except oidc_service.OidcError as exc:
+        raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
+    # Remembered until the callback in a short-lived signed cookie of its own
+    # (not the session cookie, which carries the sign-in token).
+    response = RedirectResponse(url, status_code=302)
+    response.set_cookie(
+        _PENDING_COOKIE,
+        _pending_serializer().dumps(pending),
+        max_age=oidc_service.PENDING_TTL,
+        httponly=True,
+        samesite="lax",
+        secure=config.is_session_secure(),
+        path="/api/auth/oidc",
+    )
+    return response
+
+
+@router.get("/oidc/callback", include_in_schema=True)
+def auth_oidc_callback(
+    request: Request,
+    code: str | None = Query(None, max_length=4096),
+    state: str | None = Query(None, max_length=200),
+    error: str | None = Query(None, max_length=200),
+) -> RedirectResponse:
+    """Keycloak's answer: check it, open our session (cookie) and go back where the reader was."""
+    if not config.is_keycloak_auth():
+        raise HTTPException(status_code=404, detail="Not found.")
+    try:
+        pending = _pending_serializer().loads(
+            request.cookies.get(_PENDING_COOKIE, ""), max_age=oidc_service.PENDING_TTL
+        )
+    except BadSignature:
+        pending = None
+    return_to = oidc_service.safe_return_to((pending or {}).get("return_to"))
+
+    def finish(response: RedirectResponse) -> RedirectResponse:
+        response.delete_cookie(_PENDING_COOKIE, path="/api/auth/oidc")
+        return response
+
+    # The reader backed out on Keycloak's page (access_denied); anything else is a failure.
+    failed = finish(RedirectResponse(f"/login?error={'cancelled' if error == 'access_denied' else 'failed'}", status_code=302))
+    if error or not code:
+        return failed
+    try:
+        identity = oidc_service.complete_login(code, state or "", pending)
+        user = auth_service.upsert_external_user(
+            identity.subject,
+            email=identity.email,
+            email_verified=identity.email_verified,
+            name=identity.name,
+            roles=identity.roles,
+        )
+    except oidc_service.OidcError as exc:
+        logger.warning("oidc callback refused: %s", exc)
+        return failed
+    except auth_service.EmailAlreadyExistsError:
+        return finish(RedirectResponse("/login?error=email_in_use", status_code=302))
+    if not user.is_active:
+        return finish(RedirectResponse("/login?error=inactive", status_code=302))
+    label, platform = auth_service.describe_user_agent(request.headers.get("user-agent"))
+    raw_token, _ = auth_service.create_session(user.id, device_label=label, platform=platform, idp_id_token=identity.id_token)
+    response = finish(RedirectResponse(return_to, status_code=302))
+    _set_session_cookie(response, raw_token)
+    return response
 
 
 def _device_fields(req, request: Request) -> dict:
@@ -107,6 +219,7 @@ def _device_fields(req, request: Request) -> dict:
 def auth_login(req: AuthLoginRequest, request: Request, response: Response) -> AuthSessionResponse:
     if not config.is_auth_enabled():
         raise HTTPException(status_code=400, detail="Authentication is disabled.")
+    _local_only()
 
     try:
         user = auth_service.authenticate_user(req.email, req.password)
@@ -137,6 +250,7 @@ def _enforce_invite(invite_code: str | None) -> None:
 def auth_signup(req: AuthSignupRequest, request: Request, response: Response) -> AuthSessionResponse:
     if not config.is_auth_enabled():
         raise HTTPException(status_code=400, detail="Authentication is disabled.")
+    _local_only()
 
     _enforce_invite(req.invite_code)
 
@@ -155,9 +269,20 @@ def auth_signup(req: AuthSignupRequest, request: Request, response: Response) ->
 
 @router.post("/logout", response_model=AuthSessionResponse)
 def auth_logout(request: Request, response: Response) -> AuthSessionResponse:
-    auth_service.revoke_session_by_token(_extract_token(request))
+    """End this device's session; with Keycloak, also answer `logout_url` (its end-session page)."""
+    token = _extract_token(request)
+    logout_url = None
+    if config.is_keycloak_auth():
+        try:
+            logout_url = oidc_service.logout_url(auth_service.session_id_token(token))
+        except oidc_service.OidcError:
+            logout_url = None
+    auth_service.revoke_session_by_token(token)
     _clear_session_cookie(response)
-    return AuthSessionResponse(enabled=config.is_auth_enabled(), authenticated=False, user=None)
+    fields = _provider_fields() if config.is_auth_enabled() else {}
+    return AuthSessionResponse(
+        enabled=config.is_auth_enabled(), authenticated=False, user=None, logout_url=logout_url, **fields
+    )
 
 
 @router.post("/forgot-password", response_model=AuthOkResponse)
@@ -168,6 +293,7 @@ def auth_forgot_password(req: ForgotPasswordRequest) -> AuthOkResponse:
     returned to the client."""
     if not config.is_auth_enabled():
         raise HTTPException(status_code=400, detail="Authentication is disabled.")
+    _local_only()
     raw_token = auth_service.create_password_reset(req.email)
     if raw_token is not None:
         mail_service.send_password_reset(req.email.strip(), raw_token)
@@ -179,6 +305,7 @@ def auth_reset_password(req: ResetPasswordRequest) -> AuthOkResponse:
     """Consume a reset token and set a new password. Invalidates all sessions."""
     if not config.is_auth_enabled():
         raise HTTPException(status_code=400, detail="Authentication is disabled.")
+    _local_only()
     try:
         ok = auth_service.reset_password_with_token(req.token, req.password)
     except auth_service.AuthError as exc:
@@ -193,6 +320,14 @@ def auth_delete_account(request: Request, response: Response) -> DeleteResult:
     """Permanently delete the current account: all app data, then the user +
     every session (all devices), and clear the cookie. Irreversible."""
     resolved = _require_user(request)
+    if config.is_keycloak_auth():
+        # The Keycloak account goes first: if it can't be deleted, nothing is.
+        subject = auth_service.get_external_id(resolved.user.id)
+        if subject:
+            try:
+                oidc_service.admin_delete_user(subject)
+            except oidc_service.OidcError as exc:
+                raise HTTPException(status_code=503, detail="تعذّر حذف الحساب الآن. حاول بعد قليل.") from exc
     app_data_service.delete_user_data(resolved.user.id)
     deleted = auth_service.delete_user(resolved.user.id)
     _clear_session_cookie(response)

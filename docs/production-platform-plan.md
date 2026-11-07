@@ -194,6 +194,12 @@ added to the Compose stack.
    flow; theme.
 4. **Auth integration**: web BFF flow, API token validation, removal of the
    old password auth (`auth_service.py`, `routes/auth.py`), deletion + export.
+
+   Steps 3–4 are built locally behind `QBASAIR_AUTH_PROVIDER=keycloak`
+   (`docs/keycloak.md`, 2026-11-07): realm as code, code flow + PKCE, Bearer
+   tokens for the app, roles mirrored, moderator 2FA, account deletion. Left
+   for the platform: Keycloak in the stack, keycloak-config-cli, Scaleway TEM,
+   the Keycloakify theme, and removing the password routes after the cut-over.
 5. **Clients**: sign-in screens, Capacitor native sign-in + token exchange,
    secure token storage; web guest storage on the device + upload at sign-up.
 6. **AI connectors**: registry, encrypted secrets, sign-in buttons, guides,

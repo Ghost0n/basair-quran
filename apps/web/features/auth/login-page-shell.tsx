@@ -14,8 +14,27 @@ import { useWebDesign } from "@/lib/use-web-design";
 import { continueAsGuest, identityApi, routeAfterAuth, sanitizeNextPath } from "./identity-flow";
 
 import { t } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n/provider";
 
 type AuthTab = "in" | "up";
+/** Keycloak holds the credentials (docs/keycloak.md): sign in and up on its page. */
+type IdentityProvider = { loginUrl: string; signupUrl: string };
+
+/** Why Keycloak sent the reader back (`/login?error=…`, routes/auth.py). */
+function keycloakError(code: string | null): string {
+  if (code === "cancelled") return t("أُلغي الدخول.");
+  if (code === "email_in_use") return t("هذا البريد مرتبط بحساب آخر؛ أكِّده أولاً ثم أعد المحاولة.");
+  if (code === "inactive") return t("هذا الحساب موقوف.");
+  if (code) return t("تعذّر تسجيل الدخول. حاول مرة أخرى.");
+  return "";
+}
+
+/** A Keycloak URL that comes back to this page (which then finishes: onboarding, guest data, `next`). */
+function providerUrl(base: string, nextPath: string, locale: string): string {
+  const separator = base.includes("?") ? "&" : "?";
+  const params = new URLSearchParams({ return_to: `/login?from=idp&next=${encodeURIComponent(nextPath)}`, locale });
+  return `${base}${separator}${params.toString()}`;
+}
 
 function messageForError(error: unknown, tab: AuthTab): string {
   const text = error instanceof Error ? error.message : "";
@@ -43,6 +62,8 @@ export function LoginPageShell() {
   const [view, setView] = useState<"auth" | "forgot" | "reset">(linkToken ? "reset" : "auth");
   const [resetToken, setResetToken] = useState(linkToken);
   const [notice, setNotice] = useState("");
+  const [identityProvider, setIdentityProvider] = useState<IdentityProvider | null>(null);
+  const { locale } = useI18n();
 
   const isSignup = tab === "up";
 
@@ -63,6 +84,9 @@ export function LoginPageShell() {
         if (session.authenticated) {
           await routeAfterAuth(session, nextPath);
           return;
+        }
+        if (session.provider === "keycloak" && session.login_url && session.signup_url) {
+          setIdentityProvider({ loginUrl: session.login_url, signupUrl: session.signup_url });
         }
       } catch {
         // Keep the form visible when the session probe fails.
@@ -180,7 +204,25 @@ export function LoginPageShell() {
 
       {notice ? <div className="qb-auth-notice" role="status">{notice}</div> : null}
 
-      {view === "forgot" ? (
+      {identityProvider ? (
+        <div className="qb-auth-card qb-auth-provider" style={{ animation: "qbRise 500ms var(--motion-ease-settle) 160ms both" }}>
+          <div className="qb-auth-reset-title">{t("حسابك في بصائر")}</div>
+          <p className="qb-auth-provider-note">
+            {t("الدخول بالبريد أو بحساب Apple أو Google أو Meta، على صفحة دخول بصائر الآمنة.")}
+          </p>
+          {keycloakError(searchParams.get("error")) ? (
+            <div className="qb-auth-error" role="alert">
+              {keycloakError(searchParams.get("error"))}
+            </div>
+          ) : null}
+          <a className="qb-auth-cta" href={providerUrl(identityProvider.loginUrl, nextPath, locale)}>
+            {t("دخول")}
+          </a>
+          <a className="qb-auth-secondary" href={providerUrl(identityProvider.signupUrl, nextPath, locale)}>
+            {t("حساب جديد")}
+          </a>
+        </div>
+      ) : view === "forgot" ? (
         <div className="qb-auth-card" style={{ animation: "qbRise 500ms var(--motion-ease-settle) 160ms both" }}>
           <div className="qb-auth-reset-title">{t("إعادة تعيين كلمة المرور")}</div>
           <label className="qb-auth-field">

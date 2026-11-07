@@ -139,6 +139,7 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   next recitation of it (offline included) shows exact times at once; the app asks for the
   last-read surah's durations during its splash.
 - Optional invite-only authentication with backend-managed users and signed session cookies.
+- Sign-in with Keycloak (email, Apple, Google, Meta; 2FA for moderators) behind `QBASAIR_AUTH_PROVIDER=keycloak`: OpenID Connect code flow with PKCE, roles mirrored from Keycloak, the realm as code (`scripts/keycloak_realm.py`), a local Keycloak with `scripts/keycloak_dev.sh` — see `docs/keycloak.md`. The default stays `local` until the production platform's cut-over.
 - Strict-context research agent that uses local transcript/book sources for term discovery and answers only from Quran search results.
 - Dedicated `/research` workspace with per-session Ollama cloud key entry, model switching, request-usage observability, and an experimental Tafssir mode that reads every ayah with its neighbouring ayahs and its surah's context (and can be centred on one ayah).
 
@@ -242,6 +243,11 @@ $env:QBASAIR_SESSION_SECRET='replace-me-with-a-long-random-secret'
 $env:QBASAIR_SESSION_SECURE='0'
 python scripts\manage_users.py create --email you@example.com
 ```
+
+To sign in through a local Keycloak instead (`docs/keycloak.md`), run `scripts/keycloak_dev.sh`
+and start the API with `QBASAIR_AUTH_PROVIDER=keycloak`,
+`QBASAIR_OIDC_ISSUER=http://127.0.0.1:8080/realms/qbasair`, `QBASAIR_OIDC_CLIENT_SECRET=dev-web-secret`
+and `QBASAIR_PUBLIC_URL=http://127.0.0.1:3000`.
 
 5. Start the web app on port `3000`:
 

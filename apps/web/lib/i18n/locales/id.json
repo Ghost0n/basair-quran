@@ -1302,5 +1302,11 @@
  "وصلت رسالتك. شكراً لك.": "Pesan Anda sudah masuk. Terima kasih.",
  "يراجع الاعتراضَ مشرفٌ غير صاحب القرار.": "Banding ditinjau oleh moderator selain pembuat keputusan.",
  "يراجع مشرفٌ بحثك قبل ظهوره في المجتمع.": "Moderator meninjau kajian Anda sebelum tampil di komunitas.",
- "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Kajian Anda diperiksa otomatis dalam sekitar seperempat jam, lalu tampil atau ditinjau moderator."
+ "يُفحص بحثك آلياً خلال ربع ساعة تقريباً، ثم يظهر أو يراجعه مشرف.": "Kajian Anda diperiksa otomatis dalam sekitar seperempat jam, lalu tampil atau ditinjau moderator.",
+ "حسابك في بصائر": "Akun Basair Anda",
+ "الدخول بالبريد أو بحساب Apple أو Google أو Meta، على صفحة دخول بصائر الآمنة.": "Masuk dengan email atau akun Apple, Google, atau Meta Anda, di halaman masuk Basair yang aman.",
+ "أُلغي الدخول.": "Masuk dibatalkan.",
+ "هذا البريد مرتبط بحساب آخر؛ أكِّده أولاً ثم أعد المحاولة.": "Email ini milik akun lain; verifikasi dulu, lalu coba lagi.",
+ "هذا الحساب موقوف.": "Akun ini ditangguhkan.",
+ "تعذّر تسجيل الدخول. حاول مرة أخرى.": "Gagal masuk. Silakan coba lagi."
 }

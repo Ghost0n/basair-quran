@@ -226,6 +226,48 @@ def is_session_secure() -> bool:
     return read_bool_env("QBASAIR_SESSION_SECURE")
 
 
+# --- Identity: Keycloak (docs/production-platform-plan.md, «Identity flows») ---
+
+
+def get_auth_provider() -> str:
+    """``local`` (accounts in auth.db, the default until the platform cut-over)
+    or ``keycloak`` (OpenID Connect; docs/keycloak.md)."""
+    provider = os.environ.get("QBASAIR_AUTH_PROVIDER", "local").strip().lower()
+    return provider if provider in ("local", "keycloak") else "local"
+
+
+def is_keycloak_auth() -> bool:
+    return is_auth_enabled() and get_auth_provider() == "keycloak"
+
+
+def get_oidc_issuer() -> str:
+    """The realm's public issuer, e.g. ``https://auth.example.org/realms/qbasair``."""
+    return os.environ.get("QBASAIR_OIDC_ISSUER", "").strip().rstrip("/")
+
+
+def get_oidc_internal_url() -> str:
+    """Where the API reaches Keycloak itself (``http://keycloak:8080`` in Compose);
+    the issuer's origin when unset. Browser redirects always use the issuer."""
+    return os.environ.get("QBASAIR_OIDC_INTERNAL_URL", "").strip().rstrip("/")
+
+
+def get_oidc_client_id() -> str:
+    return os.environ.get("QBASAIR_OIDC_CLIENT_ID", "qbasair-web").strip()
+
+
+def get_oidc_client_secret() -> str:
+    return os.environ.get("QBASAIR_OIDC_CLIENT_SECRET", "").strip()
+
+
+def get_oidc_app_client_id() -> str:
+    """The standalone app's public client: its access tokens are accepted as Bearer tokens."""
+    return os.environ.get("QBASAIR_OIDC_APP_CLIENT_ID", "qbasair-app").strip()
+
+
+def get_public_url() -> str:
+    return os.environ.get("QBASAIR_PUBLIC_URL", "").strip().rstrip("/")
+
+
 def get_invite_codes() -> set[str]:
     """Signup invite codes. Empty set ⇒ open registration (current behavior)."""
     raw = os.environ.get("QBASAIR_INVITE_CODES", "")
