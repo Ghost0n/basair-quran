@@ -9,8 +9,8 @@ import { nativeTabsPayload, type NativeTabPayload, type TabGlyph } from "./nativ
  * drawn natively over the web view by the NativeTabBar plugin
  * (apps/mobile/ios/App/App/NativeTabBarPlugin.swift). The web app keeps the
  * state: it shows the bar, keeps its active tab in step with the page, hides
- * it in the Mushaf and wherever the side menu shows (iPad, a landscape
- * phone), and turns a native tap into the same navigation as a web tab.
+ * it in the reader's focus mode, under a sheet and wherever the side menu
+ * shows (iPad, a landscape phone), and turns a native tap into the same navigation as a web tab.
  * Once it has drawn, `html.qb-native-tabbar` hides the web-drawn bar, and
  * `--qb-native-tabbar-h` on <html> holds its height (the room screens keep
  * above it). The native bar answers `show` with the height it drew; if it
@@ -126,6 +126,31 @@ let pluginPromise: Promise<{ bar: NativeTabBarPlugin }> | null = null;
 function plugin(): Promise<{ bar: NativeTabBarPlugin }> {
   pluginPromise ??= import("@capacitor/core").then(({ registerPlugin }) => ({ bar: registerPlugin<NativeTabBarPlugin>(PLUGIN) }));
   return pluginPromise;
+}
+
+/**
+ * Whether the native bar steps aside. It stays in place on every page of a
+ * phone, the Mushaf included (the reader's dock rides above it there), so a
+ * tab change never feels like entering another space; only focus mode,
+ * which hides all of the reader's chrome, and the side menu of wider
+ * screens put it away.
+ */
+export function nativeBarHidden(state: { narrow: boolean; immersive: boolean }): boolean {
+  return !state.narrow || state.immersive;
+}
+
+/** Whether <html> carries a class, kept in step (the reader's focus mode: `qb-immersive`). */
+export function useRootClass(name: string): boolean {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    const root = document.documentElement;
+    const check = () => setOn(root.classList.contains(name));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, [name]);
+  return on;
 }
 
 /** A sheet or dialog is open: its own layer, which the native bar must not cover. */

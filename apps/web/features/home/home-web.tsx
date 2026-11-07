@@ -2,7 +2,7 @@
 
 import "./home.web.css";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { Icon, type IconName } from "@/components/icon";
 import { GirihPattern } from "@/components/girih";
@@ -40,8 +40,20 @@ export type WebHomeProps = {
  * by word over the rosette; beside the reading card, the way back into your
  * work as a quiet list. Same data and actions as the phone Home (home-screen.tsx).
  */
+/** Whether Home's hero has drawn itself once since the app started. */
+let heroPlayed = false;
+
 export function WebHome({ greeting, verse, reading, rows, formatNumber, corner, overlay }: WebHomeProps) {
   const words = verse ? verse.text.split(" ") : [];
+  // The rosette and the verse draw themselves on the first visit only:
+  // coming back to Home finds it as it was left, not a new space. While
+  // Home stays open, the next verse still writes itself in.
+  const [entrance] = useState(() => !heroPlayed);
+  const [firstKey] = useState(() => verse?.key ?? null);
+  useEffect(() => {
+    heroPlayed = true;
+  }, []);
+  const writeIn = entrance || verse?.key !== firstKey;
   const here = reading?.surah ? reading.surah - 1 : null;
 
   return (
@@ -49,14 +61,14 @@ export function WebHome({ greeting, verse, reading, rows, formatNumber, corner, 
       {corner ? <div className="qbw-corner">{corner}</div> : null}
       {verse ? (
         <section className="qbw-hero" aria-label={t("آية")}>
-          <GirihPattern className="qbw-hero-girih" drawn />
+          <GirihPattern className="qbw-hero-girih" drawn={entrance} />
           {greeting ? (
             <div className="qbw-greeting">
               <h1>{greeting.line}</h1>
               {greeting.sub ? <p>{greeting.sub}</p> : null}
             </div>
           ) : null}
-          <p key={verse.key} className="qbw-verse qb-word-in" lang="ar" dir="rtl">
+          <p key={verse.key} className={`qbw-verse${writeIn ? " qb-word-in" : ""}`} lang="ar" dir="rtl">
             {words.map((word, i) => (
               <span key={i} style={{ ["--w" as string]: i }}>
                 {word}

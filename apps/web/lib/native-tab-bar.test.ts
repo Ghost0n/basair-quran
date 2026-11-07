@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { barLook, nativeTabBarAction, nativeTabBarAvailable, rgbToHex } from "./native-tab-bar";
+import { barLook, nativeBarHidden, nativeTabBarAction, nativeTabBarAvailable, rgbToHex } from "./native-tab-bar";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -75,5 +75,16 @@ describe("barLook", () => {
   it("lays it out left to right otherwise, and follows the app's light theme", () => {
     expect(barLook("ltr", true)).toEqual({ dir: "ltr", style: "light" });
     expect(barLook("", false)).toEqual({ dir: "ltr", style: "dark" });
+  });
+});
+
+describe("nativeBarHidden", () => {
+  it("keeps the bar in place on every page of a phone, the Mushaf included", () => {
+    expect(nativeBarHidden({ narrow: true, immersive: false })).toBe(false);
+  });
+
+  it("steps aside in focus mode and where the side menu shows", () => {
+    expect(nativeBarHidden({ narrow: true, immersive: true })).toBe(true);
+    expect(nativeBarHidden({ narrow: false, immersive: false })).toBe(true);
   });
 });

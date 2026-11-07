@@ -239,3 +239,39 @@ html.qb-web[dir="rtl"] .qb-display-strip .size input[type="range"]::-webkit-slid
   }
 
 }
+
+/* ---------- The iPhone app: Apple's tab bar stays in the Mushaf ---------- */
+/* The native bar (lib/native-tab-bar.ts) keeps its place on every page, so
+   the reader's dock rides just above it, with the page number in the strip
+   between them; the round Home mark gives way to the bar's own Home tab
+   (an arrow back, in the recitation's controls, stays). The page re-fits
+   above the dock through the same --dock-bottom as before. Focus mode puts
+   the bar away and everything returns to the edge. */
+@media (max-width: 768px) {
+  html.qb-web.qb-native-tabbar:root:not(.qb-immersive) {
+    --dock-bottom: calc(var(--qb-native-tabbar-h, 83px) + 24px);
+  }
+
+  html.qb-web.qb-native-tabbar:root:not(.qb-immersive) .qb-page-number {
+    bottom: calc(var(--qb-native-tabbar-h, 83px) + 3px);
+  }
+
+  html.qb-web.qb-native-tabbar:root .qb-reader-back.is-home {
+    display: none;
+  }
+
+  html.qb-web.qb-native-tabbar:root:has(.qb-reader-back.is-home) .qb-mushaf-stage > .qb-reader-head.is-dock {
+    right: var(--dock-side);
+    left: var(--dock-side);
+  }
+
+  html.qb-web.qb-native-tabbar:root:has(.qb-reader-back.is-home) .qb-reader-head.is-dock .qb-display-strip {
+    right: 0;
+    left: 0;
+  }
+
+  /* Verse by verse: the last verse scrolls clear of the dock and the bar. */
+  html.qb-web.qb-native-tabbar:root:not(.qb-immersive) .qb-mushaf-stage.is-ayah .qb-mushaf-page {
+    padding-bottom: calc(var(--dock-bottom) + var(--dock-h) + 40px);
+  }
+}

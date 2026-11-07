@@ -19,9 +19,11 @@ import { useNumerals, usePreferences } from "@/lib/preferences-context";
 
 import { HomeSettings } from "./home-settings";
 import { LanguageSelect } from "./language-select";
+import { chipCentringDelta } from "./settings-index";
 import { TranslationsSettings } from "./translations-settings";
 
 import { TAFSSIR_ENABLED } from "@/lib/features";
+
 import { t } from "@/lib/i18n";
 
 const NUMERALS: { value: NumeralScript; label: () => string }[] = [
@@ -150,6 +152,9 @@ export function SettingsWeb() {
     return () => changes.disconnect();
   }, []);
 
+  // When a chip was last tapped (the page then glides to its section).
+  const jumpedAtRef = useRef(-Infinity);
+
   // The index follows the scroll: the section crossing the top third is current.
   useEffect(() => {
     const page = pageRef.current;
@@ -162,8 +167,38 @@ export function SettingsWeb() {
       { root: page, rootMargin: "0px 0px -66% 0px" },
     );
     page.querySelectorAll("[data-settings-section]").forEach((element) => seen.observe(element));
-    return () => seen.disconnect();
+    // At the very bottom the last sections can never reach the top third:
+    // the last one shown is current there.
+    const atEnd = () => {
+      // A chip just tapped stays current while the page glides to its section.
+      if (performance.now() - jumpedAtRef.current < 1200) return;
+      if (page.scrollTop <= 0 || page.scrollTop + page.clientHeight < page.scrollHeight - 2) return;
+      const shown = Array.from(page.querySelectorAll<HTMLElement>("[data-settings-section]")).filter(
+        (element) => element.childElementCount > 0 && !element.hasAttribute("data-filtered-out"),
+      );
+      const last = shown[shown.length - 1];
+      if (last) setActive(last.id.replace("settings-", ""));
+    };
+    page.addEventListener("scroll", atEnd, { passive: true });
+    return () => {
+      seen.disconnect();
+      page.removeEventListener("scroll", atEnd);
+    };
   }, []);
+
+  // The chip row (a phone) follows too: the current section's chip slides to
+  // its middle, so the row always shows where the page is. Only the row
+  // scrolls, never the page under the finger.
+  const indexRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const row = indexRef.current;
+    const chip = row?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!row || !chip || row.scrollWidth <= row.clientWidth) return;
+    const delta = chipCentringDelta(row.getBoundingClientRect(), chip.getBoundingClientRect());
+    if (Math.abs(delta) < 2) return;
+    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    row.scrollBy({ left: delta, behavior: reduce ? "auto" : "smooth" });
+  }, [active]);
 
   // The search keeps the rows that match (or a whole section when its name
   // does) and hides the rest; the index lists only the sections left.
@@ -201,6 +236,7 @@ export function SettingsWeb() {
   }, [query]);
 
   function jump(id: string) {
+    jumpedAtRef.current = performance.now();
     setActive(id);
     pageRef.current?.querySelector(`#settings-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -249,7 +285,7 @@ export function SettingsWeb() {
           <h2>{t("التفضيلات")}</h2>
         </div>
       )}
-      <nav className="qb-settings-index" aria-label={t("الإعدادات")}>
+      <nav className="qb-settings-index" ref={indexRef} aria-label={t("الإعدادات")}>
         {SECTIONS.filter((item) => present.includes(item.id) && (!matching || matching.includes(item.id))).map((item) => (
           <button
             key={item.id}

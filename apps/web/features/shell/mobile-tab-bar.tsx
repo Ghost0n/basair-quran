@@ -9,7 +9,7 @@ import { BrandMark } from "@/components/brand-mark";
 import { Icon, ICON_PATHS } from "@/components/icon";
 import { haptic } from "@/lib/haptics";
 import { useIsMobile } from "@/lib/use-is-mobile";
-import { useNativeTabBar } from "@/lib/native-tab-bar";
+import { nativeBarHidden, useNativeTabBar, useRootClass } from "@/lib/native-tab-bar";
 
 
 import { useShellMode } from "./mode-context";
@@ -54,6 +54,7 @@ export function MobileTabBar() {
   const isOwnPage = (item: Destination) => item.mode === mode || (item.id === "search" && mode === "studio");
   useKeyboardInset();
   const narrow = useIsMobile(768);
+  const immersive = useRootClass("qb-immersive");
   const activeId = PHONE_TABS.find((item) => item.owns.includes(mode))?.id ?? "";
   useNativeTabBar({
     // The app's own icons (the logo for Home), as on the web bar; the SF Symbol is the fallback.
@@ -64,8 +65,8 @@ export function MobileTabBar() {
       glyph: item.id === "home" ? { kind: "brand" as const } : { kind: "icon" as const, d: ICON_PATHS[item.icon] },
     })),
     active: activeId,
-    // The Mushaf has its own controls; the side menu replaces the bar when wider.
-    hidden: mode === "reading" || !narrow,
+    // In place on every page, the Mushaf included; focus mode and the side menu put it away.
+    hidden: nativeBarHidden({ narrow, immersive }),
     onSelect: (id) => {
       const item = PHONE_TABS.find((tab) => tab.id === id);
       if (!item) return;

@@ -321,7 +321,9 @@ export function ReaderBar({
     const back = (
       <button
         type="button"
-        className="qb-reader-back"
+        // The Home mark (is-home): in the iPhone app the native bar's own Home
+        // tab stands below the dock, so this one gives way (reading.web.css).
+        className={`qb-reader-back${!reciteView && backHome ? " is-home" : ""}`}
         onClick={() => {
           if (!reciteView) {
             goBack();
