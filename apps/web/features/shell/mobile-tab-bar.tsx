@@ -11,6 +11,8 @@ import { haptic } from "@/lib/haptics";
 import { useIsMobile } from "@/lib/use-is-mobile";
 import { useNativeTabBar } from "@/lib/native-tab-bar";
 
+import { TabBarDiagnostic } from "./tabbar-diagnostic";
+
 import { useShellMode } from "./mode-context";
 import { PHONE_TABS, rememberResearch, researchTarget, useOpenDestination, type Destination } from "./worlds";
 
@@ -145,44 +147,47 @@ export function MobileTabBar() {
   }
 
   return (
-    <nav
-      ref={navRef}
-      className="qb-tabbar qb-stable-tabbar"
-      aria-label={t("التنقل")}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerEnd}
-      onPointerCancel={onPointerEnd}
-    >
-      <span ref={lensRef} className="qb-tab-lens" aria-hidden="true" />
-      {PHONE_TABS.map((item) => {
-        const current = item.owns.includes(mode);
-        const brand = item.id === "home";
-        return (
-          <button
-            key={item.id}
-            type="button"
-            className={`qb-stab${brand ? " brand" : ""}${current ? " active" : ""}`}
-            aria-current={current ? "page" : undefined}
-            aria-label={brand ? item.label : undefined}
-            onClick={() => {
-              if (suppressClickRef.current) return;
-              if (current && isOwnPage(item)) {
-                // A second tap on the current tab: back to its top.
-                scrollCanvasToTop();
-                return;
-              }
-              open(item);
-            }}
-          >
-            <span className="pill" aria-hidden="true">
-              {brand ? <BrandMark size={34} themed /> : <Icon name={item.icon} size={22} stroke={current ? 2.1 : 1.7} />}
-            </span>
-            {brand ? null : <span className="label">{item.label}</span>}
-          </button>
-        );
-      })}
-    </nav>
+    <>
+      <nav
+        ref={navRef}
+        className="qb-tabbar qb-stable-tabbar"
+        aria-label={t("التنقل")}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerEnd}
+        onPointerCancel={onPointerEnd}
+      >
+        <span ref={lensRef} className="qb-tab-lens" aria-hidden="true" />
+        {PHONE_TABS.map((item) => {
+          const current = item.owns.includes(mode);
+          const brand = item.id === "home";
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={`qb-stab${brand ? " brand" : ""}${current ? " active" : ""}`}
+              aria-current={current ? "page" : undefined}
+              aria-label={brand ? item.label : undefined}
+              onClick={() => {
+                if (suppressClickRef.current) return;
+                if (current && isOwnPage(item)) {
+                  // A second tap on the current tab: back to its top.
+                  scrollCanvasToTop();
+                  return;
+                }
+                open(item);
+              }}
+            >
+              <span className="pill" aria-hidden="true">
+                {brand ? <BrandMark size={34} themed /> : <Icon name={item.icon} size={22} stroke={current ? 2.1 : 1.7} />}
+              </span>
+              {brand ? null : <span className="label">{item.label}</span>}
+            </button>
+          );
+        })}
+      </nav>
+      <TabBarDiagnostic />
+    </>
   );
 }
 

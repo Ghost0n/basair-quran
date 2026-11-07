@@ -82,6 +82,14 @@ describe("useNativeTabBar in the iPhone app", () => {
     expect(document.documentElement.classList.contains("qb-native-tabbar")).toBe(false);
   });
 
+  it("keeps the web bar while the native bar has not answered", async () => {
+    bar.show.mockImplementation(() => new Promise(() => undefined));
+    inTheApp();
+    await mount();
+    expect(bar.show).toHaveBeenCalledTimes(1);
+    expect(document.documentElement.classList.contains("qb-native-tabbar")).toBe(false);
+  });
+
   it("brings the web bar back when the native bar fails", async () => {
     bar.show.mockImplementation(async () => {
       throw new Error("No web view to attach the tab bar to");

@@ -74,8 +74,8 @@ describe("PLATFORM_INIT_SCRIPT in the iPhone app", () => {
     return classes;
   }
 
-  it("hides the web tab bar before first paint when the native one will draw", () => {
-    expect(runInApp(true)).toEqual(["qb-ios", "qb-native-tabbar"]);
+  it("keeps the web tab bar until the native one has really drawn (lib/native-tab-bar.ts)", () => {
+    expect(runInApp(true)).toEqual(["qb-ios"]);
   });
 
   it("keeps the web tab bar when the native plugin is missing", () => {
