@@ -208,11 +208,11 @@ services:
       DUCKDNS_TOKEN: ${DUCKDNS_TOKEN}
     volumes:
       - /srv/letsencrypt:/etc/letsencrypt
-    # Issue cert:
-    #   docker compose run --rm --profile tls certbot
-    # Renew:
-    #   docker compose run --rm --profile tls certbot renew \
-    #     --dns-duckdns-token $DUCKDNS_TOKEN --dns-duckdns-propagation-seconds 60
+    # Only run on demand (the `tls` profile keeps it out of `up`). Use the
+    # helpers, which read .env.production and restart/reload nginx afterwards:
+    #   Issue:  ./scripts/provision_tls.sh
+    #   Renew:  ./scripts/renew_tls.sh   (daily cron — see docs/deployment-hetzner.md)
+    # Nothing renews the certificate unless that cron is installed.
     command: >
       certonly
       --non-interactive

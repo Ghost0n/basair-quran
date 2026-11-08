@@ -10,9 +10,13 @@ usage() {
   cat <<'EOF'
 Usage: ./scripts/provision_tls.sh [--env-file PATH]
 
-This script obtains or refreshes a Let's Encrypt certificate for the configured
-QBASAIR_PUBLIC_DOMAIN using the docker-compose certbot service, then restarts
-nginx so the new certificate is loaded.
+Obtains (or keeps, when still valid) the Let's Encrypt certificate for
+QBASAIR_PUBLIC_DOMAIN through the `certbot` Compose service, using the DuckDNS
+DNS-01 challenge, then restarts nginx so it switches to its HTTPS config.
+
+Reads from the env file: QBASAIR_PUBLIC_DOMAIN, DUCKDNS_TOKEN and CERTBOT_EMAIL
+(QBASAIR_LETSENCRYPT_EMAIL is still accepted as the older name).
+Certificates are written to /srv/letsencrypt on the host.
 EOF
 }
 
@@ -41,37 +45,57 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-set -a
-. "$ENV_FILE"
-set +a
+# Read one KEY=value from the env file without executing it as shell code
+# (Compose env files are not shell scripts). Surrounding quotes are dropped.
+env_value() {
+  local value
+  value="$(sed -n "s/^${1}=//p" "$ENV_FILE" | tail -n 1)"
+  value="${value%\"}"; value="${value#\"}"
+  value="${value%\'}"; value="${value#\'}"
+  printf '%s' "$value"
+}
 
-if [[ -z "${QBASAIR_PUBLIC_DOMAIN:-}" ]]; then
-  echo "QBASAIR_PUBLIC_DOMAIN must be set in $ENV_FILE." >&2
-  exit 1
-fi
+DOMAIN="$(env_value QBASAIR_PUBLIC_DOMAIN)"
+TOKEN="$(env_value DUCKDNS_TOKEN)"
+EMAIL="$(env_value CERTBOT_EMAIL)"
+[[ -n "$EMAIL" ]] || EMAIL="$(env_value QBASAIR_LETSENCRYPT_EMAIL)"
 
-if [[ -z "${QBASAIR_LETSENCRYPT_EMAIL:-}" ]]; then
-  echo "QBASAIR_LETSENCRYPT_EMAIL must be set in $ENV_FILE." >&2
-  exit 1
-fi
+missing=0
+[[ -n "$DOMAIN" ]] || { echo "QBASAIR_PUBLIC_DOMAIN must be set in $ENV_FILE." >&2; missing=1; }
+[[ -n "$TOKEN" ]] || { echo "DUCKDNS_TOKEN must be set in $ENV_FILE." >&2; missing=1; }
+[[ -n "$EMAIL" ]] || { echo "CERTBOT_EMAIL must be set in $ENV_FILE." >&2; missing=1; }
+[[ "$missing" -eq 0 ]] || exit 1
+
+case "$DOMAIN" in
+  *.duckdns.org) ;;
+  *)
+    echo "$DOMAIN is not a duckdns.org name: the DuckDNS DNS challenge cannot issue it." >&2
+    echo "See docs/deployment-hetzner.md (\"A domain outside DuckDNS\")." >&2
+    exit 1
+    ;;
+esac
 
 compose=(docker compose --env-file "$ENV_FILE")
 
-echo "Ensuring nginx is reachable on HTTP for the ACME challenge..."
-"${compose[@]}" up -d nginx web api
-
-echo "Requesting/refreshing the Let's Encrypt certificate for ${QBASAIR_PUBLIC_DOMAIN}..."
+echo "Requesting the Let's Encrypt certificate for ${DOMAIN} (DNS-01 via DuckDNS)..."
 "${compose[@]}" run --rm certbot certonly \
-  --webroot \
-  --webroot-path /var/www/certbot \
-  --email "${QBASAIR_LETSENCRYPT_EMAIL}" \
+  --non-interactive \
   --agree-tos \
   --no-eff-email \
-  --non-interactive \
+  --email "$EMAIL" \
+  --preferred-challenges dns \
+  --authenticator dns-duckdns \
+  --dns-duckdns-token "$TOKEN" \
+  --dns-duckdns-propagation-seconds 60 \
   --keep-until-expiring \
-  -d "${QBASAIR_PUBLIC_DOMAIN}"
+  -d "$DOMAIN"
 
-echo "Restarting nginx to enable HTTPS..."
+"${compose[@]}" run --rm certbot certificates -d "$DOMAIN" | grep -E "Domains:|Expiry Date:" || true
+
+# start-nginx.sh picks the HTTP or the HTTPS config when the container starts,
+# so a restart (not a reload) is what turns HTTPS on after a first issuance.
+echo "Restarting nginx to load the certificate..."
+"${compose[@]}" up -d nginx
 "${compose[@]}" restart nginx
 
 echo "TLS provisioning complete."
