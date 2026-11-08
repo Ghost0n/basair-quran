@@ -140,4 +140,13 @@ jobs:
             sleep 6
           done
           echo "Readiness check failed after retries."
+          # Say why: a TLS failure (expired / self-signed certificate) looks the
+          # same as a down API to `curl -sf`.
+          curl -sS -o /dev/null https://basair-al-quran.duckdns.org/api/ready || true
+          echo "Certificate served on 443:"
+          echo | openssl s_client -connect basair-al-quran.duckdns.org:443 \
+            -servername basair-al-quran.duckdns.org 2>/dev/null \
+            | openssl x509 -noout -subject -issuer -enddate || true
+          curl -s -o /dev/null -w "Plain HTTP /healthz on the host: %{http_code}\n" \
+            -H 'Host: basair-al-quran.duckdns.org' http://127.0.0.1/healthz || true
           exit 1

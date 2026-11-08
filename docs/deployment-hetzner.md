@@ -69,7 +69,7 @@ Copy-Item .env.production.example .env.production
 4. Edit `.env.production` and review at least:
 
 - `QBASAIR_PUBLIC_DOMAIN`
-- `QBASAIR_LETSENCRYPT_EMAIL`
+- `DUCKDNS_TOKEN` and `CERTBOT_EMAIL` (TLS certificate)
 - `QBASAIR_SESSION_SECRET`
 - `QBASAIR_CORS_ORIGINS`
 - `QBASAIR_LLM_CHAT_MODEL`
@@ -137,9 +137,14 @@ This is the lowest-cost production option and is now the default recommendation 
 
 Use this when you want HTTPS without paying for a Hetzner Load Balancer.
 
-- point your domain's `A` or `AAAA` record at the server
+The certificate is issued with the **DuckDNS DNS-01 challenge** (the `certbot` Compose
+service, image `infinityofspace/certbot-dns-duckdns`), so port 80 is not involved in
+issuance. Certificates live on the host in `/srv/letsencrypt`, mounted read-only into
+`nginx` at `/etc/letsencrypt`.
+
+- point the DuckDNS name (`basair-al-quran.duckdns.org`) at the server's IPv4 and IPv6
 - open `80/tcp` and `443/tcp` on the Hetzner Firewall
-- set `QBASAIR_PUBLIC_DOMAIN`, `QBASAIR_LETSENCRYPT_EMAIL`, and `QBASAIR_ENABLE_TLS=1` in `.env.production`
+- set `QBASAIR_PUBLIC_DOMAIN`, `DUCKDNS_TOKEN`, `CERTBOT_EMAIL` and `QBASAIR_ENABLE_TLS=1` in `.env.production`
 - run:
 
 ```bash
@@ -147,13 +152,48 @@ chmod +x scripts/provision_tls.sh scripts/renew_tls.sh
 ./scripts/provision_tls.sh
 ```
 
-The `nginx` container starts in HTTP mode when no certificate is present yet, serves the ACME challenge from `/var/www/certbot`, and then switches to HTTPS automatically after the certificate is issued and `nginx` is restarted.
+`start-nginx.sh` chooses its config when the container starts: with no certificate in
+`/srv/letsencrypt/live/<domain>/` it runs HTTP only (nothing listens on 443), and after
+`provision_tls.sh` restarts it, it serves HTTPS.
 
-Recommended renewal cron on the Hetzner VM:
+**Renewal is not automatic.** Let's Encrypt certificates last 90 days and nothing in the
+stack renews them, so install this daily cron for the `deploy` user (it must be in the
+`docker` group). `renew_tls.sh` only renews certificates that are within 30 days of expiry,
+then reloads nginx (or restarts it if nginx is still on its HTTP-only config):
 
 ```bash
-0 4 * * * cd /srv/q-basair && ./scripts/renew_tls.sh >> /var/log/qbasair-cert-renew.log 2>&1
+17 4 * * * cd /srv/q-basair && ./scripts/renew_tls.sh >> "$HOME/qbasair-tls-renew.log" 2>&1
 ```
+
+Check the result at any time:
+
+```bash
+docker compose --env-file .env.production run --rm certbot certificates
+echo | openssl s_client -connect basair-al-quran.duckdns.org:443 -servername basair-al-quran.duckdns.org 2>/dev/null | openssl x509 -noout -subject -issuer -enddate
+```
+
+The issuer must be Let's Encrypt. A self-signed certificate on 443 (for example
+`CN=<the server's hostname>`) means the request is **not** reaching `qbasair-nginx`:
+another web server on the host (a distribution `nginx`/`apache2` package with its
+"snakeoil" certificate) holds the ports, or the name points at another machine. Check
+`sudo ss -ltnp 'sport = :443'` and `docker ps --filter name=qbasair-nginx`.
+
+#### A domain outside DuckDNS (`basairquran.com`)
+
+The DuckDNS plugin can only answer challenges for `*.duckdns.org` names, and
+`provision_tls.sh` refuses any other domain. `basairquran.com` (DNS at Infomaniak) needs
+its own certificate covering the apex, `www`, and later `auth.basairquran.com` (Keycloak),
+through one of:
+
+- **DNS-01 at Infomaniak** with the `certbot-dns-infomaniak` plugin and an Infomaniak API
+  token (DNS scope) — works before the records point at this server and for any name;
+- **HTTP-01 (webroot)** once the `A`/`AAAA` records point here: the nginx configs already
+  serve `/.well-known/acme-challenge/` from `/var/www/certbot`, but that directory must
+  then be shared between `nginx` and a webroot `certbot` (a bind mount on both).
+
+Either way the certificate lands in `/srv/letsencrypt/live/<name>/`; nginx needs a
+`server_name`/`ssl_certificate` for it (the Q-Basair templates for the main site, a
+drop-in in `/srv/nginx-vhosts.d/` for `auth.`), and `renew_tls.sh` must renew it too.
 
 ### Option B: Hetzner Load Balancer with private target networking
 
@@ -295,6 +335,12 @@ sudo ./svc.sh start
 ```
 
 The runner runs as `deploy`, which is already in the `docker` group. It reads `.env.production` from `/srv/q-basair/.env.production` directly — that file is never committed.
+
+GitHub removes a self-hosted runner that has not connected for 14 days. If a deploy run
+stays **Queued** and **Settings → Actions → Runners** lists no runner, the runner on the
+server is stopped or was removed: register it again with the steps above (a new token is
+needed). A run picks it up if it has been queued for less than 24 hours; GitHub cancels
+it after that, and it must be re-run (`gh run rerun <id>`).
 
 ### What each deploy does
 

@@ -64,6 +64,10 @@ jobs:
           check "HTTP" 0 "" ""
           check "TLS" 1 "" ""
           check "TLS behind a CDN" 1 "173.245.48.0/20,2400:cb00::/32" "CF-Connecting-IP"
+      - name: Check the TLS helper scripts (bash -n, shellcheck)
+        run: |
+          bash -n scripts/provision_tls.sh scripts/renew_tls.sh
+          shellcheck -S warning scripts/provision_tls.sh scripts/renew_tls.sh
 
   frontend:
     name: Frontend (build)
