@@ -63,6 +63,8 @@ asking is never shared.
 | `/api/search`, `/api/search-v2`, `/api/search-result-page`, `/api/suggest`, `/api/text-count` | `public, max-age=600, stale-while-revalidate=3600` | Deterministic; shorter in case ranking ships without a DB rebuild |
 | `/api/translations` / `/api/translations/ayahs` | `public, max-age=300` / `3600` (route) | Pure functions of `translations.db` |
 | `/api/reciters/{id}/durations/{surah}` | `public, max-age=31536000, immutable` once complete, `no-store` while filling (route) | Measured once in `data/cache.db`; never changes |
+| `/api/recitations/{id}/{surah}` | `public, max-age=86400` (route) | Prepared timings; a re-prepared surah gets a new `audio_url` |
+| `/api/recitations/audio/…mp3?v=` | `public, max-age=31536000, immutable` (nginx static) | Prepared recordings, versioned by `?v=` (`docs/recitation-audio.md`) |
 | `/api/community/tags` | `public, max-age=60, stale-while-revalidate=300` | Same for everyone |
 | `/api/offline/{name}` | `public, max-age=86400` (`manifest.json`: `no-cache`) (route) | Static files; not edge-cached |
 | Everything per-user or a write | none | Rule 2 |

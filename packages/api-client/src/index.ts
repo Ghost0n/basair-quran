@@ -60,6 +60,7 @@ import type {
   ThemeSummary,
   ThemeUpdate,
   ReciterDurations,
+  SurahRecitation,
   ReciterItem,
   RootDistributionResponse,
   ResearchAgentSettingsResponse,
@@ -430,6 +431,10 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
     },
     getReciterDurations(reciterId: string, surah: number): Promise<ReciterDurations> {
       return request<ReciterDurations>(`/reciters/${encodeURIComponent(reciterId)}/durations/${surah}`);
+    },
+    /** A prepared surah's recording and verse timings (404 when it isn't prepared). */
+    getSurahRecitation(reciterId: string, surah: number): Promise<SurahRecitation> {
+      return request<SurahRecitation>(`/recitations/${encodeURIComponent(reciterId)}/${surah}`);
     },
     getRootDistribution(root: string, mushaf = 1): Promise<RootDistributionResponse> {
       return request<RootDistributionResponse>(

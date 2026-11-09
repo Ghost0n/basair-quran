@@ -28,6 +28,7 @@ _research_sources_path = BASE_DIR / "data" / "research_sources"
 _auth_db_path = BASE_DIR / "data" / "auth.db"
 _app_db_path = BASE_DIR / "data" / "app_data.db"
 _cache_db_path = BASE_DIR / "data" / "cache.db"
+_recitations_path = BASE_DIR / "data" / "recitations"
 _mushaf_layout_path = BASE_DIR / "data" / "mushaf_layout"
 
 # The authentic Madani (QCF) page layout is Hafs-only; this is the Hafs mushaf id.
@@ -132,6 +133,19 @@ def get_cache_db_path() -> str:
 def set_cache_db_path(path: str) -> None:
     global _cache_db_path
     _cache_db_path = Path(path)
+
+
+def get_recitations_path() -> str:
+    """Directory of the prepared recitations (scripts/build_recitations.py):
+    one MP3 and one timing file per reciter and surah, plus catalog.json. A
+    runtime artifact, never committed; nginx serves the audio files itself."""
+    raw_path = os.environ.get("QBASAIR_RECITATIONS_PATH")
+    return str(Path(raw_path) if raw_path else _recitations_path)
+
+
+def set_recitations_path(path: str) -> None:
+    global _recitations_path
+    _recitations_path = Path(path)
 
 
 def get_mushaf_layout_path() -> str:

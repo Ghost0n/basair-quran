@@ -7,6 +7,7 @@ from src.app.routes.moderation import router as moderation_router
 from src.app.routes.mushafs import router as mushafs_router
 from src.app.routes.offline import router as offline_router
 from src.app.routes.reader import router as reader_router
+from src.app.routes.recitations import router as recitations_router
 from src.app.routes.research import router as research_router
 from src.app.routes.search import router as search_router
 from src.app.routes.translations import router as translations_router
@@ -21,6 +22,7 @@ __all__ = [
     "mushafs_router",
     "offline_router",
     "reader_router",
+    "recitations_router",
     "research_router",
     "search_router",
     "translations_router",

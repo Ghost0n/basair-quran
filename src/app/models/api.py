@@ -1235,7 +1235,32 @@ class ReciterItem(BaseModel):
     name_english: str
     riwayah: str
     style: str
+    # The verse-by-verse files (everyayah); empty for a reciter heard only
+    # from prepared surahs.
     audio_base: str
+    # Surahs prepared as one continuous recording (GET /api/recitations/{id}/{surah});
+    # the others play verse by verse from audio_base.
+    surahs: list[int] = Field(default_factory=list)
+    # Where the prepared recordings come from (shown with the reciter).
+    attribution: list[str] = Field(default_factory=list)
+
+
+class RecitationVerse(BaseModel):
+    ayah: int
+    start_ms: int
+    end_ms: int
+
+
+class SurahRecitation(BaseModel):
+    """One prepared surah: a single recording and where each verse sits in it."""
+
+    reciter_id: str
+    surah: int
+    audio_url: str
+    duration_ms: int
+    bytes: int
+    attribution: str
+    verses: list[RecitationVerse]
 
 
 # ---------------------------------------------------------------------------

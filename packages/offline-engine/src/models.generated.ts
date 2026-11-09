@@ -245,7 +245,9 @@ export const MODELS: Record<string, ModelSpec> = {
     {"name": "name_english", "type": {"kind": "str"}},
     {"name": "riwayah", "type": {"kind": "str"}},
     {"name": "style", "type": {"kind": "str"}},
-    {"name": "audio_base", "type": {"kind": "str"}}
+    {"name": "audio_base", "type": {"kind": "str"}},
+    {"name": "surahs", "type": {"kind": "list", "of": {"kind": "int"}}, "default": []},
+    {"name": "attribution", "type": {"kind": "list", "of": {"kind": "str"}}, "default": []}
   ],
   "ResearchDefaults": [
     {"name": "default_mode", "type": {"kind": "literal", "values": ["strict", "tafssir"]}, "default": "strict"},
