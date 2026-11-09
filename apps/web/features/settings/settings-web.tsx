@@ -19,6 +19,7 @@ import { hapticsAvailable, hapticsEnabled, setHapticsEnabled, subscribeHaptics }
 import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 
+import { AiSettings } from "./ai-settings";
 import { HomeSettings } from "./home-settings";
 import { LanguageSelect } from "./language-select";
 import { chipCentringDelta } from "./settings-index";
@@ -63,6 +64,7 @@ const SECTIONS: { id: string; icon: IconName; label: () => string }[] = [
   { id: "reading", icon: "book", label: () => t("القراءة والمصحف") },
   { id: "recitation", icon: "volume", label: () => t("التلاوة") },
   { id: "study", icon: "sparkles", label: () => t("الدراسة") },
+  { id: "ai", icon: "zap", label: () => t("الذكاء الاصطناعي") },
   { id: "home", icon: "home", label: () => t("الرئيسية") },
   { id: "downloads", icon: "download", label: () => t("التنزيلات") },
   { id: "support", icon: "comment", label: () => t("الدعم والملاحظات") },
@@ -167,6 +169,18 @@ export function SettingsWeb() {
 
   // When a chip was last tapped (the page then glides to its section).
   const jumpedAtRef = useRef(-Infinity);
+
+  // Opened on a section (?section=ai, from the study page or a sign-in): go there.
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get("section");
+    if (!wanted) return;
+    const timer = window.setTimeout(() => {
+      jumpedAtRef.current = performance.now();
+      pageRef.current?.querySelector(`#settings-${wanted}`)?.scrollIntoView({ block: "start" });
+      setActive(wanted);
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   // The index follows the scroll: the section crossing the top third is current.
   useEffect(() => {
@@ -456,6 +470,7 @@ export function SettingsWeb() {
           </section>,
         )}
 
+        {section("ai", <AiSettings />)}
         {section("home", <HomeSettings />)}
         {section("downloads", <DownloadsSettings />)}
         {section("support", <FeedbackCard />)}

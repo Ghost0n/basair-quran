@@ -495,51 +495,6 @@
   background: rgba(212, 175, 55, 0.08);
 }
 
-/* ---------- Settings block ---------- */
-
-.qb-studio-settings {
-  margin: 0 20px 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px 14px;
-  background: rgba(0, 0, 0, 0.16);
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.light .qb-studio-settings {
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.qb-studio-settings label {
-  font-size: 11px;
-  color: var(--fg-3);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.qb-studio-settings input {
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.24);
-  border: 1px solid var(--border);
-  color: var(--fg-1);
-  font-size: 12px;
-  font-family: var(--font-arabic-ui);
-}
-
-.light .qb-studio-settings input {
-  background: rgba(255, 255, 255, 0.7);
-}
-
-.qb-studio-settings input:focus {
-  outline: none;
-  border-color: var(--border-focus);
-}
-
 /* A session centred on one ayah (reader «تفسير» tool). */
 .qb-studio-focus {
   display: flex;
