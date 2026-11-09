@@ -1320,5 +1320,14 @@
  "مجوّد": "Mujawwad",
  "معلّم": "Muallim",
  "الاهتزاز عند اللمس": "Getaran sentuhan",
- "نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.": "Ketukan ringan saat membalik halaman atau berganti tab, di perangkat ini."
+ "نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.": "Ketukan ringan saat membalik halaman atau berganti tab, di perangkat ini.",
+ "للاستماع دون اتصال": "Dengarkan offline",
+ "نزّل التلاوة على جهازك": "Unduh tilawah ke perangkat Anda",
+ "النطاق المختار": "Rentang terpilih",
+ "المصحف كاملاً": "Seluruh Al-Qur'an",
+ "تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.": "Tilawah {0} disimpan di perangkat Anda, jadi bisa didengar tanpa koneksi.",
+ "غير متاحة لهذا القارئ": "Tidak tersedia untuk qari ini",
+ "على الجهاز": "Di perangkat",
+ "{0}٪ على الجهاز": "{0}% di perangkat",
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Tilawah yang diunduh dikelola dan dihapus di Pengaturan → Unduhan."
 }

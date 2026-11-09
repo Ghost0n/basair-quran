@@ -1342,5 +1342,14 @@
  "مجوّد": "Mujawwad",
  "معلّم": "Didáctica",
  "الاهتزاز عند اللمس": "Respuesta háptica",
- "نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.": "Una vibración suave al pasar página o cambiar de pestaña, en este dispositivo."
+ "نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.": "Una vibración suave al pasar página o cambiar de pestaña, en este dispositivo.",
+ "للاستماع دون اتصال": "Escuchar sin conexión",
+ "نزّل التلاوة على جهازك": "Descarga la recitación en tu dispositivo",
+ "النطاق المختار": "Rango elegido",
+ "المصحف كاملاً": "El Corán completo",
+ "تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.": "La recitación de {0} se guarda en tu dispositivo para escucharla sin conexión.",
+ "غير متاحة لهذا القارئ": "No disponible para este recitador",
+ "على الجهاز": "En el dispositivo",
+ "{0}٪ على الجهاز": "{0} % en el dispositivo",
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Las recitaciones descargadas se gestionan y eliminan en Ajustes → Descargas."
 }

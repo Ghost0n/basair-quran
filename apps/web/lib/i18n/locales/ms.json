@@ -1320,5 +1320,14 @@
  "مجوّد": "Mujawwad",
  "معلّم": "Muallim",
  "الاهتزاز عند اللمس": "Getaran sentuhan",
- "نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.": "Ketukan ringan apabila menyelak halaman atau menukar tab, pada peranti ini."
+ "نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.": "Ketukan ringan apabila menyelak halaman atau menukar tab, pada peranti ini.",
+ "للاستماع دون اتصال": "Dengar luar talian",
+ "نزّل التلاوة على جهازك": "Muat turun bacaan ke peranti anda",
+ "النطاق المختار": "Julat dipilih",
+ "المصحف كاملاً": "Seluruh al-Quran",
+ "تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.": "Bacaan {0} disimpan pada peranti anda, jadi boleh didengar tanpa sambungan.",
+ "غير متاحة لهذا القارئ": "Tidak tersedia untuk qari ini",
+ "على الجهاز": "Pada peranti",
+ "{0}٪ على الجهاز": "{0}% pada peranti",
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Bacaan yang dimuat turun diurus dan dipadam dalam Tetapan → Muat turun."
 }

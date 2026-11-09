@@ -1342,5 +1342,14 @@
  "مجوّد": "Mujawwad",
  "معلّم": "Teaching",
  "الاهتزاز عند اللمس": "Haptic feedback",
- "نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.": "A light tap when turning a page or changing tab, on this device."
+ "نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.": "A light tap when turning a page or changing tab, on this device.",
+ "للاستماع دون اتصال": "Offline listening",
+ "نزّل التلاوة على جهازك": "Download the recitation to your device",
+ "النطاق المختار": "Chosen range",
+ "المصحف كاملاً": "The whole Quran",
+ "تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.": "{0}'s recitation is saved on your device, so you can listen without a connection.",
+ "غير متاحة لهذا القارئ": "Not available for this reciter",
+ "على الجهاز": "On the device",
+ "{0}٪ على الجهاز": "{0}% on the device",
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Downloaded recitations are managed and removed in Settings → Downloads."
 }

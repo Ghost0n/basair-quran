@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReciterItem, SurahListItem } from "@q-basair/shared";
 
 import { SelectMenu } from "@/components/select-menu";
-import { downloadSurahAudio, downloadedAudio, removeReciterAudio, type AudioRegistry } from "@/lib/app-mode/audio";
+import { downloadSurahAudio, downloadedAudio, partialAudio, removeReciterAudio, type AudioRegistry } from "@/lib/app-mode/audio";
 import { startReciterDownload, stopReciterDownload, useAudioJob } from "@/lib/app-mode/audio-jobs";
 import { APP_MODE } from "@/lib/app-mode/config";
 import type { InstalledPack, Manifest, PackEntry } from "@/lib/app-mode/packs";
@@ -229,7 +229,17 @@ function Recitations({
   // What this reciter can be downloaded for: every surah with verse files, else its prepared ones.
   const available = reciter?.audio_base ? surahs : surahs.filter((item) => reciter?.surahs.includes(item.id));
   const saved = useMemo(() => Object.keys(audio[reciterId] ?? {}).length, [audio, reciterId]);
-  const bytes = useMemo(() => Object.values(audio[reciterId] ?? {}).reduce((total, value) => total + value, 0), [audio, reciterId]);
+  // Verses downloaded with a range (the recitation sheet) count too.
+  const [partialBytes, setPartialBytes] = useState(0);
+  useEffect(() => {
+    void partialAudio().then((partial) =>
+      setPartialBytes(Object.values(partial[reciterId] ?? {}).reduce((total, entry) => total + entry.bytes, 0)),
+    );
+  }, [reciterId, audio, job?.status]);
+  const bytes = useMemo(
+    () => Object.values(audio[reciterId] ?? {}).reduce((total, value) => total + value, 0) + partialBytes,
+    [audio, reciterId, partialBytes],
+  );
   const target = surahs.find((item) => item.id === surah);
   const id = `audio-${reciterId}-${surah}`;
   const running = job?.status === "running";
@@ -300,7 +310,7 @@ function Recitations({
                 {saved ? t("استئناف") : t("تنزيل الكل")}
               </button>
             ) : null}
-            {saved ? (
+            {saved || partialBytes ? (
               <button
                 type="button"
                 className="qb-btn ghost sm"

@@ -1342,5 +1342,14 @@
  "مجوّد": "Mujavvad",
  "معلّم": "Muallim",
  "الاهتزاز عند اللمس": "Teginish tebranishi",
- "نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.": "Sahifa varaqlanganda yoki bo‘lim almashtirilganda yengil tebranish, ushbu qurilmada."
+ "نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.": "Sahifa varaqlanganda yoki bo‘lim almashtirilganda yengil tebranish, ushbu qurilmada.",
+ "للاستماع دون اتصال": "Oflayn tinglash",
+ "نزّل التلاوة على جهازك": "Tilovatni qurilmangizga yuklab oling",
+ "النطاق المختار": "Tanlangan oraliq",
+ "المصحف كاملاً": "Butun Qur'on",
+ "تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.": "{0} tilovati qurilmangizda saqlanadi — internetsiz tinglaysiz.",
+ "غير متاحة لهذا القارئ": "Bu qori uchun mavjud emas",
+ "على الجهاز": "Qurilmada",
+ "{0}٪ على الجهاز": "{0}% qurilmada",
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Yuklab olingan tilovatlar Sozlamalar → Yuklab olinganlar bo‘limida boshqariladi va o‘chiriladi."
 }

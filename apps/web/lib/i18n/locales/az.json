@@ -1342,5 +1342,14 @@
  "مجوّد": "Mücəvvəd",
  "معلّم": "Müəllim",
  "الاهتزاز عند اللمس": "Toxunma titrəməsi",
- "نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.": "Səhifə çevirəndə və ya tab dəyişəndə yüngül titrəmə, bu cihazda."
+ "نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.": "Səhifə çevirəndə və ya tab dəyişəndə yüngül titrəmə, bu cihazda.",
+ "للاستماع دون اتصال": "Oflayn dinləmə",
+ "نزّل التلاوة على جهازك": "Tilavəti cihazına yüklə",
+ "النطاق المختار": "Seçilmiş aralıq",
+ "المصحف كاملاً": "Bütün Quran",
+ "تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.": "{0} tilavəti cihazında saxlanılır; bağlantı olmadan dinləyə bilərsən.",
+ "غير متاحة لهذا القارئ": "Bu qari üçün mövcud deyil",
+ "على الجهاز": "Cihazda",
+ "{0}٪ على الجهاز": "{0}% cihazda",
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Yüklənmiş tilavətlər Parametrlər → Yükləmələr bölməsində idarə olunur və silinir."
 }
