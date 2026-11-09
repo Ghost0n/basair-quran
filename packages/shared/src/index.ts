@@ -1010,7 +1010,29 @@ export interface ReciterItem {
   name_english: string;
   riwayah: string;
   style: string;
+  /** The verse-by-verse files (everyayah); empty for a reciter heard only from prepared surahs. */
   audio_base: string;
+  /** Surahs prepared as one continuous recording (getSurahRecitation); the others play verse by verse. */
+  surahs?: number[];
+  /** Where the prepared recordings come from. */
+  attribution?: string[];
+}
+
+export interface RecitationVerse {
+  ayah: number;
+  start_ms: number;
+  end_ms: number;
+}
+
+/** One prepared surah: a single recording and where each verse sits in it (docs/recitation-audio.md). */
+export interface SurahRecitation {
+  reciter_id: string;
+  surah: number;
+  audio_url: string;
+  duration_ms: number;
+  bytes: number;
+  attribution: string;
+  verses: RecitationVerse[];
 }
 
 export interface UserPreferencesUpdate {

@@ -3,6 +3,7 @@ import time
 from fastapi import APIRouter, HTTPException, Path, Query, Response
 
 from src.app.models.api import MushafItem, ReciterDurations, ReciterItem, SurahListItem
+from src.app.services import recitation_service
 from src.app.services import quran_service, recitation_cache_service, reciter_service
 
 router = APIRouter(prefix="/api", tags=["catalog"])
@@ -79,7 +80,7 @@ def get_surahs(
 @router.get("/reciters", response_model=list[ReciterItem])
 def get_reciters() -> list[ReciterItem]:
     start = time.time()
-    reciters = [ReciterItem(**reciter) for reciter in reciter_service.list_reciters()]
+    reciters = [ReciterItem(**reciter) for reciter in recitation_service.reciter_catalogue()]
     quran_service.logger.info("GET /api/reciters - %.1fms - %s reciters", (time.time() - start) * 1000, len(reciters))
     return reciters
 

@@ -176,6 +176,8 @@ services:
       - ./deploy/nginx/http.conf.template:/opt/qbasair/http.conf.template:ro
       - ./deploy/nginx/tls.conf.template:/opt/qbasair/tls.conf.template:ro
       - ./deploy/nginx/start-nginx.sh:/opt/qbasair/start-nginx.sh:ro
+      # Prepared recitations, served as static files (docs/recitation-audio.md).
+      - ./data/recitations:/srv/recitations:ro
       # Shared TLS certificate store — written by any stack's certbot on this host.
       - /srv/letsencrypt:/etc/letsencrypt:ro
       # Drop-in vhost configs from co-located stacks. Any app can place a

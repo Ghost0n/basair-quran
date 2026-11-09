@@ -1,0 +1,63 @@
+{
+  "_doc": "Recitation sources (docs/recitation-audio.md). scripts/build_recitations.py prepares each reciter's surahs from the first source that has them: qdc (Quran.com recitation id), mp3quran (timed read id), everyayah (verse-file folder, joined). discover_mp3quran adds every other timed mp3quran read.",
+  "audio": { "bitrate_kbps": 64, "channels": 1, "sample_rate": 44100 },
+  "discover_mp3quran": true,
+  "reciters": [
+    { "id": "alafasy", "sources": [{ "qdc": 7 }, { "mp3quran": 123 }, { "everyayah": "Alafasy_128kbps" }] },
+    { "id": "husary", "sources": [{ "qdc": 6 }, { "everyayah": "Husary_128kbps" }] },
+    { "id": "abdulbasit", "sources": [{ "qdc": 2 }, { "mp3quran": 53 }, { "everyayah": "Abdul_Basit_Murattal_192kbps" }] },
+    { "id": "minshawi", "sources": [{ "qdc": 9 }, { "mp3quran": 112 }, { "everyayah": "Minshawy_Murattal_128kbps" }] },
+    { "id": "sudais", "sources": [{ "qdc": 3 }, { "mp3quran": 54 }, { "everyayah": "Abdurrahmaan_As-Sudais_192kbps" }] },
+    { "id": "shuraim", "sources": [{ "qdc": 10 }, { "mp3quran": 31 }, { "everyayah": "Saood_ash-Shuraym_128kbps" }] },
+    { "id": "ghamdi", "sources": [{ "mp3quran": 30 }, { "everyayah": "Ghamadi_40kbps" }] },
+    { "id": "ajmy", "sources": [{ "mp3quran": 5 }, { "everyayah": "Ahmed_ibn_Ali_al_Ajamy_128kbps" }] },
+    {
+      "id": "abdulbasit-mujawwad",
+      "name": "عبد الباسط عبد الصمد (مجوّد)",
+      "name_english": "Abdul Basit Abdul Samad (Mujawwad)",
+      "riwayah": "hafs",
+      "style": "mujawwad",
+      "sources": [{ "qdc": 1 }, { "mp3quran": 51 }]
+    },
+    {
+      "id": "husary-muallim",
+      "name": "محمود خليل الحُصري (المعلّم)",
+      "name_english": "Mahmoud Khalil Al-Husary (Muallim)",
+      "riwayah": "hafs",
+      "style": "muallim",
+      "sources": [{ "qdc": 12 }]
+    },
+    {
+      "id": "yasser-dosari",
+      "name": "ياسر الدوسري",
+      "name_english": "Yasser Al-Dosari",
+      "riwayah": "hafs",
+      "style": "murattal",
+      "sources": [{ "qdc": 97 }, { "mp3quran": 92 }]
+    },
+    {
+      "id": "abubakr-shatri",
+      "name": "أبو بكر الشاطري",
+      "name_english": "Abu Bakr Al-Shatri",
+      "riwayah": "hafs",
+      "style": "murattal",
+      "sources": [{ "qdc": 4 }, { "mp3quran": 4 }]
+    },
+    {
+      "id": "hani-rifai",
+      "name": "هاني الرفاعي",
+      "name_english": "Hani Ar-Rifai",
+      "riwayah": "hafs",
+      "style": "murattal",
+      "sources": [{ "qdc": 5 }, { "mp3quran": 89 }]
+    },
+    {
+      "id": "khalifa-tunaiji",
+      "name": "خليفة الطنيجي",
+      "name_english": "Khalifa Al-Tunaiji",
+      "riwayah": "hafs",
+      "style": "murattal",
+      "sources": [{ "qdc": 161 }]
+    }
+  ]
+}

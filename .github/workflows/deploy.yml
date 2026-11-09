@@ -127,6 +127,23 @@ jobs:
             echo "No prefill-recitation tag — keeping data/cache.db."
           fi
 
+      - name: Prepare the recitations if requested
+        run: |
+          cd /srv/q-basair
+          # One MP3 + verse timings per reciter and surah (docs/recitation-audio.md),
+          # served by nginx. Gigabytes from the audio sources: only on the tag,
+          # detached and resumable (prepared surahs are kept). Which reciters:
+          # QBASAIR_PREPARE_RECITERS in .env.production — "configured" (default,
+          # those in scripts/recitation_sources.json), "all", or a list of ids.
+          if git log -1 --pretty=%B | grep -q '\[prepare-recitations\]'; then
+            reciters=$(grep -E '^QBASAIR_PREPARE_RECITERS=' .env.production | tail -1 | cut -d= -f2-)
+            mkdir -p data/recitations
+            echo "preparing the recitations (${reciters:-configured}) in the background..."
+            docker compose --env-file .env.production run -d --rm api python scripts/build_recitations.py --reciters "${reciters:-configured}"
+          else
+            echo "No prepare-recitations tag — keeping data/recitations."
+          fi
+
       # DB-aware readiness gate with a retry loop (the API may be mid-rebuild or
       # still opening the DB right after a restart). /api/ready runs SELECT 1.
       - name: Verify readiness

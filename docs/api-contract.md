@@ -43,7 +43,16 @@ This document freezes the backend contract that the future frontend migration wi
   `ReciterItem.riwayah`), so the UI can flag a reciter/mushaf riwāyah mismatch during recitation.
 - `GET /api/surahs` — optional `mushaf` (default `1`): `ayah_count` follows that mushaf's
   numbering (e.g. al-Baqarah: Hafs 286, Qaloun 285). The web client passes the selected riwāyah.
-- `GET /api/reciters`
+- `GET /api/reciters` — every reciter (`ReciterItem`): `audio_base` (verse-by-verse files;
+  empty for a reciter heard only from prepared surahs), `surahs` (the surahs prepared as one
+  recording) and `attribution` (their sources) — `docs/recitation-audio.md`.
+- `GET /api/recitations/{reciter_id}/{surah}` → `SurahRecitation` `{reciter_id, surah, audio_url,
+  duration_ms, bytes, attribution, verses: [{ayah, start_ms, end_ms}]}` — a prepared surah as one
+  recording and each verse's place in it; `404` when it isn't prepared (recite it verse by verse).
+  `Cache-Control: public, max-age=86400`.
+- `GET /api/recitations/audio/{reciter_id}/{SSS}.mp3?v={version}` — the prepared recording, with
+  byte ranges (`206`, `416`), `immutable` for a year, `Cross-Origin-Resource-Policy: cross-origin`.
+  Served by nginx as a static file in production; by the API elsewhere.
 - `GET /api/reciters/{reciter_id}/durations/{surah}` → `ReciterDurations`
   `{reciter_id, surah, durations: (number|null)[], complete}` — every verse's audio
   duration (seconds) for the recitation bar's whole-surah progress. **Shared server

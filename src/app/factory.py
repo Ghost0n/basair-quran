@@ -18,6 +18,7 @@ from src.app.routes import (
     mushafs_router,
     offline_router,
     reader_router,
+    recitations_router,
     research_router,
     search_router,
 )
@@ -170,6 +171,7 @@ def create_app() -> FastAPI:
     app.include_router(moderation_router, dependencies=open_dependencies)
     app.include_router(feedback_router, dependencies=open_dependencies)
     app.include_router(translations_router, dependencies=open_dependencies)
+    app.include_router(recitations_router, dependencies=open_dependencies)
     # The standalone app's pack downloads (open: a phone installs before any sign-in).
     app.include_router(offline_router)
     app.include_router(research_router, dependencies=gated_dependencies)
