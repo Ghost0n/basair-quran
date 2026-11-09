@@ -118,8 +118,6 @@
   html:root {
     /* What the pinned page keeps clear at the bottom: the dock's band. */
     --qb-page-reserve: calc(8px + 66px + 8px + env(safe-area-inset-bottom, 0px));
-    /* The page number's strip at the very bottom (.qb-page-number, below). */
-    --qb-folio-strip: calc(max(2px, calc(env(safe-area-inset-bottom, 0px) - 22px)) + 18px + 6px);
   }
 
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-mushaf-page:has(> .qb-glyph-spread) {
@@ -133,14 +131,30 @@
       bottom 260ms var(--ease-out, ease-out);
   }
 
-  /* Focus mode: the dock is gone, so its band would leave the page sitting
-     high with an empty strip under it. The page keeps its size (the same
-     lines, the same spacing) and moves down by half the band: centred
-     between the top of the screen and the page number, on any height. */
+  /* Focus mode: the dock is gone. The page keeps its size (the same lines,
+     the same spacing); the page number comes up under the text, as far from
+     it as the running head (juz · surah) is above it, and head, text and
+     number are centred together between the safe areas, on any height.
+     Measured on the ink (docs/mobile-ergonomics.md): --qb-num-gap puts the
+     number's box against the page's bottom edge (its padding and the
+     block's are the rest of the gap); --qb-head-num-ink is the page's top
+     edge to the head's ink plus the number's box top to its ink bottom. */
+  html:root.qb-immersive:has(.qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread) {
+    --qb-num-gap: 2px;
+    --qb-num-h: 18px;
+    --qb-head-num-ink: 30px;
+    --qb-page-shift: calc(
+      (var(--qb-page-reserve) - env(safe-area-inset-bottom, 0px) - var(--qb-num-gap) - var(--qb-head-num-ink)) / 2
+    );
+  }
+
   html:root.qb-immersive .qb-mushaf-stage:not(.is-ayah) .qb-mushaf-page:has(> .qb-glyph-spread) {
-    --qb-page-shift: calc((var(--qb-page-reserve) - var(--qb-folio-strip)) / 2);
     top: calc(env(safe-area-inset-top, 0px) + var(--qb-page-shift));
     bottom: calc(var(--qb-page-reserve) - var(--qb-page-shift));
+  }
+
+  html:root.qb-immersive:has(.qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread) .qb-page-number {
+    bottom: calc(var(--qb-page-reserve) - var(--qb-page-shift) - var(--qb-num-gap) - var(--qb-num-h));
   }
 
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread {
@@ -207,6 +221,7 @@
     bottom: max(2px, calc(env(safe-area-inset-bottom, 0px) - 22px));
     transform: translateX(-50%);
     z-index: 40;
+    transition: bottom 260ms var(--ease-out, ease-out);
     font-family: var(--font-arabic-ui);
     font-variant-numeric: tabular-nums;
     font-size: 12px;
@@ -790,7 +805,8 @@
     animation: none;
   }
 
-  html:root .qb-mushaf-stage .qb-mushaf-page {
+  html:root .qb-mushaf-stage .qb-mushaf-page,
+  html:root .qb-page-number {
     transition: none;
   }
 }
