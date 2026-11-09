@@ -28,8 +28,9 @@ const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 /**
  * Concordance heatmap — where a root lives across the whole Qurʾān. The
- * 114-surah grid is colour-graded by occurrence density; clicking a
- * surah opens it in the Mushaf.
+ * 114-surah grid is colour-graded by occurrence density, each cell showing
+ * the root's count in that surah (the surah's number small in its corner);
+ * clicking a surah opens it in the Mushaf.
  */
 export function HeatmapScreen() {
   const params = useSearchParams();
@@ -165,12 +166,21 @@ export function HeatmapScreen() {
                   className="qb-heat-cell"
                   data-level={intensity(count)}
                   title={`${surah.name} — ${tn("{0} موضع", count, { 0: formatNumber(count) })}`}
+                  aria-label={`${t("سورة")} ${surah.name} — ${tn("{0} موضع", count, { 0: formatNumber(count) })}`}
                   onClick={() => {
                     void mushaf.loadBySurah(state.selectedMushaf, surah.id);
                     setMode("reading");
                   }}
                 >
-                  <span className="n">{formatNumber(surah.id)}</span>
+                  {/* The root's occurrences in this surah; the surah's number, small, in the corner. */}
+                  <span className="id" aria-hidden="true">
+                    {formatNumber(surah.id)}
+                  </span>
+                  {count > 0 ? (
+                    <span className="n" aria-hidden="true">
+                      {formatNumber(count)}
+                    </span>
+                  ) : null}
                 </button>
               );
             })}
