@@ -1,3 +1,4 @@
+from src.app.routes.ai import router as ai_router
 from src.app.routes.auth import router as auth_router
 from src.app.routes.community import router as community_router
 from src.app.routes.companions import router as companions_router
@@ -13,6 +14,7 @@ from src.app.routes.search import router as search_router
 from src.app.routes.translations import router as translations_router
 
 __all__ = [
+    "ai_router",
     "auth_router",
     "community_router",
     "companions_router",

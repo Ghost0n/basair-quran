@@ -26,7 +26,6 @@ import { useMushaf } from "@/features/reading/mushaf-context";
 import { TAFSSIR_ENABLED } from "@/lib/features";
 import { useStickyState } from "@/lib/use-sticky-state";
 import { useDialog } from "@/lib/use-dialog";
-import { saveClientResearchSettings } from "@/features/research/lib/research-client-settings";
 import { useShellMode } from "@/features/shell/mode-context";
 import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { useWorkspace } from "@/features/shell/workspace-context";
@@ -88,7 +87,6 @@ export function StudioPanel() {
   const formatNumber = useNumerals();
 
   const [draft, setDraft] = useState("");
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [converting, setConverting] = useState(false);
   // «حوّل إلى بحث» asks first (a banner under the header): the tap creates a
@@ -213,12 +211,6 @@ export function StudioPanel() {
     }
   }
 
-  function updateSetting(patch: Partial<typeof studio.clientSettings>) {
-    const next = { ...studio.clientSettings, ...patch };
-    studio.setClientSettings(next);
-    saveClientResearchSettings(next);
-  }
-
   // Web design, desktop: the open session's name and the panel's actions live
   // in the shell's top bar (top-bar-slots.ts); the sessions are a side column.
   const barTitle = (
@@ -336,9 +328,10 @@ export function StudioPanel() {
       <button
         type="button"
         className="close"
-        title={t("الإعدادات")}
-        aria-label={t("إعدادات النموذج")}
-        onClick={() => setSettingsOpen((open) => !open)}
+        title={t("الذكاء الاصطناعي")}
+        aria-label={t("الذكاء الاصطناعي")}
+        // The AI connection lives in Settings now (features/settings/ai-settings.tsx).
+        onClick={() => setShellMode("settings", { params: { section: "ai" } })}
       >
         <Icon name="settings" size={16} />
       </button>
@@ -464,38 +457,6 @@ export function StudioPanel() {
         ) : null}
 
         {isTafssir ? <TafssirDisclaimer /> : null}
-
-        {settingsOpen ? (
-          <div className="qb-studio-settings">
-            <label>
-              {t("مفتاح الوصول (Ollama / السحابة)")}
-              <input
-                type="password"
-                value={studio.clientSettings.apiKey}
-                onChange={(event) => updateSetting({ apiKey: event.target.value })}
-                placeholder={t("اتركه فارغاً إذا كان الخادم مُهيّأً")}
-              />
-            </label>
-            <label>
-              {t("عنوان الخدمة")}
-              <input
-                type="text"
-                value={studio.clientSettings.baseUrl}
-                onChange={(event) => updateSetting({ baseUrl: event.target.value })}
-                placeholder="http://localhost:11434"
-              />
-            </label>
-            <label>
-              {t("نموذج المحادثة")}
-              <input
-                type="text"
-                value={studio.clientSettings.chatModel}
-                onChange={(event) => updateSetting({ chatModel: event.target.value })}
-                placeholder={t("مثال: qwen2.5")}
-              />
-            </label>
-          </div>
-        ) : null}
 
         {/* Desk: the error sits on the question field instead (below). */}
         {studio.error && !topSlots ? <div className="qb-studio-error">{studio.error}</div> : null}
