@@ -390,7 +390,9 @@ class TafssirStructuredAnswer(BaseModel):
 
 
 class ResearchProviderInfo(BaseModel):
-    provider: Literal["ollama"]
+    # "ollama" (the server's own, or Ollama Cloud), or a reader's provider
+    # (src/app/services/llm_providers.py).
+    provider: Literal["ollama", "openrouter", "openai", "anthropic", "gemini", "mistral", "deepseek", "groq", "xai"]
     transport: Literal["cloud_api", "local_api"]
     base_url: str
     chat_model: str
@@ -429,6 +431,28 @@ class OllamaModelItem(BaseModel):
     digest: Optional[str] = None
     is_cloud: bool = False
     capabilities: List[str] = Field(default_factory=list)
+
+
+class AiProviderItem(BaseModel):
+    """An AI provider a reader can connect (Settings → «الذكاء الاصطناعي»)."""
+
+    id: str
+    name: str
+    # Where to get a key.
+    key_url: str
+    # Offers a sign-in that hands back a key (OpenRouter).
+    signin: bool = False
+    # Model names to preselect, in order (substring match).
+    prefer: List[str] = Field(default_factory=list)
+
+
+class OpenRouterKeyRequest(BaseModel):
+    code: str = Field(min_length=1, max_length=512)
+    code_verifier: str = Field(min_length=43, max_length=128)
+
+
+class OpenRouterKeyResponse(BaseModel):
+    key: str
 
 
 class ResearchAgentSettingsResponse(BaseModel):

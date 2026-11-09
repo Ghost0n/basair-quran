@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 
 import type { RecentPage, RecentSearch } from "@q-basair/shared";
 
+import { useAccountKeepsData } from "@/lib/account-keeps-data";
 import { usePreferences } from "@/lib/preferences-context";
 import {
   addRecentPage,
@@ -19,10 +20,18 @@ import {
 /**
  * Writing the recents (the reader, the search): no subscription, so a page
  * turn never re-renders the screen that records it. Saved to the account
- * quietly (debounced, no app-wide state change).
+ * quietly (debounced, no app-wide state change) — on this device only for a
+ * guest on the web (lib/account-keeps-data.ts).
  */
 export function useRecordRecents() {
-  const { persistQuietly } = usePreferences();
+  const { persistQuietly: persistToAccount } = usePreferences();
+  const keeps = useAccountKeepsData();
+  const persistQuietly = useCallback(
+    (patch: Parameters<typeof persistToAccount>[0]) => {
+      if (keeps) persistToAccount(patch);
+    },
+    [keeps, persistToAccount],
+  );
 
   const recordPage = useCallback(
     (entry: Omit<RecentPage, "at">) => {
@@ -57,12 +66,13 @@ export function useRecordRecents() {
 export function useRecents(): Recents {
   const recents = useSyncExternalStore(subscribeRecents, readRecents, serverRecents);
   const { ready, account } = usePreferences();
+  const keeps = useAccountKeepsData();
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !keeps) return;
     const local = readRecents();
     const pages = adoptNewer(local.pages, account.recent_pages, local.stamp);
     const searches = adoptNewer(local.searches, account.recent_searches, local.stamp);
     if (pages !== local.pages || searches !== local.searches) writeRecents({ pages, searches }, local.stamp);
-  }, [ready, account.recent_pages, account.recent_searches]);
+  }, [ready, keeps, account.recent_pages, account.recent_searches]);
   return recents;
 }

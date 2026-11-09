@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import type { NumeralScript, ResearchDefaults } from "@q-basair/shared";
 
 import { Icon, type IconName } from "@/components/icon";
 import { SelectMenu } from "@/components/select-menu";
+import { BackupSettings } from "@/features/app-mode/backup-settings";
 import { DownloadsSettings } from "@/features/app-mode/downloads-settings";
 import { FeedbackCard } from "@/features/feedback/feedback-card";
 import { AccountSettings } from "@/features/identity/account-settings";
@@ -15,9 +16,11 @@ import { useRecitation } from "@/features/recitation/recitation-context";
 import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { setShowHighlights, useShowHighlights } from "@/features/themes/ayah-marks";
+import { hapticsAvailable, hapticsEnabled, setHapticsEnabled, subscribeHaptics } from "@/lib/haptics";
 import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 
+import { AiSettings } from "./ai-settings";
 import { HomeSettings } from "./home-settings";
 import { LanguageSelect } from "./language-select";
 import { chipCentringDelta } from "./settings-index";
@@ -62,11 +65,22 @@ const SECTIONS: { id: string; icon: IconName; label: () => string }[] = [
   { id: "reading", icon: "book", label: () => t("القراءة والمصحف") },
   { id: "recitation", icon: "volume", label: () => t("التلاوة") },
   { id: "study", icon: "sparkles", label: () => t("الدراسة") },
+  { id: "ai", icon: "zap", label: () => t("الذكاء الاصطناعي") },
   { id: "home", icon: "home", label: () => t("الرئيسية") },
   { id: "downloads", icon: "download", label: () => t("التنزيلات") },
+  { id: "backup", icon: "shieldCheck", label: () => t("النسخ الاحتياطي") },
   { id: "support", icon: "comment", label: () => t("الدعم والملاحظات") },
   { id: "account", icon: "user", label: () => t("الحساب") },
 ];
+
+/** Haptic feedback on this device: whether there is any, and whether it is on. */
+function useHapticsSetting(): { available: boolean; on: boolean } {
+  const on = useSyncExternalStore(subscribeHaptics, hapticsEnabled, () => true);
+  // Known only in the browser (the app's bridge, Android's class on <html>).
+  const [available, setAvailable] = useState(false);
+  useEffect(() => setAvailable(hapticsAvailable()), []);
+  return { available, on };
+}
 
 /** One setting: its name and what it does on one side, the control on the other. */
 function Row({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
@@ -131,6 +145,7 @@ export function SettingsWeb() {
   const recitation = useRecitation();
   const formatNumber = useNumerals();
   const showHighlights = useShowHighlights();
+  const haptics = useHapticsSetting();
   const pageRef = useRef<HTMLDivElement>(null);
   const [present, setPresent] = useState<string[]>(SECTIONS.map((section) => section.id));
   const [active, setActive] = useState(SECTIONS[0].id);
@@ -156,6 +171,18 @@ export function SettingsWeb() {
 
   // When a chip was last tapped (the page then glides to its section).
   const jumpedAtRef = useRef(-Infinity);
+
+  // Opened on a section (?section=ai, from the study page or a sign-in): go there.
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get("section");
+    if (!wanted) return;
+    const timer = window.setTimeout(() => {
+      jumpedAtRef.current = performance.now();
+      pageRef.current?.querySelector(`#settings-${wanted}`)?.scrollIntoView({ block: "start" });
+      setActive(wanted);
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   // The index follows the scroll: the section crossing the top third is current.
   useEffect(() => {
@@ -331,6 +358,11 @@ export function SettingsWeb() {
                 onChange={(numerals) => void updateAccount({ numerals })}
               />
             </Row>
+            {haptics.available ? (
+              <Row label={t("الاهتزاز عند اللمس")} hint={t("نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.")}>
+                <Switch label={t("الاهتزاز عند اللمس")} on={haptics.on} onChange={setHapticsEnabled} />
+              </Row>
+            ) : null}
           </section>,
         )}
 
@@ -440,8 +472,10 @@ export function SettingsWeb() {
           </section>,
         )}
 
+        {section("ai", <AiSettings />)}
         {section("home", <HomeSettings />)}
         {section("downloads", <DownloadsSettings />)}
+        {section("backup", <BackupSettings />)}
         {section("support", <FeedbackCard />)}
         {section("account", <AccountSettings />)}
       </div>

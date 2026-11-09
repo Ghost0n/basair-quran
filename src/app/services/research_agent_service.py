@@ -909,6 +909,30 @@ def _validate_client_base_url(raw: str) -> str:
     return candidate
 
 
+def build_provider_runtime(provider: str, api_key: str | None, model: str | None) -> ResearchRuntimeSettings:
+    """A reader's own AI provider (llm_providers.PROVIDERS): its fixed address,
+    the reader's key only (never the server's), the model they chose."""
+    from src.app.services import llm_providers
+
+    spec = llm_providers.provider_spec(provider)
+    if spec is None:
+        raise ResearchProviderUnavailable("Unknown AI provider.")
+    key = (api_key or "").strip()
+    if not key:
+        raise ResearchProviderUnavailable(f"Connect {spec.name} in Settings: its key is missing.")
+    if spec.dialect == "ollama":
+        runtime = build_runtime_settings(api_key=key, chat_model=model, base_url=spec.base_url)
+        return runtime
+    return ResearchRuntimeSettings(
+        provider_name=spec.id,
+        base_url=spec.base_url,
+        chat_model=(model or "").strip(),
+        embed_model="",
+        timeout=config.get_llm_timeout_seconds(),
+        api_key=key,
+    )
+
+
 def build_runtime_settings(
     *,
     api_key: str | None = None,
@@ -944,6 +968,11 @@ def get_llm_provider(settings: ResearchRuntimeSettings | None = None) -> Researc
 
     runtime = settings or build_runtime_settings()
     provider_name = runtime.provider_name
+    from src.app.services import llm_providers
+
+    spec = llm_providers.provider_spec(provider_name)
+    if spec is not None and spec.dialect == "openai":
+        return llm_providers.make_openai_compatible_provider(runtime)
     if provider_name in {"ollama", "local"}:
         if runtime.base_url.startswith("https://") and not runtime.api_key:
             raise ResearchProviderUnavailable("Ollama cloud API key is required for direct access to ollama.com.")

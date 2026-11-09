@@ -413,7 +413,10 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   - `at` is Unix seconds. The web keeps a device copy (`qb.recents`) written on
     every change without re-rendering the app, saves it quietly (debounced), and
     adopts the account's copy when it holds an entry newer than the device's last
-    change (so a list cleared on this device doesn't come back). Home shows them
+    change (so a list cleared on this device doesn't come back). A guest on the
+    web (accounts on, not signed in) has no account record of their own, so
+    their recents stay in the browser and are never sent (the installed app keeps
+    a guest's in its own device store). Home shows them
     (the place «تابع القراءة» already offers isn't repeated); Settings
     «الرئيسية» hides either list and clears both.
 
@@ -559,6 +562,15 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
 
 ## Research agent notes
 
+- **A reader's own AI provider** (`docs/ai-connections.md`): `X-QBasair-LLM-Provider`
+  (`openrouter` · `openai` · `anthropic` · `gemini` · `mistral` · `deepseek` · `groq` · `xai` ·
+  `ollama`), `X-QBasair-LLM-Key` (the reader's key; required), `X-QBasair-LLM-Model`. The
+  provider's address is fixed on the server (never sent); an unknown provider or a missing key
+  answers `503`. `ResearchProviderInfo.provider` names it. When present, it replaces the
+  `X-QBasair-Ollama-*` headers below.
+- `GET /api/ai/providers` → `AiProviderItem[]` `{id, name, key_url, signin, prefer}`.
+- `POST /api/ai/openrouter/key` `{code, code_verifier}` → `{key}` (OpenRouter's PKCE sign-in;
+  `422` on a malformed verifier, `502` when OpenRouter refuses).
 - Both research endpoints accept optional per-request Ollama override headers:
   - `X-QBasair-Ollama-Key`
   - `X-QBasair-Ollama-Chat-Model`

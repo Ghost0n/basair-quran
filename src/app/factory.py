@@ -8,6 +8,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from src.app.core import config, http_cache, rate_limit
 from src.app.routes import (
+    ai_router,
     auth_router,
     community_router,
     translations_router,
@@ -175,6 +176,7 @@ def create_app() -> FastAPI:
     # The standalone app's pack downloads (open: a phone installs before any sign-in).
     app.include_router(offline_router)
     app.include_router(research_router, dependencies=gated_dependencies)
+    app.include_router(ai_router, dependencies=gated_dependencies)
     return app
 
 

@@ -178,8 +178,27 @@ export interface TafssirStructuredAnswer {
   limits_and_cautions?: string | null;
 }
 
+/** A reader's own AI provider (Settings → «الذكاء الاصطناعي», docs/ai-connections.md). */
+export type AiProviderId = "openrouter" | "openai" | "anthropic" | "gemini" | "mistral" | "deepseek" | "groq" | "xai" | "ollama";
+
+export interface AiProviderItem {
+  id: AiProviderId;
+  name: string;
+  /** Where to get a key. */
+  key_url: string;
+  /** Offers a sign-in that hands back a key (OpenRouter). */
+  signin: boolean;
+  /** Model names to preselect, in order (substring match). */
+  prefer: string[];
+}
+
+export interface OpenRouterKeyResponse {
+  key: string;
+}
+
 export interface ResearchProviderInfo {
-  provider: "ollama";
+  /** "ollama": the server's own (or Ollama Cloud); else the reader's provider. */
+  provider: AiProviderId;
   transport: "cloud_api" | "local_api";
   base_url: string;
   chat_model: string;

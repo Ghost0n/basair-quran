@@ -120,8 +120,8 @@ export function ConcordancePanel() {
     resultsScroller(panelRef.current)?.scrollTo({ top: 0 });
   }
 
-  // ▶ on a result: that verse alone, then the recitation ends (the capsule
-  // at the top of the screen shows it while it plays).
+  // ▶ on a result: that verse alone, then the recitation ends. No player
+  // opens for it (session-view.ts); its row lights while it plays.
   function playVerse(verse: SearchVerse) {
     const current = recitation.current;
     if (current && current.surah === verse.surah_id && current.ayah === verse.ayah) {
@@ -416,10 +416,13 @@ export function ConcordancePanel() {
             ) : null}
             {result.verses.map((verse, verseIndex) => {
               const selectionKey = getVerseSelectionKey(result.result_key, verse);
-              const isSelected = selectionKey === state.selectedVerseKey;
               const isPinned = pinnedAyahIds.has(verse.ayah_id);
               const isReciting = recitation.current?.surah === verse.surah_id && recitation.current?.ayah === verse.ayah;
               const isPlaying = isReciting && recitation.isPlaying;
+              // On a phone a tapped result opens the reader, so the list lights
+              // only the verse playing (none when nothing plays); beside the
+              // reader (desk), the verse open in it.
+              const isSelected = isCompact ? isPlaying : selectionKey === state.selectedVerseKey;
               return (
                 // Card is the primary action (select the verse); the pin is a
                 // nested but real <button>. The row uses role="button" rather

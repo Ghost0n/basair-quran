@@ -52,7 +52,7 @@ import { PageRibbonsProvider, useSavedPages, type PageRibbons } from "./use-save
 import { toolForKey } from "./tools/registry";
 import { SelectionBar } from "./tools/selection-bar";
 import { setReaderTool, useReaderTool } from "./tools/use-reader-tool";
-import { PickedWordsProvider, VerseFocusProvider, readSelection, type VerseFocus, type WordSelection } from "./tools/word-selection";
+import { PickedWordsProvider, VerseFocusProvider, readSelection, tappedWord, type VerseFocus, type WordSelection } from "./tools/word-selection";
 
 import { t as tt } from "@/lib/i18n";
 import { useRecordRecents } from "@/lib/use-recents";
@@ -935,23 +935,17 @@ export function MushafStage() {
     };
   }
 
-  // «تحديد»: first tap picks a word (and shows its analysis); a second tap
-  // extends the run to it; a tap on a lone picked word, or any tap after a
-  // run, starts over. On the web design (desk) a tap picks that one word only
-  // — the verse number takes the whole verse — and a tap on it lets it go.
+  // «تحديد», on every device: a tap selects the tapped word alone (and shows
+  // its analysis), never the run since an earlier tap; a tap on it lets it go.
+  // The verse number ornament takes the whole verse (activateVerse).
   function pickWord(element: HTMLElement) {
     const root = surfaceRef.current;
     const key = element.dataset.wk;
     if (!root || !key) return;
     setMorphTarget(null);
-    const single = webDesk && !narrowCanvas;
     setSelection((current) => {
-      if (single) return current && current.keys.length === 1 && current.anchor === key ? null : readSelection(root, key, key);
-      if (current && current.keys.length === 1) {
-        if (current.anchor === key) return null;
-        return readSelection(root, current.anchor, key);
-      }
-      return readSelection(root, key, key);
+      const next = tappedWord(current, key);
+      return next ? readSelection(root, next, next) : null;
     });
   }
 
