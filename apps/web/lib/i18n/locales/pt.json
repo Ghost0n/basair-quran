@@ -1360,5 +1360,16 @@
  "مفتاح الوصول": "Chave de acesso",
  "نسيان المفتاح": "Esquecer a chave",
  "نموذج بصائر (الافتراضي)": "Modelo do Basair (predefinido)",
- "يبقى على هذا الجهاز.": "Fica neste dispositivo."
+ "يبقى على هذا الجهاز.": "Fica neste dispositivo.",
+ "الاهتزاز عند اللمس": "Resposta tátil",
+ "نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.": "Uma vibração leve ao virar a página ou mudar de separador, neste dispositivo.",
+ "للاستماع دون اتصال": "Ouvir offline",
+ "نزّل التلاوة على جهازك": "Baixe a recitação para o seu dispositivo",
+ "النطاق المختار": "Intervalo escolhido",
+ "المصحف كاملاً": "O Alcorão inteiro",
+ "تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.": "A recitação de {0} fica guardada no seu dispositivo para ouvir sem ligação.",
+ "غير متاحة لهذا القارئ": "Indisponível para este recitador",
+ "على الجهاز": "No dispositivo",
+ "{0}٪ على الجهاز": "{0}% no dispositivo",
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "As recitações transferidas são geridas e removidas em Configurações → Transferências."
 }

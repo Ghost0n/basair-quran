@@ -1360,5 +1360,16 @@
  "مفتاح الوصول": "Ufunguo wa kufikia",
  "نسيان المفتاح": "Sahau ufunguo",
  "نموذج بصائر (الافتراضي)": "Modeli ya Basair (chaguo-msingi)",
- "يبقى على هذا الجهاز.": "Unabaki kwenye kifaa hiki."
+ "يبقى على هذا الجهاز.": "Unabaki kwenye kifaa hiki.",
+ "الاهتزاز عند اللمس": "Mtetemo wa kugusa",
+ "نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.": "Mguso mwepesi unapogeuza ukurasa au kubadilisha kichupo, kwenye kifaa hiki.",
+ "للاستماع دون اتصال": "Sikiliza nje ya mtandao",
+ "نزّل التلاوة على جهازك": "Pakua kisomo kwenye kifaa chako",
+ "النطاق المختار": "Masafa yaliyochaguliwa",
+ "المصحف كاملاً": "Qur'ani yote",
+ "تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.": "Kisomo cha {0} kinahifadhiwa kwenye kifaa chako, ili usikilize bila muunganisho.",
+ "غير متاحة لهذا القارئ": "Haipatikani kwa msomaji huyu",
+ "على الجهاز": "Kwenye kifaa",
+ "{0}٪ على الجهاز": "{0}% kwenye kifaa",
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Visomo vilivyopakuliwa vinasimamiwa na kufutwa katika Mipangilio → Vipakuliwa."
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
 import type { NumeralScript, ResearchDefaults } from "@q-basair/shared";
@@ -15,6 +15,7 @@ import { useRecitation } from "@/features/recitation/recitation-context";
 import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { setShowHighlights, useShowHighlights } from "@/features/themes/ayah-marks";
+import { hapticsAvailable, hapticsEnabled, setHapticsEnabled, subscribeHaptics } from "@/lib/haptics";
 import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 
@@ -69,6 +70,15 @@ const SECTIONS: { id: string; icon: IconName; label: () => string }[] = [
   { id: "support", icon: "comment", label: () => t("الدعم والملاحظات") },
   { id: "account", icon: "user", label: () => t("الحساب") },
 ];
+
+/** Haptic feedback on this device: whether there is any, and whether it is on. */
+function useHapticsSetting(): { available: boolean; on: boolean } {
+  const on = useSyncExternalStore(subscribeHaptics, hapticsEnabled, () => true);
+  // Known only in the browser (the app's bridge, Android's class on <html>).
+  const [available, setAvailable] = useState(false);
+  useEffect(() => setAvailable(hapticsAvailable()), []);
+  return { available, on };
+}
 
 /** One setting: its name and what it does on one side, the control on the other. */
 function Row({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
@@ -133,6 +143,7 @@ export function SettingsWeb() {
   const recitation = useRecitation();
   const formatNumber = useNumerals();
   const showHighlights = useShowHighlights();
+  const haptics = useHapticsSetting();
   const pageRef = useRef<HTMLDivElement>(null);
   const [present, setPresent] = useState<string[]>(SECTIONS.map((section) => section.id));
   const [active, setActive] = useState(SECTIONS[0].id);
@@ -345,6 +356,11 @@ export function SettingsWeb() {
                 onChange={(numerals) => void updateAccount({ numerals })}
               />
             </Row>
+            {haptics.available ? (
+              <Row label={t("الاهتزاز عند اللمس")} hint={t("نقرة خفيفة عند تقليب الصفحة وتغيير التبويب، على هذا الجهاز.")}>
+                <Switch label={t("الاهتزاز عند اللمس")} on={haptics.on} onChange={setHapticsEnabled} />
+              </Row>
+            ) : null}
           </section>,
         )}
 

@@ -28,6 +28,15 @@ FastAPI server; both are released from this repository.
   second tap). A new narration or translation on the server appears in the
   catalogue without an app update. Installed packs whose content changed show
   «تحديث» (update).
+- **From where you listen** (the recitation sheet → «للاستماع دون اتصال»,
+  `features/app-mode/offline-listening.tsx`, `lib/app-mode/audio-ranges.ts`):
+  the reciter being heard, for the chosen range, the page, the surah, the
+  juz or the whole Quran, each row saying how much is already on the device.
+  A surah prepared as one recording downloads whole; otherwise only the
+  range's verse files come, kept in a "partial" register until every verse
+  of their surah is there (it then counts as a whole surah). It runs as the
+  same background job (one at a time, «إيقاف» keeps what arrived,
+  «استئناف» resumes); Settings → «التنزيلات» counts and removes it all.
 
 Nothing limits the app offline once a pack is installed: an installed
 narration is searched and read like Ḥafṣ, with the same engine.
@@ -94,6 +103,7 @@ last device to sync wins, per row.
 | `apps/web/lib/app-mode/packs.ts` | catalogue, download, SHA-256 check, install / update / remove |
 | `apps/web/lib/app-mode/language.ts` | one language choice → interface + translation + preferences |
 | `apps/web/lib/app-mode/audio.ts` | recitations downloaded per surah (a prepared surah as one recording + its timings, else its verse files), played from the device |
+| `apps/web/lib/app-mode/audio-ranges.ts` | a recitation range downloaded for offline listening (the recitation sheet) |
 | `apps/web/lib/app-mode/sync.ts` | when account sync runs (the algorithm is in `packages/offline-engine/src/sync.ts`) |
 | `apps/web/features/app-mode/` | onboarding, the Downloads card, the online-only notice |
 | `apps/web/app/**/*.app.tsx` | the app build's route files (the static shell layout) |
