@@ -1412,5 +1412,9 @@
  "غير متاحة لهذا القارئ": "Nije dostupno za ovog učača",
  "على الجهاز": "Na uređaju",
  "{0}٪ على الجهاز": "{0}% na uređaju",
- "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Preuzeta učenja uređuješ i brišeš u Postavke → Preuzimanja."
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Preuzeta učenja uređuješ i brišeš u Postavke → Preuzimanja.",
+ "الصفحات الأخيرة": "Nedavne stranice",
+ "عمليات البحث الأخيرة": "Nedavne pretrage",
+ "كلمة أو عبارة": "Riječ ili izraz",
+ "مسح الصفحات وعمليات البحث الأخيرة": "Obriši nedavne stranice i pretrage"
 }

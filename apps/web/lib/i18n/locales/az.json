@@ -1390,5 +1390,9 @@
  "غير متاحة لهذا القارئ": "Bu qari üçün mövcud deyil",
  "على الجهاز": "Cihazda",
  "{0}٪ على الجهاز": "{0}% cihazda",
- "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Yüklənmiş tilavətlər Parametrlər → Yükləmələr bölməsində idarə olunur və silinir."
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Yüklənmiş tilavətlər Parametrlər → Yükləmələr bölməsində idarə olunur və silinir.",
+ "الصفحات الأخيرة": "Son səhifələr",
+ "عمليات البحث الأخيرة": "Son axtarışlar",
+ "كلمة أو عبارة": "Söz və ya ifadə",
+ "مسح الصفحات وعمليات البحث الأخيرة": "Son səhifələri və axtarışları sil"
 }

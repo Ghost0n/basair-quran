@@ -30,6 +30,7 @@ import { dedupeSuggestionItems } from "@/features/workspace/lib/dedupe-suggestio
 import { useThemeMode } from "./use-theme-mode";
 
 import { usePreferences } from "@/lib/preferences-context";
+import { useRecordRecents } from "@/lib/use-recents";
 import { resolveEdition } from "@/lib/mushaf-defaults";
 import { useMushaf } from "@/features/reading/mushaf-context";
 import {
@@ -72,6 +73,7 @@ export function useSearchWorkspace() {
 
   // The account's mushaf edition fixes the riwāyah every search/reader call uses.
   const { account } = usePreferences();
+  const { recordSearch } = useRecordRecents();
   const edition = resolveEdition(account.mushaf_edition);
   const selectedMushaf = edition.mushafId;
 
@@ -626,6 +628,8 @@ export function useSearchWorkspace() {
         setSearchContext({ q: effectiveQuery, mode: effectiveMode, mushaf: selectedMushaf, surah: null });
       });
       reflectSearchUrl(effectiveQuery, effectiveMode);
+      // Home's recent searches.
+      recordSearch({ query: effectiveQuery, mode: effectiveMode === "root" ? "root" : "exact" });
 
       const firstResult = response.results.find((result) => result.verses.length > 0);
       const firstVerse = firstResult?.verses[0];

@@ -6,8 +6,9 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 
 - A Home landing: on wide screens a rotating āyah (a random one on arrival, then the
   next every few seconds) holds the centre above a «continue reading» card (gold
-  button, listen from where you stopped), four shortcuts (index, saved pages, the last
-  study session, community) and the search field. Phones show the same actions
+  button, listen from where you stopped), the last places read and the last searches
+  run (up to five each, on the account) and the search field — no shortcuts to the
+  screens the navigation bar already opens. Phones show the same actions
   stacked at the bottom, within the thumb's reach, without the verse. Returning
   readers with a saved position land directly in the reader (once per browser session).
 - One command bar (`⌘K` / `/`) that searches and navigates, and routes a
@@ -110,8 +111,7 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
   shared selected state, spring micro-interactions and view-transition page changes — with the
   mushaf itself kept opaque and reduced-motion respected.
 - Fixed navigation: on phones a five-tab bar (Home · المصحف · البحث · الدراسة · الدفتر), always in
-  the same place with labels (a second tap scrolls back to the top); the index, saved pages and
-  community are one tap away from Home. The desktop rail opens Home from its brand mark and lists every destination, grouped by world —
+  the same place with labels (a second tap scrolls back to the top). The desktop rail opens Home from its brand mark and lists every destination, grouped by world —
   reading (المصحف · الفهرس · المحفوظة), research (البحث · الدراسة · الدفتر) and community — each lit
   in its world's colour (gold, teal, copper). Home's greeting follows the moment (morning / evening,
   Ramadan, Eid, a return after a while) with today's Hijri date; on phones account and settings

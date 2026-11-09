@@ -1135,7 +1135,42 @@ DEFAULT_MUSHAF_EDITION = "madani-hafs"
 
 # The Home screen's sections a reader can hide (account preference
 # `home_hidden`). Listed as hidden, so a section added later shows by default.
-HomeSectionId = Literal["greeting", "verse", "continue", "index", "saved", "study", "community", "search"]
+# `index`, `saved`, `study` and `community` were shortcuts to screens the
+# navigation bar already opens: no longer shown, still accepted so a stored
+# list stays valid.
+HomeSectionId = Literal[
+    "greeting",
+    "verse",
+    "continue",
+    "recent_pages",
+    "recent_searches",
+    "search",
+    "index",
+    "saved",
+    "study",
+    "community",
+]
+
+# How many recent pages and searches Home keeps (account preferences
+# `recent_pages` / `recent_searches`).
+RECENTS_LIMIT = 5
+
+
+class RecentPage(BaseModel):
+    """A place recently read: consecutive page turns count as one place, at the page reached."""
+
+    page: int = Field(ge=1, le=1000)
+    mushaf_id: int = 1
+    surah: Optional[Annotated[str, StringConstraints(max_length=80)]] = None
+    at: int = 0
+
+
+class RecentSearch(BaseModel):
+    """A search recently run, to run again from Home."""
+
+    query: Annotated[str, StringConstraints(min_length=1, max_length=200)]
+    mode: Literal["exact", "root"] = "exact"
+    at: int = 0
 
 
 class UserPreferences(BaseModel):
@@ -1164,6 +1199,9 @@ class UserPreferences(BaseModel):
     translations: List[str] = Field(default_factory=list, max_length=3)
     # Home sections the reader hid (Settings «الرئيسية»); empty = all shown.
     home_hidden: List[HomeSectionId] = Field(default_factory=list)
+    # The last places read and searches run, newest first (≤ RECENTS_LIMIT each).
+    recent_pages: List[RecentPage] = Field(default_factory=list)
+    recent_searches: List[RecentSearch] = Field(default_factory=list)
 
 
 class ResearchDefaultsUpdate(BaseModel):
@@ -1186,7 +1224,9 @@ class UserPreferencesUpdate(BaseModel):
     last_position: Optional[ReadingPosition] = None
     saved_pages: Optional[List[SavedPageEntry]] = None
     translations: Optional[List[Annotated[str, StringConstraints(max_length=80)]]] = Field(None, max_length=3)
-    home_hidden: Optional[List[HomeSectionId]] = Field(None, max_length=8)
+    home_hidden: Optional[List[HomeSectionId]] = Field(None, max_length=10)
+    recent_pages: Optional[List[RecentPage]] = Field(None, max_length=RECENTS_LIMIT)
+    recent_searches: Optional[List[RecentSearch]] = Field(None, max_length=RECENTS_LIMIT)
 
 
 # ---------------------------------------------------------------------------

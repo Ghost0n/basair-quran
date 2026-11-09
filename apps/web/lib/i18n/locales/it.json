@@ -1390,5 +1390,9 @@
  "غير متاحة لهذا القارئ": "Non disponibile per questo recitatore",
  "على الجهاز": "Sul dispositivo",
  "{0}٪ على الجهاز": "{0}% sul dispositivo",
- "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Le recitazioni scaricate si gestiscono e si eliminano in Impostazioni → Download."
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Le recitazioni scaricate si gestiscono e si eliminano in Impostazioni → Download.",
+ "الصفحات الأخيرة": "Pagine recenti",
+ "عمليات البحث الأخيرة": "Ricerche recenti",
+ "كلمة أو عبارة": "Parola o frase",
+ "مسح الصفحات وعمليات البحث الأخيرة": "Cancella pagine e ricerche recenti"
 }
