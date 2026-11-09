@@ -444,6 +444,7 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   `last_position`. The device keeps a working copy (`qb.reading.progress`),
   written on every turn without re-rendering the app, saved quietly, and
   replaced by the account's when that changed after the device's last change.
+  A guest on the web keeps it in the browser only (like the recents).
 
 ## Morphology notes
 
