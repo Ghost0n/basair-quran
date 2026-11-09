@@ -11,7 +11,8 @@ import type {
   TafssirDepth,
 } from "@q-basair/shared";
 
-import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { useAccountKeepsData } from "@/lib/account-keeps-data";
+import { API_BASE_URL } from "@/lib/config";
 import { allowedStudyMode } from "@/lib/features";
 import { isTechnicalMessage, reportError } from "@/lib/error-report";
 import { usePreferences } from "@/lib/preferences-context";
@@ -102,6 +103,9 @@ export function useStudioSessions() {
   // by Settings). The ref keeps the latest values so callbacks created once still
   // read fresh prefs; the initial session is seeded from prefs available at mount.
   const { preferences } = usePreferences();
+  const keepsData = useAccountKeepsData();
+  const keepsRef = useRef(keepsData);
+  keepsRef.current = keepsData;
   const researchDefaultsRef = useRef<{ mode: StudioMode; depth: TafssirDepth }>({
     mode: allowedStudyMode(preferences.research.default_mode),
     depth: preferences.research.depth,
@@ -117,9 +121,6 @@ export function useStudioSessions() {
   const [activeId, setActiveId] = useState<string>(() => sessions[0]?.id ?? "");
   const [isResearching, setIsResearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Guests hit a hard gate on the research API; instead of the silent 401→/login
-  // redirect, we pre-check and raise this so the panel can show a sign-in modal.
-  const [authRequired, setAuthRequired] = useState(false);
   const hydratedRef = useRef(false);
 
   // Restore the open tabs once, after mount (keeps SSR output deterministic).
@@ -205,22 +206,6 @@ export function useStudioSessions() {
     [active, patchSession],
   );
 
-  // Studio is auth-gated. Returns true when the caller may proceed; raises the
-  // sign-in modal (and returns false) when a guest tries to research.
-  const ensureAuth = useCallback(async (): Promise<boolean> => {
-    if (!AUTH_ENABLED) return true;
-    try {
-      const session = await api.getAuthSession({ suppressAuthRedirect: true });
-      if (!session.authenticated) {
-        setAuthRequired(true);
-        return false;
-      }
-    } catch {
-      // Offline / probe failed — let the real call proceed and surface its error.
-    }
-    return true;
-  }, []);
-
   const submitInto = useCallback(
     async (target: StudioSession, content: string, mushaf: number) => {
       const trimmed = content.trim();
@@ -268,24 +253,28 @@ export function useStudioSessions() {
             session.id === target.id ? { ...session, messages: nextMessages } : session,
           ),
         );
-        // Persist the session to the user-data store (Phase 5 — Companions).
-        try {
-          await api.saveSession({
-            id: target.id,
-            title: titleFromFirst,
-            mode: target.mode,
-            // Persist the assistant's research response too, so restoring a saved
-            // session rebuilds its evidence cards (bounded by the server's
-            // per-session storage caps).
-            messages: nextMessages.map((m): StoredMessage => ({
-              v: 1,
-              role: m.role,
-              content: m.content,
-              response: m.role === "assistant" ? m.response : undefined,
-            })),
-          });
-        } catch {
-          // A failed save must not break the chat — the session stays in memory.
+        // Persist the session to the user-data store (Phase 5 — Companions) —
+        // not for a guest on the web, who has no account record of their own:
+        // their sessions stay in this browser's open tabs.
+        if (keepsRef.current) {
+          try {
+            await api.saveSession({
+              id: target.id,
+              title: titleFromFirst,
+              mode: target.mode,
+              // Persist the assistant's research response too, so restoring a saved
+              // session rebuilds its evidence cards (bounded by the server's
+              // per-session storage caps).
+              messages: nextMessages.map((m): StoredMessage => ({
+                v: 1,
+                role: m.role,
+                content: m.content,
+                response: m.role === "assistant" ? m.response : undefined,
+              })),
+            });
+          } catch {
+            // A failed save must not break the chat — the session stays in memory.
+          }
         }
       } catch (err) {
         reportError("studio:submit", err);
@@ -315,7 +304,6 @@ export function useStudioSessions() {
       mushaf: number,
       options: { mode?: StudioMode; focus?: ResearchFocusAyah | null; focusLabel?: string } = {},
     ) => {
-      if (!(await ensureAuth())) return;
       const session = placeSession(
         createSession({
           ...researchDefaultsRef.current,
@@ -326,7 +314,7 @@ export function useStudioSessions() {
       );
       return submitInto(session, content, mushaf);
     },
-    [submitInto, ensureAuth, placeSession],
+    [submitInto, placeSession],
   );
 
   // Re-open a saved session (from Home / the history list) as a live tab: fetch
@@ -377,9 +365,6 @@ export function useStudioSessions() {
     activeId,
     isResearching,
     error,
-    authRequired,
-    dismissAuthRequired: () => setAuthRequired(false),
-    ensureAuth,
     setActiveId,
     newSession,
     closeSession,

@@ -73,7 +73,7 @@ def test_auth_session_reports_disabled_by_default(api_client):
 
 
 def test_reading_and_search_stay_open_to_guests(tmp_path, monkeypatch):
-    """Hybrid gating: reading + search need no account; only Studio is gated."""
+    """Everything is open to guests; only Community writes need an account."""
     client, finalize = build_auth_client(tmp_path, monkeypatch)
     try:
         health_response = client.get("/api/health")
@@ -89,10 +89,11 @@ def test_reading_and_search_stay_open_to_guests(tmp_path, monkeypatch):
         notebook_response = client.get("/api/notebook")
         assert notebook_response.status_code == 200
 
-        # The Studio/research surface is hard-gated for guests.
-        research_response = client.get("/api/research-agent/settings")
-        assert research_response.status_code == 401
-        assert research_response.json()["detail"]["code"] == "auth_required"
+        # The Studio (research agent) and the AI connections are open to guests too:
+        # only writing to the Community needs an account.
+        # (503 here only means no model runs in the test environment.)
+        assert client.get("/api/research-agent/settings").status_code not in (401, 403)
+        assert client.get("/api/ai/providers").status_code == 200
     finally:
         finalize()
 

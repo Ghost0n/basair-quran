@@ -184,7 +184,7 @@ C:\Users\<user>\Projects\Q-Basair\.runtime\node-v22.22.0-win-x64\node.exe .\node
   regression. Fix: restart the API (`python scripts\start_api.py`), confirm
   `GET /api/health` returns 200, then reload the page. The local API is a plain
   process, not a service — it can stop between sessions.
-- **Accounts, sign-in, the account menu, or the Studio gate are all missing**:
+- **Accounts, sign-in, the account menu, or the Community sign-in prompts are all missing**:
   the web must be **built** with `NEXT_PUBLIC_AUTH_ENABLED=1` (it's baked at build
   time). Without it the app runs single-user/local with no account concept.
   Pair it with a backend started with `QBASAIR_AUTH_ENABLED=1`.

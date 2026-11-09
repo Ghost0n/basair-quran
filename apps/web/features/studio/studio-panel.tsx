@@ -34,7 +34,6 @@ import { ExportModal } from "@/features/export/export-modal";
 import { documentFromSession } from "@/features/documents/convert";
 import { createDocumentUrl } from "@/features/documents/open-document";
 
-import { StudioAuthModal } from "./studio-auth-modal";
 import { TafssirDisclaimer } from "./tafssir-disclaimer";
 import { useStudioSessions, type StudioMode } from "./use-studio-sessions";
 
@@ -166,8 +165,6 @@ export function StudioPanel() {
   async function submit() {
     const content = draft.trim();
     if (!content || studio.isResearching) return;
-    // Auth-gate first so a guest keeps their draft when the modal appears.
-    if (!(await studio.ensureAuth())) return;
     setDraft("");
     setSideOpen(false);
     void studio.submit(content, state.selectedMushaf);
@@ -604,7 +601,6 @@ export function StudioPanel() {
           onClose={() => setSessionsOpen(false)}
         />
       ) : null}
-      {studio.authRequired ? <StudioAuthModal onClose={studio.dismissAuthRequired} /> : null}
     </aside>
   );
 }

@@ -239,7 +239,12 @@ def test_auth_gating_guest_reads_members_write_admins_moderate(tmp_path, monkeyp
     try:
         research_agent_service.set_llm_provider_for_tests(AuditProvider(VALID))
         assert client.get("/api/community/feed").status_code == 200
+        # A guest reads the Community but never writes to it.
         assert client.post("/api/community/posts/x/like").status_code == 401
+        assert client.delete("/api/community/posts/x/like").status_code == 401
+        assert client.post("/api/community/posts/x/comments", json={"body": "تعليق"}).status_code == 401
+        assert client.post("/api/documents/x/publish", json={"visibility": "public", "accept_guidelines": True}).status_code == 401
+        assert client.post("/api/community/reports", json={"target_type": "post", "target_id": "x", "rule": "spam"}).status_code in (401, 422)
         assert client.get("/api/moderation/queue").status_code == 401
 
         client.post("/api/auth/signup", json={"email": "member@example.com", "password": "hidayah8"})

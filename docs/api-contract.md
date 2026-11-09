@@ -10,8 +10,10 @@ This document freezes the backend contract that the future frontend migration wi
 - Reader endpoints remain additive and backward-compatible.
 - `/api/research-agent` is additive and returns strict-context Quran research responses.
 - `GET /api/research-agent/settings` is additive and exposes the active Ollama provider, available models, and plan-limit guidance for the research UI.
-- `/api/auth/*` provides the identity layer (signup, login, profile, devices, guest-merge) with hybrid
-  gating: reading + search stay open to guests; only the Studio/research surface requires an account.
+- `/api/auth/*` provides the identity layer (signup, login, profile, devices, guest-merge). Everything is
+  open to guests (reading, search, the Studio, the AI connections); only writing to the Community
+  (publish, comment, like, save, report, appeal) requires an account. An account decides where the
+  reader's data is kept (our server), not what they can use.
 - `GET /api/health` is pure liveness (never touches the DB; used by the container healthcheck).
   `GET /api/ready` is the deploy gate: `{ status, db, commit, timestamp }` — runs `SELECT 1` against the
   Quran DB and reports the running commit (`QBASAIR_COMMIT_SHA`); returns `503` when the DB is unreachable.
@@ -448,13 +450,15 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   `AuthSessionResponse.provider` is `"local"` otherwise.
 
 - Authentication is controlled by `QBASAIR_AUTH_ENABLED`.
-- **Hybrid gating.** When enabled, reading + search + the notebook (companions) stay **open to guests**
-  (`user_id=0`); only the Studio/research surface (`GET /api/research-agent/settings`, `POST /api/research-agent`)
-  is hard-gated. Open routers use *soft* auth: if a valid token is present the request resolves to that user,
-  otherwise it proceeds as guest. `GET /api/health` and `/api/auth/*` are always open.
-- **Gate contract.** A gated endpoint reached by a guest returns
-  `401 { "detail": { "code": "auth_required", "gate": "studio", "message": "Authentication required." } }`.
-  The frontend intercepts this code to open the on-demand auth prompt and resume the pending action.
+- **Open by default.** When enabled, every router is **open to guests** (`user_id=0`) with *soft* auth:
+  if a valid token is present the request resolves to that user, otherwise it proceeds as guest. This
+  includes the Studio (`GET /api/research-agent/settings`, `POST /api/research-agent` — stateless: the
+  research sessions are saved through the user-data routes) and `/api/ai/*`. `GET /api/health` and
+  `/api/auth/*` are always open.
+- **The one gate: Community writes.** Publishing, commenting, liking, saving a post, reporting and
+  appealing check the resolved user in their routes; a guest gets
+  `401 { "detail": { "code": "auth_required", "gate": "community", "message": "Authentication required." } }`
+  (the UI shows a sign-in prompt instead of the action). Moderation needs a moderator (`gate: "moderation"`).
 - **Session model — opaque tokens, cross-platform.** Identity resolves from an opaque token presented as
   **either** an httpOnly cookie (web) **or** an `Authorization: Bearer` header (native; Bearer takes
   precedence). Each token is one row of the `sessions` table (also the devices registry); only its sha256
