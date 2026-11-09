@@ -155,8 +155,10 @@ const verseKey = (reciter: ReciterItem, position: RecitationPosition) => `${reci
  * the standalone app). Two <audio> elements take turns: while one recites a
  * verse, the other already loads the verse that comes next (upcomingVerse),
  * so when the verse ends the next one starts at once instead of waiting for
- * its file to arrive. Consumed by the reader's dock, the phone player and the
- * media bar.
+ * its file to arrive. In the background (iOS only lets the playing element go
+ * on) the same element loads the next verse, and only the recitation's
+ * element is ever allowed to sound. Consumed by the reader's dock, the phone
+ * player and the media bar.
  */
 export function RecitationProvider({ children }: { children: ReactNode }) {
   const { preferences } = usePreferences();
@@ -236,8 +238,14 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       setAyahTime(0);
       const token = ++loadTokenRef.current;
       const spare = standby();
+      // In the background (screen locked, another app) iOS only lets the
+      // element already playing go on: starting the standby one is refused,
+      // and held until the app is back in front — where it then plays over
+      // the verse the user resumed. So there the same element loads the next
+      // verse; the standby only takes over while the app is in front.
+      const background = typeof document !== "undefined" && document.visibilityState === "hidden";
       // The verse is already loaded in the standby element: switch to it now.
-      if (spare && preloadedRef.current === verseKey(activeReciter, position)) {
+      if (!background && spare && preloadedRef.current === verseKey(activeReciter, position)) {
         preloadedRef.current = null;
         audioRef.current = spare;
         audio.pause();
@@ -258,7 +266,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       }
       // Played from a tap: let the standby element play once too (silently),
       // so iOS later lets it start the next verse by itself.
-      if (spare && !standbyPrimedRef.current) {
+      if (!background && spare && !standbyPrimedRef.current) {
         standbyPrimedRef.current = true;
         preloadedRef.current = null;
         delete spare.dataset.verse;
@@ -749,7 +757,19 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
               setAyahTime(audio.currentTime);
             }
           }}
-          onPlay={(event) => event.currentTarget === audioRef.current && setIsPlaying(true)}
+          onPlay={(event) => {
+            const audio = event.currentTarget;
+            if (audio === audioRef.current) {
+              setIsPlaying(true);
+              // Only one verse ever sounds: the other element is silenced.
+              const other = elementsRef.current.find((element) => element && element !== audio);
+              if (other && !other.paused) other.pause();
+              return;
+            }
+            // A start that isn't the recitation's (iOS releasing one it held,
+            // the silent priming aside): stop it at once.
+            if (!audio.muted) audio.pause();
+          }}
           onPause={(event) => event.currentTarget === audioRef.current && setIsPlaying(false)}
           onEnded={(event) => event.currentTarget === audioRef.current && handleEnded()}
           hidden
