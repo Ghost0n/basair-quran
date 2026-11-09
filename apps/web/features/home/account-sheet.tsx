@@ -58,24 +58,6 @@ export function AccountSheet({ onClose }: { onClose: () => void }) {
             </span>
             <Icon name="chevLeft" size={16} />
           </button>
-          {/* The community is not in the phone's tab bar: it is listed here (and on Home). */}
-          <button
-            type="button"
-            className="menu-item"
-            onClick={() => {
-              onClose();
-              setMode("community", { params: { tab: null } });
-            }}
-          >
-            <span className="ico">
-              <Icon name="users" size={18} />
-            </span>
-            <span className="txt">
-              {t("المجتمع")}
-              <small>{t("ما يشاركه الباحثون")}</small>
-            </span>
-            <Icon name="chevLeft" size={16} />
-          </button>
           <button type="button" className="menu-item" onClick={actions.toggleTheme} aria-pressed={!dark}>
             <span className="ico">
               <Icon name={dark ? "sun" : "moon"} size={18} />
