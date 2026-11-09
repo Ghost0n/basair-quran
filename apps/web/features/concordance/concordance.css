@@ -559,6 +559,33 @@
   border-color: var(--border-focus);
 }
 
+/* The count leads the cell; the surah's number sits small in its top corner. */
+.qb-heat-cell {
+  position: relative;
+}
+
+.qb-heat-cell .n {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.qb-heat-cell .id {
+  position: absolute;
+  top: 3px;
+  inset-inline-start: 4px;
+  font-size: 8.5px;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+/* A surah without the root: only its number, centred and faint. */
+.qb-heat-cell[data-level="0"] .id {
+  position: static;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
 .qb-heat-cell[data-level="0"] { background: rgba(212, 175, 55, 0.04); }
 .qb-heat-cell[data-level="1"] { background: rgba(212, 175, 55, 0.16); color: var(--fg-3); }
 .qb-heat-cell[data-level="2"] { background: rgba(212, 175, 55, 0.30); color: var(--fg-2); }
