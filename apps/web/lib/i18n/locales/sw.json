@@ -1340,5 +1340,14 @@
  "البزي": "al-Bazzi",
  "قنبل": "Qunbul",
  "مجوّد": "Mujawwad",
- "معلّم": "Ya kufundishia"
+ "معلّم": "Ya kufundishia",
+ "للاستماع دون اتصال": "Sikiliza nje ya mtandao",
+ "نزّل التلاوة على جهازك": "Pakua kisomo kwenye kifaa chako",
+ "النطاق المختار": "Masafa yaliyochaguliwa",
+ "المصحف كاملاً": "Qur'ani yote",
+ "تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.": "Kisomo cha {0} kinahifadhiwa kwenye kifaa chako, ili usikilize bila muunganisho.",
+ "غير متاحة لهذا القارئ": "Haipatikani kwa msomaji huyu",
+ "على الجهاز": "Kwenye kifaa",
+ "{0}٪ على الجهاز": "{0}% kwenye kifaa",
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Visomo vilivyopakuliwa vinasimamiwa na kufutwa katika Mipangilio → Vipakuliwa."
 }

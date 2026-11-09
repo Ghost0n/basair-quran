@@ -7,7 +7,10 @@
  */
 import { useSyncExternalStore } from "react";
 
+import type { VerseRange } from "@/lib/quran-ranges";
+
 import { downloadSurahAudio, downloadedAudio, type DownloadableReciter } from "./audio";
+import { downloadRangeAudio } from "./audio-ranges";
 
 export type AudioJob = {
   reciterId: string;
@@ -17,6 +20,8 @@ export type AudioJob = {
   total: number;
   /** The surah being downloaded. */
   surah: number | null;
+  /** A range download (the recitation sheet); none for a whole recitation from Settings. */
+  range?: VerseRange;
 };
 
 let job: AudioJob | null = null;
@@ -67,6 +72,36 @@ export async function startReciterDownload(
   } catch (error) {
     const stopped = signal.aborted || (error instanceof DOMException && error.name === "AbortError");
     set({ ...(job as AudioJob), done, surah: null, status: stopped ? "stopped" : "failed" });
+  } finally {
+    controller = null;
+  }
+}
+
+/**
+ * A range for offline listening (audio-ranges.ts), one job at a time like
+ * the whole recitation: it carries on while the reader goes elsewhere, and
+ * stopping keeps every verse already on the device.
+ */
+export async function startRangeDownload(
+  reciter: DownloadableReciter,
+  range: VerseRange,
+  download: typeof downloadRangeAudio = downloadRangeAudio,
+): Promise<void> {
+  if (job?.status === "running") return;
+  controller = new AbortController();
+  const { signal } = controller;
+  set({ reciterId: reciter.id, status: "running", done: 0, total: 0, surah: range.start.surah, range });
+  try {
+    await download(
+      reciter,
+      range,
+      (done, total, surah) => set({ ...(job as AudioJob), done, total, surah: surah ?? (job as AudioJob).surah }),
+      signal,
+    );
+    set({ ...(job as AudioJob), surah: null, status: signal.aborted ? "stopped" : "done" });
+  } catch (error) {
+    const stopped = signal.aborted || (error instanceof DOMException && error.name === "AbortError");
+    set({ ...(job as AudioJob), surah: null, status: stopped ? "stopped" : "failed" });
   } finally {
     controller = null;
   }

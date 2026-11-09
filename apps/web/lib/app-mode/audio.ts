@@ -10,6 +10,9 @@ import { REMOTE_ORIGIN } from "./config";
 import { appRuntime } from "./runtime";
 
 const REGISTRY_KEY = "qb.audio";
+// Verses of a surah downloaded without the whole surah (a chosen range,
+// audio-ranges.ts): reciter → surah → the verses on the device and their size.
+const PARTIAL_KEY = "qb.audio.partial";
 const pad3 = (value: number) => String(value).padStart(3, "0");
 
 export const audioPath = (reciter: string, surah: number, ayah: number) => `audio/${reciter}/${pad3(surah)}${pad3(ayah)}.mp3`;
@@ -25,12 +28,46 @@ export async function downloadedAudio(): Promise<AudioRegistry> {
   return raw ? (JSON.parse(raw) as AudioRegistry) : {};
 }
 
-/** The local file for this ayah, when its surah was downloaded for this reciter. */
+export async function saveDownloadedAudio(registry: AudioRegistry): Promise<void> {
+  const { platform } = await appRuntime();
+  await platform.kv.set(REGISTRY_KEY, JSON.stringify(registry));
+}
+
+export type PartialAudio = Record<string, Record<string, { ayahs: number[]; bytes: number }>>;
+
+export async function partialAudio(): Promise<PartialAudio> {
+  const { platform } = await appRuntime();
+  const raw = await platform.kv.get(PARTIAL_KEY);
+  return raw ? (JSON.parse(raw) as PartialAudio) : {};
+}
+
+export async function savePartialAudio(partial: PartialAudio): Promise<void> {
+  const { platform } = await appRuntime();
+  await platform.kv.set(PARTIAL_KEY, JSON.stringify(partial));
+}
+
+/** The local file for this ayah: its whole surah was downloaded, or this verse with a range. */
 export async function localAudioUrl(reciter: string, surah: number, ayah: number): Promise<string | null> {
   const registry = await downloadedAudio();
-  if (!registry[reciter]?.[surah]) return null;
+  if (!registry[reciter]?.[surah]) {
+    const partial = (await partialAudio())[reciter]?.[surah];
+    if (!partial?.ayahs.includes(ayah)) return null;
+  }
   const { platform } = await appRuntime();
   return platform.files.url(audioPath(reciter, surah, ayah));
+}
+
+/** One verse file to the device; returns its size. */
+export async function downloadVerseFile(reciter: DownloadableReciter, surah: number, ayah: number, signal?: AbortSignal): Promise<number> {
+  const { platform } = await appRuntime();
+  const url = `${reciter.audio_base}/${pad3(surah)}${pad3(ayah)}.mp3`;
+  const path = audioPath(reciter.id, surah, ayah);
+  if (platform.files.download) return platform.files.download(url, path);
+  const response = await fetch(url, { signal });
+  if (!response.ok) throw new Error(`audio ${surah}:${ayah} (${response.status})`);
+  const data = new Uint8Array(await response.arrayBuffer());
+  await platform.files.write(path, data);
+  return data.length;
 }
 
 /** A downloaded prepared surah: its timings and the file to play, or null. */
@@ -120,6 +157,7 @@ export async function downloadSurahAudio(
     const registry = await downloadedAudio();
     registry[reciter.id] = { ...(registry[reciter.id] ?? {}), [surah]: size };
     await platform.kv.set(REGISTRY_KEY, JSON.stringify(registry));
+    await forgetPartial(reciter.id, surah);
     return;
   }
   let bytes = 0;
@@ -129,17 +167,9 @@ export async function downloadSurahAudio(
     ayahs,
     PARALLEL_FILES,
     async (ayah) => {
-      const url = `${reciter.audio_base}/${pad3(surah)}${pad3(ayah)}.mp3`;
-      const path = audioPath(reciter.id, surah, ayah);
-      if (platform.files.download) {
-        bytes += await platform.files.download(url, path);
-      } else {
-        const response = await fetch(url, { signal });
-        if (!response.ok) throw new Error(`audio ${surah}:${ayah} (${response.status})`);
-        const data = new Uint8Array(await response.arrayBuffer());
-        await platform.files.write(path, data);
-        bytes += data.length;
-      }
+      // Read the total after the await: four files arrive at once.
+      const size = await downloadVerseFile(reciter, surah, ayah, signal);
+      bytes += size;
       done += 1;
       onProgress?.(done, ayahCount);
     },
@@ -149,6 +179,16 @@ export async function downloadSurahAudio(
   const registry = await downloadedAudio();
   registry[reciter.id] = { ...(registry[reciter.id] ?? {}), [surah]: bytes };
   await platform.kv.set(REGISTRY_KEY, JSON.stringify(registry));
+  await forgetPartial(reciter.id, surah);
+}
+
+/** The surah is whole on the device now (or gone): its partial record goes. */
+async function forgetPartial(reciter: string, surah?: number): Promise<void> {
+  const partial = await partialAudio();
+  if (!partial[reciter]) return;
+  if (surah === undefined) delete partial[reciter];
+  else delete partial[reciter][surah];
+  await savePartialAudio(partial);
 }
 
 export async function removeReciterAudio(reciter: string, surah?: number): Promise<void> {
@@ -164,4 +204,5 @@ export async function removeReciterAudio(reciter: string, surah?: number): Promi
     if (registry[reciter]) delete registry[reciter][surah];
   }
   await platform.kv.set(REGISTRY_KEY, JSON.stringify(registry));
+  await forgetPartial(reciter, surah);
 }

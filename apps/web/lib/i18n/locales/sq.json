@@ -1340,5 +1340,14 @@
  "البزي": "Bezi",
  "قنبل": "Kunbul",
  "مجوّد": "Muxheved",
- "معلّم": "Mësimore"
+ "معلّم": "Mësimore",
+ "للاستماع دون اتصال": "Dëgjim jashtë linje",
+ "نزّل التلاوة على جهازك": "Shkarko recitimin në pajisje",
+ "النطاق المختار": "Intervali i zgjedhur",
+ "المصحف كاملاً": "I gjithë Kurani",
+ "تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.": "Recitimi i {0} ruhet në pajisjen tënde, që ta dëgjosh pa lidhje.",
+ "غير متاحة لهذا القارئ": "Nuk ofrohet për këtë recitues",
+ "على الجهاز": "Në pajisje",
+ "{0}٪ على الجهاز": "{0}% në pajisje",
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Recitimet e shkarkuara menaxhohen dhe fshihen te Cilësimet → Shkarkimet."
 }

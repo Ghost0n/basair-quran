@@ -1362,5 +1362,14 @@
  "البزي": "Bezi",
  "قنبل": "Kunbul",
  "مجوّد": "Mudževed",
- "معلّم": "Muallim"
+ "معلّم": "Muallim",
+ "للاستماع دون اتصال": "Slušanje bez interneta",
+ "نزّل التلاوة على جهازك": "Preuzmi učenje na uređaj",
+ "النطاق المختار": "Odabrani raspon",
+ "المصحف كاملاً": "Cijeli Kur'an",
+ "تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.": "Učenje koje uči {0} čuva se na tvom uređaju, pa ga slušaš bez veze.",
+ "غير متاحة لهذا القارئ": "Nije dostupno za ovog učača",
+ "على الجهاز": "Na uređaju",
+ "{0}٪ على الجهاز": "{0}% na uređaju",
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Preuzeta učenja uređuješ i brišeš u Postavke → Preuzimanja."
 }
