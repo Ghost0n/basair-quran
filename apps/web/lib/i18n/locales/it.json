@@ -1340,5 +1340,14 @@
  "البزي": "al-Bazzī",
  "قنبل": "Qunbul",
  "مجوّد": "Mujawwad",
- "معلّم": "Didattica"
+ "معلّم": "Didattica",
+ "للاستماع دون اتصال": "Ascolto offline",
+ "نزّل التلاوة على جهازك": "Scarica la recitazione sul dispositivo",
+ "النطاق المختار": "Intervallo scelto",
+ "المصحف كاملاً": "L'intero Corano",
+ "تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.": "La recitazione di {0} viene salvata sul dispositivo: ascoltala senza connessione.",
+ "غير متاحة لهذا القارئ": "Non disponibile per questo recitatore",
+ "على الجهاز": "Sul dispositivo",
+ "{0}٪ على الجهاز": "{0}% sul dispositivo",
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Le recitazioni scaricate si gestiscono e si eliminano in Impostazioni → Download."
 }

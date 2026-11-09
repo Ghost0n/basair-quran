@@ -1340,5 +1340,14 @@
  "البزي": "al-Bazzī",
  "قنبل": "Qunbul",
  "مجوّد": "Mujawwad",
- "معلّم": "Leerrecitatie"
+ "معلّم": "Leerrecitatie",
+ "للاستماع دون اتصال": "Offline luisteren",
+ "نزّل التلاوة على جهازك": "Download de recitatie naar je apparaat",
+ "النطاق المختار": "Gekozen bereik",
+ "المصحف كاملاً": "De hele Koran",
+ "تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.": "De recitatie van {0} wordt op je apparaat bewaard, zodat je zonder verbinding luistert.",
+ "غير متاحة لهذا القارئ": "Niet beschikbaar voor deze reciteur",
+ "على الجهاز": "Op het apparaat",
+ "{0}٪ على الجهاز": "{0}% op het apparaat",
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Gedownloade recitaties beheer en verwijder je in Instellingen → Downloads."
 }
