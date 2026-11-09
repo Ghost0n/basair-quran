@@ -15,12 +15,7 @@ import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
 import { allowedStudyMode } from "@/lib/features";
 import { isTechnicalMessage, reportError } from "@/lib/error-report";
 import { usePreferences } from "@/lib/preferences-context";
-import {
-  buildResearchHeaders,
-  DEFAULT_RESEARCH_SETTINGS,
-  loadClientResearchSettings,
-  type ClientResearchSettings,
-} from "@/features/research/lib/research-client-settings";
+import { aiHeaders } from "@/lib/ai-connection";
 
 import { t } from "@/lib/i18n";
 
@@ -125,8 +120,6 @@ export function useStudioSessions() {
   // Guests hit a hard gate on the research API; instead of the silent 401→/login
   // redirect, we pre-check and raise this so the panel can show a sign-in modal.
   const [authRequired, setAuthRequired] = useState(false);
-  const [clientSettings, setClientSettings] = useState<ClientResearchSettings>(DEFAULT_RESEARCH_SETTINGS);
-  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const hydratedRef = useRef(false);
 
   // Restore the open tabs once, after mount (keeps SSR output deterministic).
@@ -175,12 +168,6 @@ export function useStudioSessions() {
     () => sessions.find((session) => session.id === activeId) ?? sessions[0],
     [sessions, activeId],
   );
-
-  // Lazy-load persisted Ollama client settings once.
-  if (!settingsLoaded && typeof window !== "undefined") {
-    setClientSettings(loadClientResearchSettings());
-    setSettingsLoaded(true);
-  }
 
   const patchSession = useCallback((id: string, patch: Partial<StudioSession>) => {
     setSessions((current) => current.map((session) => (session.id === id ? { ...session, ...patch } : session)));
@@ -268,7 +255,8 @@ export function useStudioSessions() {
             tafssir_depth: allowedStudyMode(target.mode) === "tafssir" ? target.depth : undefined,
             focus: target.focus ?? undefined,
           },
-          { headers: buildResearchHeaders(clientSettings) },
+          // The AI chosen in Settings (lib/ai-connection.ts); none: the server's own.
+          { headers: aiHeaders() },
         );
         const nextMessages: StudioMessage[] = [
           ...priorMessages,
@@ -307,7 +295,7 @@ export function useStudioSessions() {
         setIsResearching(false);
       }
     },
-    [isResearching, clientSettings, patchSession],
+    [isResearching, patchSession],
   );
 
   const submit = useCallback(
@@ -392,8 +380,6 @@ export function useStudioSessions() {
     authRequired,
     dismissAuthRequired: () => setAuthRequired(false),
     ensureAuth,
-    clientSettings,
-    setClientSettings,
     setActiveId,
     newSession,
     closeSession,

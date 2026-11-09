@@ -141,6 +141,7 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 - Recitation audio prepared once on the server — one recording per reciter and surah with its verse timings, from Quran.com, mp3quran.net (every riwāyah it publishes, 118 reciters) or everyayah.com verse files joined: `scripts/build_recitations.py`, served by nginx, see `docs/recitation-audio.md`.
 - Optional invite-only authentication with backend-managed users and signed session cookies.
 - Sign-in with Keycloak (email, Apple, Google, Meta; 2FA for moderators) behind `QBASAIR_AUTH_PROVIDER=keycloak`: OpenID Connect code flow with PKCE, roles mirrored from Keycloak, the realm as code (`scripts/keycloak_realm.py`), a local Keycloak with `scripts/keycloak_dev.sh` — see `docs/keycloak.md`. The default stays `local` until the production platform's cut-over.
+- The study's AI: Basair's own model, or the reader's account with OpenRouter (sign-in), OpenAI, Anthropic, Gemini, Mistral, DeepSeek, Groq, xAI or Ollama Cloud — a key or a sign-in and a model, never an address (Settings → «الذكاء الاصطناعي», `docs/ai-connections.md`).
 - Strict-context research agent that uses local transcript/book sources for term discovery and answers only from Quran search results.
 - Dedicated `/research` workspace with per-session Ollama cloud key entry, model switching, request-usage observability, and an experimental Tafssir mode that reads every ayah with its neighbouring ayahs and its surah's context (and can be centred on one ayah).
 

@@ -13,6 +13,9 @@ import { useDialog } from "@/lib/use-dialog";
 
 import { riwayahName, SeekLine, Transport, useNowPlaying } from "./phone-player";
 import { VerseField } from "./range-picker";
+import { OfflineListening, type OfflineChoice } from "@/features/app-mode/offline-listening";
+import { APP_MODE } from "@/lib/app-mode/config";
+
 import { RECITATION_SPEEDS, useRecitation, type RepeatMode } from "./recitation-context";
 import { pickReciters } from "./reciter-catalogue";
 import { RiwayahChips, useReciterMeta } from "./reciter-chips";
@@ -20,7 +23,7 @@ import { RiwayahChips, useReciterMeta } from "./reciter-chips";
 import { t } from "@/lib/i18n";
 
 type Scope = "page" | "surah" | "juz" | "custom";
-type View = "main" | "reciters" | "custom";
+type View = "main" | "reciters" | "custom" | "offline";
 
 const sameRange = (a: VerseRange | null, b: VerseRange | null) =>
   Boolean(a && b && sameVerse(a.start, b.start) && sameVerse(a.end, b.end));
@@ -97,7 +100,23 @@ export function RecitationSheet({ onClose }: { onClose: () => void }) {
   const reciters = pickReciters(recitation.reciters, { query, riwayah, prefer: now.readerRiwayah });
   const reciterMeta = useReciterMeta();
 
-  const title = view === "main" ? t("التلاوة") : view === "reciters" ? t("القارئ") : t("نطاق مخصّص");
+  const title =
+    view === "main"
+      ? t("التلاوة")
+      : view === "reciters"
+        ? t("القارئ")
+        : view === "offline"
+          ? t("للاستماع دون اتصال")
+          : t("نطاق مخصّص");
+  // What can be downloaded for offline listening (the app; the whole Quran is added there).
+  const offlineChoices: OfflineChoice[] = [
+    ...(active && scope === "custom"
+      ? [{ key: "range", label: t("النطاق المختار"), range: active, detail: t("من {0} إلى {1}", { 0: ref(active.start), 1: ref(active.end) }) }]
+      : []),
+    ...(pageRange ? [{ key: "page", label: t("الصفحة"), range: pageRange, detail: t("من {0} إلى {1}", { 0: ref(pageRange.start), 1: ref(pageRange.end) }) }] : []),
+    { key: "surah", label: t("سورة {0}", { 0: surahName(here.surah) }), range: ranges.surah },
+    { key: "juz", label: t("الجزء {0}", { 0: formatNumber(divisionOf("juz", here)) }), range: ranges.juz },
+  ];
   const repeatOptions: { value: RepeatMode; label: string }[] = [
     { value: "off", label: t("بلا") },
     { value: "verse", label: t("الآية") },
@@ -207,6 +226,21 @@ export function RecitationSheet({ onClose }: { onClose: () => void }) {
                     ))}
                   </div>
                 </div>
+
+                {APP_MODE && recitation.reciter ? (
+                  <div className="srow">
+                    <button type="button" className="recrow" onClick={() => setView("offline")} aria-haspopup="true">
+                      <span className="avatar">
+                        <Icon name="download" size={17} />
+                      </span>
+                      <span className="nm">
+                        <b>{t("للاستماع دون اتصال")}</b>
+                        <small>{t("نزّل التلاوة على جهازك")}</small>
+                      </span>
+                      <Icon name="chevLeft" size={16} />
+                    </button>
+                  </div>
+                ) : null}
               </div>
 
               <button
@@ -220,6 +254,16 @@ export function RecitationSheet({ onClose }: { onClose: () => void }) {
                 {t("إنهاء التلاوة")}
               </button>
             </>
+          ) : null}
+
+          {view === "offline" ? (
+            <div className="sv">
+              <button type="button" className="backrow" onClick={() => setView("main")}>
+                <Icon name="chevRight" size={16} />
+                {t("رجوع")}
+              </button>
+              <OfflineListening reciter={recitation.reciter} choices={offlineChoices} />
+            </div>
           ) : null}
 
           {view === "reciters" ? (

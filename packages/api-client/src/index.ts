@@ -1,4 +1,6 @@
 import type {
+  AiProviderItem,
+  OpenRouterKeyResponse,
   AyahReaderResponse,
   CommentItem,
   FeedPage,
@@ -349,6 +351,18 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
         },
         options,
       );
+    },
+    /** The AI providers a reader can connect (their addresses stay on the server). */
+    getAiProviders(): Promise<AiProviderItem[]> {
+      return request<AiProviderItem[]>("/ai/providers");
+    },
+    /** OpenRouter's sign-in: the code it sent back + the PKCE verifier, for the reader's own key. */
+    exchangeOpenRouterKey(code: string, codeVerifier: string): Promise<OpenRouterKeyResponse> {
+      return request<OpenRouterKeyResponse>("/ai/openrouter/key", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, code_verifier: codeVerifier }),
+      });
     },
     getResearchAgentSettings(options?: RequestOptions): Promise<ResearchAgentSettingsResponse> {
       return request<ResearchAgentSettingsResponse>(
