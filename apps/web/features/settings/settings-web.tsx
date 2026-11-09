@@ -7,6 +7,7 @@ import type { NumeralScript, ResearchDefaults } from "@q-basair/shared";
 
 import { Icon, type IconName } from "@/components/icon";
 import { SelectMenu } from "@/components/select-menu";
+import { BackupSettings } from "@/features/app-mode/backup-settings";
 import { DownloadsSettings } from "@/features/app-mode/downloads-settings";
 import { FeedbackCard } from "@/features/feedback/feedback-card";
 import { AccountSettings } from "@/features/identity/account-settings";
@@ -64,6 +65,7 @@ const SECTIONS: { id: string; icon: IconName; label: () => string }[] = [
   { id: "study", icon: "sparkles", label: () => t("الدراسة") },
   { id: "home", icon: "home", label: () => t("الرئيسية") },
   { id: "downloads", icon: "download", label: () => t("التنزيلات") },
+  { id: "backup", icon: "shieldCheck", label: () => t("النسخ الاحتياطي") },
   { id: "support", icon: "comment", label: () => t("الدعم والملاحظات") },
   { id: "account", icon: "user", label: () => t("الحساب") },
 ];
@@ -442,6 +444,7 @@ export function SettingsWeb() {
 
         {section("home", <HomeSettings />)}
         {section("downloads", <DownloadsSettings />)}
+        {section("backup", <BackupSettings />)}
         {section("support", <FeedbackCard />)}
         {section("account", <AccountSettings />)}
       </div>

@@ -29,6 +29,19 @@ FastAPI server; both are released from this repository.
   catalogue without an app update. Installed packs whose content changed show
   «تحديث» (update).
 
+- **Backups for guests** (Settings → «النسخ الاحتياطي», `lib/app-mode/backup.ts`,
+  `features/app-mode/backup-settings.tsx`): without an account, the notebook, themes and
+  boards, study sessions, roots, documents and preferences live on the device only. «حفظ نسخة»
+  writes all of it — the device's data store as it is — to one `basair-YYYY-MM-DD.json` file
+  and hands it to the phone's share sheet: «Save to Files» → iCloud Drive on iPhone, Drive →
+  Google Drive. «استعادة نسخة» opens the file picker (iCloud Drive / Google Drive), shows what
+  the backup holds, and on confirmation replaces the device's data (kept first under
+  `qb.userdata.before-restore`; the device's account link stays), then reloads. A file that
+  isn't a backup, or comes from a newer app, is refused. AI keys and device settings are not
+  in it. With an account, sync keeps the data and the section doesn't show. Automatic
+  iCloud / Google Drive sync (iCloud container, Google Drive app folder) needs the Apple and
+  Google developer accounts (platform plan, step 9).
+
 Nothing limits the app offline once a pack is installed: an installed
 narration is searched and read like Ḥafṣ, with the same engine.
 
