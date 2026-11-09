@@ -6,7 +6,10 @@ import { Icon } from "@/components/icon";
 import { canHover } from "@/lib/can-hover";
 import { useKeepOnScreen } from "@/lib/keep-on-screen";
 
+import { useNowPlaying } from "./phone-player";
 import { useRecitation } from "./recitation-context";
+import { pickReciters } from "./reciter-catalogue";
+import { RiwayahChips, useReciterMeta } from "./reciter-chips";
 
 import { t } from "@/lib/i18n";
 
@@ -14,7 +17,8 @@ import { t } from "@/lib/i18n";
  * ReciterDropdown — the reciter picker, now an upward-opening dropdown attached
  * to the play bar (replacing the old bottom sheet). The trigger is the bar's
  * reciter chip; the panel floats ABOVE it (the bar is pinned to the bottom of
- * the screen) with a filterable list of the 50+ reciters.
+ * the screen) with the reciters (100+ with the prepared recordings), searched
+ * by name and narrowed by narration (reciter-catalogue.ts).
  */
 export function ReciterDropdown({ subtitle }: { subtitle?: ReactNode }) {
   const recitation = useRecitation();
@@ -40,12 +44,10 @@ export function ReciterDropdown({ subtitle }: { subtitle?: ReactNode }) {
     };
   }, [open]);
 
-  const q = query.trim().toLowerCase();
-  const filtered = q
-    ? recitation.reciters.filter(
-        (item) => item.name.includes(query.trim()) || item.name_english.toLowerCase().includes(q),
-      )
-    : recitation.reciters;
+  const [riwayah, setRiwayah] = useState("all");
+  const now = useNowPlaying();
+  const filtered = pickReciters(recitation.reciters, { query, riwayah, prefer: now.readerRiwayah });
+  const reciterMeta = useReciterMeta();
 
   return (
     <div className="qb-reciter-dd" ref={rootRef}>
@@ -78,6 +80,7 @@ export function ReciterDropdown({ subtitle }: { subtitle?: ReactNode }) {
             aria-label={t("ابحث عن قارئ")}
             autoFocus={canHover()}
           />
+          <RiwayahChips reciters={recitation.reciters} value={riwayah} onChange={setRiwayah} />
           <div className="qb-reciter-dd-list">
             {filtered.map((item) => (
               <button
@@ -99,9 +102,7 @@ export function ReciterDropdown({ subtitle }: { subtitle?: ReactNode }) {
                 </span>
                 <span className="info">
                   <span className="name">{item.name}</span>
-                  <span className="meta">
-                    {item.name_english} {t("· رواية")} {item.riwayah === "hafs" ? t("حفص") : item.riwayah}
-                  </span>
+                  <span className="meta">{reciterMeta(item)}</span>
                 </span>
               </button>
             ))}

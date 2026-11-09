@@ -1330,5 +1330,15 @@
  "أُلغي الدخول.": "Accesso annullato.",
  "هذا البريد مرتبط بحساب آخر؛ أكِّده أولاً ثم أعد المحاولة.": "Questa email appartiene a un altro account; confermala prima e poi riprova.",
  "هذا الحساب موقوف.": "Questo account è sospeso.",
- "تعذّر تسجيل الدخول. حاول مرة أخرى.": "Accesso non riuscito. Riprova."
+ "تعذّر تسجيل الدخول. حاول مرة أخرى.": "Accesso non riuscito. Riprova.",
+ "الرواية": "Riwaya",
+ "شعبة": "Shuʿbah",
+ "ورش": "Warsh",
+ "قالون": "Qālūn",
+ "الدوري": "al-Dūrī",
+ "السوسي": "al-Sūsī",
+ "البزي": "al-Bazzī",
+ "قنبل": "Qunbul",
+ "مجوّد": "Mujawwad",
+ "معلّم": "Didattica"
 }

@@ -170,7 +170,7 @@ function Downloads() {
         </div>
       ) : null}
 
-      {reciters.length ? <Recitations reciters={reciters} audio={audio} busy={busy} act={act} onChanged={refresh} /> : null}
+      {manifest ? <Recitations reciters={reciters} audio={audio} busy={busy} act={act} onChanged={refresh} /> : null}
     </section>
   );
 }
@@ -203,24 +203,38 @@ function Recitations({
       .catch(() => setSurahs([]));
   }, []);
 
-  // The surahs each reciter has prepared as one recording (downloaded as one file).
-  const [prepared, setPrepared] = useState<Record<string, number[]>>({});
+  // The server's reciters: each one's surahs prepared as one recording
+  // (downloaded as one file), and the reciters heard only from those
+  // (docs/recitation-audio.md), listed after the offline pack's own.
+  const [catalogue, setCatalogue] = useState<ReciterItem[]>([]);
   useEffect(() => {
     void fetch("/api/reciters")
       .then((response) => response.json() as Promise<ReciterItem[]>)
-      .then((list) => setPrepared(Object.fromEntries(list.map((item) => [item.id, item.surahs ?? []]))))
-      .catch(() => setPrepared({}));
+      .then(setCatalogue)
+      .catch(() => setCatalogue([]));
   }, []);
-  const pack = reciters.find((entry) => entry.reciter === reciterId);
-  const reciter = pack ? { ...pack, surahs: prepared[reciterId] ?? [] } : undefined;
+  const entries = useMemo(() => {
+    const own = reciters.map((pack) => ({ id: pack.reciter ?? pack.id, name: pack.name ?? pack.id, audio_base: pack.audio_base ?? "" }));
+    const known = new Set(own.map((entry) => entry.id));
+    const more = catalogue
+      .filter((item) => !known.has(item.id) && item.surahs?.length)
+      .map((item) => ({ id: item.id, name: item.name, audio_base: "" }));
+    return [...own, ...more].map((entry) => ({ ...entry, surahs: catalogue.find((item) => item.id === entry.id)?.surahs ?? [] }));
+  }, [reciters, catalogue]);
+  useEffect(() => {
+    if (!reciterId && entries[0]) setReciterId(entries[0].id);
+  }, [reciterId, entries]);
+  const reciter = entries.find((entry) => entry.id === reciterId);
   const downloadable = Boolean(reciter?.audio_base || reciter?.surahs.length);
+  // What this reciter can be downloaded for: every surah with verse files, else its prepared ones.
+  const available = reciter?.audio_base ? surahs : surahs.filter((item) => reciter?.surahs.includes(item.id));
   const saved = useMemo(() => Object.keys(audio[reciterId] ?? {}).length, [audio, reciterId]);
   const bytes = useMemo(() => Object.values(audio[reciterId] ?? {}).reduce((total, value) => total + value, 0), [audio, reciterId]);
   const target = surahs.find((item) => item.id === surah);
   const id = `audio-${reciterId}-${surah}`;
   const running = job?.status === "running";
   const mine = job && job.reciterId === reciterId ? job : null;
-  const complete = surahs.length > 0 && saved >= surahs.length;
+  const complete = available.length > 0 && saved >= available.length;
   const percent = mine && mine.total ? Math.round((mine.done / mine.total) * 100) : 0;
 
   // A finished, stopped or failed job: the list of saved surahs is read again.
@@ -231,9 +245,11 @@ function Recitations({
   useEffect(() => setConfirmRemove(false), [reciterId]);
 
   const downloadAll = () => {
-    if (!downloadable || !surahs.length) return;
-    void startReciterDownload({ id: reciterId, audio_base: reciter?.audio_base ?? "", surahs: reciter?.surahs }, surahs);
+    if (!downloadable || !available.length) return;
+    void startReciterDownload({ id: reciterId, audio_base: reciter?.audio_base ?? "", surahs: reciter?.surahs }, available);
   };
+
+  if (!entries.length) return null;
 
   return (
     <div className="qb-downloads-group">
@@ -243,7 +259,7 @@ function Recitations({
           className="qb-setting-menu"
           ariaLabel={t("التلاوات")}
           value={reciterId}
-          options={reciters.map((pack) => ({ value: pack.reciter ?? pack.id, label: pack.name ?? pack.id }))}
+          options={entries.map((entry) => ({ value: entry.id, label: entry.name }))}
           onChange={setReciterId}
         />
       </div>
@@ -253,7 +269,7 @@ function Recitations({
           <div>{t("التلاوة كاملة")}</div>
           <Meta
             parts={[
-              t("{0} من {1} سورة", { 0: formatNumber(saved), 1: formatNumber(surahs.length || 114) }),
+              t("{0} من {1} سورة", { 0: formatNumber(saved), 1: formatNumber(available.length || 114) }),
               formatSize(bytes),
               mine?.status === "running" && mine.surah ? t("سورة {0}", { 0: formatNumber(mine.surah) }) : null,
             ]}
@@ -280,7 +296,7 @@ function Recitations({
         ) : (
           <>
             {!complete ? (
-              <button type="button" className="qb-btn ghost sm" disabled={running || Boolean(busy) || !downloadable || !surahs.length} onClick={downloadAll}>
+              <button type="button" className="qb-btn ghost sm" disabled={running || Boolean(busy) || !downloadable || !available.length} onClick={downloadAll}>
                 {saved ? t("استئناف") : t("تنزيل الكل")}
               </button>
             ) : null}

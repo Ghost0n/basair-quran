@@ -14,6 +14,8 @@ import { useDialog } from "@/lib/use-dialog";
 import { riwayahName, SeekLine, Transport, useNowPlaying } from "./phone-player";
 import { VerseField } from "./range-picker";
 import { RECITATION_SPEEDS, useRecitation, type RepeatMode } from "./recitation-context";
+import { pickReciters } from "./reciter-catalogue";
+import { RiwayahChips, useReciterMeta } from "./reciter-chips";
 
 import { t } from "@/lib/i18n";
 
@@ -91,10 +93,9 @@ export function RecitationSheet({ onClose }: { onClose: () => void }) {
     recitation.playRange(range, { repeat: recitation.repeatMode === "range" });
   }
 
-  const q = query.trim().toLowerCase();
-  const reciters = q
-    ? recitation.reciters.filter((item) => item.name.includes(query.trim()) || item.name_english.toLowerCase().includes(q))
-    : recitation.reciters;
+  const [riwayah, setRiwayah] = useState("all");
+  const reciters = pickReciters(recitation.reciters, { query, riwayah, prefer: now.readerRiwayah });
+  const reciterMeta = useReciterMeta();
 
   const title = view === "main" ? t("التلاوة") : view === "reciters" ? t("القارئ") : t("نطاق مخصّص");
   const repeatOptions: { value: RepeatMode; label: string }[] = [
@@ -237,6 +238,7 @@ export function RecitationSheet({ onClose }: { onClose: () => void }) {
                 autoComplete="off"
                 autoFocus={canHover()}
               />
+              <RiwayahChips reciters={recitation.reciters} value={riwayah} onChange={setRiwayah} />
               <div className="reciters" role="radiogroup" aria-label={t("القرّاء")}>
                 {reciters.length === 0 ? <p className="empty">{t("لا يوجد قارئ بهذا الاسم.")}</p> : null}
                 {reciters.map((item) => (
@@ -256,9 +258,7 @@ export function RecitationSheet({ onClose }: { onClose: () => void }) {
                     </span>
                     <span className="nm">
                       <b>{item.name}</b>
-                      <small>
-                        {item.name_english} · {t("رواية {0}", { 0: riwayahName(item.riwayah) })}
-                      </small>
+                      <small>{reciterMeta(item)}</small>
                     </span>
                     <span className="tick">
                       <Icon name="check" size={18} />
