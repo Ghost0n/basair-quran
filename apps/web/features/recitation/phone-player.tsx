@@ -11,7 +11,7 @@ import { useShellMode } from "@/features/shell/mode-context";
 import { useNumerals } from "@/lib/preferences-context";
 
 import { requestShowRecited } from "./follow";
-import { useRecitation } from "./recitation-context";
+import { useRecitation, type RecitationPosition } from "./recitation-context";
 import { RecitationSheet } from "./recitation-sheet";
 import { useRevealed } from "./session-view";
 
@@ -116,11 +116,27 @@ export function SeekLine() {
   );
 }
 
+/**
+ * What play does: pause what plays; otherwise resume — unless the reader
+ * moved to another page meanwhile (`startHere`, its first verse): then play
+ * starts there. «الآية المتلوّة» brings the reader back to the paused verse,
+ * which play then resumes.
+ */
+export function playOrResume(recitation: ReturnType<typeof useRecitation>, startHere?: RecitationPosition | null) {
+  if (recitation.isPlaying) {
+    recitation.toggle();
+    return;
+  }
+  if (startHere) recitation.playAyah(startHere.surah, startHere.ayah);
+  else if (recitation.current) recitation.toggle();
+  else recitation.startPending();
+}
+
 /** Previous verse · play / pause · next verse (verse order runs right to left). */
-export function Transport({ big = false }: { big?: boolean }) {
+export function Transport({ big = false, startHere = null }: { big?: boolean; startHere?: RecitationPosition | null }) {
   const recitation = useRecitation();
   const { current } = recitation;
-  const canPlay = Boolean(current) || Boolean(recitation.pendingStart);
+  const canPlay = Boolean(current) || Boolean(recitation.pendingStart) || Boolean(startHere);
   return (
     <div className={`qb-ptransport${big ? " big" : ""}`}>
       <button type="button" className="nav" onClick={recitation.prev} disabled={!current} aria-label={t("الآية السابقة")}>
@@ -129,7 +145,7 @@ export function Transport({ big = false }: { big?: boolean }) {
       <button
         type="button"
         className="play"
-        onClick={current ? recitation.toggle : recitation.startPending}
+        onClick={() => playOrResume(recitation, startHere)}
         disabled={!canPlay}
         aria-label={recitation.isPlaying ? t("إيقاف") : t("تشغيل")}
       >
