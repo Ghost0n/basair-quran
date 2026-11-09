@@ -980,6 +980,31 @@ export interface RecentPage {
   at: number;
 }
 
+/** An unbroken run of page turns in the reader (preference `reading_progress`). */
+export interface ReadingSeries {
+  id: string;
+  mushaf_id: number;
+  start: number;
+  /** The page it reached last. */
+  end: number;
+  turns: number;
+  /** The surah (name and number) at the start of the page it reached. */
+  surah?: string | null;
+  surah_id?: number | null;
+  /** Unix seconds. */
+  updated_at: number;
+}
+
+/**
+ * «تابع القراءة»: the last page of the longest series of page turns. Emptied
+ * when a series reaches the mushaf's last page, or by the reader (`reset_at`).
+ */
+export interface ReadingProgress {
+  series: ReadingSeries[];
+  /** Unix seconds; null when never reset. */
+  reset_at?: number | null;
+}
+
 /** A search recently run (preference `recent_searches`). */
 export interface RecentSearch {
   query: string;
@@ -1011,6 +1036,7 @@ export interface UserPreferences {
   home_hidden?: HomeSectionId[];
   recent_pages?: RecentPage[];
   recent_searches?: RecentSearch[];
+  reading_progress?: ReadingProgress | null;
 }
 
 export interface RootDistributionSurah {
@@ -1086,6 +1112,7 @@ export interface UserPreferencesUpdate {
   home_hidden?: HomeSectionId[];
   recent_pages?: RecentPage[];
   recent_searches?: RecentSearch[];
+  reading_progress?: ReadingProgress | null;
 }
 
 /** An installed translation of the Quran's meanings, with its provenance. */

@@ -239,6 +239,20 @@ export const MODELS: Record<string, ModelSpec> = {
     {"name": "page", "type": {"kind": "optional", "of": {"kind": "int"}}, "default": null},
     {"name": "updated_at", "type": {"kind": "optional", "of": {"kind": "int"}}, "default": null}
   ],
+  "ReadingProgress": [
+    {"name": "series", "type": {"kind": "list", "of": {"kind": "model", "name": "ReadingSeries"}, "max_length": 12}, "default": []},
+    {"name": "reset_at", "type": {"kind": "optional", "of": {"kind": "int"}}, "default": null}
+  ],
+  "ReadingSeries": [
+    {"name": "id", "type": {"kind": "str", "min_length": 1, "max_length": 40}},
+    {"name": "mushaf_id", "type": {"kind": "int"}, "default": 1},
+    {"name": "start", "type": {"kind": "int", "ge": 1, "le": 1000}},
+    {"name": "end", "type": {"kind": "int", "ge": 1, "le": 1000}},
+    {"name": "turns", "type": {"kind": "int", "ge": 0}, "default": 0},
+    {"name": "surah", "type": {"kind": "optional", "of": {"kind": "str", "max_length": 80}}, "default": null},
+    {"name": "surah_id", "type": {"kind": "optional", "of": {"kind": "int"}, "ge": 1, "le": 114}, "default": null},
+    {"name": "updated_at", "type": {"kind": "int"}, "default": 0}
+  ],
   "RecentPage": [
     {"name": "page", "type": {"kind": "int", "ge": 1, "le": 1000}},
     {"name": "mushaf_id", "type": {"kind": "int"}, "default": 1},
@@ -500,7 +514,8 @@ export const MODELS: Record<string, ModelSpec> = {
     {"name": "translations", "type": {"kind": "list", "of": {"kind": "str"}, "max_length": 3}, "default": []},
     {"name": "home_hidden", "type": {"kind": "list", "of": {"kind": "literal", "values": ["greeting", "verse", "continue", "recent_pages", "recent_searches", "search", "index", "saved", "study", "community"]}}, "default": []},
     {"name": "recent_pages", "type": {"kind": "list", "of": {"kind": "model", "name": "RecentPage"}}, "default": []},
-    {"name": "recent_searches", "type": {"kind": "list", "of": {"kind": "model", "name": "RecentSearch"}}, "default": []}
+    {"name": "recent_searches", "type": {"kind": "list", "of": {"kind": "model", "name": "RecentSearch"}}, "default": []},
+    {"name": "reading_progress", "type": {"kind": "model", "name": "ReadingProgress"}, "default": {"series": [], "reset_at": null}}
   ],
   "UserPreferencesUpdate": [
     {"name": "mushaf_edition", "type": {"kind": "optional", "of": {"kind": "literal", "values": ["madani-hafs"]}}, "default": null},
@@ -519,7 +534,8 @@ export const MODELS: Record<string, ModelSpec> = {
     {"name": "translations", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "str", "max_length": 80}}, "max_length": 3}, "default": null},
     {"name": "home_hidden", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "literal", "values": ["greeting", "verse", "continue", "recent_pages", "recent_searches", "search", "index", "saved", "study", "community"]}}, "max_length": 10}, "default": null},
     {"name": "recent_pages", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "model", "name": "RecentPage"}}, "max_length": 5}, "default": null},
-    {"name": "recent_searches", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "model", "name": "RecentSearch"}}, "max_length": 5}, "default": null}
+    {"name": "recent_searches", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "model", "name": "RecentSearch"}}, "max_length": 5}, "default": null},
+    {"name": "reading_progress", "type": {"kind": "optional", "of": {"kind": "model", "name": "ReadingProgress"}}, "default": null}
   ]
 };
 
@@ -546,5 +562,5 @@ export const MAX_DOCUMENTS_PER_USER = 300;
 export const RESEARCH_DOCUMENT_VERSION = 1;
 export const MUSHAF_EDITION_IDS = ["madani-hafs"];
 export const DEFAULT_MUSHAF_EDITION = "madani-hafs";
-export const DEFAULT_PREFERENCES = {"mushaf_edition": "madani-hafs", "riwayah": 2, "mushaf_font": "amiri-quran", "numerals": "arabic-indic", "ui_language": "ar", "theme": "dark", "font_size": 28, "reciter": "", "mushaf_render": "authentic", "reader_layout": "auto", "research": {"default_mode": "strict", "depth": "balanced"}, "last_position": null, "saved_pages": [], "translations": [], "home_hidden": [], "recent_pages": [], "recent_searches": []};
+export const DEFAULT_PREFERENCES = {"mushaf_edition": "madani-hafs", "riwayah": 2, "mushaf_font": "amiri-quran", "numerals": "arabic-indic", "ui_language": "ar", "theme": "dark", "font_size": 28, "reciter": "", "mushaf_render": "authentic", "reader_layout": "auto", "research": {"default_mode": "strict", "depth": "balanced"}, "last_position": null, "saved_pages": [], "translations": [], "home_hidden": [], "recent_pages": [], "recent_searches": [], "reading_progress": {"series": [], "reset_at": null}};
 export const DEFAULT_USER_ID = 0;

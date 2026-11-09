@@ -5,8 +5,10 @@ Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It
 ## Current Capabilities
 
 - A Home landing: on wide screens a rotating āyah (a random one on arrival, then the
-  next every few seconds) holds the centre above a «continue reading» card (gold
-  button, listen from where you stopped), the last places read and the last searches
+  next every few seconds) holds the centre above a «continue reading» card — the last
+  page of the longest unbroken run of page turns, which resuming extends; it starts
+  again from Al-Fatiha once a run reaches the last page, or when reset in Settings
+  (gold button, listen from where you stopped), the last places read and the last searches
   run (up to five each, on the account) and the search field — no shortcuts to the
   screens the navigation bar already opens. Phones show the same actions
   stacked at the bottom, within the thumb's reach, without the verse. Returning

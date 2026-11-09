@@ -184,6 +184,34 @@ def test_user_preferences_recents(api_client):
     assert cleared["recent_pages"] == [] and cleared["recent_searches"] == []
 
 
+def test_user_preferences_reading_progress(api_client):
+    # «تابع القراءة»: page-turn series, empty and never reset by default.
+    assert api_client.get("/api/user/preferences").json()["reading_progress"] == {"series": [], "reset_at": None}
+
+    series = {
+        "id": "a1",
+        "mushaf_id": 2,
+        "start": 10,
+        "end": 25,
+        "turns": 15,
+        "surah": "البقرة",
+        "surah_id": 2,
+        "updated_at": 1700000000,
+    }
+    patched = api_client.patch("/api/user/preferences", json={"reading_progress": {"series": [series]}})
+    assert patched.status_code == 200
+    assert api_client.get("/api/user/preferences").json()["reading_progress"] == {"series": [series], "reset_at": None}
+
+    # A reset replaces it wholesale.
+    reset = api_client.patch("/api/user/preferences", json={"reading_progress": {"series": [], "reset_at": 1700000100}})
+    assert reset.json()["reading_progress"] == {"series": [], "reset_at": 1700000100}
+
+    too_many = [{**series, "id": f"s{i}"} for i in range(13)]
+    assert api_client.patch("/api/user/preferences", json={"reading_progress": {"series": too_many}}).status_code == 422
+    bad = {**series, "end": 0}
+    assert api_client.patch("/api/user/preferences", json={"reading_progress": {"series": [bad]}}).status_code == 422
+
+
 def test_mushaf_edition_preference_is_validated_and_falls_back(api_client):
     from src.app.services import app_data_service
 
