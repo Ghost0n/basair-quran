@@ -6,12 +6,30 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("@q-basair/api-client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@q-basair/api-client")>()),
   createQBasairApiClient: () => ({
-    getReciters: async () => [{ id: "alafasy", name: "مشاري", audio_base: "https://everyayah.com/data/Alafasy_128kbps" }],
+    getReciters: async () => [
+      { id: "alafasy", name: "مشاري", audio_base: "https://everyayah.com/data/Alafasy_128kbps", surahs: [112, 113] },
+    ],
+    getSurahRecitation: async (reciterId: string, surah: number) => {
+      recitationRequests.push(`${reciterId}:${surah}`);
+      const count = surah === 112 ? 4 : 5;
+      return {
+        reciter_id: reciterId,
+        surah,
+        audio_url: `/api/recitations/audio/${reciterId}/${surah}.mp3?v=1`,
+        duration_ms: (count + 1) * 2000,
+        bytes: 1,
+        attribution: "",
+        // A 2 s opening, then 2 s verses.
+        verses: Array.from({ length: count }, (_, index) => ({ ayah: index + 1, start_ms: (index + 1) * 2000, end_ms: (index + 2) * 2000 })),
+      };
+    },
     getSurahs: async () => [],
     getMushafs: async () => [],
     getReciterDurations: async () => ({ durations: [], complete: true }),
   }),
 }));
+
+const recitationRequests: string[] = [];
 
 import { playOrResume } from "./phone-player";
 import { RecitationProvider, useRecitation } from "./recitation-context";
@@ -150,5 +168,80 @@ describe("playOrResume — the play button", () => {
     const { calls, recitation } = fake({ isPlaying: true, current: { surah: 2, ayah: 57 } });
     playOrResume(recitation, { surah: 3, ayah: 1 });
     expect(calls).toEqual(["toggle"]);
+  });
+});
+
+describe("RecitationProvider — a prepared surah recited from one recording", () => {
+  const recording = (surah: number) => `/api/recitations/audio/alafasy/${surah}.mp3?v=1`;
+  async function tick(audio: HTMLAudioElement, time: number) {
+    audio.currentTime = time;
+    await act(async () => audio.dispatchEvent(new Event("timeupdate")));
+  }
+
+  it("plays the surah's recording from the verse's start and follows the verses by their timings", async () => {
+    await mount();
+    await act(async () => recitation.playAyah(112, 2));
+    await settle();
+    const [audio] = sounding();
+    expect(audio.getAttribute("src")).toBe(recording(112));
+    await act(async () => audio.dispatchEvent(new Event("loadedmetadata")));
+    expect(audio.currentTime).toBe(4); // verse 2 starts at 4 s
+    await tick(audio, 6.5);
+    expect(recitation.current).toEqual({ surah: 112, ayah: 3 });
+    // A moment of silence keeps the tap's permission while the timings
+    // arrive; then one file for the whole surah.
+    expect(plays).toEqual(["/silence.wav", recording(112)]);
+    expect(recitation.surahTiming).toMatchObject({ elapsed: 6.5, total: 10, exact: true });
+  });
+
+  it("seeks within the same recording for the next verse, and goes on to the next surah at its end", async () => {
+    await mount();
+    await act(async () => recitation.playAyah(112, 1));
+    await settle();
+    const [audio] = sounding();
+    expect(audio.currentTime).toBe(0); // the first verse starts with the opening
+    plays = [];
+    await act(async () => recitation.next());
+    await settle();
+    expect(audio.currentTime).toBe(4);
+    expect(plays).toEqual([recording(112)]); // the same file, played on
+    await act(async () => audio.dispatchEvent(new Event("ended")));
+    await settle();
+    expect(recitation.current).toEqual({ surah: 113, ayah: 1 });
+    expect(sounding()[0].getAttribute("src")).toBe(recording(113));
+  });
+
+  it("loops a repeated verse exactly at its end", async () => {
+    await mount();
+    await act(async () => recitation.playAyah(112, 2));
+    await settle();
+    const [audio] = sounding();
+    await act(async () => recitation.setRepeatMode("verse"));
+    await tick(audio, 6.1);
+    expect(audio.currentTime).toBe(4);
+    expect(recitation.current).toEqual({ surah: 112, ayah: 2 });
+  });
+
+  it("stops at the end of a chosen range", async () => {
+    await mount();
+    await act(async () => recitation.playRange({ start: { surah: 112, ayah: 1 }, end: { surah: 112, ayah: 2 } }));
+    await settle();
+    const [audio] = sounding();
+    await tick(audio, 4.2);
+    expect(recitation.current).toEqual({ surah: 112, ayah: 2 });
+    await tick(audio, 6.0);
+    expect(recitation.current).toBeNull();
+    expect(recitation.pendingStart).toEqual({ surah: 112, ayah: 1 });
+    expect(sounding()).toEqual([]);
+  });
+
+  it("seeks anywhere in the surah from its progress bar", async () => {
+    await mount();
+    await act(async () => recitation.playAyah(112, 1));
+    await settle();
+    const [audio] = sounding();
+    await act(async () => recitation.seekSurah(0.75)); // 7.5 s of 10
+    expect(audio.currentTime).toBe(7.5);
+    expect(recitation.current).toEqual({ surah: 112, ayah: 3 });
   });
 });

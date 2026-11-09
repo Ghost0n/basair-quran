@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { SurahListItem } from "@q-basair/shared";
+import type { ReciterItem, SurahListItem } from "@q-basair/shared";
 
 import { SelectMenu } from "@/components/select-menu";
 import { downloadSurahAudio, downloadedAudio, removeReciterAudio, type AudioRegistry } from "@/lib/app-mode/audio";
@@ -203,7 +203,17 @@ function Recitations({
       .catch(() => setSurahs([]));
   }, []);
 
-  const reciter = reciters.find((pack) => pack.reciter === reciterId);
+  // The surahs each reciter has prepared as one recording (downloaded as one file).
+  const [prepared, setPrepared] = useState<Record<string, number[]>>({});
+  useEffect(() => {
+    void fetch("/api/reciters")
+      .then((response) => response.json() as Promise<ReciterItem[]>)
+      .then((list) => setPrepared(Object.fromEntries(list.map((item) => [item.id, item.surahs ?? []]))))
+      .catch(() => setPrepared({}));
+  }, []);
+  const pack = reciters.find((entry) => entry.reciter === reciterId);
+  const reciter = pack ? { ...pack, surahs: prepared[reciterId] ?? [] } : undefined;
+  const downloadable = Boolean(reciter?.audio_base || reciter?.surahs.length);
   const saved = useMemo(() => Object.keys(audio[reciterId] ?? {}).length, [audio, reciterId]);
   const bytes = useMemo(() => Object.values(audio[reciterId] ?? {}).reduce((total, value) => total + value, 0), [audio, reciterId]);
   const target = surahs.find((item) => item.id === surah);
@@ -221,8 +231,8 @@ function Recitations({
   useEffect(() => setConfirmRemove(false), [reciterId]);
 
   const downloadAll = () => {
-    if (!reciter?.audio_base || !surahs.length) return;
-    void startReciterDownload({ id: reciterId, audio_base: reciter.audio_base }, surahs);
+    if (!downloadable || !surahs.length) return;
+    void startReciterDownload({ id: reciterId, audio_base: reciter?.audio_base ?? "", surahs: reciter?.surahs }, surahs);
   };
 
   return (
@@ -270,7 +280,7 @@ function Recitations({
         ) : (
           <>
             {!complete ? (
-              <button type="button" className="qb-btn ghost sm" disabled={running || Boolean(busy) || !reciter?.audio_base || !surahs.length} onClick={downloadAll}>
+              <button type="button" className="qb-btn ghost sm" disabled={running || Boolean(busy) || !downloadable || !surahs.length} onClick={downloadAll}>
                 {saved ? t("استئناف") : t("تنزيل الكل")}
               </button>
             ) : null}
@@ -321,10 +331,10 @@ function Recitations({
           <button
             type="button"
             className="qb-btn ghost sm"
-            disabled={Boolean(busy) || running || !reciter?.audio_base || !target}
+            disabled={Boolean(busy) || running || !(reciter?.audio_base || reciter?.surahs?.includes(surah)) || !target}
             onClick={() =>
               void act(id, (onPercent) =>
-                downloadSurahAudio({ id: reciterId, audio_base: reciter!.audio_base! }, surah, target!.ayah_count, (done, total) =>
+                downloadSurahAudio({ id: reciterId, audio_base: reciter?.audio_base ?? "", surahs: reciter?.surahs }, surah, target!.ayah_count, (done, total) =>
                   onPercent(Math.round((done / total) * 100)),
                 ),
               )

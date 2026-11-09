@@ -93,7 +93,7 @@ last device to sync wins, per row.
 | `apps/web/lib/app-mode/platform-web.ts` | a desktop browser preview: sql.js + IndexedDB |
 | `apps/web/lib/app-mode/packs.ts` | catalogue, download, SHA-256 check, install / update / remove |
 | `apps/web/lib/app-mode/language.ts` | one language choice → interface + translation + preferences |
-| `apps/web/lib/app-mode/audio.ts` | recitations downloaded per surah, played from the device |
+| `apps/web/lib/app-mode/audio.ts` | recitations downloaded per surah (a prepared surah as one recording + its timings, else its verse files), played from the device |
 | `apps/web/lib/app-mode/sync.ts` | when account sync runs (the algorithm is in `packages/offline-engine/src/sync.ts`) |
 | `apps/web/features/app-mode/` | onboarding, the Downloads card, the online-only notice |
 | `apps/web/app/**/*.app.tsx` | the app build's route files (the static shell layout) |

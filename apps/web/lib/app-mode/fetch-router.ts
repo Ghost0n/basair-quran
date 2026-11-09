@@ -134,6 +134,30 @@ async function remote(nativeFetch: typeof fetch, path: string, method: string, i
   return response;
 }
 
+// Catalogues the server knows more of than the device (the reciters with
+// prepared recordings, docs/recitation-audio.md): asked of the server first
+// when online, kept on the device, and answered from that copy (or the
+// device's own) offline.
+const SERVER_FIRST = new Set(["/api/reciters"]);
+const SERVER_COPY = "qb.server-copy:";
+
+async function serverFirst(nativeFetch: typeof fetch, path: string, input: RequestInfo | URL, init?: RequestInit): Promise<Response | null> {
+  const { platform } = await appRuntime();
+  if (REMOTE_ORIGIN && isOnline()) {
+    try {
+      const response = await remote(nativeFetch, path, "GET", input, init);
+      if (response.ok) {
+        await platform.kv.set(SERVER_COPY + path, await response.clone().text());
+        return response;
+      }
+    } catch {
+      /* unreachable: the copy below */
+    }
+  }
+  const copy = await platform.kv.get(SERVER_COPY + path);
+  return copy ? json(200, JSON.parse(copy)) : null;
+}
+
 let installed = false;
 
 export function installFetchRouter(): void {
@@ -152,6 +176,10 @@ export function installFetchRouter(): void {
 
     const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
     const path = url.pathname + url.search;
+    if (method === "GET" && SERVER_FIRST.has(url.pathname)) {
+      const answer = await serverFirst(nativeFetch, path, input, init).catch(() => null);
+      if (answer) return answer;
+    }
     const { api } = await appRuntime();
     if (api.handles(method, url.pathname)) {
       try {

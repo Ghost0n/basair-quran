@@ -7,7 +7,7 @@
  */
 import { useSyncExternalStore } from "react";
 
-import { downloadSurahAudio, downloadedAudio } from "./audio";
+import { downloadSurahAudio, downloadedAudio, type DownloadableReciter } from "./audio";
 
 export type AudioJob = {
   reciterId: string;
@@ -44,7 +44,7 @@ export function useAudioJob(): AudioJob | null {
 }
 
 export async function startReciterDownload(
-  reciter: { id: string; audio_base: string },
+  reciter: DownloadableReciter,
   surahs: readonly { id: number; ayah_count: number }[],
   download: typeof downloadSurahAudio = downloadSurahAudio,
 ): Promise<void> {
