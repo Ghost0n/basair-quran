@@ -115,12 +115,32 @@
      over it and focus mode only hides them, so the page never moves. Its
      text size is fixed too (no font-size zoom here; «العرض» shows the size
      control inactive in this mode). */
+  html:root {
+    /* What the pinned page keeps clear at the bottom: the dock's band. */
+    --qb-page-reserve: calc(8px + 66px + 8px + env(safe-area-inset-bottom, 0px));
+    /* The page number's strip at the very bottom (.qb-page-number, below). */
+    --qb-folio-strip: calc(max(2px, calc(env(safe-area-inset-bottom, 0px) - 22px)) + 18px + 6px);
+  }
+
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-mushaf-page:has(> .qb-glyph-spread) {
     position: fixed;
-    inset: env(safe-area-inset-top, 0px) 0 calc(8px + 66px + 8px + env(safe-area-inset-bottom, 0px));
+    inset: env(safe-area-inset-top, 0px) 0 var(--qb-page-reserve);
     z-index: 0;
     padding: 0;
     overflow: hidden;
+    transition:
+      top 260ms var(--ease-out, ease-out),
+      bottom 260ms var(--ease-out, ease-out);
+  }
+
+  /* Focus mode: the dock is gone, so its band would leave the page sitting
+     high with an empty strip under it. The page keeps its size (the same
+     lines, the same spacing) and moves down by half the band: centred
+     between the top of the screen and the page number, on any height. */
+  html:root.qb-immersive .qb-mushaf-stage:not(.is-ayah) .qb-mushaf-page:has(> .qb-glyph-spread) {
+    --qb-page-shift: calc((var(--qb-page-reserve) - var(--qb-folio-strip)) / 2);
+    top: calc(env(safe-area-inset-top, 0px) + var(--qb-page-shift));
+    bottom: calc(var(--qb-page-reserve) - var(--qb-page-shift));
   }
 
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread {
@@ -768,6 +788,10 @@
   html:root .qb-reader-dock .actions,
   html:root .qb-reader-dock .play-btn.is-live::after {
     animation: none;
+  }
+
+  html:root .qb-mushaf-stage .qb-mushaf-page {
+    transition: none;
   }
 }
 
