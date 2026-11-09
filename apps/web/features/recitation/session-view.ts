@@ -17,8 +17,9 @@ import { useRecitation } from "./recitation-context";
  * A session lasts from play until the player is closed: pausing changes
  * nothing on screen. A session opens on the clear view when it starts in the
  * reader; on any other screen (and back in the reader after leaving it) the
- * capsule shows. The state is a class on <html> so the shell, the reader and
- * the player react without threading props.
+ * capsule shows. A single verse played on its own (a search result's ▶,
+ * `playVerseOnce`) opens no session. The state is a class on <html> so the
+ * shell, the reader and the player react without threading props.
  */
 let revealed = false;
 const listeners = new Set<() => void>();
@@ -46,7 +47,10 @@ export function useRevealed(): boolean {
 
 /** Keeps `<html class="qb-reciting qb-recite-revealed">` in step with the session. */
 export function RecitationSessionAttributes() {
-  const { active } = useRecitation();
+  const recitation = useRecitation();
+  // One verse heard on its own (a search result's ▶) isn't a session: no
+  // capsule, nothing moves; its row shows that it plays.
+  const active = recitation.active && !recitation.range?.once;
   const { mode } = useShellMode();
   const shown = useRevealed();
   const wasActive = useRef(false);
