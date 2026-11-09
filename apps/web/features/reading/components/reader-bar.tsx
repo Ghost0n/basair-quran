@@ -158,6 +158,16 @@ export function ReaderBar({
   const playable = typeof firstAyah?.surah_id === "number" && typeof firstAyah?.ayah === "number";
   const isThisAyah = recitation.current?.surah === firstAyah?.surah_id && recitation.current?.ayah === firstAyah?.ayah;
   const playingHere = isThisAyah && recitation.isPlaying;
+  // Paused, with the reader moved to another page (the recited verse — or
+  // the idle bar's start — isn't on screen): play starts from this page.
+  // «الآية المتلوّة» brings the reader back, and play then resumes there.
+  const pending = recitation.current ? null : recitation.pendingStart;
+  const pendingAway =
+    pending != null && !pageData.ayahs.some((ayah) => ayah.surah_id === pending.surah && ayah.ayah === pending.ayah);
+  const startHere =
+    playable && firstAyah && !recitation.isPlaying && (recitation.current ? recitedAway : pendingAway)
+      ? { surah: firstAyah.surah_id as number, ayah: firstAyah.ayah as number }
+      : null;
   function togglePlay() {
     if (!playable || !firstAyah) return;
     if (isThisAyah) recitation.toggle();
@@ -352,7 +362,7 @@ export function ReaderBar({
                   </button>
                 ) : null}
               </span>
-              <Transport />
+              <Transport startHere={startHere} />
               <span className="flank end">
                 <button
                   type="button"
