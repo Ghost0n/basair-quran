@@ -105,7 +105,7 @@ replaced the reader's fitted page in Q-Basair-51; the prototype route is gone.
   spread, odd page on the right). The font-size preference only shrinks it
   (`--page-zoom`, never under 60%). Everything inside is sized in units of the
   sheet's width, so the page scales as one — no JS fit pass.
-- A fixed 15-line grid (pages 1–2: their lines in an inset column, centred).
+- A fixed 15-line grid. Pages 1–2 use the same grid, type size, surah banner and basmala as every other page: their few lines sit centred in its middle rows, under a running head kept blank.
 - The type size per page from the widest line's measured glyph width (canvas
   `measureText` on the page font, which is loaded before the layout is used),
   so that line fills the measure; the other lines justify word to word, and a

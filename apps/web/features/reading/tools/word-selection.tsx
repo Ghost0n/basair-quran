@@ -29,6 +29,15 @@ export function keysBetween(ordered: string[], anchor: string, focus: string): s
   return ordered.slice(Math.min(from, to), Math.max(from, to) + 1);
 }
 
+/**
+ * «تحديد», one tap: the tapped word alone, whatever was selected before (no
+ * run between two taps); a tap on the lone selected word lets it go (null).
+ * The verse number ornament takes the whole verse (mushaf-stage.tsx).
+ */
+export function tappedWord(current: { anchor: string; keys: string[] } | null, key: string): string | null {
+  return current && current.keys.length === 1 && current.anchor === key ? null : key;
+}
+
 export type WordSelection = {
   anchor: string;
   keys: string[];

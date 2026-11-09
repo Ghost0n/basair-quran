@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { haptic } from "./haptics";
+import { haptic, hapticsEnabled, setHapticsEnabled } from "./haptics";
 
 /** A page with the platform class on <html> and, maybe, navigator.vibrate. */
 function page(platform: "qb-ios" | "qb-android", vibrate?: (pattern: number | number[]) => boolean) {
@@ -39,5 +39,30 @@ describe("haptic", () => {
       throw new Error("blocked");
     });
     expect(() => haptic("light")).not.toThrow();
+  });
+
+  it("stays silent once turned off on the device, and comes back when turned on", () => {
+    const vibrate = vi.fn(() => true);
+    page("qb-android", vibrate);
+    const store = new Map<string, string>();
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (key: string) => store.get(key) ?? null,
+        setItem: (key: string, value: string) => void store.set(key, value),
+        removeItem: (key: string) => void store.delete(key),
+      },
+    });
+    setHapticsEnabled(false);
+    expect(hapticsEnabled()).toBe(false);
+    haptic("light");
+    expect(vibrate).not.toHaveBeenCalled();
+    setHapticsEnabled(true);
+    expect(hapticsEnabled()).toBe(true);
+    expect(vibrate).toHaveBeenCalledTimes(1); // the toggle confirms itself
+  });
+
+  it("is on when nothing was chosen, or storage is unavailable", () => {
+    page("qb-android");
+    expect(hapticsEnabled()).toBe(true);
   });
 });

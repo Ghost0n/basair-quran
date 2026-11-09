@@ -52,7 +52,7 @@ active at a time; the choice is remembered per device.
 
 | Tool | Action on the text |
 |---|---|
-| «تحديد» (selection, default) | tap a word → it is selected and its analysis (root, lemma, POS, iʿrāb) shows in the action bar; tap a second word → the run between them; tap the verse-number ornament → the whole verse |
+| «تحديد» (selection, default) | tap a word → it is selected and its analysis (root, lemma, POS, iʿrāb) shows in the action bar; each tap selects only what it lands on — another word replaces it (no run between two taps), the same word again lets it go; tap the verse-number ornament → the whole verse |
 | «تظليل» (highlight) | tap any word of an ayah (or its number) → the whole verse is selected and the theme picker opens (toggle themes, create one) |
 
 2026-09 revision: the former «تحليل» tool merged into «تحديد» (a single picked word carries

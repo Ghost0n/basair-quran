@@ -534,6 +534,15 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
 
 ## Research agent notes
 
+- **A reader's own AI provider** (`docs/ai-connections.md`): `X-QBasair-LLM-Provider`
+  (`openrouter` · `openai` · `anthropic` · `gemini` · `mistral` · `deepseek` · `groq` · `xai` ·
+  `ollama`), `X-QBasair-LLM-Key` (the reader's key; required), `X-QBasair-LLM-Model`. The
+  provider's address is fixed on the server (never sent); an unknown provider or a missing key
+  answers `503`. `ResearchProviderInfo.provider` names it. When present, it replaces the
+  `X-QBasair-Ollama-*` headers below.
+- `GET /api/ai/providers` → `AiProviderItem[]` `{id, name, key_url, signin, prefer}`.
+- `POST /api/ai/openrouter/key` `{code, code_verifier}` → `{key}` (OpenRouter's PKCE sign-in;
+  `422` on a malformed verifier, `502` when OpenRouter refuses).
 - Both research endpoints accept optional per-request Ollama override headers:
   - `X-QBasair-Ollama-Key`
   - `X-QBasair-Ollama-Chat-Model`

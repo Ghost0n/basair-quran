@@ -521,3 +521,37 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
+
+/* «الذكاء الاصطناعي» (ai-settings.tsx): the key field and its button side by side. */
+.qb-ai-key {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.qb-ai-key input {
+  width: min(240px, 52vw);
+  height: 34px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--glass-tint);
+  color: var(--fg-1);
+  font: inherit;
+  font-size: 14px;
+}
+
+.qb-ai-settings .hint a {
+  color: var(--gold-text);
+}
+
+/* Back from a provider's sign-in (openrouter-return.tsx). */
+.qb-connect-return {
+  min-height: 60vh;
+  display: grid;
+  place-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  color: var(--fg-2);
+}
