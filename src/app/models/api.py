@@ -1165,6 +1165,34 @@ class RecentPage(BaseModel):
     at: int = 0
 
 
+class ReadingSeries(BaseModel):
+    """An unbroken run of page turns in the reader: where it began, the page it
+    reached last, and how many turns it holds."""
+
+    id: Annotated[str, StringConstraints(min_length=1, max_length=40)]
+    mushaf_id: int = 1
+    start: int = Field(ge=1, le=1000)
+    end: int = Field(ge=1, le=1000)
+    turns: int = Field(0, ge=0)
+    # The surah (name and number) at the start of the page it reached.
+    surah: Optional[Annotated[str, StringConstraints(max_length=80)]] = None
+    surah_id: Optional[int] = Field(None, ge=1, le=114)
+    updated_at: int = 0
+
+
+# How many page-turn series the reading progress keeps.
+READING_SERIES_LIMIT = 12
+
+
+class ReadingProgress(BaseModel):
+    """«تابع القراءة»: the last page of the longest series of page turns.
+    Emptied when a series reaches the mushaf's last page, or by the reader
+    (Settings), which stamps `reset_at`."""
+
+    series: List[ReadingSeries] = Field(default_factory=list, max_length=READING_SERIES_LIMIT)
+    reset_at: Optional[int] = None
+
+
 class RecentSearch(BaseModel):
     """A search recently run, to run again from Home."""
 
@@ -1202,6 +1230,8 @@ class UserPreferences(BaseModel):
     # The last places read and searches run, newest first (≤ RECENTS_LIMIT each).
     recent_pages: List[RecentPage] = Field(default_factory=list)
     recent_searches: List[RecentSearch] = Field(default_factory=list)
+    # «تابع القراءة»: page-turn series (see ReadingProgress).
+    reading_progress: ReadingProgress = Field(default_factory=ReadingProgress)
 
 
 class ResearchDefaultsUpdate(BaseModel):
@@ -1227,6 +1257,7 @@ class UserPreferencesUpdate(BaseModel):
     home_hidden: Optional[List[HomeSectionId]] = Field(None, max_length=10)
     recent_pages: Optional[List[RecentPage]] = Field(None, max_length=RECENTS_LIMIT)
     recent_searches: Optional[List[RecentSearch]] = Field(None, max_length=RECENTS_LIMIT)
+    reading_progress: Optional[ReadingProgress] = None
 
 
 # ---------------------------------------------------------------------------

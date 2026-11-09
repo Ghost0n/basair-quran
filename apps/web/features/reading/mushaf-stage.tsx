@@ -56,6 +56,7 @@ import { PickedWordsProvider, VerseFocusProvider, readSelection, tappedWord, typ
 
 import { t as tt } from "@/lib/i18n";
 import { useRecordRecents } from "@/lib/use-recents";
+import { useRecordReading } from "@/lib/use-reading-progress";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -77,6 +78,7 @@ export function MushafStage() {
   const mushaf = useMushaf();
   const { preferences, updateAccount, persistQuietly, ready } = usePreferences();
   const { recordPage } = useRecordRecents();
+  const { notePage } = useRecordReading();
   const formatNumber = useNumerals();
   const selectedMushaf = state.selectedMushaf;
 
@@ -537,6 +539,21 @@ export function MushafStage() {
   const leftLayout = pair && currentPage === pair.right ? facing.layout : layout;
 
   const totalPages = pageData?.total_pages ?? pageData?.max_page ?? 604;
+
+  // «تابع القراءة»: every page on screen feeds the series of page turns
+  // (lib/reading-progress.ts). A series reaching the last page — in a spread,
+  // the pair that shows it — completes the reading.
+  useEffect(() => {
+    if (!pageData?.page) return;
+    notePage({
+      page: pageData.page,
+      mushaf_id: pageData.mushaf_id ?? selectedMushaf,
+      surah: pageData.ayahs[0]?.surah ?? null,
+      surah_id: pageData.ayahs[0]?.surah_id ?? null,
+      lastPage: showSpread && pair && pair.left === totalPages ? pair.right : totalPages,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pageData, showSpread]);
 
   // Phones upright: the page follows the finger like a photo, with the pages
   // on either side already drawn beside it (RTL: the next page on the left).

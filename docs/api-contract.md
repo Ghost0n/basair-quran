@@ -420,6 +420,32 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
     (the place «تابع القراءة» already offers isn't repeated); Settings
     «الرئيسية» hides either list and clears both.
 
+## Reading progress («تابع القراءة»)
+
+- `reading_progress` is an account preference on `GET/PATCH /api/user/preferences`:
+  `{ series: ReadingSeries[] (≤ 12), reset_at: int | null }`, default
+  `{ series: [], reset_at: null }`, wholesale-replace semantics.
+  `ReadingSeries` is `{ id, mushaf_id, start, end, turns, surah?, surah_id?,
+  updated_at }` (pages 1–1000; `end` is the page it reached last).
+- A series is an unbroken run of page turns in the reader (±2 pages, a spread
+  turns two). The web client (`lib/reading-progress.ts`) records them:
+  - a page opened any other way (search, saved page, index…) is not a turn;
+    turning on from it starts a new series — unless it is where a series
+    stopped, which then goes on;
+  - «تابع القراءة» on Home opens the **last page of the longest series** (most
+    turns, the latest on a tie), and the turns that follow are added to that
+    series;
+  - a series reaching the mushaf's last page (in a spread, the pair that shows
+    it) completes the reading: every series is cleared and `reset_at` stamped,
+    so «تابع القراءة» starts again from Al-Fatiha;
+  - Settings «الرئيسية» resets it the same way (a second tap confirms);
+  - at most 12 series are kept: the shortest, then the oldest, go first.
+- Before the first series (and never reset), Home falls back to
+  `last_position`. The device keeps a working copy (`qb.reading.progress`),
+  written on every turn without re-rendering the app, saved quietly, and
+  replaced by the account's when that changed after the device's last change.
+  A guest on the web keeps it in the browser only (like the recents).
+
 ## Morphology notes
 
 - `GET /api/morphology?surah=N&ayah=M` returns per-word morphology (root, lemma,

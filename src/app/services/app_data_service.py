@@ -220,6 +220,9 @@ DEFAULT_PREFERENCES: dict = {
     # RecentSearch), newest first; replaced wholesale.
     "recent_pages": [],
     "recent_searches": [],
+    # «تابع القراءة»: page-turn series + when the reader last reset them
+    # (models.api.ReadingProgress); replaced wholesale.
+    "reading_progress": {"series": [], "reset_at": None},
 }
 
 

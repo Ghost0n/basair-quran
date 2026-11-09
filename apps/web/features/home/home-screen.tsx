@@ -20,7 +20,9 @@ import { API_BASE_URL } from "@/lib/config";
 import { DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { useAuthSession } from "@/lib/auth-session-context";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
+import { continueSeries } from "@/lib/reading-progress";
 import { useRecents } from "@/lib/use-recents";
+import { useReadingProgress, useRecordReading } from "@/lib/use-reading-progress";
 
 import { AccountSheet } from "./account-sheet";
 import { WebHome } from "./home-web";
@@ -93,6 +95,8 @@ export function HomeScreen() {
   const { user } = useAuthSession();
   const { actions } = useWorkspace();
   const recents = useRecents();
+  const progress = useReadingProgress();
+  const { resume: resumeSeries } = useRecordReading();
   const [accountOpen, setAccountOpen] = useState(false);
   const accountBtn = useRef<HTMLButtonElement>(null);
   const [lastPage, setLastPage] = useState<number | null>(null);
@@ -132,7 +136,15 @@ export function HomeScreen() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const page = position?.page ?? lastPage;
+  // «تابع القراءة»: the last page of the longest series of page turns
+  // (lib/reading-progress.ts). Before the first series, the last reading
+  // position — unless the reading was completed or reset since.
+  const series = continueSeries(progress);
+  const page = series ? series.end : progress.reset_at == null ? (position?.page ?? lastPage) : null;
+  const pageMushaf = series?.mushaf_id ?? position?.mushaf_id ?? null;
+  // The exact verse saved is where to resume when it is on that page.
+  const exact = Boolean(page && position?.page === page && (!series || position?.mushaf_id === series.mushaf_id));
+  const readAt = series?.updated_at ?? position?.updated_at ?? null;
   const newUser = !page && !hasSession && !recents.searches.length;
   const greeting = greetingFor({
     name: user?.name?.trim() || null,
@@ -144,18 +156,24 @@ export function HomeScreen() {
   const reading: Card = page
     ? {
         eyebrow: t("تابع القراءة"),
-        title: lastSurah && (!position?.page || position.page === lastPage) ? lastSurah : t("صفحة {0}", { 0: formatNumber(page) }),
-        meta: [t("صفحة {0}", { 0: formatNumber(page) }), position?.updated_at ? relativeAge(position.updated_at, formatNumber) : null]
-          .filter(Boolean)
-          .join(" · "),
+        title: series
+          ? series.surah || t("صفحة {0}", { 0: formatNumber(page) })
+          : lastSurah && (!position?.page || position.page === lastPage)
+            ? lastSurah
+            : t("صفحة {0}", { 0: formatNumber(page) }),
+        meta: [t("صفحة {0}", { 0: formatNumber(page) }), readAt ? relativeAge(readAt, formatNumber) : null].filter(Boolean).join(" · "),
         action: t("تابع"),
         onAction: () => {
-          requestReaderResume();
+          // The turns that follow are added to this series.
+          if (series) resumeSeries(series);
+          if (exact || !series) requestReaderResume();
+          else void mushaf.loadPage(series.mushaf_id, series.end, { persist: true });
           setMode("reading");
         },
         onListen:
-          position?.surah && position?.ayah
+          exact && position?.surah && position?.ayah
             ? () => {
+                if (series) resumeSeries(series);
                 requestReaderResume();
                 recitation.playAyah(position.surah as number, position.ayah as number);
                 setMode("reading");
@@ -175,7 +193,7 @@ export function HomeScreen() {
 
   // The last places read (the one «تابع» already offers isn't repeated)
   // and the last searches, newest first.
-  const recentPages = recents.pages.filter((item) => !(item.page === page && item.mushaf_id === (position?.mushaf_id ?? item.mushaf_id)));
+  const recentPages = recents.pages.filter((item) => !(item.page === page && item.mushaf_id === (pageMushaf ?? item.mushaf_id)));
   const openPage = (item: RecentPage) => {
     void mushaf.loadPage(item.mushaf_id, item.page, { persist: true });
     setMode("reading");
@@ -253,7 +271,7 @@ export function HomeScreen() {
               title: reading.title,
               meta: reading.meta,
               page: page ?? null,
-              surah: position?.surah ?? null,
+              surah: series ? (series.surah_id ?? null) : (position?.surah ?? null),
               action: reading.action,
               onAction: reading.onAction,
               onListen: reading.onListen,
