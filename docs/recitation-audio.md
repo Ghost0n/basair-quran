@@ -100,3 +100,13 @@ the session) and recites from the one recording:
 when online and kept on the device for offline use — `fetch-router.ts`). A prepared surah
 downloads as one file (`audio/<reciter>/<SSS>.mp3`) with its timings (kept in the device's
 key-value store) and then plays from the device; the others download verse by verse as before.
+
+## Choosing a reciter
+
+Both pickers (the desktop media bar's dropdown and the phone's sheet) list the reciters from
+`/api/reciters` through `features/recitation/reciter-catalogue.ts`: only reciters with something
+to play; the reader's narration first, then the built-in reciters in their order, then the others
+by name; a search that ignores diacritics, alif forms, ة/ه and ى/ي (or matches the Latin name); and
+narration chips («الكل», حفص, ورش, قالون…) when there are several. Each row says the narration,
+the style when not murattal (مجوّد, معلّم) and how many surahs a reciter has when not all 114.
+The app's downloads list the same reciters (prepared-only ones download their prepared surahs).

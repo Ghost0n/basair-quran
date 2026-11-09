@@ -12,6 +12,7 @@ import { useNumerals } from "@/lib/preferences-context";
 
 import { requestShowRecited } from "./follow";
 import { useRecitation, type RecitationPosition } from "./recitation-context";
+import { riwayahLabel } from "./reciter-catalogue";
 import { RecitationSheet } from "./recitation-sheet";
 import { useRevealed } from "./session-view";
 
@@ -31,7 +32,7 @@ export function clock(seconds: number, formatNumber: (value: number) => string):
 }
 
 export function riwayahName(key: string | undefined): string {
-  return !key || key === "hafs" ? t("حفص") : key;
+  return riwayahLabel(key);
 }
 
 /** What the player names: the verse, the reciter, and whether the reciter's riwāyah differs from the mushaf's. */
@@ -50,7 +51,7 @@ export function useNowPlaying() {
       ? `${reciter.name} · ${t("رواية {0}", { 0: riwayahName(reciter.riwayah) })}`
       : reciter.name
     : t("اختر قارئاً");
-  return { position, surah, where, who, mismatch };
+  return { position, surah, where, who, mismatch, readerRiwayah: readerRiwayah ?? null };
 }
 
 /** The surah's progress line: drag or tap anywhere (it always runs right to left, like the mushaf). */
