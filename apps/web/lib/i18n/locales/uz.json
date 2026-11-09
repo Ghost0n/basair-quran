@@ -1349,5 +1349,9 @@
  "غير متاحة لهذا القارئ": "Bu qori uchun mavjud emas",
  "على الجهاز": "Qurilmada",
  "{0}٪ على الجهاز": "{0}% qurilmada",
- "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Yuklab olingan tilovatlar Sozlamalar → Yuklab olinganlar bo‘limida boshqariladi va o‘chiriladi."
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Yuklab olingan tilovatlar Sozlamalar → Yuklab olinganlar bo‘limida boshqariladi va o‘chiriladi.",
+ "الصفحات الأخيرة": "Soʻnggi sahifalar",
+ "عمليات البحث الأخيرة": "Soʻnggi qidiruvlar",
+ "كلمة أو عبارة": "Soʻz yoki ibora",
+ "مسح الصفحات وعمليات البحث الأخيرة": "Soʻnggi sahifa va qidiruvlarni tozalash"
 }

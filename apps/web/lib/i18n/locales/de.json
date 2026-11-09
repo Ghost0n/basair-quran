@@ -1349,5 +1349,9 @@
  "غير متاحة لهذا القارئ": "Für diesen Rezitator nicht verfügbar",
  "على الجهاز": "Auf dem Gerät",
  "{0}٪ على الجهاز": "{0} % auf dem Gerät",
- "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Heruntergeladene Rezitationen verwaltest und löschst du unter Einstellungen → Downloads."
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Heruntergeladene Rezitationen verwaltest und löschst du unter Einstellungen → Downloads.",
+ "الصفحات الأخيرة": "Zuletzt gelesene Seiten",
+ "عمليات البحث الأخيرة": "Letzte Suchen",
+ "كلمة أو عبارة": "Wort oder Ausdruck",
+ "مسح الصفحات وعمليات البحث الأخيرة": "Letzte Seiten und Suchen löschen"
 }

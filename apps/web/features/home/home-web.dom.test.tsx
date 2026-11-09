@@ -15,7 +15,7 @@ async function visit(key: number) {
   document.body.appendChild(host);
   const root = createRoot(host);
   await act(async () =>
-    root.render(<WebHome greeting={null} verse={verse(key)} reading={null} rows={[]} formatNumber={String} />),
+    root.render(<WebHome greeting={null} verse={verse(key)} reading={null} lists={[]} formatNumber={String} />),
   );
   const seen = {
     drawn: host.querySelector(".qbw-hero-girih")?.classList.contains("is-drawn") ?? false,
@@ -36,7 +36,7 @@ describe("WebHome's hero", () => {
 
     // While Home stays open, the next verse still writes itself in.
     await act(async () =>
-      again.root.render(<WebHome greeting={null} verse={verse(4)} reading={null} rows={[]} formatNumber={String} />),
+      again.root.render(<WebHome greeting={null} verse={verse(4)} reading={null} lists={[]} formatNumber={String} />),
     );
     expect(again.host.querySelector(".qbw-verse")?.classList.contains("qb-word-in")).toBe(true);
     await act(async () => again.root.unmount());

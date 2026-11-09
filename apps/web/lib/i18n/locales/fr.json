@@ -1349,5 +1349,9 @@
  "غير متاحة لهذا القارئ": "Indisponible pour ce récitant",
  "على الجهاز": "Sur l'appareil",
  "{0}٪ على الجهاز": "{0} % sur l'appareil",
- "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Les récitations téléchargées se gèrent et se suppriment dans Paramètres → Téléchargements."
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Les récitations téléchargées se gèrent et se suppriment dans Paramètres → Téléchargements.",
+ "الصفحات الأخيرة": "Pages récentes",
+ "عمليات البحث الأخيرة": "Recherches récentes",
+ "كلمة أو عبارة": "Mot ou expression",
+ "مسح الصفحات وعمليات البحث الأخيرة": "Effacer les pages et recherches récentes"
 }

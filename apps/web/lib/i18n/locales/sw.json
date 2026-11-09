@@ -1349,5 +1349,9 @@
  "غير متاحة لهذا القارئ": "Haipatikani kwa msomaji huyu",
  "على الجهاز": "Kwenye kifaa",
  "{0}٪ على الجهاز": "{0}% kwenye kifaa",
- "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Visomo vilivyopakuliwa vinasimamiwa na kufutwa katika Mipangilio → Vipakuliwa."
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Visomo vilivyopakuliwa vinasimamiwa na kufutwa katika Mipangilio → Vipakuliwa.",
+ "الصفحات الأخيرة": "Kurasa za hivi karibuni",
+ "عمليات البحث الأخيرة": "Utafutaji wa hivi karibuni",
+ "كلمة أو عبارة": "Neno au kifungu",
+ "مسح الصفحات وعمليات البحث الأخيرة": "Futa kurasa na utafutaji wa hivi karibuni"
 }

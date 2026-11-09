@@ -448,17 +448,6 @@
   transform: translateX(-18px);
 }
 
-/* The rotating verse is a wide-screen part of Home. */
-@media (max-width: 768px) {
-  .qb-switch-list > li.wide-only {
-    display: none;
-  }
-
-  .qb-switch-list > li.wide-only + li {
-    border-top: 0;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .qb-switch,
   .qb-switch::after {

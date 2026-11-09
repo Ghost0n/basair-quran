@@ -44,7 +44,7 @@
 .qb-web .qbw-acts { margin-top: 18px; display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
 .qb-web .qbw-acts-start { justify-content: flex-start; margin-top: 20px; }
 
-/* Below: the reading card and the way back into your work. */
+/* Below: the reading card and the last places read and searches run. */
 .qb-web .qbw-grid {
   max-width: 1240px;
   margin: 0 auto;
@@ -69,6 +69,8 @@
   margin-inline-start: 8px;
 }
 
+.qb-web .qbw-lists { display: grid; gap: 26px; align-content: start; }
+.qb-web .qbw-list-title { margin: 0 0 4px; font-size: 13px; font-weight: 700; color: var(--fg-3); }
 .qb-web .qbw-rows { list-style: none; margin: 0; padding: 0; }
 .qb-web .qbw-rows li + li { border-top: 1px solid var(--border); }
 .qb-web .qbw-row {
@@ -95,7 +97,6 @@
   background: var(--gold-soft);
   flex: none;
 }
-.qb-web .qbw-row .glyph .dot { position: absolute; top: 4px; inset-inline-end: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--copper); }
 .qb-web .qbw-row .txt { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .qb-web .qbw-row b { font-size: 15px; }
 .qb-web .qbw-row small { font-size: 12.5px; color: var(--fg-3); overflow: hidden; overflow-y: visible; text-overflow: ellipsis; white-space: nowrap; }

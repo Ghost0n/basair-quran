@@ -159,6 +159,31 @@ def test_user_preferences_home_hidden(api_client):
     assert api_client.patch("/api/user/preferences", json={"home_hidden": []}).json()["home_hidden"] == []
 
 
+def test_user_preferences_recents(api_client):
+    # Home's recents: empty by default, replaced wholesale, at most five each.
+    prefs = api_client.get("/api/user/preferences").json()
+    assert prefs["recent_pages"] == [] and prefs["recent_searches"] == []
+
+    pages = [{"page": 50, "mushaf_id": 2, "surah": "آل عمران", "at": 1700000000}]
+    searches = [{"query": "رحم", "mode": "root", "at": 1700000001}]
+    patched = api_client.patch("/api/user/preferences", json={"recent_pages": pages, "recent_searches": searches})
+    assert patched.status_code == 200
+    reread = api_client.get("/api/user/preferences").json()
+    assert reread["recent_pages"] == pages
+    assert reread["recent_searches"] == searches
+
+    # The new Home sections can be hidden; the old shortcut ids stay accepted.
+    hidden = api_client.patch("/api/user/preferences", json={"home_hidden": ["recent_pages", "recent_searches", "study"]})
+    assert hidden.status_code == 200
+
+    too_many = [{"query": f"q{i}", "mode": "exact", "at": i} for i in range(6)]
+    assert api_client.patch("/api/user/preferences", json={"recent_searches": too_many}).status_code == 422
+    assert api_client.patch("/api/user/preferences", json={"recent_searches": [{"query": "x", "mode": "fuzzy"}]}).status_code == 422
+    assert api_client.patch("/api/user/preferences", json={"recent_pages": [{"page": 0}]}).status_code == 422
+    cleared = api_client.patch("/api/user/preferences", json={"recent_pages": [], "recent_searches": []}).json()
+    assert cleared["recent_pages"] == [] and cleared["recent_searches"] == []
+
+
 def test_mushaf_edition_preference_is_validated_and_falls_back(api_client):
     from src.app.services import app_data_service
 

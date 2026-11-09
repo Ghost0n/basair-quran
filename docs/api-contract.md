@@ -391,10 +391,31 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
 
 - `home_hidden` is an account preference on `GET/PATCH /api/user/preferences`:
   the Home sections the reader hid in Settings («الرئيسية»), from `greeting`,
-  `verse` (wide screens), `continue`, `index`, `saved`, `study`, `community`,
+  `verse`, `continue`, `recent_pages`, `recent_searches`,
   `search`. Defaults to `[]` (everything shown); unknown ids are rejected (422).
-  Wholesale-replace semantics like `saved_pages`. Sections are listed as
-  hidden so that a section added later shows by default.
+  `index`, `saved`, `study` and `community` (the old shortcuts to screens the
+  navigation bar opens) are no longer shown but still accepted, so a stored list
+  stays valid. Wholesale-replace semantics like `saved_pages`. Sections are
+  listed as hidden so that a section added later shows by default.
+
+## Recents
+
+- `recent_pages` and `recent_searches` are account preferences on
+  `GET/PATCH /api/user/preferences`, newest first, at most 5 each (6+ is a 422),
+  wholesale-replace semantics like `saved_pages` (`[]` clears them).
+  - `recent_pages`: `{ page (1–1000), mushaf_id, surah?, at }` — the last places
+    read. The client counts consecutive page turns (±2 pages, a spread turns two)
+    as one place, moved to the page reached; a jump starts a new place, and one
+    page is listed once.
+  - `recent_searches`: `{ query (1–200 chars), mode: "exact" | "root", at }` —
+    the last searches that found results; the same words in the same mode
+    (spacing and diacritics aside) are listed once.
+  - `at` is Unix seconds. The web keeps a device copy (`qb.recents`) written on
+    every change without re-rendering the app, saves it quietly (debounced), and
+    adopts the account's copy when it holds an entry newer than the device's last
+    change (so a list cleared on this device doesn't come back). Home shows them
+    (the place «تابع القراءة» already offers isn't repeated); Settings
+    «الرئيسية» hides either list and clears both.
 
 ## Morphology notes
 

@@ -1349,5 +1349,9 @@
  "غير متاحة لهذا القارئ": "Indisponível para este recitador",
  "على الجهاز": "No dispositivo",
  "{0}٪ على الجهاز": "{0}% no dispositivo",
- "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "As recitações transferidas são geridas e removidas em Configurações → Transferências."
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "As recitações transferidas são geridas e removidas em Configurações → Transferências.",
+ "الصفحات الأخيرة": "Páginas recentes",
+ "عمليات البحث الأخيرة": "Pesquisas recentes",
+ "كلمة أو عبارة": "Palavra ou frase",
+ "مسح الصفحات وعمليات البحث الأخيرة": "Limpar páginas e pesquisas recentes"
 }
