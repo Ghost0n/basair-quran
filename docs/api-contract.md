@@ -413,7 +413,10 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   - `at` is Unix seconds. The web keeps a device copy (`qb.recents`) written on
     every change without re-rendering the app, saves it quietly (debounced), and
     adopts the account's copy when it holds an entry newer than the device's last
-    change (so a list cleared on this device doesn't come back). Home shows them
+    change (so a list cleared on this device doesn't come back). A guest on the
+    web (accounts on, not signed in) has no account record of their own, so
+    their recents stay in the browser and are never sent (the installed app keeps
+    a guest's in its own device store). Home shows them
     (the place «تابع القراءة» already offers isn't repeated); Settings
     «الرئيسية» hides either list and clears both.
 
