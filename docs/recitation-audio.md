@@ -1,8 +1,8 @@
 # Recitation audio
 
-Status: the preparation pipeline and its routes are in place (Q-Basair-65); the player switches to
-the prepared recordings in the next step (Q-Basair-66). Until then it recites verse by verse from
-everyayah.com as before.
+Status: in place — the preparation pipeline and its routes (Q-Basair-65), the player and the app's
+downloads (Q-Basair-66). A surah not prepared for a reciter still plays verse by verse from
+everyayah.com.
 
 ## Why one recording per surah
 
@@ -78,3 +78,25 @@ front (the platform's Cloudflare) keeps them at the edge.
 
 The recordings and their timings are the work of Quran.com (quranicaudio.com), mp3quran.net and
 everyayah.com; each prepared surah keeps its `attribution`, and the reciter list shows it.
+
+## The player
+
+`features/recitation/recitation-context.tsx` (with `track.ts`): for a reciter's prepared surah
+(`ReciterItem.surahs`) it fetches the timings once (`GET /api/recitations/{id}/{surah}`, kept for
+the session) and recites from the one recording:
+
+- a verse starts at its timing (the first verse at 0, with the surah's opening and basmala);
+  previous / next verse and the progress bar seek **within the same file** — nothing is loaded;
+- the verse being recited follows the recording's time (`boundaryAction`), even when an update
+  skips a verse; a repeated verse loops, and a chosen range stops or loops, **exactly at the
+  verse's end** (a timer for the last fraction of a second — time updates are coarse);
+- the surah's progress and the lock screen show the recording's real length and position;
+- at the end of the recording the next surah follows (its timings were fetched ahead);
+- on a first tap, while the timings arrive, the element plays a moment of silence so the browser
+  keeps the tap's permission to play;
+- a surah not prepared (or a reciter without any) plays verse by verse as before.
+
+**App**: the reciter list comes from the server first (`/api/reciters` is answered by the server
+when online and kept on the device for offline use — `fetch-router.ts`). A prepared surah
+downloads as one file (`audio/<reciter>/<SSS>.mp3`) with its timings (kept in the device's
+key-value store) and then plays from the device; the others download verse by verse as before.
