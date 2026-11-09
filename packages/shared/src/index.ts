@@ -973,8 +973,39 @@ export interface SavedPageEntry {
 /** Mushaf editions the reader offers (v1: the Madani mushaf only). */
 export type MushafEditionId = "madani-hafs";
 
-/** The Home screen's sections a reader can hide (preference `home_hidden`). */
-export type HomeSectionId = "greeting" | "verse" | "continue" | "index" | "saved" | "study" | "community" | "search";
+/**
+ * The Home screen's sections a reader can hide (preference `home_hidden`).
+ * `index`, `saved`, `study` and `community` are no longer shown (the
+ * navigation bar opens them); still accepted so a stored list stays valid.
+ */
+export type HomeSectionId =
+  | "greeting"
+  | "verse"
+  | "continue"
+  | "recent_pages"
+  | "recent_searches"
+  | "search"
+  | "index"
+  | "saved"
+  | "study"
+  | "community";
+
+/** A place recently read (preference `recent_pages`): consecutive turns count once, at the page reached. */
+export interface RecentPage {
+  page: number;
+  mushaf_id: number;
+  surah?: string | null;
+  /** Unix seconds. */
+  at: number;
+}
+
+/** A search recently run (preference `recent_searches`). */
+export interface RecentSearch {
+  query: string;
+  mode: "exact" | "root";
+  /** Unix seconds. */
+  at: number;
+}
 
 export interface UserPreferences {
   /** The reader's mushaf edition — fixes the riwāyah and how it is drawn. */
@@ -997,6 +1028,8 @@ export interface UserPreferences {
   translations?: string[];
   /** Home sections the reader hid (Settings «الرئيسية»); empty = all shown. */
   home_hidden?: HomeSectionId[];
+  recent_pages?: RecentPage[];
+  recent_searches?: RecentSearch[];
 }
 
 export interface RootDistributionSurah {
@@ -1070,6 +1103,8 @@ export interface UserPreferencesUpdate {
   saved_pages?: SavedPageEntry[] | null;
   translations?: string[];
   home_hidden?: HomeSectionId[];
+  recent_pages?: RecentPage[];
+  recent_searches?: RecentSearch[];
 }
 
 /** An installed translation of the Quran's meanings, with its provenance. */

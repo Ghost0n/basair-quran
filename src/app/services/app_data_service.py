@@ -216,6 +216,10 @@ DEFAULT_PREFERENCES: dict = {
     "translations": [],
     # Home sections the reader hid (models.api.HomeSectionId); replaced wholesale.
     "home_hidden": [],
+    # The last places read and searches run (models.api.RecentPage /
+    # RecentSearch), newest first; replaced wholesale.
+    "recent_pages": [],
+    "recent_searches": [],
 }
 
 

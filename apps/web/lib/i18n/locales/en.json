@@ -1390,5 +1390,9 @@
  "غير متاحة لهذا القارئ": "Not available for this reciter",
  "على الجهاز": "On the device",
  "{0}٪ على الجهاز": "{0}% on the device",
- "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Downloaded recitations are managed and removed in Settings → Downloads."
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "Downloaded recitations are managed and removed in Settings → Downloads.",
+ "الصفحات الأخيرة": "Recent pages",
+ "عمليات البحث الأخيرة": "Recent searches",
+ "كلمة أو عبارة": "Word or phrase",
+ "مسح الصفحات وعمليات البحث الأخيرة": "Clear recent pages and searches"
 }

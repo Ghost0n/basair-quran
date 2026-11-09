@@ -55,6 +55,7 @@ import { setReaderTool, useReaderTool } from "./tools/use-reader-tool";
 import { PickedWordsProvider, VerseFocusProvider, readSelection, tappedWord, type VerseFocus, type WordSelection } from "./tools/word-selection";
 
 import { t as tt } from "@/lib/i18n";
+import { useRecordRecents } from "@/lib/use-recents";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
@@ -75,6 +76,7 @@ export function MushafStage() {
   const { state } = useWorkspace();
   const mushaf = useMushaf();
   const { preferences, updateAccount, persistQuietly, ready } = usePreferences();
+  const { recordPage } = useRecordRecents();
   const formatNumber = useNumerals();
   const selectedMushaf = state.selectedMushaf;
 
@@ -321,6 +323,8 @@ export function MushafStage() {
         updated_at: Math.floor(Date.now() / 1000),
       },
     });
+    // Home's recent pages: consecutive turns are one place, at the page reached.
+    if (pd.page) recordPage({ page: pd.page, mushaf_id: pd.mushaf_id ?? selectedMushaf, surah: anchor.surah ?? null });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mushaf.pageData, mushaf.selectedAyahId, ready]);
 

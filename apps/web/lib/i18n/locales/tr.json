@@ -1390,5 +1390,9 @@
  "غير متاحة لهذا القارئ": "Bu kâri için mevcut değil",
  "على الجهاز": "Cihazda",
  "{0}٪ على الجهاز": "%{0} cihazda",
- "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "İndirilen tilavetler Ayarlar → İndirilenler'den yönetilir ve silinir."
+ "تُدار التلاوات المنزّلة وتُحذف من الإعدادات ← التنزيلات.": "İndirilen tilavetler Ayarlar → İndirilenler'den yönetilir ve silinir.",
+ "الصفحات الأخيرة": "Son sayfalar",
+ "عمليات البحث الأخيرة": "Son aramalar",
+ "كلمة أو عبارة": "Kelime veya ifade",
+ "مسح الصفحات وعمليات البحث الأخيرة": "Son sayfaları ve aramaları temizle"
 }

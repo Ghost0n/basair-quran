@@ -12,7 +12,10 @@ import { positionCounts } from "./home-web-model";
 
 import { t } from "@/lib/i18n";
 
-export type WebHomeRow = { id: string; icon: IconName; label: string; sub?: string; onClick: () => void; dot?: boolean };
+export type WebHomeRow = { id: string; icon: IconName; label: string; sub?: string; onClick: () => void };
+
+/** A titled list beside the reading card (the recent pages, the recent searches). */
+export type WebHomeList = { id: string; title: string; rows: WebHomeRow[] };
 
 export type WebHomeProps = {
   greeting: { line: string; sub?: string | null } | null;
@@ -27,7 +30,7 @@ export type WebHomeProps = {
     onAction: () => void;
     onListen?: () => void;
   } | null;
-  rows: WebHomeRow[];
+  lists: WebHomeList[];
   formatNumber: (value: number) => string;
   /** Phones: the account and settings button, in the hero's corner (the rail that carries it is hidden). */
   corner?: ReactNode;
@@ -37,13 +40,13 @@ export type WebHomeProps = {
 
 /**
  * Home in the web design (desktop web): the verse holds the hero, written word
- * by word over the rosette; beside the reading card, the way back into your
- * work as a quiet list. Same data and actions as the phone Home (home-screen.tsx).
+ * by word over the rosette; beside the reading card, the last places read and
+ * searches run as quiet lists. Same data and actions as the phone Home (home-screen.tsx).
  */
 /** Whether Home's hero has drawn itself once since the app started. */
 let heroPlayed = false;
 
-export function WebHome({ greeting, verse, reading, rows, formatNumber, corner, overlay }: WebHomeProps) {
+export function WebHome({ greeting, verse, reading, lists, formatNumber, corner, overlay }: WebHomeProps) {
   const words = verse ? verse.text.split(" ") : [];
   // The rosette and the verse draw themselves on the first visit only:
   // coming back to Home finds it as it was left, not a new space. While
@@ -141,14 +144,21 @@ export function WebHome({ greeting, verse, reading, rows, formatNumber, corner, 
           ) : null}
         </div>
 
-        {rows.length ? (
-          <ul className="qbw-rows">
-            {rows.map((row) => (
-              <li key={row.id}>
-                <Row {...row} />
-              </li>
+        {lists.length ? (
+          <div className="qbw-lists">
+            {lists.map((list) => (
+              <section key={list.id} className="qbw-list" aria-label={list.title}>
+                <h2 className="qbw-list-title">{list.title}</h2>
+                <ul className="qbw-rows">
+                  {list.rows.map((row) => (
+                    <li key={row.id}>
+                      <Row {...row} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
+          </div>
         ) : null}
       </div>
       {overlay}
@@ -156,12 +166,11 @@ export function WebHome({ greeting, verse, reading, rows, formatNumber, corner, 
   );
 }
 
-function Row({ icon, label, sub, onClick, dot }: WebHomeRow): ReactNode {
+function Row({ icon, label, sub, onClick }: WebHomeRow): ReactNode {
   return (
     <button type="button" className="qbw-row" onClick={onClick}>
       <span className="glyph">
         <Icon name={icon} size={18} />
-        {dot ? <i className="dot" aria-hidden="true" /> : null}
       </span>
       <span className="txt">
         <b>{label}</b>
