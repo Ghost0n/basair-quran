@@ -289,16 +289,23 @@ export function GlyphPage({
     <div
       className={`qb-glyph-page qb-print-page${isOpeningPage ? " is-opening" : ""}${ribbons.enabled ? " has-ribbon" : ""}`}
       data-page={page}
-      style={{ "--rows": isOpeningPage ? lines.length : FULL_PAGE_LINES, "--fit": measured.maxEm } as CSSProperties}
+      style={
+        {
+          "--rows": FULL_PAGE_LINES,
+          "--fit": measured.maxEm,
+          // Opening pages: their few lines sit in the middle of the same grid.
+          "--skip": isOpeningPage ? Math.max(1, Math.floor((FULL_PAGE_LINES - lines.length) / 2)) : undefined,
+        } as CSSProperties
+      }
     >
       <PageRibbon page={page} surahId={pageSurah} />
       <VerseOutlines />
-      {!isOpeningPage ? (
-        <div className="qb-print-head" aria-hidden="true">
-          <span>{juz ? juzHeading(juz) : null}</span>
-          <span className="surah">{surahHeading(headSurah)}</span>
-        </div>
-      ) : null}
+      {/* Opening pages have no running head, but keep its room so their text
+          is laid out exactly like every other page's. */}
+      <div className={`qb-print-head${isOpeningPage ? " is-blank" : ""}`} aria-hidden="true">
+        <span>{juz ? juzHeading(juz) : null}</span>
+        <span className="surah">{surahHeading(headSurah)}</span>
+      </div>
       <div className="qb-print-block">
         {lines.map((line, index) => {
           if (line.line_type === "surah_name") {
