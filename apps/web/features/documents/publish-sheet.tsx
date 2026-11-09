@@ -10,6 +10,7 @@ import { Icon } from "@/components/icon";
 import { API_BASE_URL } from "@/lib/config";
 import { useDialog } from "@/lib/use-dialog";
 import { isBanned } from "@/features/community/labels";
+import { useCommunityAccess } from "@/features/community/use-community-access";
 
 import { t } from "@/lib/i18n";
 
@@ -50,6 +51,8 @@ export function PublishSheet({
   onOpenPost: (postId: string) => void;
 }) {
   const panelRef = useDialog<HTMLDivElement>(onClose);
+  // Publishing (like commenting and liking) needs an account; nothing else does.
+  const access = useCommunityAccess();
   const [visibility, setVisibility] = useState<"public" | "unlisted">("public");
   const [accepted, setAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -87,7 +90,15 @@ export function PublishSheet({
           </button>
         </div>
         <div className="body">
-          {!result ? (
+          {!access.canWrite ? (
+            <div className="outcome">
+              <Icon name="user" size={26} />
+              <h3>{t("سجّل الدخول لتنشر في المجتمع.")}</h3>
+              <a className="qb-btn primary block" href={`/login?next=${encodeURIComponent(typeof window === "undefined" ? "/" : `${window.location.pathname}${window.location.search}`)}`}>
+                {t("تسجيل الدخول")}
+              </a>
+            </div>
+          ) : !result ? (
             <>
               <div className="choices" role="radiogroup" aria-label={t("من يرى البحث")}>
                 <button type="button" role="radio" aria-checked={visibility === "public"} className={visibility === "public" ? "on" : ""} onClick={() => setVisibility("public")}>

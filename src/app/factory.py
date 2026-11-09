@@ -47,22 +47,6 @@ def _extract_token(request: Request) -> str | None:
     return request.cookies.get(config.get_session_cookie_name()) or None
 
 
-def require_authenticated_session(request: Request) -> None:
-    """Hard gate — 401 unless a live session token is presented.
-
-    Attached to the Studio/research router only: reading + search stay open to
-    guests, but the LLM research surface requires an account.
-    """
-    resolved = auth_service.resolve_session(_extract_token(request))
-    if resolved is None:
-        raise HTTPException(
-            status_code=401,
-            detail={"code": "auth_required", "gate": "studio", "message": "Authentication required."},
-        )
-    request.state.auth_user = resolved.user
-    request.state.session_id = resolved.session_id
-
-
 class RateLimitMiddleware(BaseHTTPMiddleware):
     """Per-IP sliding-window throttle on abuse-prone POST endpoints.
 
@@ -96,9 +80,9 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
 def attach_optional_session(request: Request) -> None:
     """Soft auth — resolve the token if present, never 401.
 
-    Attached to the open routers (reader, search, mushafs, companions) so an
-    authenticated user's notebook/preferences resolve to *their* user_id
-    instead of silently reading/writing as the guest (user_id=0).
+    Attached to every API router so an authenticated user's notebook,
+    preferences and research resolve to *their* user_id instead of silently
+    reading/writing as the guest (user_id=0).
     """
     resolved = auth_service.resolve_session(_extract_token(request))
     if resolved is not None:
@@ -155,10 +139,11 @@ def create_app() -> FastAPI:
         auth_service.ensure_auth_db()
     app_data_service.ensure_app_db()
 
-    # Hybrid gating: reading + search are open to guests (soft auth resolves the
-    # user when signed in); only the Studio/research surface is hard-gated.
+    # Everything is open to guests (soft auth resolves the user when signed in):
+    # an account only decides where the reader's data is kept. The one thing
+    # that needs an account is writing to the Community (publish, comment,
+    # like…), checked in its routes.
     open_dependencies = [Depends(attach_optional_session)] if config.is_auth_enabled() else []
-    gated_dependencies = [Depends(require_authenticated_session)] if config.is_auth_enabled() else []
 
     app.include_router(auth_router)
     app.include_router(health_router)
@@ -175,8 +160,8 @@ def create_app() -> FastAPI:
     app.include_router(recitations_router, dependencies=open_dependencies)
     # The standalone app's pack downloads (open: a phone installs before any sign-in).
     app.include_router(offline_router)
-    app.include_router(research_router, dependencies=gated_dependencies)
-    app.include_router(ai_router, dependencies=gated_dependencies)
+    app.include_router(research_router, dependencies=open_dependencies)
+    app.include_router(ai_router, dependencies=open_dependencies)
     return app
 
 
