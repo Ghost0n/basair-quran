@@ -147,8 +147,8 @@ html.qb-web[dir="rtl"] .qb-display-strip .size input[type="range"]::-webkit-slid
 
   /* The pinned page ends above the dock wherever the dock sits (the same
      8 + 66 + 8px reserve as phone-ergonomics.css when there is an inset). */
-  html.qb-web:root .qb-mushaf-stage:not(.is-ayah) .qb-mushaf-page:has(> .qb-glyph-spread) {
-    bottom: calc(var(--dock-bottom) + 66px + 8px);
+  html.qb-web:root {
+    --qb-page-reserve: calc(var(--dock-bottom) + 66px + 8px);
   }
 
   /* The pinned page sizes its lines by its width (15 rows of about 0.075 of
