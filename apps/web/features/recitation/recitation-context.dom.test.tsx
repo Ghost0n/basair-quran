@@ -138,6 +138,32 @@ describe("RecitationProvider — one verse sounds at a time", () => {
   });
 });
 
+describe("RecitationProvider — a verse heard on its own", () => {
+  it("is no session (no player, no bar, not followed) and ends with its verse", async () => {
+    await mount();
+    await act(async () => recitation.playVerseOnce(2, 3));
+    await settle();
+    expect(recitation.current).toEqual({ surah: 2, ayah: 3 });
+    expect(recitation.range?.once).toBe(true);
+    expect(recitation.active).toBe(false);
+    const [playing] = sounding();
+    await act(async () => playing.dispatchEvent(new Event("ended")));
+    await settle();
+    expect(recitation.current).toBeNull();
+    expect(sounding()).toEqual([]);
+  });
+
+  it("gives way to a recitation, which is a session", async () => {
+    await mount();
+    await act(async () => recitation.playVerseOnce(2, 3));
+    await settle();
+    await act(async () => recitation.playAyah(2, 5));
+    await settle();
+    expect(recitation.active).toBe(true);
+    expect(sounding()).toHaveLength(1);
+  });
+});
+
 describe("playOrResume — the play button", () => {
   const fake = (state: { isPlaying: boolean; current: { surah: number; ayah: number } | null }) => {
     const calls: string[] = [];

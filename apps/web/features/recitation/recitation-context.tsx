@@ -186,7 +186,12 @@ type RecitationValue = {
   /** What repeats: nothing, the verse, or the chosen range (the surah when none was chosen). */
   repeatMode: RepeatMode;
   setRepeatMode: (mode: RepeatMode) => void;
-  /** A recitation session is open: from play until the player is closed (pausing keeps it open). */
+  /**
+   * A recitation session is open: from play until the player is closed
+   * (pausing keeps it open). A verse heard on its own (`playVerseOnce`, a
+   * search result's ▶) is not a session: no player, no bar, the reader
+   * doesn't follow it.
+   */
   active: boolean;
 };
 
@@ -884,7 +889,7 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       setRangeRepeat,
       repeatMode,
       setRepeatMode,
-      active: Boolean(current) || idle,
+      active: (Boolean(current) && !range?.once) || idle,
     }),
     [
       surahs,
