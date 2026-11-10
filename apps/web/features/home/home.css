@@ -1,7 +1,8 @@
 /* =====================================================================
    Home (home-screen.tsx) — laid out by the web design (home.web.css).
    Here: the account and settings button, shown in the hero's corner on
-   phones (home.web.css); wide screens' rail carries the account instead.
+   phones (home.web.css; wide screens' rail carries the account instead),
+   and the sheet it opens (account-sheet.tsx).
    ===================================================================== */
 
 .qb-home-account {
@@ -20,4 +21,70 @@
   .qb-home-account {
     display: none;
   }
+}
+
+
+/* ---------- The account sheet ---------- */
+
+.qb-account-sheet .head .sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--fg-3);
+}
+
+.qb-account-sheet .menu-list {
+  display: grid;
+  gap: 4px;
+  padding: 6px 12px 18px;
+}
+
+.qb-account-sheet .menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 10px;
+  border: 0;
+  border-radius: var(--r-lg);
+  background: transparent;
+  color: var(--fg-1);
+  font: inherit;
+  font-size: 15px;
+  text-align: start;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.qb-account-sheet .menu-item:hover {
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.qb-account-sheet .menu-item .ico {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: var(--gold-text);
+  background: rgba(212, 175, 55, 0.12);
+}
+
+.qb-account-sheet .menu-item .txt {
+  display: grid;
+  min-width: 0;
+}
+
+.qb-account-sheet .menu-item small {
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+
+.qb-account-sheet .menu-item > .qb-icon:last-child {
+  margin-inline-start: auto;
+  color: var(--fg-3);
+}
+
+.qb-account-sheet .menu-item.quiet {
+  color: var(--fg-2);
 }
