@@ -110,51 +110,29 @@
 
   /* ---------- 1b. The printed page is the screen ---------- */
 
-  /* Pages mode: the page is pinned to the screen, from the top safe area to
-     the tab bar, with no sheet or frame and the full width. The bars float
-     over it and focus mode only hides them, so the page never moves. Its
-     text size is fixed too (no font-size zoom here; «العرض» shows the size
-     control inactive in this mode). */
+  /* Pages mode: the page is pinned to the screen, with no sheet or frame and
+     the full width, and it never moves: not between pages, not in or out
+     of focus mode (the bars float over it; focus mode only hides them). It
+     fills the safe area; its text sits between two equal bands, so it is
+     centred on the screen and the dock (in the lower band) never covers a
+     line. The upper band holds the running head in the screen's top
+     corners; the page number sits under the text, in the lower band (under
+     the dock, when it shows). Its text size is fixed too (no font-size zoom
+     here; «العرض» shows the size control inactive in this mode). */
   html:root {
     /* What the pinned page keeps clear at the bottom: the dock's band. */
     --qb-page-reserve: calc(8px + 66px + 8px + env(safe-area-inset-bottom, 0px));
+    /* The band above and below the text: the dock's, without the bottom inset. */
+    --qb-band: calc(var(--qb-page-reserve) - env(safe-area-inset-bottom, 0px));
+    --qb-num-h: 18px;
   }
 
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-mushaf-page:has(> .qb-glyph-spread) {
     position: fixed;
-    inset: env(safe-area-inset-top, 0px) 0 var(--qb-page-reserve);
+    inset: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
     z-index: 0;
     padding: 0;
     overflow: hidden;
-    transition:
-      top 260ms var(--ease-out, ease-out),
-      bottom 260ms var(--ease-out, ease-out);
-  }
-
-  /* Focus mode: the dock is gone. The page keeps its size (the same lines,
-     the same spacing); the page number comes up under the text, as far from
-     it as the running head (juz · surah) is above it, and head, text and
-     number are centred together between the safe areas, on any height.
-     Measured on the ink (docs/mobile-ergonomics.md): --qb-num-gap puts the
-     number's box against the page's bottom edge (its padding and the
-     block's are the rest of the gap); --qb-head-num-ink is the page's top
-     edge to the head's ink plus the number's box top to its ink bottom. */
-  html:root.qb-immersive:has(.qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread) {
-    --qb-num-gap: 2px;
-    --qb-num-h: 18px;
-    --qb-head-num-ink: 30px;
-    --qb-page-shift: calc(
-      (var(--qb-page-reserve) - env(safe-area-inset-bottom, 0px) - var(--qb-num-gap) - var(--qb-head-num-ink)) / 2
-    );
-  }
-
-  html:root.qb-immersive .qb-mushaf-stage:not(.is-ayah) .qb-mushaf-page:has(> .qb-glyph-spread) {
-    top: calc(env(safe-area-inset-top, 0px) + var(--qb-page-shift));
-    bottom: calc(var(--qb-page-reserve) - var(--qb-page-shift));
-  }
-
-  html:root.qb-immersive:has(.qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread) .qb-page-number {
-    bottom: calc(var(--qb-page-reserve) - var(--qb-page-shift) - var(--qb-num-gap) - var(--qb-num-h));
   }
 
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread {
@@ -167,7 +145,7 @@
     width: 100%;
     height: 100%;
     aspect-ratio: auto;
-    padding: 0 12px 4px;
+    padding: 0 12px var(--qb-band);
     border-radius: 0;
     background: none;
     box-shadow: none;
@@ -195,7 +173,8 @@
     transform: translateX(100%);
   }
 
-  /* The running head (juz · surah) sits in the screen's top corners. */
+  /* The running head (juz · surah) sits in the screen's top corners: the
+     upper band, its labels at the band's top. */
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-print-head {
     padding: 4px 0 0;
   }
@@ -212,8 +191,8 @@
     margin-top: auto;
   }
 
-  /* The page number, centred under the tab bar in every mode (focus mode
-     too, where the tab bar is gone). */
+  /* The page number, centred at the bottom; in pages mode, in the lower
+     band (below). */
   html:root .qb-page-number {
     display: block;
     position: fixed;
@@ -221,7 +200,6 @@
     bottom: max(2px, calc(env(safe-area-inset-bottom, 0px) - 22px));
     transform: translateX(-50%);
     z-index: 40;
-    transition: bottom 260ms var(--ease-out, ease-out);
     font-family: var(--font-arabic-ui);
     font-variant-numeric: tabular-nums;
     font-size: 12px;
@@ -453,7 +431,8 @@
     display: none;
   }
 
-  /* The bookmark floats in the top-left corner, over the page. */
+  /* The bookmark floats in the top-left corner, over the page; in pages
+     mode, under the surah's name (the running head keeps the corner). */
   html:root .qb-reader-corner {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 4px);
@@ -479,16 +458,35 @@
   }
 
   /* Pages mode: the running head names the juz (top right) and the surah
-     (top left), alike and facing each other. The bookmark floats over the
-     surah's corner; focus mode, without it, shows the head whole. */
+     (top left), alike and facing each other, in the screen's extreme top
+     corners: the upper band, as tall as the lower one, with the labels at
+     its top. The bookmark floats under the surah's name, in the band. */
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-glyph-page.qb-print-page {
-    padding-top: 6px;
+    padding-top: 0;
   }
 
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-print-head {
-    min-height: 40px;
-    align-items: center;
-    padding: 0;
+    min-height: var(--qb-band);
+    align-items: flex-start;
+    padding: 6px 2px 0;
+  }
+
+  html:root:has(.qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread) .qb-reader-corner {
+    top: calc(env(safe-area-inset-top, 0px) + 30px);
+  }
+
+  /* The page number sits in the middle of the lower band: behind the dock
+     when it shows, on its own under the text in focus mode — in the same
+     place either way. */
+  html:root:has(.qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread) .qb-page-number {
+    bottom: calc(env(safe-area-inset-bottom, 0px) + (var(--qb-band) - var(--qb-num-h)) / 2);
+    z-index: 1;
+    transition: opacity 200ms var(--ease-out, ease-out);
+  }
+
+  /* With the dock up, it is hidden behind it (the dock is see-through). */
+  html:root:not(.qb-immersive):has(.qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread) .qb-page-number {
+    opacity: 0;
   }
 
   /* Verse by verse: the verses are the whole screen and scroll under the

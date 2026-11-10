@@ -149,6 +149,7 @@ html.qb-web[dir="rtl"] .qb-display-strip .size input[type="range"]::-webkit-slid
      8 + 66 + 8px reserve as phone-ergonomics.css when there is an inset). */
   html.qb-web:root {
     --qb-page-reserve: calc(var(--dock-bottom) + 66px + 8px);
+    --qb-band: calc(var(--qb-page-reserve) - env(safe-area-inset-bottom, 0px));
   }
 
   /* The pinned page sizes its lines by its width (15 rows of about 0.075 of
@@ -157,7 +158,7 @@ html.qb-web[dir="rtl"] .qb-display-strip .size input[type="range"]::-webkit-slid
      until they fit the height. A portrait phone has the height and keeps
      the full width, as stabilized. */
   html.qb-web:root .qb-mushaf-stage:not(.is-ayah) .qb-glyph-page.qb-print-page {
-    width: min(100%, calc((100cqh - 56px) / 1.15));
+    width: min(100%, calc((100cqh - 2 * var(--qb-band)) / 1.12));
     margin-inline: auto;
   }
 
@@ -260,9 +261,6 @@ html.qb-web[dir="rtl"] .qb-display-strip .size input[type="range"]::-webkit-slid
     bottom: var(--qb-bar-inset);
   }
 
-  html.qb-web.qb-native-tabbar:root:not(.qb-immersive) .qb-page-number {
-    bottom: calc(var(--qb-bar-inset) + var(--dock-h) + 8px);
-  }
 
   /* iOS 26: the dock is drawn natively in Liquid Glass (lib/native-dock.ts),
      the tab bar changing shape into it. The web dock stays laid out in the
