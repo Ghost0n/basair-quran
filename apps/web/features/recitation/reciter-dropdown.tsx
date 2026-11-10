@@ -8,7 +8,7 @@ import { useKeepOnScreen } from "@/lib/keep-on-screen";
 
 import { useNowPlaying } from "./phone-player";
 import { useRecitation } from "./recitation-context";
-import { pickReciters } from "./reciter-catalogue";
+import { pickReciters, reciterName } from "./reciter-catalogue";
 import { RiwayahChips, useReciterMeta } from "./reciter-chips";
 
 import { t } from "@/lib/i18n";
@@ -63,7 +63,7 @@ export function ReciterDropdown({ subtitle }: { subtitle?: ReactNode }) {
           <Icon name={recitation.isPlaying ? "volume" : "user"} size={14} />
         </span>
         <span className="txt">
-          <span className="name">{recitation.reciter?.name ?? t("اختر قارئاً")}</span>
+          <span className="name">{recitation.reciter ? reciterName(recitation.reciter) : t("اختر قارئاً")}</span>
           {subtitle ? <span className="ref">{subtitle}</span> : null}
         </span>
         <Icon name="chevUp" size={14} />
@@ -101,7 +101,7 @@ export function ReciterDropdown({ subtitle }: { subtitle?: ReactNode }) {
                   />
                 </span>
                 <span className="info">
-                  <span className="name">{item.name}</span>
+                  <span className="name">{reciterName(item)}</span>
                   <span className="meta">{reciterMeta(item)}</span>
                 </span>
               </button>

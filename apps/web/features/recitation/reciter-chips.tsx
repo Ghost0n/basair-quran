@@ -7,7 +7,7 @@ import type { ReciterItem } from "@q-basair/shared";
 import { t, tn } from "@/lib/i18n";
 import { useNumerals } from "@/lib/preferences-context";
 
-import { isPlayable, partialSurahs, riwayahLabel, riwayahsOf, styleLabel } from "./reciter-catalogue";
+import { isPlayable, partialSurahs, reciterOtherName, riwayahLabel, riwayahsOf, styleLabel } from "./reciter-catalogue";
 
 /** The narrations to narrow the list to (shown when there are several). */
 export function RiwayahChips({
@@ -39,11 +39,11 @@ export function RiwayahChips({
   );
 }
 
-/** Under a reciter's name: the Latin name, the narration, the style, how many surahs when not all. */
+/** Under a reciter's name: the name in the other script, the narration, the style, how many surahs when not all. */
 export function useReciterMeta(): (reciter: ReciterItem) => string {
   const formatNumber = useNumerals();
   return (reciter) => {
-    const parts = [reciter.name_english, t("رواية {0}", { 0: riwayahLabel(reciter.riwayah) })];
+    const parts = [reciterOtherName(reciter), t("رواية {0}", { 0: riwayahLabel(reciter.riwayah) })].filter(Boolean);
     const style = styleLabel(reciter.style);
     if (style) parts.push(style);
     const partial = partialSurahs(reciter);

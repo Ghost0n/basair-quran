@@ -17,7 +17,7 @@ import { OfflineListening, type OfflineChoice } from "@/features/app-mode/offlin
 import { APP_MODE } from "@/lib/app-mode/config";
 
 import { RECITATION_SPEEDS, useRecitation, type RepeatMode } from "./recitation-context";
-import { pickReciters } from "./reciter-catalogue";
+import { pickReciters, reciterName } from "./reciter-catalogue";
 import { RiwayahChips, useReciterMeta } from "./reciter-chips";
 
 import { t } from "@/lib/i18n";
@@ -157,7 +157,7 @@ export function RecitationSheet({ onClose }: { onClose: () => void }) {
                       <Icon name="user" size={17} />
                     </span>
                     <span className="nm">
-                      <b>{recitation.reciter?.name ?? t("اختر قارئاً")}</b>
+                      <b>{recitation.reciter ? reciterName(recitation.reciter) : t("اختر قارئاً")}</b>
                       <small className={now.mismatch ? "warn" : undefined}>
                         {now.mismatch
                           ? t("رواية {0} · تختلف عن المصحف المعروض", { 0: riwayahName(recitation.reciter?.riwayah) })
@@ -301,7 +301,7 @@ export function RecitationSheet({ onClose }: { onClose: () => void }) {
                       <Icon name="user" size={16} />
                     </span>
                     <span className="nm">
-                      <b>{item.name}</b>
+                      <b>{reciterName(item)}</b>
                       <small>{reciterMeta(item)}</small>
                     </span>
                     <span className="tick">

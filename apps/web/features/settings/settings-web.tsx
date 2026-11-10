@@ -13,6 +13,7 @@ import { FeedbackCard } from "@/features/feedback/feedback-card";
 import { AccountSettings } from "@/features/identity/account-settings";
 import { READER_MODES, resolveReaderMode } from "@/features/reading/reader-modes";
 import { useRecitation } from "@/features/recitation/recitation-context";
+import { reciterName } from "@/features/recitation/reciter-catalogue";
 import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { setShowHighlights, useShowHighlights } from "@/features/themes/ayah-marks";
@@ -431,7 +432,7 @@ export function SettingsWeb() {
                   className="qb-setting-menu"
                   ariaLabel={t("القارئ")}
                   value={reciterId}
-                  options={recitation.reciters.map((item) => ({ value: item.id, label: item.name }))}
+                  options={recitation.reciters.map((item) => ({ value: item.id, label: reciterName(item) }))}
                   onChange={(reciter) => void updateAccount({ reciter })}
                 />
               ) : (

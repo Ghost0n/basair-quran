@@ -13,6 +13,7 @@ import { appRuntime } from "@/lib/app-mode/runtime";
 import { useNumerals } from "@/lib/preferences-context";
 import { activeLocale, t } from "@/lib/i18n";
 
+import { reciterName } from "@/features/recitation/reciter-catalogue";
 import { languageLabel } from "@/features/settings/translations-settings";
 
 import "./app-mode.css";
@@ -214,11 +215,15 @@ function Recitations({
       .catch(() => setCatalogue([]));
   }, []);
   const entries = useMemo(() => {
-    const own = reciters.map((pack) => ({ id: pack.reciter ?? pack.id, name: pack.name ?? pack.id, audio_base: pack.audio_base ?? "" }));
+    const own = reciters.map((pack) => ({
+      id: pack.reciter ?? pack.id,
+      name: reciterName({ name: pack.name ?? pack.id, name_english: pack.name_english ?? "" }),
+      audio_base: pack.audio_base ?? "",
+    }));
     const known = new Set(own.map((entry) => entry.id));
     const more = catalogue
       .filter((item) => !known.has(item.id) && item.surahs?.length)
-      .map((item) => ({ id: item.id, name: item.name, audio_base: "" }));
+      .map((item) => ({ id: item.id, name: reciterName(item), audio_base: "" }));
     return [...own, ...more].map((entry) => ({ ...entry, surahs: catalogue.find((item) => item.id === entry.id)?.surahs ?? [] }));
   }, [reciters, catalogue]);
   useEffect(() => {
