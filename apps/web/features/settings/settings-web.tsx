@@ -13,7 +13,7 @@ import { FeedbackCard } from "@/features/feedback/feedback-card";
 import { AccountSettings } from "@/features/identity/account-settings";
 import { READER_MODES, resolveReaderMode } from "@/features/reading/reader-modes";
 import { useRecitation } from "@/features/recitation/recitation-context";
-import { reciterName } from "@/features/recitation/reciter-catalogue";
+import { reciterName, styleLabel } from "@/features/recitation/reciter-catalogue";
 import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { setShowHighlights, useShowHighlights } from "@/features/themes/ayah-marks";
@@ -24,7 +24,7 @@ import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { AiSettings } from "./ai-settings";
 import { HomeSettings } from "./home-settings";
 import { LanguageSelect } from "./language-select";
-import { chipCentringDelta } from "./settings-index";
+import { chipCentringDelta, chipScrollTarget } from "./settings-index";
 import { TranslationsSettings } from "./translations-settings";
 
 import { TAFSSIR_ENABLED } from "@/lib/features";
@@ -48,8 +48,6 @@ const DEPTHS: { value: ResearchDefaults["depth"]; label: () => string }[] = [
   { value: "deep", label: () => t("عميق") },
 ];
 
-const FONT_MIN = 18;
-
 /** Arabic without its marks (and tatweel), lower-cased: what a search compares. */
 function fold(text: string): string {
   return text.replace(/[ً-ٰٟـ]/g, "").toLowerCase().trim();
@@ -57,7 +55,6 @@ function fold(text: string): string {
 
 /** What a search can show or hide inside a section (Home's switches, a translation…). */
 const ROWS = ".qb-setting-row, .qb-switch-list > li, .qb-translations-card .options > li";
-const FONT_MAX = 48;
 
 /** The settings' sections, in the order of the page and of its index. */
 const SECTIONS: { id: string; icon: IconName; label: () => string }[] = [
@@ -141,7 +138,7 @@ function Switch({ label, on, onChange }: { label: string; on: boolean; onChange:
  * a row: what it is and does on one side, its control on the other.
  */
 export function SettingsWeb() {
-  const { preferences, updateAccount, updateAccountDebounced } = usePreferences();
+  const { preferences, updateAccount } = usePreferences();
   const { state, actions } = useWorkspace();
   const recitation = useRecitation();
   const formatNumber = useNumerals();
@@ -227,7 +224,11 @@ export function SettingsWeb() {
     const delta = chipCentringDelta(row.getBoundingClientRect(), chip.getBoundingClientRect());
     if (Math.abs(delta) < 2) return;
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
-    row.scrollBy({ left: delta, behavior: reduce ? "auto" : "smooth" });
+    // An absolute place inside the row's range, not a distance: quick changes
+    // (scrolling back to the top crosses every section) never pile up past
+    // its ends, where iOS left the row stuck in its overscroll.
+    const rtl = getComputedStyle(row).direction === "rtl";
+    row.scrollTo({ left: chipScrollTarget(row.scrollLeft, delta, row.scrollWidth - row.clientWidth, rtl), behavior: reduce ? "auto" : "smooth" });
   }, [active]);
 
   // The search keeps the rows that match (or a whole section when its name
@@ -367,8 +368,6 @@ export function SettingsWeb() {
           </section>,
         )}
 
-        {section("translations", <TranslationsSettings />)}
-
         {section(
           "reading",
           <section className="qb-setting-card">
@@ -394,39 +393,20 @@ export function SettingsWeb() {
                 onChange={(mode) => void updateAccount({ reader_layout: READER_MODES.find((item) => item.mode === mode)!.layout })}
               />
             </Row>
-            <Row label={t("حجم خطّ الآيات")} hint={t("في وضع «آية آية»؛ تبقى الصفحات بحجمها المطبوع.")}>
-              <div className="qb-stepper" role="group" aria-label={t("حجم الخطّ")}>
-                <button
-                  type="button"
-                  aria-label={t("تصغير الخطّ")}
-                  disabled={preferences.font_size <= FONT_MIN}
-                  onClick={() => updateAccountDebounced({ font_size: Math.max(FONT_MIN, preferences.font_size - 2) })}
-                >
-                  <Icon name="chevDown" size={15} />
-                </button>
-                <span className="value">{formatNumber(preferences.font_size)}</span>
-                <button
-                  type="button"
-                  aria-label={t("تكبير الخطّ")}
-                  disabled={preferences.font_size >= FONT_MAX}
-                  onClick={() => updateAccountDebounced({ font_size: Math.min(FONT_MAX, preferences.font_size + 2) })}
-                >
-                  <Icon name="chevUp" size={15} />
-                </button>
-              </div>
-            </Row>
             <Row label={t("تظليل المواضيع")} hint={t("لوّن آيات مواضيعك في المصحف.")}>
               <Switch label={t("تظليل المواضيع")} on={showHighlights} onChange={setShowHighlights} />
             </Row>
           </section>,
         )}
 
+        {section("translations", <TranslationsSettings />)}
+
         {section(
           "recitation",
           <section className="qb-setting-card">
             <h3>{t("التلاوة")}</h3>
             <p className="card-sub">{t("القارئ الذي تبدأ به التلاوة على كل أجهزتك.")}</p>
-            <Row label={t("القارئ")} hint={recitation.reciters.find((item) => item.id === reciterId)?.style || undefined}>
+            <Row label={t("القارئ")} hint={styleLabel(recitation.reciters.find((item) => item.id === reciterId)?.style ?? "") || undefined}>
               {recitation.reciters.length ? (
                 <SelectMenu
                   className="qb-setting-menu"
