@@ -21,11 +21,14 @@ FastAPI server; both are released from this repository.
   See `docs/offline-packs.md` for `core.db`.
 - **On demand** (Settings → «التنزيلات» / Downloads): the other narrations
   (Qālūn, Warsh, Shuʿba, al-Dūrī, al-Sūsī), every translation of meanings,
-  every interface language, and recitations: one surah, or a reciter's
-  whole recitation («تنزيل الكل», `lib/app-mode/audio-jobs.ts`: four files at
-  a time; it carries on while the reader uses the rest of the app, «إيقاف»
-  keeps the complete surahs and «استئناف» skips them; «حذف الكل» asks for a
-  second tap). A new narration or translation on the server appears in the
+  every interface language, and recitations. A recitation downloads in one
+  step: the reciter, then «تنزيل» (the whole recitation,
+  `lib/app-mode/audio-jobs.ts`: four files at a time; it carries on while the
+  reader uses the rest of the app, «إيقاف» keeps the complete surahs and
+  «استئناف» skips them). «على الجهاز» lists every reciter with something on
+  the device (whole surahs, or verses saved from the recitation sheet): how
+  many surahs and how much space, «حذف» with a second tap to confirm, and,
+  opened, each surah with its own «حذف» and another surah to add. A new narration or translation on the server appears in the
   catalogue without an app update. Installed packs whose content changed show
   «تحديث» (update).
 - **From where you listen** (the recitation sheet → «للاستماع دون اتصال»,

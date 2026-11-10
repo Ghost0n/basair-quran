@@ -149,6 +149,65 @@
   flex: 0 0 80px;
 }
 
+/* «التلاوات»: the reciters on the device, each one opened on its surahs. */
+.qb-downloads-sub {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fg-3);
+}
+
+.qb-download-reciter {
+  border-bottom: 1px solid var(--border);
+}
+
+.qb-download-reciter:last-child {
+  border-bottom: 0;
+}
+
+.qb-download-reciter > .qb-download-row {
+  border-bottom: 0;
+}
+
+/* The reciter's name opens its surahs: a plain button, the row's text. */
+.qb-download-toggle {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.qb-download-toggle > div:first-child::after {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-inline-start: 8px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  opacity: 0.5;
+  transition: transform 0.2s;
+}
+
+.qb-download-reciter.open .qb-download-toggle > div:first-child::after {
+  transform: translateY(1px) rotate(225deg);
+}
+
+.qb-download-surahs {
+  padding: 0 0 6px;
+  padding-inline-start: 14px;
+}
+
+.qb-download-row.is-surah {
+  padding: 6px 0;
+  font-size: 14px;
+}
+
 /* A screen that needs the network, shown offline */
 
 .qb-online-only {
