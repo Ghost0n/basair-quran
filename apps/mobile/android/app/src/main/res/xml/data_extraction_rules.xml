@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ backup rules: the same as backup_rules.xml. The guest's own data
+  (kv/) goes to the reader's Google account with the phone's backup and moves
+  to a new phone; downloads, databases and the sign-in token don't.
+  docs/cloud-backup.md.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <include domain="file" path="kv/" />
+        <exclude domain="file" path="kv/qb.auth.token.json" />
+        <exclude domain="file" path="kv/qb.auth.session.json" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="file" path="kv/" />
+        <exclude domain="file" path="kv/qb.auth.token.json" />
+        <exclude domain="file" path="kv/qb.auth.session.json" />
+    </device-transfer>
+</data-extraction-rules>
