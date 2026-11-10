@@ -121,11 +121,15 @@ export function ConcordancePanel() {
   }
 
   // ▶ on a result: that verse alone, then the recitation ends. No player
-  // opens for it (session-view.ts); its row lights while it plays.
+  // opens for it (session-view.ts), the reader doesn't follow it
+  // (mushaf-stage.tsx); its row lights while it plays. Its ⏸ ends it too:
+  // nothing is left waiting to resume.
   function playVerse(verse: SearchVerse) {
     const current = recitation.current;
     if (current && current.surah === verse.surah_id && current.ayah === verse.ayah) {
-      recitation.toggle();
+      if (recitation.range?.once && recitation.isPlaying) recitation.stop();
+      else if (recitation.range?.once) recitation.playVerseOnce(verse.surah_id, verse.ayah);
+      else recitation.toggle();
       return;
     }
     recitation.playVerseOnce(verse.surah_id, verse.ayah);
