@@ -38,18 +38,13 @@ FastAPI server; both are released from this repository.
   same background job (one at a time, «إيقاف» keeps what arrived,
   «استئناف» resumes); Settings → «التنزيلات» counts and removes it all.
 
-- **Backups for guests** (Settings → «النسخ الاحتياطي», `lib/app-mode/backup.ts`,
-  `features/app-mode/backup-settings.tsx`): without an account, the notebook, themes and
-  boards, study sessions, roots, documents and preferences live on the device only. «حفظ نسخة»
-  writes all of it — the device's data store as it is — to one `basair-YYYY-MM-DD.json` file
-  and hands it to the phone's share sheet: «Save to Files» → iCloud Drive on iPhone, Drive →
-  Google Drive. «استعادة نسخة» opens the file picker (iCloud Drive / Google Drive), shows what
-  the backup holds, and on confirmation replaces the device's data (kept first under
-  `qb.userdata.before-restore`; the device's account link stays), then reloads. A file that
-  isn't a backup, or comes from a newer app, is refused. AI keys and device settings are not
-  in it. With an account, sync keeps the data and the section doesn't show. Automatic
-  iCloud / Google Drive sync (iCloud container, Google Drive app folder) needs the Apple and
-  Google developer accounts (platform plan, step 9).
+- **Backups for guests** (docs/cloud-backup.md): without an account, the notebook, themes and
+  boards, study sessions, roots, documents and preferences live on the device; they go with the
+  phone's own backup to the reader's Apple or Google account (iCloud Backup on iPhone, Android
+  Auto Backup limited to the device store by `res/xml/backup_rules.xml` /
+  `data_extraction_rules.xml`), and Settings → «النسخ الاحتياطي» says so. Syncing with iCloud
+  Drive / Google Drive from the app needs the Apple and Google developer accounts and isn't in
+  the build; the steps to activate it are in docs/cloud-backup.md.
 
 Nothing limits the app offline once a pack is installed: an installed
 narration is searched and read like Ḥafṣ, with the same engine.

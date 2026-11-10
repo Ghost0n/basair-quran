@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android Auto Backup (Android 11 and earlier): the guest's own data goes to the
+  reader's Google account with the phone's backup, and comes back on a new
+  phone or a reinstall. Only the device data store is kept (kv/: notebook,
+  themes, boards, sessions, roots, documents, preferences); the downloaded
+  packs and recitations and the Quran databases can always be fetched again
+  (and would pass the 25 MB backup quota), and the sign-in token stays on the
+  phone. Android 12+ reads data_extraction_rules.xml. docs/cloud-backup.md.
+-->
+<full-backup-content>
+    <include domain="file" path="kv/" />
+    <exclude domain="file" path="kv/qb.auth.token.json" />
+    <exclude domain="file" path="kv/qb.auth.session.json" />
+</full-backup-content>

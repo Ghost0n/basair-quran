@@ -1397,5 +1397,8 @@
  "مسح الصفحات وعمليات البحث الأخيرة": "Clear recent pages and searches",
  "إعادة تعيين متابعة القراءة": "Reset continue reading",
  "اضغط مرة أخرى للتأكيد": "Tap again to confirm",
- "تبدأ «تابع القراءة» من الفاتحة.": "Continue reading now starts from Al-Fatiha."
+ "تبدأ «تابع القراءة» من الفاتحة.": "Continue reading now starts from Al-Fatiha.",
+ "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة iPhone الاحتياطية على iCloud، وتعود حين يُستعاد الهاتف منها.": "Without an account, your data (pinned verses, themes, study sessions, roots, research and preferences) is saved with your iPhone's iCloud backup, and comes back when the phone is restored from it.",
+ "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة هاتفك الاحتياطية على Google، وتعود على هاتف جديد أو عند إعادة تثبيت التطبيق.": "Without an account, your data (pinned verses, themes, study sessions, roots, research and preferences) is saved with your phone's Google backup, and comes back on a new phone or when you reinstall the app.",
+ "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "Downloads aren't part of it: they download again. To sync your data across your devices, sign in."
 }
