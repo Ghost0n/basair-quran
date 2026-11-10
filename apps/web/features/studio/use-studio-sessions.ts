@@ -11,7 +11,6 @@ import type {
   TafssirDepth,
 } from "@q-basair/shared";
 
-import { useAccountKeepsData } from "@/lib/account-keeps-data";
 import { API_BASE_URL } from "@/lib/config";
 import { allowedStudyMode } from "@/lib/features";
 import { isTechnicalMessage, reportError } from "@/lib/error-report";
@@ -103,9 +102,6 @@ export function useStudioSessions() {
   // by Settings). The ref keeps the latest values so callbacks created once still
   // read fresh prefs; the initial session is seeded from prefs available at mount.
   const { preferences } = usePreferences();
-  const keepsData = useAccountKeepsData();
-  const keepsRef = useRef(keepsData);
-  keepsRef.current = keepsData;
   const researchDefaultsRef = useRef<{ mode: StudioMode; depth: TafssirDepth }>({
     mode: allowedStudyMode(preferences.research.default_mode),
     depth: preferences.research.depth,
@@ -253,28 +249,25 @@ export function useStudioSessions() {
             session.id === target.id ? { ...session, messages: nextMessages } : session,
           ),
         );
-        // Persist the session to the user-data store (Phase 5 — Companions) —
-        // not for a guest on the web, who has no account record of their own:
-        // their sessions stay in this browser's open tabs.
-        if (keepsRef.current) {
-          try {
-            await api.saveSession({
-              id: target.id,
-              title: titleFromFirst,
-              mode: target.mode,
-              // Persist the assistant's research response too, so restoring a saved
-              // session rebuilds its evidence cards (bounded by the server's
-              // per-session storage caps).
-              messages: nextMessages.map((m): StoredMessage => ({
-                v: 1,
-                role: m.role,
-                content: m.content,
-                response: m.role === "assistant" ? m.response : undefined,
-              })),
-            });
-          } catch {
-            // A failed save must not break the chat — the session stays in memory.
-          }
+        // Persist the session to the user-data store (Phase 5 — Companions);
+        // a guest's on the web stays in their browser (lib/guest-data.ts).
+        try {
+          await api.saveSession({
+            id: target.id,
+            title: titleFromFirst,
+            mode: target.mode,
+            // Persist the assistant's research response too, so restoring a saved
+            // session rebuilds its evidence cards (bounded by the server's
+            // per-session storage caps).
+            messages: nextMessages.map((m): StoredMessage => ({
+              v: 1,
+              role: m.role,
+              content: m.content,
+              response: m.role === "assistant" ? m.response : undefined,
+            })),
+          });
+        } catch {
+          // A failed save must not break the chat — the session stays in memory.
         }
       } catch (err) {
         reportError("studio:submit", err);

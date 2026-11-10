@@ -4,6 +4,7 @@ import type { AuthSessionResponse, GuestMergeResult } from "@q-basair/shared";
 import { createQBasairApiClient } from "@q-basair/api-client";
 
 import { API_BASE_URL } from "@/lib/config";
+import { uploadGuestData } from "@/lib/guest-data";
 // Side-effect: registers the guest-id header provider on the api-client.
 import "@/lib/guest-id";
 
@@ -57,7 +58,9 @@ export function sanitizeNextPath(rawValue: string | null | undefined): string {
 }
 
 /**
- * Move this device's guest (user_id=0) data into the account. The merge is
+ * Move this device's guest data into the account: what this browser holds
+ * (lib/guest-data.ts), then any guest (user_id=0) rows the server still keeps
+ * from before guests kept their data in the browser. The server merge is
  * scoped server-side to the device's guest token and is naturally idempotent
  * (moved rows leave the guest scope), so it is safe to call on every sign-in —
  * no client-side once-per-account flag, and guest data created later is still
@@ -66,6 +69,8 @@ export function sanitizeNextPath(rawValue: string | null | undefined): string {
  */
 export async function maybeMergeGuestData(): Promise<GuestMergeResult | null> {
   if (typeof window === "undefined") return null;
+  // What the guest made in this browser goes to the account first (lib/guest-data.ts).
+  await uploadGuestData();
   try {
     const result = await identityApi.mergeGuestData({}, { suppressAuthRedirect: true });
     const moved = result.notebook_moved + result.sessions_moved + result.roots_moved;

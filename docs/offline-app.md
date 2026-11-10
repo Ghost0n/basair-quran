@@ -9,7 +9,7 @@ FastAPI server; both are released from this repository.
 | Build | `pnpm --filter @q-basair/web build` (Next server) | `pnpm --filter @q-basair/web build:app` (static export) |
 | Quran search, reader, layout, morphology, count | server (`quran_service.py`) | on the device (`packages/offline-engine`) |
 | Translations of meanings | server | on the device (installed packs) |
-| Notebook, themes, boards, documents, sessions, roots, preferences | server (per account) | on the device (local store); synced with the account when online |
+| Notebook, themes, boards, documents, sessions, roots, preferences | server (per account); a guest's in the browser (`lib/guest-data.ts`, the same local store), uploaded on sign-in | on the device (local store); synced with the account when online |
 | Account, Studio (research agent), Community | server | server, when online |
 | Data | `data/quran.db` | `core.db` inside the app + downloaded packs |
 
@@ -99,7 +99,9 @@ keeps what it already sent and retries on the next trigger. Conflicts: the
 last device to sync wins, per row.
 
 - Data saved on the device before signing in is uploaded to the account that
-  signs in (the app's equivalent of the web's guest → account merge).
+  signs in. The web does the same for a guest: their data is answered in the
+  browser by this local store (`apps/web/lib/guest-data.ts`, IndexedDB) and
+  uploaded with `syncAccount` when they sign in, then cleared from the browser.
 - Signing out removes the account's data from the device; anything created
   while signed out stays. Another account signing in never sees the previous
   account's synced data.

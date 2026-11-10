@@ -85,9 +85,21 @@ def test_reading_and_search_stay_open_to_guests(tmp_path, monkeypatch):
         )
         assert search_response.status_code == 200
 
-        # The notebook (companions) is reachable as a guest too.
-        notebook_response = client.get("/api/notebook")
-        assert notebook_response.status_code == 200
+        # A guest's own data lives on their device, never in a record shared by
+        # every guest: the account data routes answer only signed-in readers.
+        for method, path, body in (
+            ("GET", "/api/notebook", None),
+            ("POST", "/api/notebook", {"ayah_id": 1}),
+            ("GET", "/api/themes", None),
+            ("GET", "/api/sessions", None),
+            ("GET", "/api/documents", None),
+            ("GET", "/api/roots", None),
+            ("GET", "/api/user/preferences", None),
+            ("PATCH", "/api/user/preferences", {"theme": "light"}),
+        ):
+            response = client.request(method, path, json=body)
+            assert response.status_code == 401, path
+            assert response.json()["detail"]["gate"] == "account"
 
         # The Studio (research agent) and the AI connections are open to guests too:
         # only writing to the Community needs an account.
