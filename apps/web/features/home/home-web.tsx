@@ -176,7 +176,6 @@ function Row({ icon, label, sub, onClick }: WebHomeRow): ReactNode {
         <b>{label}</b>
         {sub ? <small>{sub}</small> : null}
       </span>
-      <Icon name="chevLeft" size={16} className="chev" />
     </button>
   );
 }

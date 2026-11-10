@@ -11,7 +11,7 @@ import type { RecentPage, RecentSearch } from "@q-basair/shared";
  */
 
 /** How many of each Home keeps (models.api.RECENTS_LIMIT). */
-export const RECENTS_LIMIT = 5;
+export const RECENTS_LIMIT = 10;
 
 /** Page turns this close to the last place read continue it rather than start a new one (a spread turns two). */
 const TURN_SPAN = 2;

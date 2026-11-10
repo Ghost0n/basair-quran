@@ -19,11 +19,12 @@ describe("recent pages", () => {
     expect(list.map((p) => p.page)).toEqual([10, 300]);
   });
 
-  it("keeps the last five", () => {
+  it("keeps the last ten", () => {
     let list: ReturnType<typeof addRecentPage> = [];
-    for (const n of [1, 50, 100, 150, 200, 250, 300]) list = addRecentPage(list, { page: n, mushaf_id: 2, at: n });
-    expect(list).toHaveLength(RECENTS_LIMIT);
-    expect(list.map((p) => p.page)).toEqual([300, 250, 200, 150, 100]);
+    for (let n = 1; n <= 12; n += 1) list = addRecentPage(list, { page: n * 40, mushaf_id: 2, at: n });
+    expect(RECENTS_LIMIT).toBe(10);
+    expect(list).toHaveLength(10);
+    expect(list.map((p) => p.page)).toEqual([480, 440, 400, 360, 320, 280, 240, 200, 160, 120]);
   });
 
   it("doesn't join turns across editions", () => {

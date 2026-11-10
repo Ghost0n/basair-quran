@@ -403,7 +403,7 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
 ## Recents
 
 - `recent_pages` and `recent_searches` are account preferences on
-  `GET/PATCH /api/user/preferences`, newest first, at most 5 each (6+ is a 422),
+  `GET/PATCH /api/user/preferences`, newest first, at most 10 each (11+ is a 422),
   wholesale-replace semantics like `saved_pages` (`[]` clears them).
   - `recent_pages`: `{ page (1–1000), mushaf_id, surah?, at }` — the last places
     read. The client counts consecutive page turns (±2 pages, a spread turns two)
