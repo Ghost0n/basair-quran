@@ -78,7 +78,8 @@ export function RecitationBar() {
     recitation.setSpeed(RECITATION_SPEEDS[(index + 1) % RECITATION_SPEEDS.length]);
   }
 
-  if (!current && !recitation.idle) return null;
+  // A verse heard on its own (a search result's ▶) opens no bar.
+  if (!recitation.active) return null;
 
   const timing = recitation.surahTiming;
   const progressPct = timing ? Math.round(timing.progress * 1000) / 10 : 0;

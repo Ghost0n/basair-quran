@@ -217,6 +217,15 @@ export function MushafStage() {
   const recitedNow = recitationNow.range?.once ? null : recitationNow.current;
   const recitedRef = useRef(recitedNow);
   recitedRef.current = recitedNow;
+  const recitationRef = useRef(recitationNow);
+  recitationRef.current = recitationNow;
+  // The reader turned the page (or opened a place) by hand while a
+  // recitation goes on: it stops following, so the next verse doesn't pull
+  // the page back; «الآية المتلوّة», or reaching the recited page again,
+  // follows once more (follow.ts).
+  const leaveRecitedByHand = () => {
+    if (recitedRef.current) setFollowPaused(true);
+  };
   useEffect(() => {
     if (!entering) {
       if (ownScreen) enteredRef.current = false;
@@ -224,6 +233,9 @@ export function MushafStage() {
     }
     if (!ready || enteredRef.current) return;
     enteredRef.current = true;
+    // A verse heard on its own from another screen (a search result's ▶)
+    // ends here: the reader's own recitation never plays over it.
+    if (ownScreen && recitationRef.current.range?.once) recitationRef.current.stop();
     const entry = takeReaderEntry();
     // Home's «الفهرس» / «المحفوظة» open the reader on its «انتقل» sheet.
     const sheetTab = takeReaderSheet();
@@ -625,7 +637,11 @@ export function MushafStage() {
       // shows, move nothing. On the page in view it has caught up: follow again
       // (verse by verse the list holds the surah, so only the button resumes).
       if (isFollowPaused()) {
-        if (word && !ayahMode) setFollowPaused(false);
+        // Only a page actually drawn counts: right after a turn by hand the
+        // page left behind is still on screen for a moment.
+        const drawn = Number(word?.closest<HTMLElement>("[data-page]")?.dataset.page);
+        const stale = !continuousMode && drawn > 0 && drawn !== pageData?.page && !(showSpread && (drawn === pair?.right || drawn === pair?.facing));
+        if (word && !ayahMode && !stale) setFollowPaused(false);
         else {
           setRecitingAyahId(word?.dataset.aid ? Number(word.dataset.aid) : null);
           setRecitedAway(true);
@@ -637,7 +653,7 @@ export function MushafStage() {
       if (!word && followedRef.current !== recitingKey && matches.some((element) => element.closest(".qb-swipe-slot.next"))) {
         followedRef.current = recitingKey;
         setRecitingAyahId(null);
-        glideTurnRef.current("next");
+        glideTurnRef.current("next", undefined, true);
         return;
       }
       if (word) {
@@ -745,13 +761,14 @@ export function MushafStage() {
   };
   // Glide the track a full page over, then turn (a swipe let go, or the
   // recitation moving on to the page drawn beside this one).
-  const glideTurn = (turn: "next" | "prev", width = trackRef.current?.offsetWidth ?? window.innerWidth) => {
+  const glideTurn = (turn: "next" | "prev", width = trackRef.current?.offsetWidth ?? window.innerWidth, byRecitation = false) => {
     if (currentPage == null) return;
     dragTo(turn === "next" ? width : -width, true);
     const target = turn === "next" ? currentPage + 1 : currentPage - 1;
     window.setTimeout(() => {
       setTurning(target);
-      if (turn === "next") goNextRef.current();
+      if (byRecitation) stepPageRef.current(turn === "next" ? 1 : -1);
+      else if (turn === "next") goNextRef.current();
       else goPrevRef.current();
     }, 240);
   };
@@ -813,29 +830,29 @@ export function MushafStage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [turning, layout, swipeTrack]);
-  function goPrev() {
+  // One page (or spread) on: -1 back, 1 forward. The recitation turns with
+  // it as the reader moves on; by hand it's goPrev / goNext.
+  function stepPage(direction: -1 | 1) {
     if (continuousMode && scrollControlsRef.current) {
-      scrollControlsRef.current.scrollByPage(-1);
+      scrollControlsRef.current.scrollByPage(direction);
       return;
     }
     if (!pageData?.page) return;
-    const target = showSpread && pair ? pair.right - 2 : pageData.page - 1;
-    if (target >= 1) {
-      setNavDir("back");
+    const target = showSpread && pair ? pair.right + 2 * direction : pageData.page + direction;
+    if (target >= 1 && target <= totalPages) {
+      setNavDir(direction > 0 ? "fwd" : "back");
       void mushaf.loadPage(selectedMushaf, target, { persist: true });
     }
   }
+  const stepPageRef = useRef(stepPage);
+  stepPageRef.current = stepPage;
+  function goPrev() {
+    leaveRecitedByHand();
+    stepPage(-1);
+  }
   function goNext() {
-    if (continuousMode && scrollControlsRef.current) {
-      scrollControlsRef.current.scrollByPage(1);
-      return;
-    }
-    if (!pageData?.page) return;
-    const target = showSpread && pair ? pair.right + 2 : pageData.page + 1;
-    if (target <= totalPages) {
-      setNavDir("fwd");
-      void mushaf.loadPage(selectedMushaf, target, { persist: true });
-    }
+    leaveRecitedByHand();
+    stepPage(1);
   }
 
   // Mouse wheel / trackpad in the paged modes: once the page itself can't
@@ -872,6 +889,7 @@ export function MushafStage() {
   }
 
   function navigateTo(target: NavigateTarget) {
+    leaveRecitedByHand();
     if (target.type === "surah") void mushaf.loadBySurah(selectedMushaf, target.surah, target.ayah);
     else if (target.type === "juz") void mushaf.loadByJuz(selectedMushaf, target.juz);
     else if (target.type === "hizb") {

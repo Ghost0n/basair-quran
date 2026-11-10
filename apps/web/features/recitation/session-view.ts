@@ -48,9 +48,9 @@ export function useRevealed(): boolean {
 /** Keeps `<html class="qb-reciting qb-recite-revealed">` in step with the session. */
 export function RecitationSessionAttributes() {
   const recitation = useRecitation();
-  // One verse heard on its own (a search result's ▶) isn't a session: no
-  // capsule, nothing moves; its row shows that it plays.
-  const active = recitation.active && !recitation.range?.once;
+  // One verse heard on its own (a search result's ▶) isn't a session
+  // (`active` is false): no capsule, nothing moves; its row shows that it plays.
+  const active = recitation.active;
   const { mode } = useShellMode();
   const shown = useRevealed();
   const wasActive = useRef(false);
