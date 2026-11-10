@@ -18,7 +18,6 @@ const SECTIONS: { id: HomeSectionId; icon: IconName; label: () => string }[] = [
   { id: "continue", icon: "book", label: () => t("متابعة القراءة") },
   { id: "recent_pages", icon: "history", label: () => t("الصفحات الأخيرة") },
   { id: "recent_searches", icon: "history", label: () => t("عمليات البحث الأخيرة") },
-  { id: "search", icon: "search", label: () => t("البحث") },
 ];
 const SECTION_IDS = new Set<HomeSectionId>(SECTIONS.map((section) => section.id));
 
@@ -83,14 +82,21 @@ export function HomeSettings() {
           );
         })}
       </ul>
-      <button type="button" className="qb-btn ghost block" onClick={onReset} disabled={progress.reset_at != null && !progress.series.length && !resetDone}>
-        <Icon name="undo" size={16} />
-        {resetDone ? t("تبدأ «تابع القراءة» من الفاتحة.") : confirmReset ? t("اضغط مرة أخرى للتأكيد") : t("إعادة تعيين متابعة القراءة")}
-      </button>
-      <button type="button" className="qb-btn ghost block" onClick={clearRecents} disabled={!hasRecents}>
-        <Icon name="trash" size={16} />
-        {t("مسح الصفحات وعمليات البحث الأخيرة")}
-      </button>
+      <div className="qb-home-settings-actions">
+        <button
+          type="button"
+          className="qb-btn ghost"
+          onClick={onReset}
+          disabled={progress.reset_at != null && !progress.series.length && !resetDone}
+        >
+          <Icon name="undo" size={16} />
+          {resetDone ? t("تبدأ «تابع القراءة» من الفاتحة.") : confirmReset ? t("اضغط مرة أخرى للتأكيد") : t("إعادة تعيين متابعة القراءة")}
+        </button>
+        <button type="button" className="qb-btn ghost" onClick={clearRecents} disabled={!hasRecents}>
+          <Icon name="trash" size={16} />
+          {t("مسح الصفحات وعمليات البحث الأخيرة")}
+        </button>
+      </div>
     </section>
   );
 }

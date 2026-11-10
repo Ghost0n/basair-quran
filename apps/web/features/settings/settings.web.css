@@ -229,6 +229,7 @@ html.qb-web[dir="rtl"] .qb-switch-row[aria-checked="true"] .qb-switch::after { t
     margin-block: 6px 4px;
     padding: 4px;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
     scrollbar-width: none;
     background: var(--bg-elev-2);
     border: 1px solid var(--border);
@@ -284,4 +285,17 @@ html.qb-web[dir="rtl"] .qb-switch-row[aria-checked="true"] .qb-switch::after { t
     line-height: 1.35;
     white-space: normal;
   }
+}
+
+/* Home's two actions (reset continue reading, clear the recents): side by
+   side where they fit, one under the other on a phone, never touching. */
+.qb-web .qb-home-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.qb-web .qb-home-settings-actions .qb-btn {
+  flex: 1 1 220px;
+  justify-content: center;
 }

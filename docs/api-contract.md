@@ -393,9 +393,9 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
 
 - `home_hidden` is an account preference on `GET/PATCH /api/user/preferences`:
   the Home sections the reader hid in Settings («الرئيسية»), from `greeting`,
-  `verse`, `continue`, `recent_pages`, `recent_searches`,
-  `search`. Defaults to `[]` (everything shown); unknown ids are rejected (422).
-  `index`, `saved`, `study` and `community` (the old shortcuts to screens the
+  `verse`, `continue`, `recent_pages`, `recent_searches`. Defaults to `[]`
+  (everything shown); unknown ids are rejected (422). `search`, `index`, `saved`,
+  `study` and `community` (Home's old search field and shortcuts to screens the
   navigation bar opens) are no longer shown but still accepted, so a stored list
   stays valid. Wholesale-replace semantics like `saved_pages`. Sections are
   listed as hidden so that a section added later shows by default.
