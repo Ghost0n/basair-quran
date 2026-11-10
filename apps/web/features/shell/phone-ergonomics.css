@@ -115,9 +115,9 @@
      of focus mode (the bars float over it; focus mode only hides them). It
      fills the safe area; its text sits between two equal bands, so it is
      centred on the screen and the dock (in the lower band) never covers a
-     line. The upper band holds the running head in the screen's top
-     corners; the page number sits under the text, in the lower band (under
-     the dock, when it shows). Its text size is fixed too (no font-size zoom
+     line. The running head sits at the foot of the upper band and the page
+     number at the top of the lower band (under the dock, when it shows),
+     the same gap from the text. Its text size is fixed too (no font-size zoom
      here; «العرض» shows the size control inactive in this mode). */
   html:root {
     /* What the pinned page keeps clear at the bottom: the dock's band. */
@@ -125,6 +125,8 @@
     /* The band above and below the text: the dock's, without the bottom inset. */
     --qb-band: calc(var(--qb-page-reserve) - env(safe-area-inset-bottom, 0px));
     --qb-num-h: 18px;
+    /* Between the text and the running head above it, and the page number below. */
+    --qb-margin-gap: 6px;
   }
 
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-mushaf-page:has(> .qb-glyph-spread) {
@@ -173,8 +175,8 @@
     transform: translateX(100%);
   }
 
-  /* The running head (juz · surah) sits in the screen's top corners: the
-     upper band, its labels at the band's top. */
+  /* The running head (juz · surah) sits in the upper band, its labels at
+     the band's foot (pages mode, below). */
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-print-head {
     padding: 4px 0 0;
   }
@@ -431,8 +433,8 @@
     display: none;
   }
 
-  /* The bookmark floats in the top-left corner, over the page; in pages
-     mode, under the surah's name (the running head keeps the corner). */
+  /* The bookmark floats in the top-left corner, over the page (in pages
+     mode, above the surah's name at the foot of the upper band). */
   html:root .qb-reader-corner {
     position: fixed;
     top: calc(env(safe-area-inset-top, 0px) + 4px);
@@ -457,29 +459,25 @@
     border-radius: 50%;
   }
 
-  /* Pages mode: the running head names the juz (top right) and the surah
-     (top left), alike and facing each other, in the screen's extreme top
-     corners: the upper band, as tall as the lower one, with the labels at
-     its top. The bookmark floats under the surah's name, in the band. */
+  /* Pages mode: the running head names the juz (right) and the surah
+     (left), alike and facing each other, at the foot of the upper band; the
+     page number sits at the top of the lower band. Both are the same gap
+     (--qb-margin-gap) from the text, so the page's three margin labels line
+     up with it. */
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-glyph-page.qb-print-page {
     padding-top: 0;
   }
 
   html:root .qb-mushaf-stage:not(.is-ayah) .qb-print-head {
     min-height: var(--qb-band);
-    align-items: flex-start;
-    padding: 6px 2px 0;
+    align-items: flex-end;
+    padding: 0 2px var(--qb-margin-gap);
   }
 
-  html:root:has(.qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread) .qb-reader-corner {
-    top: calc(env(safe-area-inset-top, 0px) + 30px);
-  }
-
-  /* The page number sits in the middle of the lower band: behind the dock
-     when it shows, on its own under the text in focus mode — in the same
-     place either way. */
+  /* Behind the dock when it shows, on its own under the text in focus mode:
+     in the same place either way. */
   html:root:has(.qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread) .qb-page-number {
-    bottom: calc(env(safe-area-inset-bottom, 0px) + (var(--qb-band) - var(--qb-num-h)) / 2);
+    bottom: calc(env(safe-area-inset-bottom, 0px) + var(--qb-band) - var(--qb-margin-gap) - var(--qb-num-h));
     z-index: 1;
     transition: opacity 200ms var(--ease-out, ease-out);
   }
