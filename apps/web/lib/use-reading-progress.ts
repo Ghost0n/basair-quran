@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 
 import type { ReadingProgress, ReadingSeries } from "@q-basair/shared";
 
-import { useAccountKeepsData } from "@/lib/account-keeps-data";
 import { usePreferences } from "@/lib/preferences-context";
 import {
   adoptNewerProgress,
@@ -22,19 +21,18 @@ import {
 /**
  * Writing the reading progress (the reader, Home's «تابع», Settings): no
  * subscription, so a page turn never re-renders the screen that records it.
- * Saved to the account quietly (debounced, no app-wide state change) — on
- * this device only for a guest on the web (lib/account-keeps-data.ts).
+ * Saved to the account quietly (debounced, no app-wide state change) — for a
+ * guest on the web, in the browser's own store (lib/guest-data.ts).
  */
 export function useRecordReading() {
   const { persistQuietly } = usePreferences();
-  const keeps = useAccountKeepsData();
 
   const save = useCallback(
     (progress: ReadingProgress) => {
       writeProgress(progress);
-      if (keeps) persistQuietly({ reading_progress: progress });
+      persistQuietly({ reading_progress: progress });
     },
-    [keeps, persistQuietly],
+    [persistQuietly],
   );
 
   /** A page on the reader's screen. */
@@ -64,12 +62,11 @@ export function useRecordReading() {
 export function useReadingProgress(): ReadingProgress {
   const stored = useSyncExternalStore(subscribeProgress, readProgress, serverProgress);
   const { ready, account } = usePreferences();
-  const keeps = useAccountKeepsData();
   useEffect(() => {
-    if (!ready || !keeps) return;
+    if (!ready) return;
     const local = readProgress();
     const adopted = adoptNewerProgress(local.progress, account.reading_progress, local.stamp);
     if (adopted !== local.progress) writeProgress(adopted, local.stamp);
-  }, [ready, keeps, account.reading_progress]);
+  }, [ready, account.reading_progress]);
   return stored.progress;
 }

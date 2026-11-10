@@ -6,12 +6,16 @@ import { APP_MODE } from "@/lib/app-mode/config";
 import { installFetchRouter } from "@/lib/app-mode/fetch-router";
 import { bootApp } from "@/lib/app-mode/boot";
 import { startAccountSync } from "@/lib/app-mode/sync";
+import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { installGuestData } from "@/lib/guest-data";
 
 import { LaunchSplash } from "./launch-splash";
 import { Onboarding } from "./onboarding";
 
 // Before any screen fetches: /api goes to the device (see lib/app-mode/fetch-router.ts).
 if (APP_MODE && typeof window !== "undefined") installFetchRouter();
+// The web with accounts: a guest's own data stays in their browser (see lib/guest-data.ts).
+else if (AUTH_ENABLED && typeof window !== "undefined") installGuestData(API_BASE_URL);
 
 export const ONBOARDED_KEY = "qb.onboarded";
 

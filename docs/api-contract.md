@@ -415,10 +415,9 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   - `at` is Unix seconds. The web keeps a device copy (`qb.recents`) written on
     every change without re-rendering the app, saves it quietly (debounced), and
     adopts the account's copy when it holds an entry newer than the device's last
-    change (so a list cleared on this device doesn't come back). A guest on the
-    web (accounts on, not signed in) has no account record of their own, so
-    their recents stay in the browser and are never sent (the installed app keeps
-    a guest's in its own device store). Home shows them
+    change (so a list cleared on this device doesn't come back). A guest's
+    preferences, recents included, are kept on their device (see «A guest's own
+    data is not on the server»). Home shows them
     (the place «تابع القراءة» already offers isn't repeated); Settings
     «الرئيسية» hides either list and clears both.
 
@@ -446,7 +445,7 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   `last_position`. The device keeps a working copy (`qb.reading.progress`),
   written on every turn without re-rendering the app, saved quietly, and
   replaced by the account's when that changed after the device's last change.
-  A guest on the web keeps it in the browser only (like the recents).
+  A guest keeps it on their device, like the rest of their preferences.
 
 ## Morphology notes
 
@@ -500,11 +499,20 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   `AuthSessionResponse.provider` is `"local"` otherwise.
 
 - Authentication is controlled by `QBASAIR_AUTH_ENABLED`.
-- **Open by default.** When enabled, every router is **open to guests** (`user_id=0`) with *soft* auth:
-  if a valid token is present the request resolves to that user, otherwise it proceeds as guest. This
-  includes the Studio (`GET /api/research-agent/settings`, `POST /api/research-agent` — stateless: the
-  research sessions are saved through the user-data routes) and `/api/ai/*`. `GET /api/health` and
-  `/api/auth/*` are always open.
+- **Open by default.** When enabled, every router is **open to guests** with *soft* auth: if a valid
+  token is present the request resolves to that user, otherwise it proceeds as guest. This includes the
+  Studio (`GET /api/research-agent/settings`, `POST /api/research-agent` — stateless) and `/api/ai/*`.
+  `GET /api/health` and `/api/auth/*` are always open.
+- **A guest's own data is not on the server.** With accounts on, the account data routes (`/api/notebook`,
+  `/api/themes`, `/api/documents`, `/api/sessions`, `/api/roots`, `/api/user/preferences`) answer only a
+  signed-in reader; a guest gets
+  `401 { "detail": { "code": "auth_required", "gate": "account", "message": "Authentication required." } }`.
+  There is no shared guest record (`user_id 0` would be every guest's data at once). Guests keep that data
+  on their own device: the web answers those routes in the browser (`apps/web/lib/guest-data.ts`: the
+  offline engine's `LocalStore`, in IndexedDB; quoted ayahs in documents are checked against
+  `GET /api/quran-page`), the installed app in its device store (docs/offline-app.md). Signing in uploads it
+  to the account (the app's account sync, `syncAccount`) and empties the browser store; the account's
+  preferences stay the account's. With accounts off (single user), `user_id 0` is that user.
 - **The one gate: Community writes.** Publishing, commenting, liking, saving a post, reporting and
   appealing check the resolved user in their routes; a guest gets
   `401 { "detail": { "code": "auth_required", "gate": "community", "message": "Authentication required." } }`
@@ -546,9 +554,9 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   once-per-account onboarding.
 - `GET /api/auth/devices` (auth) lists active sessions with an `is_current` flag;
   `DELETE /api/auth/devices/{session_id}` (auth) ejects a device (ejecting the current row == logout).
-- **Guest identity header.** Guest (`user_id=0`) writes to the notebook, sessions, roots, and preferences
-  are stamped with the per-device `X-QBasair-Guest-Id` token the web app sends on every request. This scopes
-  the merge to the caller's own device rows.
+- **Guest identity header.** Guest (`user_id=0`) rows written before guests kept their data on their device
+  are stamped with the per-device `X-QBasair-Guest-Id` token the web app still sends on every request. This
+  scopes the merge to the caller's own device rows (new guest data never reaches the server).
 - `POST /api/auth/merge-guest-data` (auth) re-attributes **only the caller's own** guest (`user_id=0`) rows —
   those whose `guest_id` matches the presented `X-QBasair-Guest-Id` header — to the account (notebook,
   themes, sessions, followed roots, optionally preferences). A missing token merges nothing (fail-safe; no
@@ -558,8 +566,8 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   deleting nothing.
 - Accounts can also be managed offline through `scripts/manage_users.py`.
 - **Storage caps.** `POST /api/sessions` (`ResearchSessionSave`) bounds `messages` to at most
-  `500` entries and `512 KB` serialized; oversized payloads are rejected with `422` (guests reach this
-  endpoint, so the cap protects the shared `app_data.db`).
+  `500` entries and `512 KB` serialized; oversized payloads are rejected with `422` (the browser and app
+  stores apply the same cap).
 - **Persisted messages** use the versioned `StoredMessage` shape (`{ v?, role, content, response? }`).
   Assistant messages carry their full research `response`, so restoring a saved session rebuilds its
   evidence cards; legacy rows without `response` restore as plain text. The backend stores `messages` as

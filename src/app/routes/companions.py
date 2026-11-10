@@ -7,6 +7,7 @@ to the shared default user.
 
 from fastapi import APIRouter, HTTPException, Request
 
+from src.app.core import config
 from src.app.models.api import (
     DeleteResult,
     DocumentAudit,
@@ -35,9 +36,22 @@ router = APIRouter(prefix="/api", tags=["companions"])
 
 
 def _resolve_user_id(request: Request) -> int:
+    """The signed-in user, or the single local user when accounts are off.
+
+    With accounts on, a guest has no record here: guests keep their notebook,
+    themes, sessions, roots, documents and preferences on their own device
+    (the web's browser store, the app's device store) and upload them on
+    sign-in. The shared guest record (user_id 0) is never read or written for
+    them — it would be every guest's data at once.
+    """
     auth_user = getattr(request.state, "auth_user", None)
     if auth_user is not None and getattr(auth_user, "id", None) is not None:
         return int(auth_user.id)
+    if config.is_auth_enabled():
+        raise HTTPException(
+            status_code=401,
+            detail={"code": "auth_required", "gate": "account", "message": "Authentication required."},
+        )
     return app_data_service.DEFAULT_USER_ID
 
 
