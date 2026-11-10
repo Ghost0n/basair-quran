@@ -9,6 +9,7 @@ import { startRangeDownload, stopReciterDownload, useAudioJob } from "@/lib/app-
 import { APP_MODE } from "@/lib/app-mode/config";
 import { useNumerals } from "@/lib/preferences-context";
 import { sameVerse, type VerseRange } from "@/lib/quran-ranges";
+import { reciterName } from "@/features/recitation/reciter-catalogue";
 import { t } from "@/lib/i18n";
 
 import "./app-mode.css";
@@ -57,7 +58,7 @@ function Choices({ reciter, choices }: { reciter: ReciterItem; choices: OfflineC
   return (
     <div className="qb-offline-listening">
       <p className="qb-offline-note">
-        {t("تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.", { 0: reciter.name })}
+        {t("تُنزَّل تلاوة {0} على جهازك، فتستمع إليها دون اتصال.", { 0: reciterName(reciter) })}
       </p>
       {choices.map((choice) => {
         const status = onDevice[choice.key];

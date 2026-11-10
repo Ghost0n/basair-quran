@@ -12,7 +12,7 @@ import { useNumerals } from "@/lib/preferences-context";
 
 import { requestShowRecited } from "./follow";
 import { useRecitation, type RecitationPosition } from "./recitation-context";
-import { riwayahLabel } from "./reciter-catalogue";
+import { reciterName, riwayahLabel } from "./reciter-catalogue";
 import { RecitationSheet } from "./recitation-sheet";
 import { useRevealed } from "./session-view";
 
@@ -48,8 +48,8 @@ export function useNowPlaying() {
   const mismatch = Boolean(reciter?.riwayah && readerRiwayah && reciter.riwayah !== readerRiwayah);
   const who = reciter
     ? reciter.riwayah && reciter.riwayah !== "hafs"
-      ? `${reciter.name} · ${t("رواية {0}", { 0: riwayahName(reciter.riwayah) })}`
-      : reciter.name
+      ? `${reciterName(reciter)} · ${t("رواية {0}", { 0: riwayahName(reciter.riwayah) })}`
+      : reciterName(reciter)
     : t("اختر قارئاً");
   return { position, surah, where, who, mismatch, readerRiwayah: readerRiwayah ?? null };
 }

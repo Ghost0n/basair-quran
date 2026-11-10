@@ -533,8 +533,8 @@ export const MODELS: Record<string, ModelSpec> = {
     {"name": "saved_pages", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "model", "name": "SavedPageEntry"}}}, "default": null},
     {"name": "translations", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "str", "max_length": 80}}, "max_length": 3}, "default": null},
     {"name": "home_hidden", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "literal", "values": ["greeting", "verse", "continue", "recent_pages", "recent_searches", "search", "index", "saved", "study", "community"]}}, "max_length": 10}, "default": null},
-    {"name": "recent_pages", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "model", "name": "RecentPage"}}, "max_length": 5}, "default": null},
-    {"name": "recent_searches", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "model", "name": "RecentSearch"}}, "max_length": 5}, "default": null},
+    {"name": "recent_pages", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "model", "name": "RecentPage"}}, "max_length": 10}, "default": null},
+    {"name": "recent_searches", "type": {"kind": "optional", "of": {"kind": "list", "of": {"kind": "model", "name": "RecentSearch"}}, "max_length": 10}, "default": null},
     {"name": "reading_progress", "type": {"kind": "optional", "of": {"kind": "model", "name": "ReadingProgress"}}, "default": null}
   ]
 };

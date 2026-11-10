@@ -212,8 +212,11 @@ export function MushafStage() {
   const entering = ownScreen ? shellMode === "reading" : true;
   const enteredRef = useRef(false);
   const recitationNow = useRecitation();
-  const recitedRef = useRef(recitationNow.current);
-  recitedRef.current = recitationNow.current;
+  // A verse heard on its own (a search result's ▶) is not a recitation the
+  // reader follows: it never turns the page or opens the reader on it.
+  const recitedNow = recitationNow.range?.once ? null : recitationNow.current;
+  const recitedRef = useRef(recitedNow);
+  recitedRef.current = recitedNow;
   useEffect(() => {
     if (!entering) {
       if (ownScreen) enteredRef.current = false;
@@ -593,7 +596,7 @@ export function MushafStage() {
   // scrolls to it. Each verse is followed once, so a reader who turns away
   // mid-verse is only brought back by the next verse.
   const recitation = useRecitation();
-  const reciting = recitation.current;
+  const reciting = recitedNow;
   const recitingKey = reciting ? `${reciting.surah}:${reciting.ayah}` : null;
   const followedRef = useRef<string | null>(null);
   const showAyahPage = mushaf.showAyahPage;

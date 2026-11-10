@@ -160,7 +160,7 @@ def test_user_preferences_home_hidden(api_client):
 
 
 def test_user_preferences_recents(api_client):
-    # Home's recents: empty by default, replaced wholesale, at most five each.
+    # Home's recents: empty by default, replaced wholesale, at most ten each.
     prefs = api_client.get("/api/user/preferences").json()
     assert prefs["recent_pages"] == [] and prefs["recent_searches"] == []
 
@@ -176,7 +176,7 @@ def test_user_preferences_recents(api_client):
     hidden = api_client.patch("/api/user/preferences", json={"home_hidden": ["recent_pages", "recent_searches", "study"]})
     assert hidden.status_code == 200
 
-    too_many = [{"query": f"q{i}", "mode": "exact", "at": i} for i in range(6)]
+    too_many = [{"query": f"q{i}", "mode": "exact", "at": i} for i in range(11)]
     assert api_client.patch("/api/user/preferences", json={"recent_searches": too_many}).status_code == 422
     assert api_client.patch("/api/user/preferences", json={"recent_searches": [{"query": "x", "mode": "fuzzy"}]}).status_code == 422
     assert api_client.patch("/api/user/preferences", json={"recent_pages": [{"page": 0}]}).status_code == 422

@@ -1153,7 +1153,7 @@ HomeSectionId = Literal[
 
 # How many recent pages and searches Home keeps (account preferences
 # `recent_pages` / `recent_searches`).
-RECENTS_LIMIT = 5
+RECENTS_LIMIT = 10
 
 
 class RecentPage(BaseModel):

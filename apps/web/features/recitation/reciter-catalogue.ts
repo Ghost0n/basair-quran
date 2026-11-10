@@ -1,12 +1,34 @@
 import type { ReciterItem } from "@q-basair/shared";
 
 import { t } from "@/lib/i18n";
+import { localeInfo } from "@/lib/i18n/locales";
+import { activeLocale } from "@/lib/i18n/translate";
 
 /**
  * The reciter list, as both pickers show it (the desktop dropdown and the
  * phone's sheet): 100+ reciters from the prepared recordings
  * (docs/recitation-audio.md) beside the built-in ones.
  */
+
+/** Interface languages written in the Arabic script (Arabic, Persian, Urdu): the right-to-left ones. */
+function arabicScript(locale: string): boolean {
+  return localeInfo(locale).dir === "rtl";
+}
+
+/**
+ * A reciter's name in the interface language's script: in Arabic letters for
+ * the languages written in them, in English (Latin letters) for the others.
+ */
+export function reciterName(reciter: Pick<ReciterItem, "name" | "name_english">, locale: string = activeLocale()): string {
+  if (arabicScript(locale)) return reciter.name || reciter.name_english;
+  return reciter.name_english || reciter.name;
+}
+
+/** The same name in the other script (shown under it, so either spelling is recognised). */
+export function reciterOtherName(reciter: Pick<ReciterItem, "name" | "name_english">, locale: string = activeLocale()): string {
+  const other = arabicScript(locale) ? reciter.name_english : reciter.name;
+  return other && other !== reciterName(reciter, locale) ? other : "";
+}
 
 /** The narrations, in the order the chips show them. */
 export const RIWAYAH_ORDER = ["hafs", "shuba", "warsh", "qaloun", "douri", "sousi", "bazzi", "qunbul"] as const;
@@ -99,6 +121,7 @@ export function pickReciters(
       const builtIn = Number(Boolean(b.audio_base)) - Number(Boolean(a.audio_base));
       if (builtIn) return builtIn;
       if (a.audio_base) return (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0);
-      return a.name.localeCompare(b.name, "ar");
+      const locale = activeLocale();
+      return reciterName(a, locale).localeCompare(reciterName(b, locale), arabicScript(locale) ? "ar" : locale);
     });
 }

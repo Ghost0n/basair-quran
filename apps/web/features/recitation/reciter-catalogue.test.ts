@@ -1,7 +1,7 @@
 import type { ReciterItem } from "@q-basair/shared";
 import { describe, expect, it } from "vitest";
 
-import { foldArabic, isPlayable, partialSurahs, pickReciters, riwayahsOf } from "./reciter-catalogue";
+import { foldArabic, isPlayable, partialSurahs, pickReciters, reciterName, reciterOtherName, riwayahsOf } from "./reciter-catalogue";
 
 const reciter = (id: string, name: string, extra: Partial<ReciterItem> = {}): ReciterItem => ({
   id,
@@ -51,5 +51,24 @@ describe("reciter catalogue — the pickers' list", () => {
     expect(partialSurahs(catalogue[4])).toBe(3);
     expect(partialSurahs(catalogue[2])).toBeNull();
     expect(partialSurahs(catalogue[0])).toBeNull(); // verse files cover every surah
+  });
+});
+
+describe("a reciter's name in the interface language's script", () => {
+  const item = { name: "مشاري راشد العفاسي", name_english: "Mishary Rashid Alafasy" };
+
+  it("is in Arabic letters for the languages written in them", () => {
+    for (const locale of ["ar", "fa", "ur"]) expect(reciterName(item, locale)).toBe("مشاري راشد العفاسي");
+    expect(reciterOtherName(item, "ar")).toBe("Mishary Rashid Alafasy");
+  });
+
+  it("is in English for every other language", () => {
+    for (const locale of ["en", "fr", "tr", "id", "zh"]) expect(reciterName(item, locale)).toBe("Mishary Rashid Alafasy");
+    expect(reciterOtherName(item, "fr")).toBe("مشاري راشد العفاسي");
+  });
+
+  it("falls back to the name it has", () => {
+    expect(reciterName({ name: "يحيى", name_english: "" }, "en")).toBe("يحيى");
+    expect(reciterOtherName({ name: "يحيى", name_english: "" }, "en")).toBe("");
   });
 });
