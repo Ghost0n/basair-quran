@@ -1,3 +1,6 @@
+import { readdirSync, readFileSync } from "node:fs";
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
 
 import { GUIDE_PLATFORMS, guideChapters } from "../guide/guide-content";
@@ -24,4 +27,21 @@ describe("the FAQ", () => {
       expect(top!.score).toBeGreaterThanOrEqual(ANSWERED);
     }
   });
+});
+
+describe("the FAQ in every interface language", () => {
+  const dir = path.resolve(__dirname, "../../../lib/i18n/locales");
+  for (const file of readdirSync(dir).filter((name) => name.endsWith(".json"))) {
+    const locale = file.replace(/\.json$/, "");
+    it(`${locale}: each translated question finds its own answer`, () => {
+      const catalog = JSON.parse(readFileSync(path.join(dir, file), "utf8")) as Record<string, string>;
+      const tr = (text: string) => catalog[text] ?? text;
+      const local = entries.map((entry) => ({ id: entry.id, question: tr(entry.question), keywords: tr(entry.keywords), answer: tr(entry.answer) }));
+      const misses = local.filter((entry) => {
+        const [top] = rankFaq(entry.question, local);
+        return top?.id !== entry.id || top.score < ANSWERED;
+      });
+      expect(misses.map((entry) => entry.question)).toEqual([]);
+    });
+  }
 });
