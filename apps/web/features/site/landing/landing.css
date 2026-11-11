@@ -1221,6 +1221,115 @@
   text-align: end;
 }
 
+/* ---------- The method: five steps on one line ---------- */
+
+.qb-method {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 56px 16px 24px;
+  scroll-margin-top: 64px;
+}
+
+.qb-method ol {
+  position: relative;
+  display: grid;
+  gap: 22px;
+  margin: 36px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The thread that joins the steps (vertical on phones, across on wide screens). */
+.qb-method ol::before {
+  content: "";
+  position: absolute;
+  inset-block: 18px;
+  inset-inline-start: 18px;
+  width: 1px;
+  background: linear-gradient(to bottom, var(--gold-400), transparent);
+  opacity: 0.6;
+}
+
+.qb-method li {
+  position: relative;
+  padding-inline-start: 56px;
+}
+
+.qb-method .num {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 37px;
+  height: 37px;
+  border: 1px solid var(--gold-400);
+  border-radius: 50%;
+  background: var(--bg);
+  font-family: var(--font-arabic-heading);
+  font-size: 17px;
+  color: var(--gold-400);
+}
+
+.qb-method h3 {
+  margin: 4px 0 0;
+  font-family: var(--font-arabic-heading);
+  font-size: 19px;
+}
+
+.qb-method p {
+  margin: 6px 0 0;
+  font-size: 15px;
+  line-height: 1.85;
+  color: var(--fg-2);
+}
+
+.qb-method.is-in li {
+  animation: qb-method-in 600ms var(--ease-out, ease-out) both;
+}
+
+.qb-method.is-in li:nth-child(2) { animation-delay: 90ms; }
+.qb-method.is-in li:nth-child(3) { animation-delay: 180ms; }
+.qb-method.is-in li:nth-child(4) { animation-delay: 270ms; }
+.qb-method.is-in li:nth-child(5) { animation-delay: 360ms; }
+
+@keyframes qb-method-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (min-width: 1040px) {
+  .qb-method ol {
+    grid-template-columns: repeat(5, 1fr);
+    gap: 18px;
+  }
+
+  .qb-method ol::before {
+    inset-block: auto;
+    top: 18px;
+    inset-inline: 18px;
+    width: auto;
+    height: 1px;
+    background: linear-gradient(to left, var(--gold-400), transparent);
+  }
+
+  :dir(ltr) .qb-method ol::before,
+  [dir="ltr"] .qb-method ol::before {
+    background: linear-gradient(to right, var(--gold-400), transparent);
+  }
+
+  .qb-method li {
+    padding-inline-start: 0;
+    padding-top: 52px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-method.is-in li {
+    animation: none;
+  }
+}
+
 /* ---------- Principles ---------- */
 
 .qb-principles {

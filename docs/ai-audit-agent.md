@@ -51,13 +51,13 @@ Rules map one-to-one onto `docs/community-guidelines.md`:
 | Rule id | Guideline | Examples of a finding |
 |---|---|---|
 | `misattribution` | §1 | A claim presented as the ayah's text; an ayah used against its evident context |
-| `ruling_as_fact` | §2 | «يجب/يحرم…» stated as the research's conclusion without a cited scholarly source |
-| `unlabelled_ai` | §3 | A section reads as generated but is not in `ai_sections` (a heuristic, so it only raises `review`) |
-| `disrespect` | §4 | Insults, takfīr/tabdīʿ of people or groups, mockery of sanctities |
-| `sectarian_attack` | §4 | A polemic against a school or sect rather than an argument |
-| `integrity` | §5 | An unsourced hadith presented as authentic; categorical «إعجاز» claims |
-| `spam_promo` | §6 | Links, promotion, follower solicitation |
-| `personal_data` | §6 | Someone else's contact details or private information |
+| `ruling_as_fact` | §3 | «يجب/يحرم…» stated as the research's conclusion without a cited source |
+| `unlabelled_ai` | §4 | A section reads as generated but is not in `ai_sections` (a heuristic, so it only raises `review`) |
+| `disrespect` | §5 | Insults, mockery, judging a person's faith or intentions, insulting prophets or any religion or group |
+| `sectarian_attack` | §5 | An attack on a group, school of thought or belief rather than a fair argument (the id is kept for stored reviews) |
+| `integrity` | §2, §6 | An unverified text presented as established; a link to a scientific theory presented as certain; cherry-picked occurrences; plagiarism |
+| `spam_promo` | §8 | Links, promotion, follower solicitation |
+| `personal_data` | §8 | Someone else's contact details or private information |
 
 ## 4. Output contract (strict JSON)
 

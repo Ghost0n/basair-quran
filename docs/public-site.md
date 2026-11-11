@@ -21,6 +21,12 @@ server-rendered pages exist for visitors, search engines and shared links.
 - **Language**: pages render in Arabic (the source language) for crawlers and
   switch to the reader's interface language in the browser; the guidelines'
   long text exists in Arabic and English only (not run through `t()`).
+- **Neutral voice**: the landing page and the guidelines describe a method,
+  never a school, sect or tradition; they don't name groups to protect or to
+  avoid (one rule covers every group and belief), and don't use the vocabulary
+  of religious authority (the app issues no rulings).
+  `features/site/guidelines-content.test.ts` keeps such words out of the
+  guidelines and keeps `docs/community-guidelines.md` equal to the Arabic text.
 - **Promises on the landing page** must stay true: no ads, no trackers (there
   is no analytics; error reporting is off unless `NEXT_PUBLIC_ERROR_REPORTING=1`),
   no selling or marketing use of data, reading and search without an account,
@@ -34,19 +40,23 @@ phones are drawn in the app's style; real screenshots can replace them later):
 1. **Hero** — a rosette (`landing/pattern.tsx`) draws itself around the mark
    while «هذا بصائر للناس» (45:20) appears word by word; a soft light follows
    the pointer on desktop.
-2. **Pillars** — Quran first, verifiable precision, open to everyone.
-3. **The root of the name** (`landing/root-ribbon.tsx`) — the root ب ص ر over
+2. **Pillars** — the text first, verifiable and repeatable, open to everyone.
+3. **The method** («منهجٌ يمكن مراجعته») — observation, induction (every
+   occurrence, not a selection), comparison, a disciplined conclusion (what the
+   verse states / allows / what one thinks), review; five steps on one thread.
+   The app presents itself as a research tool, not an authority.
+4. **The root of the name** (`landing/root-ribbon.tsx`) — the root ب ص ر over
    the 114 surahs, one bar per surah (Al-Fātiḥa on the right). Visitors can type
    any word or root: the ribbon is redrawn live from
    `GET /api/root-distribution` (Ḥafṣ) and the occurrences open in the app's
    search. Without the API (offline, static app) the ribbon keeps the name's root
    and says live search isn't available.
-4. **«بصائر في يدك»** (`landing/phone-story.tsx`) — read, search, recite,
+5. **«بصائر في يدك»** (`landing/phone-story.tsx`) — read, search, recite,
    study, told on a phone that stays in place and changes screen as each step
    scrolls into view (≥ 900 px); on phones every step carries its own phone.
-5. **Under the hood** — offline, verified text, trusted translations, AI limits.
-6. **The Quran in numbers** (`landing/numbers.tsx`) — counted up when seen.
-7. **The pledge** (privacy promises) and the **community principles**, with a
+6. **Under the hood** — offline, verified text, trusted translations, AI limits.
+7. **The Quran in numbers** (`landing/numbers.tsx`) — counted up when seen.
+8. **The pledge** (privacy promises) and the **community principles**, with a
    link to `/guidelines`.
 
 Every figure and verse comes from `features/site/landing-data.json`, written by
