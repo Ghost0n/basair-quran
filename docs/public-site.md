@@ -8,6 +8,7 @@ server-rendered pages exist for visitors, search engines and shared links.
 | `/about` | The landing page (sections below), calls to open the app or create an account | `features/site/site-landing.tsx`, `features/site/landing/`, `app/about/page.tsx` |
 | `/` (visitor's door) | The same landing, shown by `ShellGate` to web visitors who are neither signed in nor guests (auth enabled); «ابدأ القراءة» opens the app in place | `features/identity/shell-gate.tsx` |
 | `/guide` | The feature guide, in a phone version and a computer version (below) | `features/site/guide/`, `app/guide/page.tsx` |
+| `/faq` | The questions people ask, answered, and «اسأل سؤالك» (below) | `features/site/faq/`, `app/faq/page.tsx` |
 | `/guidelines` | The community guidelines in full: Arabic (the reference, `docs/community-guidelines.md`) or English for every other interface language | `features/site/guidelines-content.ts`, `app/guidelines/page.tsx` |
 | `/robots.txt`, `/sitemap.xml` | Crawl rules (API and account pages excluded) and the public pages | `app/robots.ts`, `app/sitemap.ts`, `lib/site.ts` |
 
@@ -105,6 +106,35 @@ public site's `/guide?on=mobile`).
   searches on the way. Re-run it after a visible change to a captured screen,
   ideally against a server with the full data (translations, published
   research). `guide-content.test.ts` fails when a referenced file is missing.
+
+## The FAQ
+
+`/faq` answers the questions people ask (about the app, the text and
+reading, search and roots, recitation, the study and AI, privacy and the
+account, the community), by group, each answer opening in place with its own
+link (`/faq#delete`) and, where the guide covers it, «اقرأ الخطوات في الدليل»
+to the topic (`/guide#…`; a topic only one version of the guide has opens
+that version).
+
+«اسأل سؤالك» at the top never sends a question that already has an answer:
+
+- While typing, the closest answers are suggested.
+- «اسأل» matches the question against every entry's question, keywords and
+  answer, in the reader's language (`features/site/faq/faq-match.ts`: folded
+  as the guide's filter, without words that say nothing about the subject,
+  the Arabic article and clitics set aside, words meeting by their start;
+  letter pairs for languages written without spaces). When the best entry
+  covers most of the question (`ANSWERED`), the page shows that answer and
+  opens it — «سؤالي مختلف» still lets the reader send.
+- Otherwise the question goes to the feedback centre as kind `help`, with a
+  verified email for a guest (the same checks as Settings →
+  «الدعم والملاحظات»).
+
+Entries live in `features/site/faq/faq-content.ts`, every text in `t()`;
+each has `keywords` (also translated) for the wording people use.
+`faq-content.test.ts` checks that every question finds its own answer and
+every guide link points to a topic. Add an entry when the same question
+reaches the feedback centre twice.
 
 ## Next (with the domain and the production platform)
 

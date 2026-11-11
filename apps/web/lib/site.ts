@@ -11,6 +11,7 @@ export const PUBLIC_PAGES: readonly { path: string; priority: number }[] = [
   { path: "/", priority: 1 },
   { path: "/about", priority: 0.9 },
   { path: "/guide", priority: 0.7 },
+  { path: "/faq", priority: 0.6 },
   { path: "/guidelines", priority: 0.5 },
 ];
 
