@@ -31,6 +31,17 @@ vi.mock("@q-basair/api-client", async (importOriginal) => ({
 
 const recitationRequests: string[] = [];
 
+// The public sources (direct-source.ts): none by default, so a surah the
+// server hasn't prepared plays verse by verse; a test can give one.
+const direct = vi.hoisted(() => ({ recordings: new Map<string, unknown>(), asked: [] as string[] }));
+vi.mock("./direct-source", () => ({
+  hasDirectSource: (id: string) => [...direct.recordings.keys()].some((key) => key.startsWith(`${id}:`)),
+  directRecitation: async (id: string, surah: number) => {
+    direct.asked.push(`${id}:${surah}`);
+    return direct.recordings.get(`${id}:${surah}`) ?? null;
+  },
+}));
+
 import { playOrResume } from "./phone-player";
 import { RecitationProvider, useRecitation } from "./recitation-context";
 
@@ -194,6 +205,37 @@ describe("playOrResume — the play button", () => {
     const { calls, recitation } = fake({ isPlaying: true, current: { surah: 2, ayah: 57 } });
     playOrResume(recitation, { surah: 3, ayah: 1 });
     expect(calls).toEqual(["toggle"]);
+  });
+});
+
+describe("RecitationProvider — a surah the server hasn't prepared, from its public source", () => {
+  afterEach(() => {
+    direct.recordings.clear();
+    direct.asked.length = 0;
+  });
+
+  it("is recited from the source's one recording, not verse by verse", async () => {
+    const quranCom = "https://download.quranicaudio.com/qdc/mishari_al_afasy/murattal/2.mp3";
+    const verses = Array.from({ length: 286 }, (_, index) => ({ ayah: index + 1, start_ms: index * 1000 + 500, end_ms: (index + 1) * 1000 + 500 }));
+    direct.recordings.set("alafasy:2", { reciter_id: "alafasy", surah: 2, audio_url: quranCom, duration_ms: 287000, bytes: 0, attribution: "Quran.com", verses });
+    await mount();
+    await act(async () => recitation.playAyah(2, 3));
+    await settle();
+    const [audio] = sounding();
+    expect(audio.getAttribute("src")).toBe(quranCom);
+    expect(recitationRequests).not.toContain("alafasy:2"); // the server doesn't have it: not asked
+    await act(async () => audio.dispatchEvent(new Event("loadedmetadata")));
+    expect(audio.currentTime).toBe(2.5); // verse 3 starts at 2.5 s
+    expect(plays.filter((src) => src.endsWith(".mp3"))).toEqual([quranCom]); // one file, no verse files
+  });
+
+  it("falls back to the verse files when no source has it", async () => {
+    direct.recordings.set("alafasy:3", null); // a source is known, but gives nothing
+    await mount();
+    await act(async () => recitation.playAyah(3, 2));
+    await settle();
+    expect(direct.asked).toEqual(["alafasy:3"]);
+    expect(sounding()[0].getAttribute("src")).toBe(file(3, 2));
   });
 });
 

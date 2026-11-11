@@ -358,6 +358,9 @@ Append to the merge commit message on `main` when a rebuild is needed:
 |---|---|
 | `[rebuild-db]` | `scripts/build_db.py` or Quran source data changed |
 | `[rebuild-index]` | `scripts/build_research_index.py` or `data/research_sources/` changed |
+| `[rebuild-translations]` | `scripts/build_translations.py` or `scripts/translation_sources.json` changed |
+| `[prepare-recitations]` | the recitations' sources changed, or to prepare reciters (below) |
+| `[prefill-recitation]` | the reciter catalogue changed (the shared recitation-duration cache) |
 
 ```bash
 # rebuild quran.db on deploy
@@ -371,6 +374,73 @@ feat: [Q-Basair-132] - Migration complète [rebuild-db] [rebuild-index]
 ```
 
 Without either tag the deploy only rebuilds changed Docker layers — typically under 5 minutes.
+
+### Preparing the recitations (one recording per surah)
+
+Reciting sounds seamless — no pause between verses — when a surah plays from **one recording**
+with its verse timings (`docs/recitation-audio.md`). The server prepares those recordings once,
+into `data/recitations/` (never committed), and nginx serves them as static files. Until a
+surah is prepared, the player takes the same recording straight from Quran.com or mp3quran.net
+for the reciters they carry (`features/recitation/direct-source.ts`), so preparing is about
+serving the audio from our own server and CDN, at a steady 64 kbps, for every reciter.
+
+**What it needs**
+
+- The release that carries the recitations (the `/api/recitations` routes, the nginx location
+  and the `data/recitations` volume) on `main`.
+- The self-hosted runner online (**Settings → Actions → Runners** shows it *Idle*; see
+  *Runner setup* above if it is missing).
+- Disk: about 0.5–0.6 GB per reciter for all 114 surahs — ~8 GB for the configured reciters,
+  ~70 GB for every mp3quran timed read. Check with `df -h /srv/q-basair` first.
+- Outbound HTTPS to `api.qurancdn.com`, `download.quranicaudio.com`, `www.mp3quran.net`,
+  `cdn.mp3quran.net` (and its `serverN.` hosts) and `everyayah.com`.
+- `ffmpeg` in the API image (already installed by `Dockerfile.api`).
+
+**Which reciters** — `QBASAIR_PREPARE_RECITERS` in `/srv/q-basair/.env.production`:
+
+| Value | Prepares |
+|---|---|
+| `configured` (default) | the reciters listed in `scripts/recitation_sources.json` |
+| `all` | those, plus every other timed mp3quran read (118 reciters, every riwāyah) |
+| `alafasy,husary` | only these ids |
+
+**Running it**
+
+1. Merge to `main` with `[prepare-recitations]` in the merge commit message, e.g.
+   `release: [develop-12] - Publie develop [prepare-recitations]` (add `[prefill-recitation]` when
+   the reciter catalogue changed too). The deploy starts `scripts/build_recitations.py` in a
+   detached container and finishes without waiting for it.
+2. Follow it on the server:
+
+   ```bash
+   cd /srv/q-basair
+   docker ps --filter "ancestor=$(docker compose images -q api)"   # the preparation container
+   docker logs -f <container-id>                                  # surah by surah
+   ls data/recitations/                                           # one folder per reciter, catalog.json
+   ```
+
+3. Check it from outside once a reciter has surahs:
+
+   ```bash
+   curl -s https://basair-al-quran.duckdns.org/api/reciters | jq '.[] | {id, prepared: (.surahs | length)}'
+   curl -sI https://basair-al-quran.duckdns.org/api/recitations/audio/alafasy/001.mp3 | head -5
+   ```
+
+It is **resumable**: surahs already prepared are kept and skipped, so a stopped run (a reboot,
+a full disk) continues with the next deploy that carries the tag — or by hand, without a deploy:
+
+```bash
+cd /srv/q-basair
+docker compose --env-file .env.production run -d --rm api \
+  python scripts/build_recitations.py --reciters configured        # or all, or a list of ids
+docker compose --env-file .env.production run --rm api \
+  python scripts/build_recitations.py --reciters alafasy --surahs 1,112-114   # a quick check
+```
+
+New surahs are picked up without restarting anything: the script rewrites `catalog.json` every
+25 surahs and at the end, the API re-reads it when it changes, and the app asks `/api/reciters`
+again. To start over for one reciter, delete its folder in
+`data/recitations/` and run it again.
 
 ## Operational notes
 

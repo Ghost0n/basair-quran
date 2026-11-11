@@ -1,8 +1,9 @@
 # Recitation audio
 
 Status: in place — the preparation pipeline and its routes (Q-Basair-65), the player and the app's
-downloads (Q-Basair-66). A surah not prepared for a reciter still plays verse by verse from
-everyayah.com.
+downloads (Q-Basair-66), and the player's direct fallback to the public sources (Q-Basair-95). Only
+a surah no source has as one recording plays verse by verse from everyayah.com. Preparing on the
+server: `docs/deployment-hetzner.md` → *Preparing the recitations*.
 
 ## Why one recording per surah
 
@@ -94,12 +95,20 @@ the session) and recites from the one recording:
 - at the end of the recording the next surah follows (its timings were fetched ahead);
 - on a first tap, while the timings arrive, the element plays a moment of silence so the browser
   keeps the tap's permission to play;
-- a surah not prepared (or a reciter without any) plays verse by verse as before.
+- a surah not prepared by our server is taken **straight from its public source**
+  (`features/recitation/direct-source.ts`): the same sources, in the same order, that the
+  preparation uses — Quran.com's chapter recording and verse timings, then mp3quran.net's timed
+  read (both answer any origin) — for the reciters `scripts/recitation_sources.json` lists with
+  them (`direct-source.test.ts` keeps the two lists equal). The timings must cover every verse
+  of the surah in order, and the audio must come from those hosts, or the source isn't used;
+- only a surah no source has (an everyayah-only reciter, or no network) plays verse by verse, and
+  it isn't asked again for ten minutes.
 
 **App**: the reciter list comes from the server first (`/api/reciters` is answered by the server
 when online and kept on the device for offline use — `fetch-router.ts`). A prepared surah
 downloads as one file (`audio/<reciter>/<SSS>.mp3`) with its timings (kept in the device's
-key-value store) and then plays from the device; the others download verse by verse as before.
+key-value store) and then plays from the device. A surah the server hasn't prepared downloads the
+same way from its public source when it has one; only the others download verse by verse.
 
 ## Choosing a reciter
 
