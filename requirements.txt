@@ -8,3 +8,5 @@ itsdangerous==2.2.0
 # Sign-in with Keycloak (docs/keycloak.md): ID / access token checks (RS256 / PS256 / ES256).
 PyJWT==2.14.0
 cryptography==50.0.1
+# A guest's email for the feedback centre: does its domain take mail (src/app/services/email_check.py).
+dnspython==2.7.0

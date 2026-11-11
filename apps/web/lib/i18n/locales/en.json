@@ -1400,5 +1400,10 @@
  "تبدأ «تابع القراءة» من الفاتحة.": "Continue reading now starts from Al-Fatiha.",
  "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة iPhone الاحتياطية على iCloud، وتعود حين يُستعاد الهاتف منها.": "Without an account, your data (pinned verses, themes, study sessions, roots, research and preferences) is saved with your iPhone's iCloud backup, and comes back when the phone is restored from it.",
  "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة هاتفك الاحتياطية على Google، وتعود على هاتف جديد أو عند إعادة تثبيت التطبيق.": "Without an account, your data (pinned verses, themes, study sessions, roots, research and preferences) is saved with your phone's Google backup, and comes back on a new phone or when you reinstall the app.",
- "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "Downloads aren't part of it: they download again. To sync your data across your devices, sign in."
+ "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "Downloads aren't part of it: they download again. To sync your data across your devices, sign in.",
+ "بريدك الإلكتروني للردّ عليك": "Your email, so we can reply",
+ "اكتب بريدك الإلكتروني لنتمكّن من الردّ عليك.": "Enter your email so we can reply to you.",
+ "عنوان البريد الإلكتروني غير صحيح.": "This email address isn't valid.",
+ "هذا النطاق لا يستقبل البريد. تحقّق من العنوان.": "This domain doesn't receive email. Check the address.",
+ "استعمل بريداً دائماً، لا بريداً مؤقتاً.": "Please use a lasting email address, not a temporary one."
 }

@@ -32,9 +32,12 @@ def submit(request: Request, payload: FeedbackCreate) -> FeedbackItem:
             url=payload.url,
             user_agent=request.headers.get("user-agent"),
             language=payload.language,
+            # A guest is answered by email only: the address is required, and checked.
+            require_email=_user_id(request) is None,
         )
     except feedback_service.FeedbackError as exc:
-        raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
+        detail = {"code": exc.code, "message": str(exc)} if exc.code else str(exc)
+        raise HTTPException(status_code=exc.status, detail=detail) from exc
     return FeedbackItem(**item)
 
 

@@ -1400,5 +1400,10 @@
  "تبدأ «تابع القراءة» من الفاتحة.": "«Vazhdo leximin» nis sërish nga El-Fatiha.",
  "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة iPhone الاحتياطية على iCloud، وتعود حين يُستعاد الهاتف منها.": "Pa llogari, të dhënat tuaja (ajetet e fiksuara, temat, seancat e studimit, rrënjët, kërkimet dhe preferencat) ruhen me kopjen rezervë iCloud të iPhone-it tuaj dhe kthehen kur telefoni rikthehet prej saj.",
  "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة هاتفك الاحتياطية على Google، وتعود على هاتف جديد أو عند إعادة تثبيت التطبيق.": "Pa llogari, të dhënat tuaja (ajetet e fiksuara, temat, seancat e studimit, rrënjët, kërkimet dhe preferencat) ruhen me kopjen rezervë Google të telefonit tuaj dhe kthehen në një telefon të ri ose kur e riinstaloni aplikacionin.",
- "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "Shkarkimet nuk janë pjesë e saj: shkarkohen përsëri. Për të sinkronizuar të dhënat mes pajisjeve, hyni."
+ "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "Shkarkimet nuk janë pjesë e saj: shkarkohen përsëri. Për të sinkronizuar të dhënat mes pajisjeve, hyni.",
+ "بريدك الإلكتروني للردّ عليك": "Email-i juaj, që t'ju përgjigjemi",
+ "اكتب بريدك الإلكتروني لنتمكّن من الردّ عليك.": "Shkruani email-in tuaj që të mund t'ju përgjigjemi.",
+ "عنوان البريد الإلكتروني غير صحيح.": "Kjo adresë email nuk është e vlefshme.",
+ "هذا النطاق لا يستقبل البريد. تحقّق من العنوان.": "Ky domen nuk merr email. Kontrolloni adresën.",
+ "استعمل بريداً دائماً، لا بريداً مؤقتاً.": "Përdorni një adresë email të përhershme, jo të përkohshme."
 }

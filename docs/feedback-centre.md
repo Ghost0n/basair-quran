@@ -13,7 +13,16 @@ team, triaged by staff in the supervision panel.
 | `feature` | an idea | Settings → «الدعم والملاحظات» |
 | `error` | the diagnostic bundle of an error screen | «أبلِغ عن المشكلة» (`docs/error-reporting.md`) |
 
-- Guests may write; they can leave an email to be answered (optional).
+- Guests may write, and leave an email to be answered: it is required for their
+  messages (not for a diagnostic report) and checked before it is accepted, with no
+  code to confirm (`src/app/services/email_check.py`, against spam):
+  1. the syntax, in the form too (`feedback-card.tsx`);
+  2. no reserved domain (example.com, `.test`, `.invalid`, `.localhost`…) and no throwaway inbox (mailinator, yopmail…);
+  3. the domain takes mail: an MX record, or else an address, and not a null MX (`dnspython`).
+
+  A lookup that can't decide (a slow resolver, no network, or a resolver that
+  can't even find gmail.com) lets the address through, so an outage never
+  blocks a real sender. The form says why an address was refused.
   Signed-in people are recorded and see what they sent and its status under
   «ما أرسلته» (not their diagnostic reports).
 - `POST /api/feedback` is rate-limited per IP (`QBASAIR_RATE_LIMIT_FEEDBACK_MAX`,

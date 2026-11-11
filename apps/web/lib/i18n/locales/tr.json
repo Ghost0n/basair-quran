@@ -1400,5 +1400,10 @@
  "تبدأ «تابع القراءة» من الفاتحة.": "\"Okumaya devam et\" yeniden Fâtiha'dan başlar.",
  "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة iPhone الاحتياطية على iCloud، وتعود حين يُستعاد الهاتف منها.": "Hesap olmadan verileriniz (sabitlenmiş ayetler, temalar, çalışma oturumları, kökler, araştırmalar ve tercihler) iPhone'unuzun iCloud yedeğiyle kaydedilir ve telefon bu yedekten geri yüklendiğinde geri gelir.",
  "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة هاتفك الاحتياطية على Google، وتعود على هاتف جديد أو عند إعادة تثبيت التطبيق.": "Hesap olmadan verileriniz (sabitlenmiş ayetler, temalar, çalışma oturumları, kökler, araştırmalar ve tercihler) telefonunuzun Google yedeğiyle kaydedilir ve yeni bir telefonda ya da uygulamayı yeniden yüklediğinizde geri gelir.",
- "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "İndirmeler buna dahil değildir: yeniden indirilir. Verilerinizi cihazlarınız arasında eşitlemek için giriş yapın."
+ "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "İndirmeler buna dahil değildir: yeniden indirilir. Verilerinizi cihazlarınız arasında eşitlemek için giriş yapın.",
+ "بريدك الإلكتروني للردّ عليك": "Size yanıt verebilmemiz için e-postanız",
+ "اكتب بريدك الإلكتروني لنتمكّن من الردّ عليك.": "Size yanıt verebilmemiz için e-postanızı yazın.",
+ "عنوان البريد الإلكتروني غير صحيح.": "Bu e-posta adresi geçerli değil.",
+ "هذا النطاق لا يستقبل البريد. تحقّق من العنوان.": "Bu alan adı e-posta almıyor. Adresi kontrol edin.",
+ "استعمل بريداً دائماً، لا بريداً مؤقتاً.": "Lütfen geçici değil, kalıcı bir e-posta adresi kullanın."
 }

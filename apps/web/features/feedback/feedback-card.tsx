@@ -17,6 +17,48 @@ const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 const KINDS: FeedbackKind[] = ["contact", "bug", "help", "feature"];
 
+/** Why an address was refused (the server's codes, src/app/services/email_check.py). */
+type EmailProblem = "email_required" | "email_invalid" | "email_domain" | "email_disposable";
+
+const EMAIL_PROBLEM_TEXT: Record<EmailProblem, string> = {
+  get email_required() {
+    return t("اكتب بريدك الإلكتروني لنتمكّن من الردّ عليك.");
+  },
+  get email_invalid() {
+    return t("عنوان البريد الإلكتروني غير صحيح.");
+  },
+  get email_domain() {
+    return t("هذا النطاق لا يستقبل البريد. تحقّق من العنوان.");
+  },
+  get email_disposable() {
+    return t("استعمل بريداً دائماً، لا بريداً مؤقتاً.");
+  },
+};
+
+/** The same syntax the server accepts, checked before sending (the domain is the server's to check). */
+export function emailSyntaxProblem(value: string): EmailProblem | null {
+  const email = value.trim();
+  if (!email) return "email_required";
+  const at = email.lastIndexOf("@");
+  const local = email.slice(0, at);
+  const labels = email.slice(at + 1).split(".");
+  const ok =
+    at > 0 &&
+    email.length <= 254 &&
+    local.length <= 64 &&
+    /^[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*$/.test(local) &&
+    labels.length >= 2 &&
+    labels.every((label) => /^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(label)) &&
+    /^([A-Za-z]{2,63}|xn--[A-Za-z0-9-]{1,59})$/.test(labels[labels.length - 1]);
+  return ok ? null : "email_invalid";
+}
+
+/** The reason the server gave for refusing the address, if that was it. */
+function emailProblemOf(error: unknown): EmailProblem | null {
+  const match = /"code":\s*"(email_(?:required|invalid|domain|disposable))"/.exec(error instanceof Error ? error.message : "");
+  return match ? (match[1] as EmailProblem) : null;
+}
+
 /**
  * «الدعم والملاحظات» — write to the team (docs/feedback-centre.md): a message,
  * a bug, a request for help or a feature idea. Guests may leave an email to be
@@ -30,6 +72,8 @@ export function FeedbackCard() {
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+  // A guest is answered by email only: required, and checked (here, then on the server).
+  const [emailProblem, setEmailProblem] = useState<EmailProblem | null>(null);
   const [mine, setMine] = useState<FeedbackItem[]>([]);
 
   useEffect(() => {
@@ -38,6 +82,11 @@ export function FeedbackCard() {
 
   async function send() {
     if (!message.trim()) return;
+    if (!signedIn) {
+      const problem = emailSyntaxProblem(email);
+      setEmailProblem(problem);
+      if (problem) return;
+    }
     setState("sending");
     try {
       await api.sendFeedback({
@@ -49,8 +98,10 @@ export function FeedbackCard() {
       });
       setMessage("");
       setState("sent");
-    } catch {
-      setState("failed");
+    } catch (error) {
+      const problem = emailProblemOf(error);
+      setEmailProblem(problem);
+      setState(problem ? "idle" : "failed");
     }
   }
 
@@ -96,17 +147,38 @@ export function FeedbackCard() {
           rows={4}
         />
         {!signedIn ? (
-          <input
-            type="email"
-            dir="ltr"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder={t("بريدك للرد (اختياري)")}
-            aria-label={t("بريدك للرد (اختياري)")}
-            autoComplete="email"
-          />
+          <>
+            <input
+              type="email"
+              dir="ltr"
+              required
+              value={email}
+              onChange={(event) => {
+                setEmail(event.target.value.slice(0, 254));
+                setEmailProblem(null);
+              }}
+              onBlur={() => setEmailProblem(email.trim() ? emailSyntaxProblem(email) : null)}
+              placeholder={t("بريدك الإلكتروني للردّ عليك")}
+              aria-label={t("بريدك الإلكتروني للردّ عليك")}
+              aria-invalid={emailProblem ? true : undefined}
+              aria-describedby={emailProblem ? "qb-feedback-email-problem" : undefined}
+              autoComplete="email"
+              inputMode="email"
+              autoCapitalize="none"
+              spellCheck={false}
+            />
+            {emailProblem ? (
+              <p className="card-sub qb-feedback-problem" id="qb-feedback-email-problem" role="alert">
+                {EMAIL_PROBLEM_TEXT[emailProblem]}
+              </p>
+            ) : null}
+          </>
         ) : null}
-        <button type="submit" className="qb-btn primary" disabled={!message.trim() || state === "sending"}>
+        <button
+          type="submit"
+          className="qb-btn primary"
+          disabled={!message.trim() || (!signedIn && !email.trim()) || state === "sending"}
+        >
           {state === "sending" ? t("جارٍ الإرسال…") : t("أرسل")}
         </button>
         {state === "sent" ? <p className="card-sub" role="status">{t("وصلت رسالتك. شكراً لك.")}</p> : null}

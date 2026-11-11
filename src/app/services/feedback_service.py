@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import time
 
-from src.app.services import app_data_service
+from src.app.services import app_data_service, email_check
 
 KINDS = ("contact", "bug", "help", "feature", "error")
 STATUSES = ("new", "in_progress", "resolved", "closed")
@@ -28,9 +28,11 @@ PAGE_SIZE = 50
 
 
 class FeedbackError(ValueError):
-    def __init__(self, message: str, status: int = 422):
+    def __init__(self, message: str, status: int = 422, code: str | None = None):
         super().__init__(message)
         self.status = status
+        # A reason the form can show (email_required, email_invalid, email_domain, email_disposable).
+        self.code = code
 
 
 def ensure_tables(connection) -> None:
@@ -93,12 +95,22 @@ def submit(
     url: str | None = None,
     user_agent: str | None = None,
     language: str | None = None,
+    require_email: bool = False,
 ) -> dict:
+    """`require_email`: a guest's message (not a diagnostic report) needs an address to answer."""
     if kind not in KINDS:
         raise FeedbackError("Unknown kind.")
     text = (message or "").strip()[:MAX_MESSAGE]
     if kind != "error" and not text:
         raise FeedbackError("Write a message.")
+    email = (email or "").strip() or None
+    if email is None and require_email and kind != "error":
+        raise FeedbackError("Leave an email address so we can answer you.", code="email_required")
+    if email is not None:
+        try:
+            email = email_check.validate(email)
+        except email_check.EmailError as exc:
+            raise FeedbackError(str(exc), code=exc.code) from exc
     encoded = None
     if kind == "error":
         if not detail:

@@ -1400,5 +1400,10 @@
  "تبدأ «تابع القراءة» من الفاتحة.": "«Continuar a ler» recomeça em Al-Fatiha.",
  "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة iPhone الاحتياطية على iCloud، وتعود حين يُستعاد الهاتف منها.": "Sem conta, os seus dados (versículos fixados, temas, sessões de estudo, raízes, pesquisas e preferências) são guardados com a cópia de segurança do iCloud do seu iPhone e voltam quando o telefone é restaurado a partir dela.",
  "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة هاتفك الاحتياطية على Google، وتعود على هاتف جديد أو عند إعادة تثبيت التطبيق.": "Sem conta, os seus dados (versículos fixados, temas, sessões de estudo, raízes, pesquisas e preferências) são guardados com a cópia de segurança Google do seu telefone e voltam num telefone novo ou ao reinstalar a aplicação.",
- "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "As transferências não fazem parte dela: voltam a ser transferidas. Para sincronizar os seus dados entre dispositivos, inicie sessão."
+ "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "As transferências não fazem parte dela: voltam a ser transferidas. Para sincronizar os seus dados entre dispositivos, inicie sessão.",
+ "بريدك الإلكتروني للردّ عليك": "Seu e-mail, para podermos responder",
+ "اكتب بريدك الإلكتروني لنتمكّن من الردّ عليك.": "Informe seu e-mail para podermos responder.",
+ "عنوان البريد الإلكتروني غير صحيح.": "Este endereço de e-mail não é válido.",
+ "هذا النطاق لا يستقبل البريد. تحقّق من العنوان.": "Este domínio não recebe e-mails. Verifique o endereço.",
+ "استعمل بريداً دائماً، لا بريداً مؤقتاً.": "Use um e-mail permanente, não um temporário."
 }
