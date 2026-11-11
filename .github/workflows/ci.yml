@@ -1,7 +1,9 @@
 name: CI
 
-# Phase 0 quality gate: backend tests + frontend build on every PR and on
-# pushes to the integration branches. Deployment stays in deploy.yml (main only).
+# The quality gate on every pull request and on pushes to the integration
+# branches: backend tests, the web build, the offline engine's parity with the
+# server, the nginx config, a Trivy scan and (when configured) a Sonar
+# analysis. Releasing to production is release.yml (main only).
 on:
   pull_request:
     branches: [develop, main]
@@ -64,10 +66,16 @@ jobs:
           check "HTTP" 0 "" ""
           check "TLS" 1 "" ""
           check "TLS behind a CDN" 1 "173.245.48.0/20,2400:cb00::/32" "CF-Connecting-IP"
-      - name: Check the TLS helper scripts (bash -n, shellcheck)
+      - name: Check the server scripts (bash -n, shellcheck)
         run: |
-          bash -n scripts/provision_tls.sh scripts/renew_tls.sh
-          shellcheck -S warning scripts/provision_tls.sh scripts/renew_tls.sh
+          for script in deploy/server/*.sh deploy/nginx/start-nginx.sh; do bash -n "$script"; done
+          shellcheck -S warning deploy/server/*.sh
+      - name: Check the production compose file
+        run: |
+          cp .env.production.example .env.ci
+          sed -i 's/^QBASAIR_SESSION_SECRET=.*/QBASAIR_SESSION_SECRET=ci-only-not-a-secret/' .env.ci
+          docker compose --env-file .env.ci config --quiet
+          docker compose --env-file .env.ci --profile tls config --quiet
 
   frontend:
     name: Frontend (build)
@@ -125,3 +133,83 @@ jobs:
         run: pnpm --filter @q-basair/offline-engine exec tsc -p .
       - name: Replay them against the engine
         run: pnpm --filter @q-basair/offline-engine test
+
+  security:
+    name: Security scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Dependencies (pnpm-lock.yaml, requirements*.txt), secrets committed by
+      # mistake, and misconfigurations in the Dockerfiles. Fails on a CRITICAL
+      # or HIGH finding that has a fix; accepted exceptions: .trivyignore.
+      - name: Scan the repository
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          skip-dirs: node_modules,apps/web/.next,apps/mobile/ios,apps/mobile/android,build,data
+          trivyignores: .trivyignore
+          exit-code: "1"
+          format: table
+      # The full report (every severity) for review, kept with the run.
+      - name: Full report (all severities)
+        if: always()
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          skip-dirs: node_modules,apps/web/.next,apps/mobile/ios,apps/mobile/android,build,data
+          format: sarif
+          output: trivy-report.sarif
+          exit-code: "0"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-report
+          path: trivy-report.sarif
+          retention-days: 30
+
+  sonar:
+    name: Code quality (Sonar)
+    runs-on: ubuntu-latest
+    # Skipped (green) until SONAR_TOKEN is set: SonarQube Cloud by default, or
+    # a self-hosted SonarQube with the SONAR_HOST_URL variable (docs/deployment.md
+    # → "Code quality and security scans"). Pull requests from forks get no secrets.
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # blame information for new-code detection
+      - name: Sonar configured?
+        id: enabled
+        run: |
+          if [ -n "$SONAR_TOKEN" ]; then echo "on=true" >> "$GITHUB_OUTPUT"; else
+            echo "on=false" >> "$GITHUB_OUTPUT"
+            echo "SONAR_TOKEN is not set: Sonar analysis skipped." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/setup-python@v5
+        if: steps.enabled.outputs.on == 'true'
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Backend tests with coverage
+        if: steps.enabled.outputs.on == 'true'
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m pip install -r requirements-dev.txt pytest-cov==6.0.0
+          pytest -q --cov=src --cov-report=xml:coverage.xml
+      - name: Analyse
+        if: steps.enabled.outputs.on == 'true'
+        uses: SonarSource/sonarqube-scan-action@v5
+        with:
+          args: >
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY || 'ghost0n_q-basair' }}
+            ${{ vars.SONAR_ORGANIZATION && format('-Dsonar.organization={0}', vars.SONAR_ORGANIZATION) || '' }}
+            -Dsonar.qualitygate.wait=${{ vars.SONAR_QUALITY_GATE_WAIT || 'false' }}

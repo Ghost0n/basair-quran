@@ -17,7 +17,8 @@ Usage:
     python scripts/prefill_recitation_cache.py --status            # coverage only, no network
 
 Production: the deploy runs it in the background when the commit message
-carries [prefill-recitation] (see .github/workflows/deploy.yml).
+carries [prefill-recitation], or when data/cache.db is missing
+(deploy/server/deploy.sh, docs/deployment.md).
 """
 
 from __future__ import annotations
