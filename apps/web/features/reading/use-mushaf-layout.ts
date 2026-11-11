@@ -16,6 +16,26 @@ const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 // authentic layout for that page (non-Hafs / empty) — also worth remembering.
 const LAYOUT_CACHE_MAX = 48;
 const layoutCache = new Map<string, Promise<MushafPageLayoutResponse | null>>();
+// Layouts whose glyph fonts are loaded too: a page drawn from here shows its
+// glyphs from its first frame (no text stand-in swapped out a moment later,
+// which would move whatever is below it).
+const readyLayouts = new Map<string, MushafPageLayoutResponse>();
+
+function markReady(mushafId: number, page: number, data: MushafPageLayoutResponse): void {
+  const key = `${mushafId}:${page}`;
+  readyLayouts.delete(key);
+  readyLayouts.set(key, data);
+  if (readyLayouts.size > LAYOUT_CACHE_MAX) {
+    const oldest = readyLayouts.keys().next().value;
+    if (oldest !== undefined) readyLayouts.delete(oldest);
+  }
+}
+
+/** The page's layout when it and its glyph font are both ready, else null. */
+export function readyMushafLayout(mushafId: number | null | undefined, page: number | null | undefined): MushafPageLayoutResponse | null {
+  if (!mushafId || !page) return null;
+  return readyLayouts.get(`${mushafId}:${page}`) ?? null;
+}
 
 function fetchLayout(mushafId: number, page: number): Promise<MushafPageLayoutResponse | null> {
   const key = `${mushafId}:${page}`;
@@ -51,7 +71,7 @@ export function prefetchMushafLayout(mushafId: number | null | undefined, page: 
 export async function warmMushafPage(mushafId: number, page: number, totalPages = 604): Promise<void> {
   const data = await fetchLayout(mushafId, page);
   if (!data) return;
-  await loadPageFonts(data.font_base_path ?? "", page);
+  if (await loadPageFonts(data.font_base_path ?? "", page)) markReady(mushafId, page, data);
   prefetchMushafLayout(mushafId, page + 1, totalPages);
   prefetchMushafLayout(mushafId, page - 1, totalPages);
 }
@@ -90,7 +110,8 @@ export function useMushafLayout({
   mushafId: number | null | undefined;
   page: number | null | undefined;
 }): MushafLayoutState {
-  const [layout, setLayout] = useState<MushafPageLayoutResponse | null>(null);
+  // A page made ready beforehand (warmMushafPage) draws its glyphs at once.
+  const [layout, setLayout] = useState<MushafPageLayoutResponse | null>(() => (enabled ? readyMushafLayout(mushafId, page) : null));
   const [pending, setPending] = useState(false);
   const requestRef = useRef(0);
 
@@ -101,6 +122,12 @@ export function useMushafLayout({
       return;
     }
     const request = ++requestRef.current;
+    const ready = readyMushafLayout(mushafId, page);
+    if (ready) {
+      setLayout(ready);
+      setPending(false);
+      return;
+    }
     // While a later page loads, the current one stays on screen (no frame);
     // only a reader with nothing to show yet waits on the empty frame.
     setPending(true);
@@ -125,6 +152,7 @@ export function useMushafLayout({
           setPending(false);
           return;
         }
+        markReady(mushafId, page, data);
         setLayout(data);
         setPending(false);
         // Warm the neighbouring page fonts so navigation is instant.
