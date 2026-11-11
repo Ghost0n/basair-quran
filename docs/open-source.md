@@ -67,12 +67,25 @@ the repository moves.
 
 ## Rewriting the history
 
+Only `main` and `develop` are published. The other branches (feature,
+fix and prototype branches, some never merged) and the `iphone-test-*` tags
+(internal TestFlight builds) stay in the private archive; public releases
+start with their own tags (`v1.0.0` at launch). The CLA bot creates the
+`cla-signatures` branch itself at the first outside pull request.
+
 A one-off, done from a fresh mirror clone, never in a working checkout:
 
 ```bash
 pip install git-filter-repo
 git clone --mirror https://github.com/Ghost0n/Q-Basair.git qb-mirror
+git -C qb-mirror bundle create ../q-basair-archive.bundle --all   # full backup, kept private
 cd qb-mirror
+
+# 0. Keep only main and develop: drop every other branch, every tag and the
+#    pull-request refs from this copy (the private repository keeps them all).
+git for-each-ref --format='%(refname)' \
+  | grep -vE '^refs/heads/(main|develop)$' \
+  | xargs -r -n1 git update-ref -d
 
 # 1. Drop every old copy of the generated database (it is rebuilt from data/)
 #    and an archive committed by mistake.
@@ -84,7 +97,18 @@ git filter-repo --invert-paths --path data/quran.db --path license_expression-30
 git filter-repo --mailmap ../mailmap.txt
 
 git count-objects -vH          # expect a fraction of the 127 MB
-git push --force --mirror      # rewrites every branch and tag on GitHub
+git log --all --format='%ae' | sort -u   # only the noreply and bot addresses left
+```
+
+Then publish (see the two options below):
+
+```bash
+# New public repository (recommended): an empty repository created on GitHub.
+git push https://github.com/<owner>/<new-repo>.git main develop
+
+# Or this repository, rewritten in place: replace both branches, then delete
+# every other branch and tag on GitHub (they live on in the archive bundle).
+git push --force origin main develop
 ```
 
 Afterwards every commit has a new SHA: re-clone everywhere (the server's
