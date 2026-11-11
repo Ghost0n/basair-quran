@@ -6,6 +6,8 @@
  */
 import type { SurahRecitation } from "@q-basair/shared";
 
+import { directRecitation, hasDirectSource } from "@/features/recitation/direct-source";
+
 import { REMOTE_ORIGIN } from "./config";
 import { appRuntime } from "./runtime";
 
@@ -115,18 +117,25 @@ const PARALLEL_FILES = 4;
 
 export type DownloadableReciter = { id: string; audio_base: string; surahs?: number[] };
 
-/** The prepared surah as one file + its timings (progress counts its verses, all at the end). */
+/** The surah as one recording: prepared by our server, else from its public source (null: none). */
+async function findRecording(reciter: DownloadableReciter, surah: number, signal?: AbortSignal): Promise<SurahRecitation | null> {
+  if (reciter.surahs?.includes(surah)) {
+    const answer = await fetch(`/api/recitations/${encodeURIComponent(reciter.id)}/${surah}`, { signal });
+    if (answer.ok) return (await answer.json()) as SurahRecitation;
+  }
+  return hasDirectSource(reciter.id) ? directRecitation(reciter.id, surah) : null;
+}
+
+/** The surah's one recording + its timings (progress counts its verses, all at the end). */
 async function downloadRecording(
   reciter: DownloadableReciter,
   surah: number,
+  recitation: SurahRecitation,
   ayahCount: number,
   onProgress?: (done: number, total: number) => void,
   signal?: AbortSignal,
 ): Promise<number> {
   const { platform } = await appRuntime();
-  const answer = await fetch(`/api/recitations/${encodeURIComponent(reciter.id)}/${surah}`, { signal });
-  if (!answer.ok) throw new Error(`recitation ${reciter.id} ${surah} (${answer.status})`);
-  const recitation = (await answer.json()) as SurahRecitation;
   const url = /^https?:/.test(recitation.audio_url) ? recitation.audio_url : `${REMOTE_ORIGIN}${recitation.audio_url}`;
   const path = recordingPath(reciter.id, surah);
   let bytes: number;
@@ -152,8 +161,11 @@ export async function downloadSurahAudio(
   signal?: AbortSignal,
 ): Promise<void> {
   const { platform } = await appRuntime();
-  if (reciter.surahs?.includes(surah)) {
-    const size = await downloadRecording(reciter, surah, ayahCount, onProgress, signal);
+  // One recording when there is one (no pause between verses offline either);
+  // else the verse files.
+  const recitation = await findRecording(reciter, surah, signal);
+  if (recitation) {
+    const size = await downloadRecording(reciter, surah, recitation, ayahCount, onProgress, signal);
     const registry = await downloadedAudio();
     registry[reciter.id] = { ...(registry[reciter.id] ?? {}), [surah]: size };
     await platform.kv.set(REGISTRY_KEY, JSON.stringify(registry));

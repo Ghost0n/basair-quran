@@ -21,6 +21,7 @@ import { usePreferences } from "@/lib/preferences-context";
 import { loadUntilReady } from "@/lib/retry";
 import { divisionRange, inRange, nextVerse, previousVerse, sameVerse, type VerseRange } from "@/lib/quran-ranges";
 
+import { directRecitation, hasDirectSource } from "./direct-source";
 import { boundaryAction, startOf, toTrack, untilVerseEnd, verseAt, type Track } from "./track";
 import { SILENCE_URL, upcomingVerse } from "./upcoming";
 import { knownDurations, mergeDurations, rememberDurations } from "./verse-durations";
@@ -55,9 +56,15 @@ async function audioSource(reciter: ReciterItem, position: RecitationPosition): 
   }
 }
 
-/** The reciter's surah is prepared as one recording (docs/recitation-audio.md). */
+/**
+ * The reciter's surah can be recited from one recording (docs/recitation-audio.md):
+ * prepared by our server, or else straight from its public source (direct-source.ts).
+ */
 function hasPrepared(reciter: ReciterItem | null, surah: number): boolean {
-  return Boolean(reciter?.surahs?.includes(surah));
+  if (!reciter) return false;
+  if (reciter.surahs?.includes(surah)) return true;
+  const failed = trackFailures.get(`${reciter.id}:${surah}`);
+  return hasDirectSource(reciter.id) && !(failed && Date.now() - failed < RETRY_FAILED_MS);
 }
 
 /** A prepared recording's address: the app streams it from the server (or plays its download). */
@@ -69,6 +76,10 @@ function recordingUrl(audioUrl: string): string {
 // Prepared surahs' timings, once fetched (a failure is asked again later).
 const tracks = new Map<string, Track>();
 const trackLoads = new Map<string, Promise<Track | null>>();
+// A surah no source could give as one recording plays verse by verse for a
+// while, instead of asking again at every verse.
+const trackFailures = new Map<string, number>();
+const RETRY_FAILED_MS = 10 * 60 * 1000;
 
 /** A prepared surah's recording and timings (a downloaded one first, in the app). */
 function loadTrack(reciter: ReciterItem, surah: number): Promise<Track | null> {
@@ -87,16 +98,30 @@ function loadTrack(reciter: ReciterItem, surah: number): Promise<Track | null> {
         /* not downloaded: stream it */
       }
     }
-    const recitation = await api.getSurahRecitation(reciter.id, surah);
-    return toTrack(recitation, recordingUrl(recitation.audio_url));
+    // Prepared by our server: its recording, encoded for us, cached by our edge.
+    if (reciter.surahs?.includes(surah)) {
+      try {
+        const recitation = await api.getSurahRecitation(reciter.id, surah);
+        return toTrack(recitation, recordingUrl(recitation.audio_url));
+      } catch {
+        /* not there after all: the public source */
+      }
+    }
+    // Not prepared (or a server without the recitations yet): the reciter's
+    // public source, the same recording and timings the server prepares from.
+    const direct = await directRecitation(reciter.id, surah);
+    if (!direct) throw new Error("no recording");
+    return toTrack(direct, direct.audio_url);
   })().then(
     (track) => {
       tracks.set(key, track);
       trackLoads.delete(key);
+      trackFailures.delete(key);
       return track;
     },
     () => {
       trackLoads.delete(key);
+      trackFailures.set(key, Date.now());
       return null;
     },
   );
