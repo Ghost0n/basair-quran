@@ -3,8 +3,7 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * The three width bands of the responsive design (docs/superpowers/specs/
- * 2026-11-06-responsive-tablet-phone-design.md). Width decides the band, not
+ * The three width bands of the responsive design (docs/responsive-design.md). Width decides the band, not
  * the device, so a narrowed desktop window looks exactly like a tablet or a
  * phone of that width.
  *

@@ -1,7 +1,7 @@
 /**
  * The web design (Q-Basair-55, docs/design-system.md) is the one design of the
  * app: at every width, in a phone browser and in the native app alike
- * (docs/superpowers/specs/2026-11-06-responsive-tablet-phone-design.md). The
+ * (docs/responsive-design.md). The
  * `qb-web` class stays as the scope of its rules.
  */
 export function isWebDesign(): boolean {
