@@ -19,6 +19,7 @@ export function openApp(href = "/") {
 export function siteLinks(): { href: string; label: string }[] {
   return [
     { href: "/guide", label: t("الدليل") },
+    { href: "/faq", label: t("الأسئلة الشائعة") },
     { href: "/guidelines", label: t("إرشادات المجتمع") },
   ];
 }

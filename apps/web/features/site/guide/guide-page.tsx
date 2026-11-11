@@ -25,6 +25,12 @@ const PLATFORM_KEY = "qb.guide.platform";
 function initialPlatform(): GuidePlatform {
   const asked = new URLSearchParams(window.location.search).get("on");
   if (asked === "web" || asked === "mobile") return asked;
+  // A link to a topic only one version has (/guide#backup) opens that version.
+  const target = decodeURIComponent(window.location.hash.slice(1));
+  if (target) {
+    const has = (platform: GuidePlatform) => guideChapters(platform).some((chapter) => chapter.id === target || chapter.topics.some((topic) => topic.id === target));
+    if (has("mobile") !== has("web")) return has("mobile") ? "mobile" : "web";
+  }
   try {
     const saved = window.localStorage.getItem(PLATFORM_KEY);
     if (saved === "web" || saved === "mobile") return saved;
@@ -34,7 +40,13 @@ function initialPlatform(): GuidePlatform {
 
 function usePlatform(): [GuidePlatform, (next: GuidePlatform) => void] {
   const [platform, setPlatform] = useState<GuidePlatform>("mobile");
-  useEffect(() => setPlatform(initialPlatform()), []);
+  useEffect(() => {
+    const initial = initialPlatform();
+    setPlatform(initial);
+    // The linked topic may only exist once the right version renders: bring it into view then.
+    const target = window.location.hash.slice(1);
+    if (target) requestAnimationFrame(() => document.getElementById(decodeURIComponent(target))?.scrollIntoView());
+  }, []);
   const choose = (next: GuidePlatform) => {
     setPlatform(next);
     try {

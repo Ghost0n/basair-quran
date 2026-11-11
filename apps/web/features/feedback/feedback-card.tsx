@@ -21,9 +21,9 @@ const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const KINDS: FeedbackKind[] = ["contact", "bug", "help", "feature"];
 
 /** Why an address was refused (the server's codes, src/app/services/email_check.py). */
-type EmailProblem = "email_required" | "email_invalid" | "email_domain" | "email_disposable";
+export type EmailProblem = "email_required" | "email_invalid" | "email_domain" | "email_disposable";
 
-const EMAIL_PROBLEM_TEXT: Record<EmailProblem, string> = {
+export const EMAIL_PROBLEM_TEXT: Record<EmailProblem, string> = {
   get email_required() {
     return t("اكتب بريدك الإلكتروني لنتمكّن من الردّ عليك.");
   },
@@ -57,7 +57,7 @@ export function emailSyntaxProblem(value: string): EmailProblem | null {
 }
 
 /** The reason the server gave for refusing the address, if that was it. */
-function emailProblemOf(error: unknown): EmailProblem | null {
+export function emailProblemOf(error: unknown): EmailProblem | null {
   const match = /"code":\s*"(email_(?:required|invalid|domain|disposable))"/.exec(error instanceof Error ? error.message : "");
   return match ? (match[1] as EmailProblem) : null;
 }
