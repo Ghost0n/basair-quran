@@ -5,11 +5,14 @@ import { useEffect, useState } from "react";
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type { FeedbackItem, FeedbackKind } from "@q-basair/shared";
 
+import { Icon } from "@/components/icon";
 import { relativeAge } from "@/features/companions/use-companions";
 import { FEEDBACK_KIND_LABEL, FEEDBACK_STATUS_LABEL } from "@/features/community/labels";
 import { useAuthSession } from "@/lib/auth-session-context";
+import { APP_MODE } from "@/lib/app-mode/config";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
 import { useI18n } from "@/lib/i18n/provider";
+import { publicOrigin } from "@/lib/site";
 
 import { t } from "@/lib/i18n";
 
@@ -64,6 +67,13 @@ function emailProblemOf(error: unknown): EmailProblem | null {
  * a bug, a request for help or a feature idea. Guests may leave an email to be
  * answered; signed-in readers see what they sent and where it stands.
  */
+/** The website's guide: the page itself on the web, the public site from the app (null when its address isn't known). */
+function guideUrl(): string | null {
+  if (!APP_MODE) return "/guide";
+  const origin = publicOrigin();
+  return origin ? `${origin}/guide?on=mobile` : null;
+}
+
 export function FeedbackCard() {
   const { user } = useAuthSession();
   const { locale } = useI18n();
@@ -75,6 +85,7 @@ export function FeedbackCard() {
   // A guest is answered by email only: required, and checked (here, then on the server).
   const [emailProblem, setEmailProblem] = useState<EmailProblem | null>(null);
   const [mine, setMine] = useState<FeedbackItem[]>([]);
+  const guide = guideUrl();
 
   useEffect(() => {
     if (signedIn) api.getMyFeedback().then(setMine).catch(() => {});
@@ -109,6 +120,15 @@ export function FeedbackCard() {
     <section className="qb-setting-card qb-feedback-card">
       <h3>{t("الدعم والملاحظات")}</h3>
       <p className="card-sub">{t("راسل الفريق: سؤال، أو خلل وجدته، أو اقتراح ميزة. يقرأ كلَّ رسالة شخصٌ من الفريق.")}</p>
+      {guide ? (
+        <a className="qb-feedback-guide" href={guide} target={APP_MODE ? "_blank" : undefined} rel="noopener">
+          <Icon name="book" size={18} />
+          <span>
+            <strong>{t("دليل الاستخدام")}</strong>
+            <small>{t("كل ميزة خطوةً خطوة، على الهاتف والحاسوب.")}</small>
+          </span>
+        </a>
+      ) : null}
       <div className="qb-setting-seg qb-fit-choice" data-autofit="2" suppressHydrationWarning role="radiogroup" aria-label={t("نوع الرسالة")}>
         {KINDS.map((value) => (
           <button

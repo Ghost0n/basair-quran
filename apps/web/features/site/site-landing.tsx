@@ -19,6 +19,7 @@ import { GirihPattern } from "./landing/pattern";
 import { PhoneStory } from "./landing/phone-story";
 import { RootRibbon } from "./landing/root-ribbon";
 import { useInView } from "./landing/use-reveal";
+import { SiteFoot } from "./site-chrome";
 
 /** Al-Jāthiya 45:20 — «هذا بصائر للناس» — in the mushaf's text (landing-data.json). */
 const VERSE = data.basair.find((verse) => verse.surah === 45 && verse.ayah === 20)!;
@@ -106,6 +107,7 @@ export function SiteLanding({ onEnter }: { onEnter?: () => void }) {
           <a href="#features">{t("المزايا")}</a>
           <a href="#privacy">{t("الخصوصية")}</a>
           <a href="#guidelines">{t("الإرشادات")}</a>
+          <a href="/guide">{t("الدليل")}</a>
         </nav>
         <button type="button" className="qb-site-cta sm" onClick={enter}>
           {t("افتح التطبيق")}
@@ -251,13 +253,7 @@ export function SiteLanding({ onEnter }: { onEnter?: () => void }) {
         </section>
       </main>
 
-      <footer className="qb-site-foot">
-        <span>{t("بصائر القرآن")}</span>
-        <nav aria-label={t("روابط")}>
-          <a href="/guidelines">{t("إرشادات المجتمع")}</a>
-          <a href="/about#privacy">{t("الخصوصية")}</a>
-        </nav>
-      </footer>
+      <SiteFoot />
     </div>
   );
 }

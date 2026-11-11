@@ -7,6 +7,7 @@ server-rendered pages exist for visitors, search engines and shared links.
 |---|---|---|
 | `/about` | The landing page (sections below), calls to open the app or create an account | `features/site/site-landing.tsx`, `features/site/landing/`, `app/about/page.tsx` |
 | `/` (visitor's door) | The same landing, shown by `ShellGate` to web visitors who are neither signed in nor guests (auth enabled); «ابدأ القراءة» opens the app in place | `features/identity/shell-gate.tsx` |
+| `/guide` | The feature guide, in a phone version and a computer version (below) | `features/site/guide/`, `app/guide/page.tsx` |
 | `/guidelines` | The community guidelines in full: Arabic (the reference, `docs/community-guidelines.md`) or English for every other interface language | `features/site/guidelines-content.ts`, `app/guidelines/page.tsx` |
 | `/robots.txt`, `/sitemap.xml` | Crawl rules (API and account pages excluded) and the public pages | `app/robots.ts`, `app/sitemap.ts`, `lib/site.ts` |
 
@@ -64,6 +65,46 @@ Every figure and verse comes from `features/site/landing-data.json`, written by
 reciter catalogue; `--check` (and `tests/test_landing_data.py`) fail when the
 committed file no longer matches the database — re-run it after a database
 rebuild. Motion respects `prefers-reduced-motion` (everything is shown at once).
+
+## The guide
+
+`/guide` explains every feature, by chapter (start, reading, search, words and
+roots, recitation, study, notebook, community, account and settings), as
+steps, with a real screenshot or a short clip of the app. The public pages
+share their top bar and footer (`features/site/site-chrome.tsx`), which link
+to it; Settings → «الدعم والملاحظات» links to it too (from the app, to the
+public site's `/guide?on=mobile`).
+
+- **Two versions.** «على الهاتف» (the app, or the site in a phone's browser)
+  and «على الحاسوب» (the website): the screens and gestures differ — tab bar
+  vs side rail, swipe vs PageUp/PageDown, sheets vs panels beside the Mushaf.
+  A topic is written once for the phone with a `web` variant only where it
+  differs (`features/site/guide/guide-content.ts`); `appOnly` topics (offline
+  listening, background playback, phone backups) are left out of the
+  computer's guide, which adds keyboard shortcuts. The version follows the
+  visitor's device, then their choice (remembered on the device), and
+  `?on=web|mobile` in a link.
+- **Index and filter.** Chips under the hero on phones, a sticky column on
+  wide screens, both following the reading. The filter keeps the topics that
+  contain every typed word, folded the same way (`features/site/site-search.ts`:
+  case, Latin accents, Arabic diacritics and letter forms). Every chapter and
+  topic has its own link (`/guide#morphology`); a linked topic glows briefly.
+- **Motion.** Cards rise in, steps follow one by one, screenshots tilt into
+  place in a phone or a browser window; clips play muted and looping only
+  while on screen. Under `prefers-reduced-motion` everything is shown at once
+  and clips wait for their controls.
+- **Languages.** Every text goes through `t()` (all interface languages). The
+  screens exist in Arabic (shown to `ar`, `fa`, `ur`) and English (every other
+  language).
+- **Media.** `public/guide-media/<ar|en>/<mobile|web>/<name>.webp` (screenshots
+  and clip posters) and `.mp4` (H.264, muted), about 4.5 MB in all; the app
+  bundle leaves them out (`scripts/build-app.mjs`). They are captured from the
+  running app by `node scripts/capture-guide-media.mjs` (Playwright and
+  ffmpeg; `--lang`, `--platform`, `--only`): a fresh guest on an iPhone-sized
+  screen and a 1440×900 window, who reads a few pages, saves three verses and
+  searches on the way. Re-run it after a visible change to a captured screen,
+  ideally against a server with the full data (translations, published
+  research). `guide-content.test.ts` fails when a referenced file is missing.
 
 ## Next (with the domain and the production platform)
 

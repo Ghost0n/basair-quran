@@ -10,6 +10,7 @@ export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3
 export const PUBLIC_PAGES: readonly { path: string; priority: number }[] = [
   { path: "/", priority: 1 },
   { path: "/about", priority: 0.9 },
+  { path: "/guide", priority: 0.7 },
   { path: "/guidelines", priority: 0.5 },
 ];
 
