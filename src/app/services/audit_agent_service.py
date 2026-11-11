@@ -19,15 +19,15 @@ from typing import Any
 from src.app.core import config
 from src.app.services import research_agent_service
 
-GUIDELINES_VERSION = "2026-10"
+GUIDELINES_VERSION = "2026-11"
 
 RULES: dict[str, str] = {
     "misattribution": "Presenting an interpretation as the ayah's text, or using an ayah against its evident context.",
     "ruling_as_fact": "Stating a legal ruling (must/forbidden) as the post's conclusion without a cited scholarly source.",
     "unlabelled_ai": "A section that reads as machine-generated but is not labelled as an AI answer.",
-    "disrespect": "Insults, mockery, takfir/tabdi' of people or groups, disrespect of prophets or sanctities.",
-    "sectarian_attack": "Polemics against a school or sect instead of a fair argument.",
-    "integrity": "Unsourced hadith presented as authentic, categorical 'scientific miracle' claims, plagiarism.",
+    "disrespect": "Insults, mockery, judging a person's faith or intentions, insulting prophets and messengers or any religion or group.",
+    "sectarian_attack": "Attacking a group, school of thought or belief instead of presenting a difference fairly with its arguments and sources.",
+    "integrity": "An unverified text or saying presented as established, a link between verses and a scientific theory or historical event presented as certain, plagiarism, cherry-picked occurrences presented as the whole.",
     "spam_promo": "Advertising, promotional links, follower solicitation.",
     "personal_data": "Someone else's contact details or private information.",
     "off_topic": "A comment unrelated to the research it is posted on.",

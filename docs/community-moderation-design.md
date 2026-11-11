@@ -122,7 +122,7 @@ the previous version stays published until the new one passes.
 ## Model choice: benchmark first
 
 Candidates (decision / policy models first, since our guidelines are
-specific — fatwa vs. reflection, misattribution, sectarian attacks):
+specific — rulings vs. reflection, misattribution, attacks on groups or beliefs):
 
 - **Jev** (TypeSafe AI): decision model returning severity + confidence.
 - **Clef-flash** (Cloudflare, open weights, Oct 2026): same role.

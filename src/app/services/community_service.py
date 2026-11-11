@@ -1,6 +1,6 @@
 """Community — publishing research documents, the feed, likes, comments, reports.
 
-Publishing pipeline (docs/community-moderation-design.md, docs/community-guidelines.md §7):
+Publishing pipeline (docs/community-moderation-design.md, docs/community-guidelines.md §9):
 
 1. deterministic audit (blocking, at once) — ``research_document_service.audit_document``;
 2. the post is *queued*: the moderation batches (``moderation_service.run_batch``)

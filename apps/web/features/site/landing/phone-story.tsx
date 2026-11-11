@@ -149,7 +149,7 @@ function StudyScreen() {
         <div className="ask">{t("ما الذي تقوله الآيات عن البصيرة؟")}</div>
         <div className="answer">
           <span className="badge">{t("القرآن وحدَه")}</span>
-          <p>{t("تجعل الآيات البصيرة سبيلاً للدعوة، وشاهداً على النفس:")}</p>
+          <p>{t("تربط الآيات البصيرة بوضوح الطريق، وبشهادة الإنسان على نفسه:")}</p>
           {data.study.map((verse) => (
             <div key={`${verse.surah}:${verse.ayah}`} className="cite" lang="ar" dir="rtl">
               <span className="text">{marked(opening(verse.text, 7))}</span>

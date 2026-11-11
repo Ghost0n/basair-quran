@@ -16,7 +16,7 @@ export const RULE_LABEL: Record<GuidelineRule, string> = {
     return t("إساءة أو تجريح");
   },
   get sectarian_attack() {
-    return t("طعن طائفي");
+    return t("تهجّم على جماعة أو معتقد");
   },
   get integrity() {
     return t("أمانة علمية");
