@@ -180,7 +180,14 @@ account preferences. `reader_layout` values:
 `AyahReader`. The continuous verse-by-verse reader uses the `useReaderWindow` hook: a
 **sliding** 12‑page window (scroll‑proximity + fill loading; growing one edge prunes
 the far edge) kept visually still by anchor compensation — the active page element's
-viewport offset is captured before each mutation and restored after render. The
+viewport offset is captured before each mutation and restored after render. A change
+above the reading position (a page joining at the top, the top pages pruned after the
+bottom grew) waits until the scroll settles (no scroll event or touch for 160 ms): iOS
+drops a `scrollTop` correction made during a fling, and the view jumped back. In verse
+by verse, a page joins only once its glyph layout and font are ready (`warmMushafPage`,
+read synchronously by `useMushafLayout`), so it is never redrawn, and resized, above the
+reader; where the browser has no CSS scroll anchoring (iOS Safari) a `ResizeObserver`
+compensates later size changes of the pages above (translations arriving). The
 switcher lives in Quick Settings; **صفحتان** is gated on authentic Hafs.
 
 In authentic `scroll`, each windowed page fetches its own QCF layout + page font and

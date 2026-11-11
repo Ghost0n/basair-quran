@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo } from "react";
+import { Fragment, useCallback, useMemo } from "react";
 
 import type { MushafLayoutGlyph, QuranPageAyah, QuranPageResponse } from "@q-basair/shared";
 
@@ -19,7 +19,7 @@ import { GlyphAyah, PrintSurahHead, VerseMark, type GlyphSaveTarget } from "./gl
 import { MorphPopover, type MorphTarget } from "./morph-popover";
 import { useMushaf } from "../mushaf-context";
 import { VerseOutlines } from "./verse-outlines";
-import { useMushafLayout } from "../use-mushaf-layout";
+import { useMushafLayout, warmMushafPage } from "../use-mushaf-layout";
 import { useReaderWindow, type ScrollControls } from "../use-reader-window";
 import { useWordNav } from "../use-word-nav";
 import { useWheelAnywhere } from "../use-wheel-anywhere";
@@ -226,7 +226,11 @@ export function AyahReader({
 }: AyahReaderProps) {
   const mushaf = useMushaf();
   const formatNumber = useNumerals();
-  const { pages } = useReaderWindow({ mushafId, anchorData, totalPages, registerControls });
+  // A page joins the list with its glyphs ready, so it never redraws (and
+  // resizes) above the verse being read; late size changes are compensated
+  // by hand where the browser can't (iOS Safari).
+  const prepare = useCallback((page: number) => (authentic ? warmMushafPage(mushafId, page, totalPages) : Promise.resolve()), [authentic, mushafId, totalPages]);
+  const { pages } = useReaderWindow({ mushafId, anchorData, totalPages, registerControls, prepare, manualAnchor: true });
   useWordNav(mushaf.bodyRef);
   // Web: the verses scroll from anywhere on the page, not only over the column.
   useWheelAnywhere(mushaf.bodyRef, useWebDesign());

@@ -16,6 +16,16 @@ const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 // keeps a constant-size DOM. Anchor compensation keeps the view still.
 const MAX_PAGES = 12;
 
+// The scroll is "settled" once no scroll event or touch has come for this
+// long. Anything that changes the content ABOVE the reading position (a page
+// joining at the top, the top pages pruned) waits for it: iOS drops a
+// scrollTop correction made during a fling, so the view would jump.
+const SETTLE_MS = 160;
+
+// Browsers that keep the view still themselves when content above it changes
+// size (CSS scroll anchoring). iOS Safari doesn't.
+const nativeAnchoring = () => typeof CSS !== "undefined" && CSS.supports?.("overflow-anchor", "auto") === true;
+
 export type ScrollControls = { scrollByPage: (delta: number) => void };
 
 type UseReaderWindowArgs = {
@@ -25,6 +35,16 @@ type UseReaderWindowArgs = {
   totalPages: number;
   /** Lets MushafStage route the footer prev/next to a smooth in-place scroll. */
   registerControls: (controls: ScrollControls | null) => void;
+  /**
+   * Readies a page before it joins the window (its glyph layout and font), so
+   * it is drawn once, in its final form, and never grows above the reader.
+   */
+  prepare?: (page: number) => Promise<void>;
+  /**
+   * Keep the view still by hand when a page above it changes size later (its
+   * translations arriving…), where the browser has no scroll anchoring.
+   */
+  manualAnchor?: boolean;
 };
 
 const pageOf = (data: QuranPageResponse) => data.page ?? 0;
@@ -52,6 +72,8 @@ export function useReaderWindow({
   anchorData,
   totalPages,
   registerControls,
+  prepare,
+  manualAnchor = false,
 }: UseReaderWindowArgs): { pages: QuranPageResponse[] } {
   const mushaf = useMushaf();
 
@@ -60,6 +82,8 @@ export function useReaderWindow({
   pagesRef.current = pages;
 
   const loadingRef = useRef<Set<number>>(new Set());
+  // Bumped when the window is reset (a jump): loads begun before it are dropped.
+  const generationRef = useRef(0);
   const prevMushafRef = useRef(mushafId);
 
   // Anchor bookkeeping: the active page element's viewport top, captured just
@@ -70,6 +94,31 @@ export function useReaderWindow({
   const activePageRef = useRef<number>(anchorData.page ?? 1);
   const hasScrolledRef = useRef(false);
 
+  // When the reader last scrolled or touched the page, and whether a finger is on it.
+  const lastMoveRef = useRef(0);
+  const touchingRef = useRef(false);
+  const prepareRef = useRef(prepare);
+  prepareRef.current = prepare;
+  const whenSettled = useCallback(
+    () =>
+      new Promise<void>((resolve) => {
+        const check = () => {
+          const quiet = performance.now() - lastMoveRef.current;
+          if (!touchingRef.current && quiet >= SETTLE_MS) resolve();
+          else window.setTimeout(check, Math.max(40, SETTLE_MS - quiet));
+        };
+        check();
+      }),
+    [],
+  );
+
+  // Capture the active page's viewport top just before a window mutation.
+  const captureAnchor = useCallback(() => {
+    const el = mushaf.bodyRef.current;
+    const node = el?.querySelector<HTMLElement>(`.qb-scroll-page[data-page="${activePageRef.current}"]`);
+    if (node) anchorPosRef.current = { page: activePageRef.current, top: node.getBoundingClientRect().top };
+  }, [mushaf.bodyRef]);
+
   // Fetch a neighbour into the window (dedup guarded); growing past the cap
   // prunes the opposite edge so the window slides instead of stalling.
   const loadNeighbour = useCallback(
@@ -78,38 +127,40 @@ export function useReaderWindow({
       if (loadingRef.current.has(page)) return;
       if (pagesRef.current.some((pg) => pageOf(pg) === page)) return;
       loadingRef.current.add(page);
+      const generation = generationRef.current;
       try {
         const data = await api.getQuranPage(mushafId, page);
         if (!data.found || data.mushaf_id !== mushafId) return;
-        const el = mushaf.bodyRef.current;
-        if (el) {
-          // Capture the anchor before React commits the new window.
-          const node = el.querySelector<HTMLElement>(
-            `.qb-scroll-page[data-page="${activePageRef.current}"]`,
-          );
-          if (node) {
-            anchorPosRef.current = {
-              page: activePageRef.current,
-              top: node.getBoundingClientRect().top,
-            };
-          }
-        }
+        // Drawn once, in its final form (its glyphs ready).
+        await prepareRef.current?.(page).catch(() => undefined);
+        // A page joining above the reader moves everything: not mid-fling.
+        if (side === "top") await whenSettled();
+        // The reader jumped elsewhere meanwhile: this page belongs to the old window.
+        if (generation !== generationRef.current) return;
+        if (mushaf.bodyRef.current) captureAnchor();
         setPages((prev) => {
           if (prev.some((pg) => pageOf(pg) === page)) return prev;
           let next = [...prev, data].sort((a, b) => pageOf(a) - pageOf(b));
-          if (next.length > MAX_PAGES) {
-            // Slide: drop the page farthest from the growing edge.
-            next = side === "bottom" ? next.slice(next.length - MAX_PAGES) : next.slice(0, MAX_PAGES);
-          }
+          // Slide: a page at the top drops the bottom one at once (nothing
+          // above the reader moves); a page at the bottom lets the top ones go
+          // once the scroll settles (below).
+          if (side === "top" && next.length > MAX_PAGES) next = next.slice(0, MAX_PAGES);
           return next;
         });
+        if (side === "bottom") {
+          await whenSettled();
+          if (generation === generationRef.current && pagesRef.current.length > MAX_PAGES) {
+            captureAnchor();
+            setPages((prev) => (prev.length > MAX_PAGES ? prev.slice(prev.length - MAX_PAGES) : prev));
+          }
+        }
       } catch {
         /* a failed neighbour just isn't added; the reader stays usable */
       } finally {
         loadingRef.current.delete(page);
       }
     },
-    [mushafId, totalPages, mushaf.bodyRef],
+    [mushafId, totalPages, mushaf.bodyRef, whenSettled, captureAnchor],
   );
 
   // Reset the window when the anchor moves out of it (a surah/juz/page jump) or
@@ -121,6 +172,7 @@ export function useReaderWindow({
     prevMushafRef.current = mushafId;
     const inWindow = !mushafChanged && pagesRef.current.some((pg) => pageOf(pg) === page);
     if (inWindow) return;
+    generationRef.current += 1;
     loadingRef.current.clear();
     anchorPosRef.current = null;
     activePageRef.current = page;
@@ -163,6 +215,37 @@ export function useReaderWindow({
   // still required for React window mutations: it corrects pre-paint, so
   // whichever late-swap mechanism follows sees no displacement.
 
+  // Where the browser has no scroll anchoring (iOS Safari), a page above the
+  // reading position that changes size later (its translations arriving)
+  // would push the text the reader is on: move the scroll by the same amount.
+  // Pages joining the window are left to the layout effect above (they have
+  // no size on record yet).
+  useEffect(() => {
+    const el = mushaf.bodyRef.current;
+    if (!manualAnchor || !el || nativeAnchoring() || typeof ResizeObserver === "undefined") return;
+    const heights = new WeakMap<Element, number>();
+    const observer = new ResizeObserver((entries) => {
+      const line = el.getBoundingClientRect().top + 72;
+      let shift = 0;
+      for (const entry of entries) {
+        const height = (entry.target as HTMLElement).offsetHeight;
+        const before = heights.get(entry.target);
+        heights.set(entry.target, height);
+        if (before === undefined || before === height) continue;
+        if (entry.target.getBoundingClientRect().bottom <= line) shift += height - before;
+      }
+      if (shift) el.scrollTop += shift;
+    });
+    const watch = () => el.querySelectorAll(".qb-scroll-page").forEach((node) => observer.observe(node));
+    watch();
+    const mutations = new MutationObserver(watch);
+    mutations.observe(el, { childList: true });
+    return () => {
+      observer.disconnect();
+      mutations.disconnect();
+    };
+  }, [manualAnchor, mushaf.bodyRef]);
+
   // On scroll: (1) mark the top-of-viewport page active (footer + persistence),
   // and (2) stream neighbours in by proximity. Scroll-driven loading is used
   // instead of IntersectionObserver so a sentinel that stays continuously in
@@ -200,11 +283,26 @@ export function useReaderWindow({
       }
     };
     const onScroll = () => {
+      lastMoveRef.current = performance.now();
       if (!raf) raf = requestAnimationFrame(measure);
     };
+    const onTouchStart = () => {
+      touchingRef.current = true;
+      lastMoveRef.current = performance.now();
+    };
+    const onTouchEnd = () => {
+      touchingRef.current = false;
+      lastMoveRef.current = performance.now();
+    };
     el.addEventListener("scroll", onScroll, { passive: true });
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
     return () => {
       el.removeEventListener("scroll", onScroll);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
       if (raf) cancelAnimationFrame(raf);
     };
   }, [mushaf.bodyRef, mushaf.setActivePage, loadNeighbour]);
