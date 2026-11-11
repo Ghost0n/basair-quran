@@ -100,7 +100,10 @@ the session) and recites from the one recording:
   preparation uses — Quran.com's chapter recording and verse timings, then mp3quran.net's timed
   read (both answer any origin) — for the reciters `scripts/recitation_sources.json` lists with
   them (`direct-source.test.ts` keeps the two lists equal). The timings must cover every verse
-  of the surah in order, and the audio must come from those hosts, or the source isn't used;
+  of the surah in order, and the audio must come from those hosts, or the source isn't used. The
+  site's Content-Security-Policy (`deploy/nginx/*.conf.template`) allows them: `connect-src`
+  `api.qurancdn.com` and `www.mp3quran.net`, `media-src` `download.quranicaudio.com` and
+  `*.mp3quran.net`;
 - only a surah no source has (an everyayah-only reciter, or no network) plays verse by verse, and
   it isn't asked again for ten minutes.
 
