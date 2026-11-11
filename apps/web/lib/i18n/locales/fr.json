@@ -1400,5 +1400,10 @@
  "تبدأ «تابع القراءة» من الفاتحة.": "« Continuer la lecture » repart d'Al-Fatiha.",
  "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة iPhone الاحتياطية على iCloud، وتعود حين يُستعاد الهاتف منها.": "Sans compte, vos données (versets épinglés, thèmes, séances d'étude, racines, recherches et préférences) sont enregistrées avec la sauvegarde iCloud de votre iPhone, et reviennent quand le téléphone est restauré à partir d'elle.",
  "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة هاتفك الاحتياطية على Google، وتعود على هاتف جديد أو عند إعادة تثبيت التطبيق.": "Sans compte, vos données (versets épinglés, thèmes, séances d'étude, racines, recherches et préférences) sont enregistrées avec la sauvegarde Google de votre téléphone, et reviennent sur un nouveau téléphone ou quand vous réinstallez l'application.",
- "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "Les téléchargements n'en font pas partie : ils se téléchargent à nouveau. Pour synchroniser vos données entre vos appareils, connectez-vous."
+ "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "Les téléchargements n'en font pas partie : ils se téléchargent à nouveau. Pour synchroniser vos données entre vos appareils, connectez-vous.",
+ "بريدك الإلكتروني للردّ عليك": "Votre e-mail, pour vous répondre",
+ "اكتب بريدك الإلكتروني لنتمكّن من الردّ عليك.": "Indiquez votre e-mail pour que nous puissions vous répondre.",
+ "عنوان البريد الإلكتروني غير صحيح.": "Cette adresse e-mail n'est pas valide.",
+ "هذا النطاق لا يستقبل البريد. تحقّق من العنوان.": "Ce domaine ne reçoit pas d'e-mails. Vérifiez l'adresse.",
+ "استعمل بريداً دائماً، لا بريداً مؤقتاً.": "Utilisez une adresse e-mail durable, pas une adresse temporaire."
 }

@@ -1400,5 +1400,10 @@
  "تبدأ «تابع القراءة» من الفاتحة.": "‘Verder lezen’ begint weer bij Al-Fatiha.",
  "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة iPhone الاحتياطية على iCloud، وتعود حين يُستعاد الهاتف منها.": "Zonder account worden je gegevens (vastgezette verzen, thema's, studiesessies, wortels, onderzoeken en voorkeuren) bewaard met de iCloud-reservekopie van je iPhone en komen ze terug wanneer de telefoon ervan wordt hersteld.",
  "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة هاتفك الاحتياطية على Google، وتعود على هاتف جديد أو عند إعادة تثبيت التطبيق.": "Zonder account worden je gegevens (vastgezette verzen, thema's, studiesessies, wortels, onderzoeken en voorkeuren) bewaard met de Google-reservekopie van je telefoon en komen ze terug op een nieuwe telefoon of wanneer je de app opnieuw installeert.",
- "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "Downloads horen er niet bij: die worden opnieuw gedownload. Log in om je gegevens tussen je apparaten te synchroniseren."
+ "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "Downloads horen er niet bij: die worden opnieuw gedownload. Log in om je gegevens tussen je apparaten te synchroniseren.",
+ "بريدك الإلكتروني للردّ عليك": "Je e-mail, zodat we kunnen antwoorden",
+ "اكتب بريدك الإلكتروني لنتمكّن من الردّ عليك.": "Vul je e-mail in zodat we je kunnen antwoorden.",
+ "عنوان البريد الإلكتروني غير صحيح.": "Dit e-mailadres is ongeldig.",
+ "هذا النطاق لا يستقبل البريد. تحقّق من العنوان.": "Dit domein ontvangt geen e-mail. Controleer het adres.",
+ "استعمل بريداً دائماً، لا بريداً مؤقتاً.": "Gebruik een blijvend e-mailadres, geen tijdelijk."
 }

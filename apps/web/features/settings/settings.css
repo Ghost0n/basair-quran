@@ -477,6 +477,15 @@
   line-height: 1.7;
 }
 
+.qb-feedback-form input[aria-invalid="true"] {
+  border-color: var(--danger-fg);
+}
+
+.qb-setting-card .qb-feedback-form .card-sub.qb-feedback-problem {
+  margin: -4px 0 0;
+  color: var(--danger-fg);
+}
+
 .qb-feedback-form .qb-btn {
   align-self: flex-start;
 }

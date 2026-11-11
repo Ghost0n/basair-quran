@@ -276,7 +276,11 @@ Publishing and the community (guidelines: `docs/community-guidelines.md`; modera
 - `POST /api/feedback {kind: contact|bug|help|feature|error, message, email?, detail?, url?, language?}`
   → `FeedbackItem`. It is open to guests and rate-limited per IP (`QBASAIR_RATE_LIMIT_FEEDBACK_MAX`,
   default 10). Every kind needs a message except `error`. An `error` report needs its diagnostic
-  `detail` (≤32 KB, `413` beyond).
+  `detail` (≤32 KB, `413` beyond). A guest's message (any kind but `error`) needs an `email`, which
+  is checked without being written to (`src/app/services/email_check.py`); a refused address is
+  `422 {detail: {code, message}}` with `code` one of `email_required`, `email_invalid` (syntax),
+  `email_domain` (a reserved domain, or one that takes no mail: no MX nor address, or a null MX)
+  and `email_disposable` (a throwaway inbox). A DNS lookup that can't decide lets the address through.
 - `GET /api/feedback/mine` → what the signed-in sender wrote (not their diagnostic reports), with its
   status.
 - Staff: `GET /api/moderation/feedback?status&kind&before` → `{items, next_before, counts}` (newest

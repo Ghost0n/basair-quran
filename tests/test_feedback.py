@@ -1,8 +1,19 @@
 """Feedback centre — submissions from guests and members, staff triage (docs/feedback-centre.md)."""
 
+import pytest
 from fastapi.testclient import TestClient
 
+from src.app.services import email_check
 from test_auth import build_auth_client
+
+
+@pytest.fixture(autouse=True)
+def mail_domains(monkeypatch):
+    """No real DNS in tests: these domains take mail, any other doesn't exist."""
+    known = {"gmail.com", "basair-mail.org"}
+    monkeypatch.setattr(email_check, "_raw_lookup", lambda domain: domain in known)
+    monkeypatch.setattr(email_check, "_cache", {})
+    monkeypatch.setattr(email_check, "_canary", None)
 
 
 def test_feedback_from_guests_and_members_is_triaged_by_staff(tmp_path, monkeypatch):
@@ -13,7 +24,7 @@ def test_feedback_from_guests_and_members_is_triaged_by_staff(tmp_path, monkeypa
         admin.post("/api/auth/login", json={"email": "admin@example.com", "password": "secret123"})
         member.post("/api/auth/signup", json={"email": "amina@example.com", "password": "hidayah8"})
 
-        sent = guest.post("/api/feedback", json={"kind": "contact", "message": "السلام عليكم", "email": "guest@example.com"})
+        sent = guest.post("/api/feedback", json={"kind": "contact", "message": "السلام عليكم", "email": "guest@basair-mail.org"})
         assert sent.status_code == 200
         assert set(sent.json()) == {"id", "kind", "status", "message", "created_at", "updated_at"}  # no staff fields
         assert guest.post("/api/feedback", json={"kind": "bug", "message": "  "}).status_code == 422
@@ -36,7 +47,7 @@ def test_feedback_from_guests_and_members_is_triaged_by_staff(tmp_path, monkeypa
         assert page["counts"] == {"new": 3, "in_progress": 0, "resolved": 0, "closed": 0}
         error = page["items"][0]
         assert error["detail"]["scope"] == "reader" and error["url"] == "/?mode=reader" and error["user_agent"]
-        assert page["items"][2]["email"] == "guest@example.com"
+        assert page["items"][2]["email"] == "guest@basair-mail.org"
         assert [item["kind"] for item in admin.get("/api/moderation/feedback", params={"kind": "feature"}).json()["items"]] == ["feature"]
 
         updated = admin.patch(
@@ -56,7 +67,35 @@ def test_feedback_is_rate_limited_per_ip(tmp_path, monkeypatch):
     client, finalize = build_auth_client(tmp_path, monkeypatch)
     try:
         for _ in range(2):
-            assert client.post("/api/feedback", json={"kind": "help", "message": "سؤال"}).status_code == 200
-        assert client.post("/api/feedback", json={"kind": "help", "message": "سؤال"}).status_code == 429
+            assert client.post("/api/feedback", json={"kind": "help", "message": "سؤال", "email": "a@gmail.com"}).status_code == 200
+        assert client.post("/api/feedback", json={"kind": "help", "message": "سؤال", "email": "a@gmail.com"}).status_code == 429
     finally:
+        finalize()
+
+
+def test_a_guest_leaves_a_real_email_to_be_answered(tmp_path, monkeypatch):
+    guest, finalize = build_auth_client(tmp_path, monkeypatch)
+    member = TestClient(guest.app)
+    try:
+        def send(client, **fields):
+            return client.post("/api/feedback", json={"kind": "contact", "message": "سؤال", **fields})
+
+        def code(response):
+            assert response.status_code == 422
+            return response.json()["detail"]["code"]
+
+        assert code(send(guest)) == "email_required"
+        assert code(send(guest, email="  ")) == "email_required"
+        assert code(send(guest, email="not-an-email")) == "email_invalid"
+        assert code(send(guest, email="someone@gmial.con")) == "email_domain"
+        assert code(send(guest, email="someone@example.com")) == "email_domain"
+        assert code(send(guest, email="someone@mailinator.com")) == "email_disposable"
+        assert send(guest, email=" Someone@GMAIL.com ").status_code == 200
+        # A diagnostic report needs no address; a signed-in member is answered in the app.
+        report = {"kind": "error", "detail": {"scope": "reader", "detail": "500"}}
+        assert guest.post("/api/feedback", json=report).status_code == 200
+        member.post("/api/auth/signup", json={"email": "amina@basair-mail.org", "password": "hidayah8"})
+        assert send(member).status_code == 200
+    finally:
+        member.close()
         finalize()

@@ -1400,5 +1400,10 @@
  "تبدأ «تابع القراءة» من الفاتحة.": "«Oʻqishni davom ettirish» yana Fotihadan boshlanadi.",
  "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة iPhone الاحتياطية على iCloud، وتعود حين يُستعاد الهاتف منها.": "Hisobsiz maʼlumotlaringiz (qadalgan oyatlar, mavzular, oʻrganish seanslari, ildizlar, tadqiqotlar va sozlamalar) iPhone’ingizning iCloud zaxira nusxasi bilan saqlanadi va telefon undan tiklanganda qaytadi.",
  "بلا حساب، تُحفظ بياناتك (الآيات المثبّتة والمواضيع وجلسات الدراسة والجذور والأبحاث والتفضيلات) مع نسخة هاتفك الاحتياطية على Google، وتعود على هاتف جديد أو عند إعادة تثبيت التطبيق.": "Hisobsiz maʼlumotlaringiz (qadalgan oyatlar, mavzular, oʻrganish seanslari, ildizlar, tadqiqotlar va sozlamalar) telefoningizning Google zaxira nusxasi bilan saqlanadi va yangi telefonda yoki ilovani qayta oʻrnatganingizda qaytadi.",
- "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "Yuklab olinganlar unga kirmaydi: ular qayta yuklab olinadi. Maʼlumotlaringizni qurilmalaringiz oʻrtasida sinxronlash uchun kiring."
+ "التنزيلات لا تدخل فيها، فهي تُنزَّل من جديد. لتزامن بياناتك بين أجهزتك، سجّل الدخول.": "Yuklab olinganlar unga kirmaydi: ular qayta yuklab olinadi. Maʼlumotlaringizni qurilmalaringiz oʻrtasida sinxronlash uchun kiring.",
+ "بريدك الإلكتروني للردّ عليك": "Sizga javob berishimiz uchun emailingiz",
+ "اكتب بريدك الإلكتروني لنتمكّن من الردّ عليك.": "Sizga javob berishimiz uchun emailingizni kiriting.",
+ "عنوان البريد الإلكتروني غير صحيح.": "Bu email manzili yaroqsiz.",
+ "هذا النطاق لا يستقبل البريد. تحقّق من العنوان.": "Bu domen xat qabul qilmaydi. Manzilni tekshiring.",
+ "استعمل بريداً دائماً، لا بريداً مؤقتاً.": "Vaqtinchalik emas, doimiy email manzilidan foydalaning."
 }
