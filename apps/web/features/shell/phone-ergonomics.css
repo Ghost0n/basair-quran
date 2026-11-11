@@ -482,8 +482,10 @@
     transition: opacity 200ms var(--ease-out, ease-out);
   }
 
-  /* With the dock up, it is hidden behind it (the dock is see-through). */
-  html:root:not(.qb-immersive):has(.qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread) .qb-page-number {
+  /* With the dock up it stays, unless the dock would sit on it (a screen
+     with no bottom inset: mushaf-stage.tsx measures, .qb-number-under-dock);
+     then it hides behind it (the dock is see-through). */
+  html:root.qb-number-under-dock:not(.qb-immersive):has(.qb-mushaf-stage:not(.is-ayah) .qb-glyph-spread) .qb-page-number {
     opacity: 0;
   }
 
