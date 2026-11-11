@@ -38,10 +38,10 @@ the repository moves.
 
 ## Remaining before the switch to public
 
-1. **Confirm the data terms** marked "to be confirmed" in `NOTICE.md`: the
-   King Fahd Complex terms for `data/quran-narrations/*.json`, and the origin
-   of `data/word_root_dictionary.json`. Publishing data without the right to
-   do so is the one mistake that can't be undone by a later commit.
+1. ~~Confirm the data terms in `NOTICE.md`~~ — done: the King Fahd Complex
+   terms for `data/quran-narrations/*.json` and the origin of
+   `data/word_root_dictionary.json` (the Quranic Arabic Corpus) were confirmed
+   by the maintainer.
 2. **Rewrite the history** (below): your personal email is the author of
    about 300 commits, and five old copies of the generated `quran.db` make a
    clone 127 MB.

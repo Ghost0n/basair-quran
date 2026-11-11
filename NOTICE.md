@@ -17,9 +17,9 @@ the source.
 | Path | What | Source | Terms (as published by the source) |
 |---|---|---|---|
 | `data/quran-morphology.txt` | Word-by-word morphology (segments, roots, lemmas) of the Ḥafṣ text | The Quranic Arabic Corpus (corpus.quran.com), University of Leeds | GNU GPL; attribution required; the data is distributed unchanged |
-| `data/quran-narrations/*.json` | The Quran text in six riwāyāt (Ḥafṣ, Warsh, Qālūn, Shuʿba, al-Dūrī, al-Sūsī) with page, juz and line data | King Fahd Glorious Qur'an Printing Complex (KFGQPC), Madinah | KFGQPC terms of use (free distribution of the unmodified text, not for sale) — exact terms of these data files to be confirmed with their publisher |
+| `data/quran-narrations/*.json` | The Quran text in six riwāyāt (Ḥafṣ, Warsh, Qālūn, Shuʿba, al-Dūrī, al-Sūsī) with page, juz and line data | King Fahd Glorious Qur'an Printing Complex (KFGQPC), Madinah | KFGQPC terms of use: free distribution of the unmodified text, not for sale (confirmed by the maintainer) |
 | `data/mushafs/*.json` | The same texts, normalized for `scripts/build_db.py` (verse fields, simple-script spelling, surah metadata) | Derived from `data/quran-narrations/` | As their source; the Quranic text itself is never altered |
-| `data/word_root_dictionary.json` | Fallback word → root table for spellings the corpus never uses | Origin not recorded yet — to be confirmed before relying on it | To be confirmed |
+| `data/word_root_dictionary.json` | Fallback word → root table for spellings the corpus never uses | Derived from the Quranic Arabic Corpus morphology data | As the Quranic Arabic Corpus: GNU GPL, attribution required |
 | `apps/web/public/fonts/AmiriQuran-Regular.ttf`, `apps/web/public/fonts/ui/amiri-*` | Amiri and Amiri Quran | Khaled Hosny, the Amiri project | SIL Open Font License 1.1 (`apps/web/public/fonts/ui/OFL-Amiri.txt`) |
 | `apps/web/public/fonts/ui/cairo-*` | Cairo | Mohamed Gaber, the Cairo project | SIL Open Font License 1.1 (`apps/web/public/fonts/ui/OFL-Cairo.txt`) |
 | `apps/web/public/guide-media/` | Screenshots and clips of the app (the guide) | This project | AGPL-3.0, with the Quran text they show under its own terms above |
