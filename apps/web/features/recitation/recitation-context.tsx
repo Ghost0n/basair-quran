@@ -44,6 +44,15 @@ export type SurahTiming = {
   progress: number;
 };
 
+/** The host serving a reciter's verse files (shown in the player). */
+function hostOf(url: string | null | undefined): string {
+  try {
+    return url ? new URL(url).hostname : "";
+  } catch {
+    return "";
+  }
+}
+
 /** The audio file of one verse (the standalone app prefers a downloaded one). */
 async function audioSource(reciter: ReciterItem, position: RecitationPosition): Promise<string> {
   const remote = `${reciter.audio_base}/${pad3(position.surah)}${pad3(position.ayah)}.mp3`;
@@ -218,6 +227,12 @@ type RecitationValue = {
    * doesn't follow it.
    */
   active: boolean;
+  /**
+   * How the surah being recited sounds: one continuous recording (its
+   * source, e.g. "Quran.com (quranicaudio.com)"), or verse by verse (each
+   * verse its own file, a short break between them). Null when nothing plays.
+   */
+  recording: { continuous: true; source: string } | { continuous: false; source: string } | null;
 };
 
 export type RepeatMode = "off" | "verse" | "range";
@@ -915,8 +930,14 @@ export function RecitationProvider({ children }: { children: ReactNode }) {
       repeatMode,
       setRepeatMode,
       active: (Boolean(current) && !range?.once) || idle,
+      recording: !current
+        ? null
+        : track && track.surah === current.surah
+          ? { continuous: true as const, source: track.attribution }
+          : { continuous: false as const, source: hostOf(reciter?.audio_base) },
     }),
     [
+      track,
       surahs,
       range,
       playRange,

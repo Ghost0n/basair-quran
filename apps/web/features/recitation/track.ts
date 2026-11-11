@@ -14,6 +14,8 @@ export type Track = {
   url: string;
   duration: number;
   verses: { ayah: number; start: number; end: number }[];
+  /** Where the recording comes from (shown in the player, e.g. "Quran.com (quranicaudio.com)"). */
+  attribution: string;
 };
 
 export function toTrack(recitation: SurahRecitation, url: string): Track {
@@ -23,6 +25,7 @@ export function toTrack(recitation: SurahRecitation, url: string): Track {
     url,
     duration: recitation.duration_ms / 1000,
     verses: recitation.verses.map((verse) => ({ ayah: verse.ayah, start: verse.start_ms / 1000, end: verse.end_ms / 1000 })),
+    attribution: recitation.attribution,
   };
 }
 

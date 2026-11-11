@@ -163,6 +163,18 @@ export function RecitationSheet({ onClose }: { onClose: () => void }) {
                           ? t("رواية {0} · تختلف عن المصحف المعروض", { 0: riwayahName(recitation.reciter?.riwayah) })
                           : t("رواية {0}", { 0: riwayahName(recitation.reciter?.riwayah) })}
                       </small>
+                      {/* How it sounds: one recording, or verse by verse (a short break between verses). */}
+                      {recitation.recording ? (
+                        <small className="qb-recite-source" dir="auto">
+                          {recitation.recording.continuous ? t("تلاوة متصلة") : t("آية آية")}
+                          {recitation.recording.source ? (
+                            <>
+                              {" · "}
+                              <bdi>{recitation.recording.source}</bdi>
+                            </>
+                          ) : null}
+                        </small>
+                      ) : null}
                     </span>
                     <Icon name="chevLeft" size={16} />
                   </button>
