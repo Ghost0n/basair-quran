@@ -1725,5 +1725,7 @@
  "وصل سؤالك إلى الفريق، وتجد الرد في الإعدادات ← الدعم والملاحظات.": "La tua domanda è arrivata al team; trovi la risposta in Impostazioni → Supporto e feedback.",
  "وصل سؤالك إلى الفريق، ويصلك الرد على بريدك.": "La tua domanda è arrivata al team; riceverai la risposta via email.",
  "وقفة، انقطاع، فاصل، صوت، قطع": "pausa, interruzione, stacco, silenzio, salto, audio, suono, taglio",
- "يمرّ كل بحث بفحوص آلية (الآيات والمراجع ووسم المحتوى الآلي)، ثم بمراجعة وفق الإرشادات، ويراجع مشرفٌ أوّل منشور لكل مستخدم. إن طُلب منك تعديل تجد السبب.": "Ogni ricerca passa per controlli automatici (versetti, riferimenti ed etichettatura dei contenuti generati dall'IA), poi per una revisione secondo le Linee guida, e un moderatore esamina il primo post di ogni utente. Se ti viene chiesta una modifica, ne vedi il motivo."
+ "يمرّ كل بحث بفحوص آلية (الآيات والمراجع ووسم المحتوى الآلي)، ثم بمراجعة وفق الإرشادات، ويراجع مشرفٌ أوّل منشور لكل مستخدم. إن طُلب منك تعديل تجد السبب.": "Ogni ricerca passa per controlli automatici (versetti, riferimenti ed etichettatura dei contenuti generati dall'IA), poi per una revisione secondo le Linee guida, e un moderatore esamina il primo post di ogni utente. Se ti viene chiesta una modifica, ne vedi il motivo.",
+ "الشيفرة المصدرية": "Codice sorgente",
+ "«بصائر» مفتوح المصدر: اقرأ شيفرته أو ساهم فيها.": "Basair è open source: leggi il codice o contribuisci."
 }

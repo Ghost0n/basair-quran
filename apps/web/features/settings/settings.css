@@ -481,6 +481,15 @@
   gap: 2px;
 }
 
+.qb-feedback-source {
+  margin: -4px 0 14px;
+  font-size: 13px;
+}
+
+.qb-feedback-source a {
+  color: var(--fg-2);
+}
+
 .qb-feedback-guide small {
   font-size: 13px;
   color: var(--fg-2);

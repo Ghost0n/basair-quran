@@ -81,6 +81,7 @@ Working rules:
 - If local data is committed intentionally, keep it in a dedicated commit and mention size/contents in the close-out.
 - Do not rename or reorganize user-provided corpus files without preserving their provenance or explaining the migration.
 - The corpus may influence term discovery and Tafssir interpretation, but the UI should not cite it as authority.
+- The code is AGPL-3.0 (`LICENSE`); third-party data and fonts keep their own terms, listed in `NOTICE.md`. A new data source, font or media file must be added there with its source and terms in the same change, and nothing whose terms forbid redistribution is committed (fetch it at build/deploy time instead). Going-public steps and settings: `docs/open-source.md`.
 
 ## Research Agent Rules
 
@@ -165,14 +166,14 @@ QBASAIR_PREPARE_RECITERS
 
 - Local launch commands:
 
-```powershell
-cd C:\Users\<user>\Projects\Q-Basair
-python scripts\start_api.py
+```bash
+# from the repository root
+python scripts/start_api.py
 ```
 
-```powershell
-cd C:\Users\<user>\Projects\Q-Basair\apps\web
-C:\Users\<user>\Projects\Q-Basair\.runtime\node-v22.22.0-win-x64\node.exe .\node_modules\next\dist\bin\next start --hostname 127.0.0.1 --port 3000
+```bash
+# from apps/web (after `pnpm --filter @q-basair/web build`)
+npx next start --hostname 127.0.0.1 --port 3000
 ```
 
 ### Local troubleshooting

@@ -1,6 +1,10 @@
-# Q-Basair
+# Q-Basair — «بصائر»
 
-Q-Basair is a Quranic research tool for Arabic word, root, and phrase search. It combines a FastAPI backend over a local SQLite Quran database with a modern Next.js web interface.
+Q-Basair is an open-source tool for reading and researching the Quran with evidence: an authentic Madani mushaf, deterministic search over Arabic words, roots and phrases, recitation, and a study assistant that answers only from the verses it finds. It combines a FastAPI backend over a local SQLite Quran database with a Next.js web app, also shipped as a standalone iOS and Android app.
+
+- **Use it:** [basairquran.com](https://basairquran.com) · [guide](https://basairquran.com/guide) · [FAQ](https://basairquran.com/faq)
+- **Take part:** [CONTRIBUTING.md](CONTRIBUTING.md) · [Code of Conduct](CODE_OF_CONDUCT.md) · [Security](SECURITY.md)
+- **License:** [AGPL-3.0](LICENSE) for the code; the Quran data and fonts keep their own terms ([NOTICE.md](NOTICE.md)).
 
 ## Current Capabilities
 
@@ -302,3 +306,14 @@ recitations: [docs/deployment.md](docs/deployment.md).
 ## Architecture Note
 
 The FastAPI app is API-only. The old static frontend was removed during the migration cleanup; the active user interface lives in `apps/web` and calls the API through Next.js rewrites.
+
+## Contributing
+
+Bug reports (above all a wrong search result, root or count), translation fixes and code are all welcome: start with [CONTRIBUTING.md](CONTRIBUTING.md). First-time contributors sign the [CLA](CLA.md) once, by commenting on their pull request.
+
+## License and credits
+
+The code is licensed under the [GNU Affero General Public License v3.0](LICENSE) (`AGPL-3.0-only`): if you run a modified version as a service, offer its source to its users.
+
+The Quran text and its scholarly data come from their publishers and keep their own terms — the King Fahd Glorious Qur'an Printing Complex (text and page fonts), the Quranic Arabic Corpus (morphology), QuranEnc and Tanzil (translations of the meanings), Quran.com, mp3quran.net and everyayah.com (recitations), and the open fonts Amiri, Cairo and Noto. See [NOTICE.md](NOTICE.md) for each source and its terms.
+

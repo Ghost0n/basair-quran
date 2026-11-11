@@ -1,0 +1,22 @@
+name: Idea or improvement
+description: Suggest a feature or a better way to do something.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What you are trying to do
+      description: The need first — what you want to read, find or study, and what gets in the way today.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Principles
+      options:
+        - label: The idea keeps the Quran text as the evidence, and understanding separate from it (no rulings, no taking sides between schools or groups).
+          required: true

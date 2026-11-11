@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import { BrandMark } from "@/components/brand-mark";
 import { continueAsGuest } from "@/features/auth/identity-flow";
+import { SOURCE_URL } from "@/lib/site";
 
 import { t } from "@/lib/i18n";
 
@@ -59,6 +60,9 @@ export function SiteFoot({ children }: { children?: ReactNode }) {
           </a>
         ))}
         <a href="/about#privacy">{t("الخصوصية")}</a>
+        <a href={SOURCE_URL} rel="noopener">
+          {t("الشيفرة المصدرية")}
+        </a>
       </nav>
     </footer>
   );

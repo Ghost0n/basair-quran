@@ -12,7 +12,7 @@ import { useAuthSession } from "@/lib/auth-session-context";
 import { APP_MODE } from "@/lib/app-mode/config";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
 import { useI18n } from "@/lib/i18n/provider";
-import { publicOrigin } from "@/lib/site";
+import { publicOrigin, SOURCE_URL } from "@/lib/site";
 
 import { t } from "@/lib/i18n";
 
@@ -129,6 +129,11 @@ export function FeedbackCard() {
           </span>
         </a>
       ) : null}
+      <p className="qb-feedback-source">
+        <a href={SOURCE_URL} target="_blank" rel="noopener">
+          {t("«بصائر» مفتوح المصدر: اقرأ شيفرته أو ساهم فيها.")}
+        </a>
+      </p>
       <div className="qb-setting-seg qb-fit-choice" data-autofit="2" suppressHydrationWarning role="radiogroup" aria-label={t("نوع الرسالة")}>
         {KINDS.map((value) => (
           <button

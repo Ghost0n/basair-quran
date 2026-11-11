@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: How do I…? (the guide)
+    url: https://basairquran.com/guide
+    about: Every feature, step by step, on phone and computer.
+  - name: Questions people ask (the FAQ)
+    url: https://basairquran.com/faq
+    about: Your question may already have an answer.
+  - name: A security problem
+    url: https://github.com/Ghost0n/Q-Basair/security/advisories/new
+    about: Report it privately, never in a public issue (SECURITY.md).
