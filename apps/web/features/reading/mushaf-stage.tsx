@@ -412,6 +412,27 @@ export function MushafStage() {
   const openNavigateRef = useRef(openNavigate);
   openNavigateRef.current = openNavigate;
   const ayahMode = readerMode === "ayah";
+
+  // Phones: the page number shows under the text in both modes, unless the
+  // dock (see-through) would sit on it — a screen without a bottom inset has
+  // no room between them. Measured with the dock at rest, so after its slide.
+  const pageNumberRef = useRef<HTMLSpanElement | null>(null);
+  useEffect(() => {
+    if (!phone || immersive) return;
+    const root = document.documentElement;
+    const measure = () => {
+      const number = pageNumberRef.current?.getBoundingClientRect();
+      const dock = document.querySelector(".qb-reader-dock")?.getBoundingClientRect();
+      root.classList.toggle("qb-number-under-dock", Boolean(number && dock && number.height && number.bottom > dock.top - 2));
+    };
+    const settled = window.setTimeout(measure, 320);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.clearTimeout(settled);
+      window.removeEventListener("resize", measure);
+    };
+  }, [phone, immersive, ayahMode]);
+  useEffect(() => () => document.documentElement.classList.remove("qb-number-under-dock"), []);
   // The verse-by-verse reader is continuous (a windowing engine): prev/next
   // become a smooth in-place scroll rather than a page swap.
   const continuousMode = ayahMode;
@@ -1180,7 +1201,7 @@ export function MushafStage() {
           verse marks its pages in the list itself). */}
       {phone && !ayahMode && displayPage && typeof document !== "undefined"
         ? createPortal(
-            <span className="qb-page-number" aria-hidden="true">
+            <span className="qb-page-number" aria-hidden="true" ref={pageNumberRef}>
               {tt("صفحة")} {formatNumber(displayPage)}
             </span>,
             document.body,
