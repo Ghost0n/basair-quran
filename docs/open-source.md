@@ -74,8 +74,9 @@ pip install git-filter-repo
 git clone --mirror https://github.com/Ghost0n/Q-Basair.git qb-mirror
 cd qb-mirror
 
-# 1. Drop every old copy of the generated database (it is rebuilt from data/).
-git filter-repo --invert-paths --path data/quran.db
+# 1. Drop every old copy of the generated database (it is rebuilt from data/)
+#    and an archive committed by mistake.
+git filter-repo --invert-paths --path data/quran.db --path license_expression-30.4.4.tar.gz
 
 # 2. Replace the personal author/committer email by the GitHub noreply address.
 #    The mailmap file lives outside the repository; one line:
