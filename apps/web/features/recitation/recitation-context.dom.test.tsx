@@ -227,6 +227,8 @@ describe("RecitationProvider — a surah the server hasn't prepared, from its pu
     await act(async () => audio.dispatchEvent(new Event("loadedmetadata")));
     expect(audio.currentTime).toBe(2.5); // verse 3 starts at 2.5 s
     expect(plays.filter((src) => src.endsWith(".mp3"))).toEqual([quranCom]); // one file, no verse files
+    // The player says so: one continuous recording, and from where.
+    expect(recitation.recording).toEqual({ continuous: true, source: "Quran.com" });
   });
 
   it("falls back to the verse files when no source has it", async () => {
@@ -236,6 +238,7 @@ describe("RecitationProvider — a surah the server hasn't prepared, from its pu
     await settle();
     expect(direct.asked).toEqual(["alafasy:3"]);
     expect(sounding()[0].getAttribute("src")).toBe(file(3, 2));
+    expect(recitation.recording).toEqual({ continuous: false, source: "everyayah.com" });
   });
 });
 
