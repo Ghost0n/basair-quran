@@ -1,0 +1,9 @@
+# Accepted Trivy findings (CI "Security scan" and the release image scans).
+#
+# One vulnerability or check ID per line, each with WHY it is accepted and
+# WHEN to look at it again, e.g.:
+#
+#   # A dev-only dependency, not shipped in any image; drop when x >= 1.2.
+#   CVE-2026-00000
+#
+# Nothing is accepted today.

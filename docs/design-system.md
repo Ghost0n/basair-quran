@@ -9,9 +9,9 @@ Two design languages coexist while the redesign is rolled out:
 
 ## The web design (desktop web)
 
-Source of truth: the approved prototype `design/prototype-web-full/` (open `local.html#<screen>`
-after `python -m http.server 3012` in that folder): `BUILDING.md` holds its rules, `INVENTORY.md`
-every production capability it covers. Plan: `docs/superpowers/plans/2026-10-21-refonte-design-web.md`.
+It was built from an approved HTML prototype (Q-Basair-55; the prototype and its plan are in the git
+history, commit `e713e96`). The implementation in `apps/web` is now the reference; the responsive
+bands are in `docs/responsive-design.md`.
 
 ### Where it applies
 

@@ -54,3 +54,9 @@ apps/web/out/
 
 # Rendered Keycloak realm (scripts/keycloak_realm.py) — it carries secrets.
 /infra/keycloak/build/
+
+# Server-side state of a production checkout (docs/deployment.md).
+/letsencrypt/
+/certbot-webroot/
+/backups/
+/.deploy/

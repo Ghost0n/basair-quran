@@ -43,11 +43,13 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-COPY --from=builder /app/apps/web/.next/standalone ./
-COPY --from=builder /app/apps/web/.next/static ./.next/static
-COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
-COPY --from=builder /app/apps/web/public ./public
-COPY --from=builder /app/apps/web/public ./apps/web/public
+# Not root: the image's `node` user (the server writes its cache under .next).
+COPY --from=builder --chown=node:node /app/apps/web/.next/standalone ./
+COPY --from=builder --chown=node:node /app/apps/web/.next/static ./.next/static
+COPY --from=builder --chown=node:node /app/apps/web/.next/static ./apps/web/.next/static
+COPY --from=builder --chown=node:node /app/apps/web/public ./public
+COPY --from=builder --chown=node:node /app/apps/web/public ./apps/web/public
+USER node
 
 EXPOSE 3000
 

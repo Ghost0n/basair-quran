@@ -3,7 +3,7 @@
 Status: in place — the preparation pipeline and its routes (Q-Basair-65), the player and the app's
 downloads (Q-Basair-66), and the player's direct fallback to the public sources (Q-Basair-95). Only
 a surah no source has as one recording plays verse by verse from everyayah.com. Preparing on the
-server: `docs/deployment-hetzner.md` → *Preparing the recitations*.
+server: `docs/deployment.md` → *Preparing the recitations*.
 
 ## Why one recording per surah
 

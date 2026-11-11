@@ -1,0 +1,193 @@
+name: Release
+
+# Production release (docs/deployment.md): on every push to `main` the API and
+# web images are built on GitHub's runners, scanned with Trivy, pushed to
+# GitHub Container Registry, then deployed to the Contabo server over SSH by
+# deploy/server/deploy.sh. Run it by hand ("Run workflow") to redeploy, or to
+# roll back to an earlier release's images with `image_tag`.
+#
+# Deploy tags in the merge commit's message start data jobs on the server
+# (AGENTS.md → "Deploy tags"): [rebuild-db] [rebuild-index]
+# [rebuild-translations] [prefill-recitation] [prepare-recitations].
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Deploy these existing images (a commit SHA) instead of building; empty = build this commit"
+        required: false
+        default: ""
+      jobs:
+        description: "Data jobs, comma-separated (rebuild-db, rebuild-index, rebuild-translations, prefill-recitation, prepare-recitations)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: release-production
+  cancel-in-progress: false
+
+env:
+  IMAGE_PREFIX: ${{ vars.QBASAIR_IMAGE_PREFIX || 'ghcr.io/ghost0n/q-basair' }}
+  PUBLIC_DOMAIN: ${{ vars.QBASAIR_PUBLIC_DOMAIN || 'basairquran.com' }}
+
+jobs:
+  images:
+    name: Image (${{ matrix.image }})
+    if: ${{ github.event_name == 'push' || inputs.image_tag == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: true
+      matrix:
+        image: [api, web]
+    steps:
+      - uses: actions/checkout@v4
+
+      # The authentic mushaf fonts are not in git (licence: fetched from their
+      # source); the web image serves them from apps/web/public.
+      - name: Fetch the mushaf fonts
+        if: matrix.image == 'web'
+        run: python3 scripts/fetch_mushaf_fonts.py
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.image == 'api' && 'Dockerfile.api' || 'apps/web/Dockerfile' }}
+          load: true
+          tags: qbasair-${{ matrix.image }}:candidate
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          # The web bakes its public settings in at build time.
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=/api
+            NEXT_PUBLIC_AUTH_ENABLED=${{ vars.NEXT_PUBLIC_AUTH_ENABLED || '1' }}
+            NEXT_PUBLIC_ENABLE_YAMLI=${{ vars.NEXT_PUBLIC_ENABLE_YAMLI || '0' }}
+            NEXT_PUBLIC_SITE_URL=https://${{ env.PUBLIC_DOMAIN }}
+            QBASAIR_API_ORIGIN=http://api:8001
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+      # Nothing ships with a known CRITICAL or HIGH vulnerability that has a
+      # fix (accepted exceptions, with their reason: .trivyignore).
+      - name: Scan the image (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: qbasair-${{ matrix.image }}:candidate
+          scanners: vuln,secret
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          exit-code: "1"
+          format: table
+
+      - name: Push to GitHub Container Registry
+        run: |
+          for tag in "${GITHUB_SHA}" latest; do
+            docker tag "qbasair-${{ matrix.image }}:candidate" "${IMAGE_PREFIX}-${{ matrix.image }}:${tag}"
+            docker push "${IMAGE_PREFIX}-${{ matrix.image }}:${tag}"
+          done
+
+  deploy:
+    name: Deploy to production
+    needs: images
+    if: ${{ always() && (needs.images.result == 'success' || needs.images.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://${{ vars.QBASAIR_PUBLIC_DOMAIN || 'basairquran.com' }}
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: What to deploy
+        id: plan
+        env:
+          INPUT_TAG: ${{ inputs.image_tag }}
+          INPUT_JOBS: ${{ inputs.jobs }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          tag="${INPUT_TAG:-$GITHUB_SHA}"
+          jobs="${INPUT_JOBS}"
+          if [ -z "$jobs" ]; then
+            for job in rebuild-db rebuild-index rebuild-translations prefill-recitation prepare-recitations; do
+              case "$COMMIT_MESSAGE" in *"[$job]"*) jobs="${jobs:+$jobs,}$job" ;; esac
+            done
+          fi
+          if ! printf '%s' "$tag" | grep -Eq '^[0-9a-f]{7,40}$'; then echo "Not a commit SHA: $tag" >&2; exit 1; fi
+          if ! printf '%s' "$jobs" | grep -Eq '^[a-z,-]*$'; then echo "Bad job list: $jobs" >&2; exit 1; fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "jobs=$jobs" >> "$GITHUB_OUTPUT"
+          echo "Deploying $tag${jobs:+ with $jobs}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: SSH access to the server
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host production
+            HostName ${{ secrets.DEPLOY_HOST }}
+            User ${{ secrets.DEPLOY_USER || 'deploy' }}
+            Port ${{ secrets.DEPLOY_PORT || '22' }}
+            IdentityFile ~/.ssh/id_deploy
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 30
+          EOF
+
+      # The server keeps no git checkout: it gets the files the stack and its
+      # data jobs read — the compose file, nginx config, server scripts, the
+      # build scripts, the Quran source data and the interface dictionaries.
+      # Never deletes anything there (generated data lives beside them).
+      - name: Copy the deploy files
+        run: |
+          git ls-files -z -- docker-compose.yml .env.production.example deploy scripts data \
+            apps/web/lib/i18n/locales apps/web/lib/i18n/locales.ts \
+            | rsync -az --from0 --files-from=- ./ production:/srv/q-basair/
+
+      - name: Deploy
+        env:
+          TAG: ${{ steps.plan.outputs.tag }}
+          JOBS: ${{ steps.plan.outputs.jobs }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # A token valid for this run only: the server pulls, then forgets it.
+          printf '%s' "$REGISTRY_TOKEN" | ssh production "docker login ghcr.io -u '${{ github.actor }}' --password-stdin" >/dev/null
+          status=0
+          ssh production "cd /srv/q-basair && ./deploy/server/deploy.sh --tag '$TAG' --jobs '$JOBS'" || status=$?
+          ssh production "docker logout ghcr.io" >/dev/null || true
+          exit $status
+
+      - name: Check from outside
+        env:
+          TAG: ${{ steps.plan.outputs.tag }}
+        run: |
+          for attempt in $(seq 1 12); do
+            body="$(curl -fsS --max-time 10 "https://${PUBLIC_DOMAIN}/api/ready" || true)"
+            case "$body" in *"\"commit\":\"$TAG\""*) echo "https://${PUBLIC_DOMAIN} serves $TAG"; exit 0 ;; esac
+            sleep 5
+          done
+          echo "::warning::https://${PUBLIC_DOMAIN}/api/ready doesn't report $TAG yet (DNS, TLS or a CDN in between?): ${body:-no answer}"

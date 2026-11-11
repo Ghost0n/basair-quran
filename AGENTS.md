@@ -279,15 +279,13 @@ If the current branch has no ticket number, use `{PROJECT_NAME}-<branch-name-wit
 
 ## Continuous Deployment
 
-The repository uses a GitHub Actions self-hosted runner registered on the Hetzner production server. The workflow file is at `.github/workflows/deploy.yml` and triggers automatically on every push or merge to `main`.
+Production is one Contabo VPS serving `basairquran.com` (full guide: `docs/deployment.md`). `.github/workflows/release.yml` runs on every push or merge to `main`:
 
-### What the workflow does on each deploy
+1. Builds the `api` and `web` images on GitHub's runners and scans them with Trivy (a CRITICAL or HIGH finding that has a fix stops the release; accepted exceptions go in `.trivyignore` with their reason).
+2. Pushes them to GitHub Container Registry (`ghcr.io/ghost0n/q-basair-{api,web}:<commit>`).
+3. Copies the deploy files to `/srv/q-basair` over SSH and runs `deploy/server/deploy.sh --tag <commit>`: pull, restart, the data jobs named by the deploy tags, then a readiness gate on `/api/ready` reporting that commit — the previous release is put back if it fails.
 
-1. `git reset --hard origin/main` — pulls the latest code
-2. Optionally rebuilds `quran.db` when `[rebuild-db]` is present in the commit message
-3. Optionally rebuilds the research index when `[rebuild-index]` is present in the commit message
-4. `docker compose up -d --build --remove-orphans` — rebuilds only changed images and restarts affected containers
-5. `curl` health check against `/api/health` to confirm the stack is up
+Every pull request also runs `.github/workflows/ci.yml`: tests, builds, offline-engine parity, nginx/compose checks, a Trivy scan of the repository, and a Sonar analysis once `SONAR_TOKEN` is set. Keep both green; never weaken a scan to pass it.
 
 ### Deploy tags
 
@@ -309,7 +307,7 @@ feat: [Q-Basair-131] - Ajoute de nouvelles sources corpus [rebuild-index]
 feat: [Q-Basair-132] - Migration complète [rebuild-db] [rebuild-index]
 ```
 
-Without either tag the deploy is fast — only changed Docker layers are rebuilt.
+Without a tag the deploy only swaps the images (a few minutes). Redeploy or roll back by running the Release workflow by hand with `image_tag`, or on the server with `./deploy/server/deploy.sh --rollback`.
 
 ### Agent guidance on deploy tags
 
@@ -323,17 +321,9 @@ When proposing a commit that touches any of the following, include the relevant 
 
 Do not add tags for changes that only touch Python application code, frontend code, tests, or documentation — those do not require a database rebuild.
 
-### Runner setup (one-time, on the Hetzner server)
+### Server and secrets
 
-```bash
-mkdir ~/actions-runner && cd ~/actions-runner
-# paste the exact commands from: GitHub repo → Settings → Actions → Runners → New self-hosted runner → Linux x64
-./config.sh --url https://github.com/Ghost0n/Q-Basair --token YOUR_TOKEN
-sudo ./svc.sh install deploy
-sudo ./svc.sh start
-```
-
-The runner runs as the `deploy` user which is already in the `docker` group. `.env.production` lives at `/srv/q-basair/.env.production` and is never committed — the workflow reads it from that path directly.
+The server is prepared once with `deploy/server/setup.sh`; the release workflow logs in as the `deploy` user with the `DEPLOY_*` secrets of the `production` environment. `.env.production` lives at `/srv/q-basair/.env.production`, is never committed, and is the only place for production secrets. See `docs/deployment.md`.
 
 ## Optional CI Skip Tag For Minor Meta Commits
 

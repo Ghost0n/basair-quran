@@ -49,7 +49,7 @@ asking is never shared.
   tens of MB; caching them again would evict the small hot responses.
 - **`X-Cache-Status`** response header: `HIT`, `MISS`, `EXPIRED`, `STALE`,
   `UPDATING` (set at server level so the security headers are kept).
-- **Purge**: `deploy.yml` empties `/var/cache/nginx/qbasair` after a
+- **Purge**: the deploy (`deploy/server/deploy.sh`) empties `/var/cache/nginx/qbasair` after a
   `[rebuild-db]`. Translations rebuild in the background; their responses live
   5 min / 1 h and refresh on their own.
 - **CI**: the `nginx` job renders both templates and runs `nginx -t` in the
@@ -136,10 +136,9 @@ place first:
 
 What only the owner can do (accounts and DNS):
 
-- **A domain you control.** The site runs on a `duckdns.org` subdomain; DuckDNS
-  does not let its DNS be delegated, which Cloudflare-style CDNs require. Use a
-  domain of your own (the app only needs `QBASAIR_PUBLIC_DOMAIN` and the TLS
-  certificate for it).
+- **The domain's DNS at the CDN.** `basairquran.com` (docs/deployment.md →
+  "Cloudflare"): the app only needs `QBASAIR_PUBLIC_DOMAIN` and the TLS
+  certificate for it.
 - **Create the CDN account and point the domain at it**, set the two variables
   above, then redeploy. Check `X-Cache-Status` (nginx) and the CDN's own
   cache header on `/api/surahs`.

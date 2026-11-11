@@ -206,7 +206,7 @@ The wrapper checks whether `quran.db` already contains the required offline-prec
 
 By default, browser CORS is limited to `http://127.0.0.1:3000` and `http://localhost:3000`. To allow another frontend origin, set `QBASAIR_CORS_ORIGINS` to a comma-separated list before starting the API.
 
-For constrained deployments such as Render free tier, you can enable the lower-memory runtime profile with:
+On a small server you can enable the lower-memory runtime profile with:
 
 ```powershell
 $env:QBASAIR_LOW_MEMORY_MODE='1'
@@ -279,23 +279,25 @@ Build the frontend:
 powershell -ExecutionPolicy Bypass -File scripts/build_web.ps1
 ```
 
-## Docker Compose Deployment
+## Production deployment
 
-The repository now includes a production-oriented Docker Compose stack with:
+Production runs on one Contabo VPS with Docker Compose (`docker-compose.yml`): `nginx` is the only
+public entrypoint, in front of the internal `web`, `api` and moderation `worker` services, with
+persistent `data/` storage and one API replica (the app relies on SQLite).
 
-- `nginx` as the only public entrypoint
-- internal `web` and `api` services
-- rate limits for `/api/research-agent`
-- a hardened public default that disables Yamli through `NEXT_PUBLIC_ENABLE_YAMLI=0`
-- a Linux bootstrap helper at `scripts/bootstrap_production.sh`
-- a free Let's Encrypt path through `scripts/provision_tls.sh` and `scripts/renew_tls.sh`
-- an invite-only auth flow managed from the VM through `scripts/manage_users.py`
+- **CI** (`.github/workflows/ci.yml`, every pull request): backend tests, the web and app builds, the
+  offline engine's parity, the nginx and compose configs, a Trivy scan (dependencies, secrets,
+  Dockerfiles) and, once configured, a Sonar analysis.
+- **Release** (`.github/workflows/release.yml`, every push to `main`): the API and web images are built
+  on GitHub, scanned with Trivy, pushed to GitHub Container Registry and deployed over SSH by
+  `deploy/server/deploy.sh`, health-gated with automatic rollback. Deploy tags in the merge commit
+  (`[rebuild-db]`, `[rebuild-index]`, `[rebuild-translations]`, `[prefill-recitation]`,
+  `[prepare-recitations]`) start the matching data jobs.
+- **Server**: `deploy/server/setup.sh` (one-time preparation), `tls.sh` (Let's Encrypt),
+  `backup.sh` (nightly), `deploy.sh` (deploy and rollback).
 
-The intended first production shape is a single-host deployment with persistent `data/` storage and one backend replica because the app currently relies on SQLite.
-
-Pushes and merges to `main` trigger automatic deployment via a GitHub Actions self-hosted runner on the Hetzner server. Append `[rebuild-db]` or `[rebuild-index]` to the commit message when the deploy also needs to regenerate a database.
-
-For the full Hetzner-oriented deployment guide including CI/CD runner setup, see [docs/deployment-hetzner.md](docs/deployment-hetzner.md).
+The full guide, from a fresh server to HTTPS, backups, rollback, the scans and preparing the
+recitations: [docs/deployment.md](docs/deployment.md).
 
 ## Architecture Note
 

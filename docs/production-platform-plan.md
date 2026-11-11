@@ -1,8 +1,10 @@
 # Production platform plan
 
-Status: **agreed design, not implemented yet** (2026-10-20). It replaces the
-Hetzner deployment (`docs/deployment-hetzner.md`, `deploy/`, `.env.production.example`,
-`docker-compose.yml`), which is deprecated and will be removed once this ships.
+Status: **agreed design, partly implemented.** The hosting part is in place
+(2026-11): one Contabo VPS, images built and scanned in GitHub Actions and
+pushed to GHCR, deployed over SSH, Cloudflare-ready — `docs/deployment.md`.
+Still to build: PostgreSQL, Keycloak in production, Caddy's zero-downtime
+switch, Valkey, the R2 backups, and the staging server.
 
 Goal: the whole app (web, API, the iPhone/Android app's server side) on a new,
 self-managed server, with production-grade accounts (Apple, Google, Meta, email)

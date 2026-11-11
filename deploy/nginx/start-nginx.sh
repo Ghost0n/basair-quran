@@ -38,7 +38,4 @@ if [ -n "${QBASAIR_CDN_TRUSTED_RANGES:-}" ]; then
     echo "Q-Basair nginx: trusting the CDN's ${QBASAIR_CDN_REAL_IP_HEADER:-X-Forwarded-For} header from $(echo "${QBASAIR_CDN_TRUSTED_RANGES}" | tr ',' '\n' | wc -l) range(s)."
 fi
 
-# Ensure the drop-in vhosts directory exists so the nginx.conf include does not error.
-mkdir -p /srv/nginx-vhosts.d
-
 exec nginx -g 'daemon off;'

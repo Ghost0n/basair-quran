@@ -1,8 +1,17 @@
+# Q-Basair production stack (docs/deployment.md): one Contabo VPS, behind
+# nginx. The images come from GitHub Container Registry, built and scanned by
+# .github/workflows/release.yml and pulled by deploy/server/deploy.sh
+# (QBASAIR_IMAGE_TAG = the commit deployed). `docker compose build` still
+# builds them locally from this checkout (development, or a registry outage).
 services:
   api:
+    image: ${QBASAIR_IMAGE_PREFIX:-ghcr.io/ghost0n/q-basair}-api:${QBASAIR_IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile.api
+    # The deploy user's uid/gid (deploy/server/deploy.sh): files written in
+    # data/ stay that user's.
+    user: "${QBASAIR_RUN_UID:-1000}:${QBASAIR_RUN_GID:-1000}"
     environment: &api-environment
       PORT: "8001"
       QBASAIR_DB_PATH: /app/data/quran.db
@@ -82,10 +91,9 @@ services:
   # (src/app/workers/moderation_worker.py). Restarting it loses nothing — the
   # work waits in the database.
   worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.api
+    image: ${QBASAIR_IMAGE_PREFIX:-ghcr.io/ghost0n/q-basair}-api:${QBASAIR_IMAGE_TAG:-latest}
     command: ["python", "-m", "src.app.workers.moderation_worker"]
+    user: "${QBASAIR_RUN_UID:-1000}:${QBASAIR_RUN_GID:-1000}"
     environment: *api-environment
     volumes:
       - ./data:/app/data
@@ -104,6 +112,9 @@ services:
     restart: unless-stopped
 
   web:
+    image: ${QBASAIR_IMAGE_PREFIX:-ghcr.io/ghost0n/q-basair}-web:${QBASAIR_IMAGE_TAG:-latest}
+    # NEXT_PUBLIC_* values are baked in at build time: the release workflow
+    # builds with the repository's production variables (docs/deployment.md).
     build:
       context: .
       dockerfile: apps/web/Dockerfile
@@ -148,9 +159,6 @@ services:
 
   nginx:
     image: nginx:1.27-alpine
-    # Named so other stacks on the same host can signal a reload without
-    # relying on the dynamic Compose project prefix.
-    container_name: qbasair-nginx
     depends_on:
       web:
         condition: service_healthy
@@ -166,11 +174,6 @@ services:
       # CIDRs) and the header carrying the visitor's IP (e.g. CF-Connecting-IP).
       QBASAIR_CDN_TRUSTED_RANGES: ${QBASAIR_CDN_TRUSTED_RANGES:-}
       QBASAIR_CDN_REAL_IP_HEADER: ${QBASAIR_CDN_REAL_IP_HEADER:-}
-    # Allows nginx to reach services exposed on the host loopback (e.g. co-located
-    # stacks that publish ports on 127.0.0.1). Required for /srv/nginx-vhosts.d
-    # conf files that proxy to host-bound ports.
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./deploy/nginx/http.conf.template:/opt/qbasair/http.conf.template:ro
@@ -178,11 +181,10 @@ services:
       - ./deploy/nginx/start-nginx.sh:/opt/qbasair/start-nginx.sh:ro
       # Prepared recitations, served as static files (docs/recitation-audio.md).
       - ./data/recitations:/srv/recitations:ro
-      # Shared TLS certificate store — written by any stack's certbot on this host.
-      - /srv/letsencrypt:/etc/letsencrypt:ro
-      # Drop-in vhost configs from co-located stacks. Any app can place a
-      # server block file here; nginx picks it up on the next reload.
-      - /srv/nginx-vhosts.d:/srv/nginx-vhosts.d
+      # Let's Encrypt: the certificates, and the HTTP-01 challenge files
+      # certbot writes (served under /.well-known/acme-challenge/).
+      - ./letsencrypt:/etc/letsencrypt:ro
+      - ./certbot-webroot:/var/www/certbot:ro
     command: ["/bin/sh", "/opt/qbasair/start-nginx.sh"]
     networks:
       - edge
@@ -202,29 +204,19 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  # The Let's Encrypt client, run on demand only (the `tls` profile keeps it
+  # out of `up`): deploy/server/tls.sh issues the certificate (HTTP-01 through
+  # nginx on port 80) and renews it from the daily cron that
+  # deploy/server/setup.sh installs, then reloads nginx.
   certbot:
-    image: infinityofspace/certbot-dns-duckdns:latest
+    image: certbot/certbot:v3.1.0
     profiles:
       - tls
-    environment:
-      DUCKDNS_TOKEN: ${DUCKDNS_TOKEN}
     volumes:
-      - /srv/letsencrypt:/etc/letsencrypt
-    # Only run on demand (the `tls` profile keeps it out of `up`). Use the
-    # helpers, which read .env.production and restart/reload nginx afterwards:
-    #   Issue:  ./scripts/provision_tls.sh
-    #   Renew:  ./scripts/renew_tls.sh   (daily cron — see docs/deployment-hetzner.md)
-    # Nothing renews the certificate unless that cron is installed.
-    command: >
-      certonly
-      --non-interactive
-      --agree-tos
-      --email ${CERTBOT_EMAIL}
-      --preferred-challenges dns
-      --authenticator dns-duckdns
-      --dns-duckdns-token ${DUCKDNS_TOKEN}
-      --dns-duckdns-propagation-seconds 60
-      -d ${QBASAIR_PUBLIC_DOMAIN}
+      - ./letsencrypt:/etc/letsencrypt
+      - ./certbot-webroot:/var/www/certbot
+    networks:
+      - edge
 
 networks:
   edge:

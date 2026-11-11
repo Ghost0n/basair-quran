@@ -72,7 +72,7 @@ Hafs is `mushaf_id = 2`. Everything here is **parallel** to the existing
   `apps/web/public/fonts/qpc-hafs-v2/…`; the response only returns the font family/URL.
 - **Deploy:** `build_mushaf_layout.py` writes into `quran.db`, so commits touching it or
   its source JSON on `main` carry **`[rebuild-db]`**, and the script is chained after
-  `build_db.py` in `.github/workflows/deploy.yml`.
+  `build_db.py` by the deploy (`deploy/server/deploy.sh`).
 
 ### Structural repair of the upstream layout
 

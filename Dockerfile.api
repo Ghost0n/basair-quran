@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -18,7 +18,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY src ./src
 COPY scripts ./scripts
 
-RUN mkdir -p /app/data
+# Not root. Compose runs the API with the deploy user's uid/gid
+# (QBASAIR_RUN_UID / QBASAIR_RUN_GID, docs/deployment.md) so that what it
+# writes in the mounted data/ belongs to that user; `app` (1000) is the default.
+RUN useradd --uid 1000 --create-home --shell /usr/sbin/nologin app \
+    && mkdir -p /app/data \
+    && chown -R app:app /app/data
+ENV HOME=/tmp
+USER app
 
 EXPOSE 8001
 
