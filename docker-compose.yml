@@ -5,7 +5,7 @@
 # builds them locally from this checkout (development, or a registry outage).
 services:
   api:
-    image: ${QBASAIR_IMAGE_PREFIX:-ghcr.io/ghost0n/q-basair}-api:${QBASAIR_IMAGE_TAG:-latest}
+    image: ${QBASAIR_IMAGE_PREFIX:-ghcr.io/ghost0n/basair-quran}-api:${QBASAIR_IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile.api
@@ -91,7 +91,7 @@ services:
   # (src/app/workers/moderation_worker.py). Restarting it loses nothing — the
   # work waits in the database.
   worker:
-    image: ${QBASAIR_IMAGE_PREFIX:-ghcr.io/ghost0n/q-basair}-api:${QBASAIR_IMAGE_TAG:-latest}
+    image: ${QBASAIR_IMAGE_PREFIX:-ghcr.io/ghost0n/basair-quran}-api:${QBASAIR_IMAGE_TAG:-latest}
     command: ["python", "-m", "src.app.workers.moderation_worker"]
     user: "${QBASAIR_RUN_UID:-1000}:${QBASAIR_RUN_GID:-1000}"
     environment: *api-environment
@@ -112,7 +112,7 @@ services:
     restart: unless-stopped
 
   web:
-    image: ${QBASAIR_IMAGE_PREFIX:-ghcr.io/ghost0n/q-basair}-web:${QBASAIR_IMAGE_TAG:-latest}
+    image: ${QBASAIR_IMAGE_PREFIX:-ghcr.io/ghost0n/basair-quran}-web:${QBASAIR_IMAGE_TAG:-latest}
     # NEXT_PUBLIC_* values are baked in at build time: the release workflow
     # builds with the repository's production variables (docs/deployment.md).
     build:

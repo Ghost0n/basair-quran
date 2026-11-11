@@ -46,7 +46,7 @@ Contents:
 | Piece | Where |
 |---|---|
 | Stack | `docker-compose.yml` — `nginx` (the only public entrypoint), `web`, `api`, `worker`, and `certbot` (on demand) |
-| Images | `ghcr.io/ghost0n/q-basair-api:<commit>` and `…-web:<commit>` (also `:latest`) |
+| Images | `ghcr.io/ghost0n/basair-quran-api:<commit>` and `…-web:<commit>` (also `:latest`) |
 | nginx | `deploy/nginx/` — HTTP and HTTPS site templates, rate limits, the API cache, security headers |
 | Server scripts | `deploy/server/setup.sh` (once), `deploy.sh` (each release, rollback), `tls.sh` (certificate), `backup.sh` (nightly) |
 | Settings | `/srv/q-basair/.env.production` on the server (template: `.env.production.example`) |
@@ -135,7 +135,7 @@ required reviewer if every release should wait for a click). Its secrets:
 | Variable | Value | Used by |
 |---|---|---|
 | `QBASAIR_PUBLIC_DOMAIN` | `basairquran.com` | release (site URL baked into the web, outside check) |
-| `QBASAIR_IMAGE_PREFIX` | `ghcr.io/ghost0n/q-basair` (default) | release |
+| `QBASAIR_IMAGE_PREFIX` | `ghcr.io/ghost0n/basair-quran` (default) | release |
 | `NEXT_PUBLIC_AUTH_ENABLED` | `1` (default) | web image build |
 | `NEXT_PUBLIC_ENABLE_YAMLI` | `0` (default) | web image build |
 | `QBASAIR_REMOTE_ORIGIN` | `https://basairquran.com` | the iPhone/Android builds (`mobile.yml`): the server the app talks to |
@@ -459,7 +459,7 @@ df -h /srv && du -sh data/*            # disk
 | Release fails at the image scan | the Trivy table in the run: upgrade the package (or base image); accept only with a reason in `.trivyignore` |
 | `Permission denied (publickey)` in the run | `DEPLOY_SSH_KEY` matches the key given to `setup.sh --ssh-key`; `DEPLOY_USER` is `deploy` |
 | `Host key verification failed` | the server was reinstalled: refresh `DEPLOY_KNOWN_HOSTS` (`ssh-keyscan`) |
-| `denied` when pulling from ghcr.io | the packages `q-basair-api` / `q-basair-web` must stay linked to this repository (Packages → package settings → "Manage Actions access") |
+| `denied` when pulling from ghcr.io | the packages `basair-quran-api` / `basair-quran-web` must stay linked to this repository (Packages → package settings → "Manage Actions access") |
 | The site shows a 502 | `dc ps` — a service still starting (the API builds `quran.db` on first start) or unhealthy (`dc logs`) |
 | A certificate warning | `ls letsencrypt/live/basairquran.com/`; `./deploy/server/tls.sh issue`; with Cloudflare, SSL mode Full (strict) |
 | `tls.sh issue` fails | DNS not pointing here yet (`dig +short basairquran.com`), or port 80 blocked |

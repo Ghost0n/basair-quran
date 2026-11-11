@@ -7,5 +7,5 @@ contact_links:
     url: https://basairquran.com/faq
     about: Your question may already have an answer.
   - name: A security problem
-    url: https://github.com/Ghost0n/Q-Basair/security/advisories/new
+    url: https://github.com/Ghost0n/basair-quran/security/advisories/new
     about: Report it privately, never in a public issue (SECURITY.md).

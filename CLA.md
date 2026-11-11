@@ -3,7 +3,7 @@
 *Version 1.0*
 
 Thank you for contributing to Q-Basair ("the Project"), maintained by the
-owner of the GitHub repository `Ghost0n/Q-Basair` ("the Maintainer"). This agreement makes
+owner of the GitHub repository `Ghost0n/basair-quran` ("the Maintainer"). This agreement makes
 clear the rights you grant when you contribute, so that the Project can be
 distributed everywhere it needs to be — including the Apple App Store and
 Google Play, whose terms are not compatible with the GNU Affero General Public

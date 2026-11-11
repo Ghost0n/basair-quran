@@ -33,7 +33,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  IMAGE_PREFIX: ${{ vars.QBASAIR_IMAGE_PREFIX || 'ghcr.io/ghost0n/q-basair' }}
+  IMAGE_PREFIX: ${{ vars.QBASAIR_IMAGE_PREFIX || 'ghcr.io/ghost0n/basair-quran' }}
   PUBLIC_DOMAIN: ${{ vars.QBASAIR_PUBLIC_DOMAIN || 'basairquran.com' }}
 
 jobs:

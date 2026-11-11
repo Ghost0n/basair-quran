@@ -170,7 +170,7 @@ fi
 # 5. Old images: keep this release and the one before (a quick rollback);
 # remove the other releases' images and anything dangling.
 prefix="$(env_value QBASAIR_IMAGE_PREFIX)"
-prefix="${prefix:-ghcr.io/ghost0n/q-basair}"
+prefix="${prefix:-ghcr.io/ghost0n/basair-quran}"
 keep_previous="$(cat "${STATE_DIR}/previous" 2>/dev/null || true)"
 docker image ls --format '{{.Repository}}:{{.Tag}}' \
   | grep -E "^${prefix}-(api|web):" \

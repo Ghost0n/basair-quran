@@ -283,7 +283,7 @@ If the current branch has no ticket number, use `{PROJECT_NAME}-<branch-name-wit
 Production is one Contabo VPS serving `basairquran.com` (full guide: `docs/deployment.md`). `.github/workflows/release.yml` runs on every push or merge to `main`:
 
 1. Builds the `api` and `web` images on GitHub's runners and scans them with Trivy (a CRITICAL or HIGH finding that has a fix stops the release; accepted exceptions go in `.trivyignore` with their reason).
-2. Pushes them to GitHub Container Registry (`ghcr.io/ghost0n/q-basair-{api,web}:<commit>`).
+2. Pushes them to GitHub Container Registry (`ghcr.io/ghost0n/basair-quran-{api,web}:<commit>`).
 3. Copies the deploy files to `/srv/q-basair` over SSH and runs `deploy/server/deploy.sh --tag <commit>`: pull, restart, the data jobs named by the deploy tags, then a readiness gate on `/api/ready` reporting that commit — the previous release is put back if it fails.
 
 Every pull request also runs `.github/workflows/ci.yml`: tests, builds, offline-engine parity, nginx/compose checks, a Trivy scan of the repository, and a Sonar analysis once `SONAR_TOKEN` is set. Keep both green; never weaken a scan to pass it.

@@ -59,13 +59,34 @@ the repository moves.
    - *Actions → General*: "Require approval for first-time contributors" for
      fork pull requests; workflow permissions read-only by default (each
      workflow asks for what it needs).
-   - *Packages*: make the `q-basair-api` / `q-basair-web` images public on
+   - *Packages*: make the `basair-quran-api` / `basair-quran-web` images public on
      GHCR, or keep them private (the server logs in to pull them).
 4. **Labels** used by the templates and CONTRIBUTING: `bug`, `enhancement`,
    `i18n`, `good first issue`, `help wanted`.
 5. **Settings → General → Danger zone → Change visibility → Public.**
 
 ## Rewriting the history
+
+**Done (2026-11):** this repository, `Ghost0n/basair-quran`, holds the
+rewritten `main` and `develop` (16 MB instead of 127 MB; authors shown as the
+GitHub handle with its noreply address; personal names and paths replaced).
+The original repository, `Ghost0n/Q-Basair`, stays private as the archive of
+every branch, tag and pull request; it is no longer developed.
+
+Moving the project here also meant (owner steps, in Settings):
+
+- the `production` environment with its `DEPLOY_*` secrets and the
+  `QBASAIR_REMOTE_ORIGIN` variable, the mobile signing secrets
+  (`ANDROID_*`, `APPLE_*`, `APPSTORE_*`) and `SONAR_TOKEN`, recreated here
+  (secrets cannot be copied between repositories);
+- the container images are now `ghcr.io/ghost0n/basair-quran-{api,web}`: the
+  first release from this repository creates them, and the server pulls them
+  with the token the release workflow passes; if `/srv/q-basair/.env.production`
+  sets `QBASAIR_IMAGE_PREFIX`, update it;
+- the release workflow disabled in the archive repository (Actions → Release →
+  Disable), so only this repository deploys.
+
+The procedure below is what was run, kept for reference.
 
 Only `main` and `develop` are published. The other branches (feature,
 fix and prototype branches, some never merged) and the `iphone-test-*` tags
