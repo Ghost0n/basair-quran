@@ -1,0 +1,23 @@
+name: Translation of the interface
+description: A wrong, unclear or missing translation of the app's text.
+labels: ["i18n"]
+body:
+  - type: dropdown
+    id: language
+    attributes:
+      label: Language
+      options: [English, Français, Deutsch, Español, Italiano, Português, Nederlands, Shqip, Bosanski, Türkçe, Azərbaycanca, Oʻzbekcha, Русский, Bahasa Indonesia, Bahasa Melayu, Kiswahili, فارسی, اردو, हिन्दी, বাংলা, 中文, 日本語, 한국어, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where you saw it
+      description: The screen and the text as shown (a screenshot helps).
+    validations:
+      required: true
+  - type: textarea
+    id: better
+    attributes:
+      label: A better translation
+      description: Or open a pull request editing apps/web/lib/i18n/locales/<language>.json directly (CONTRIBUTING.md → Translating).

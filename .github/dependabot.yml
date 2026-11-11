@@ -1,0 +1,26 @@
+# Weekly dependency updates, grouped, against develop (CONTRIBUTING.md).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    target-branch: develop
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: pip
+    directory: /
+    target-branch: develop
+    schedule: { interval: weekly }
+    groups:
+      pip-minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: develop
+    schedule: { interval: weekly }
+  - package-ecosystem: docker
+    directories: [/, /apps/web]
+    target-branch: develop
+    schedule: { interval: weekly }

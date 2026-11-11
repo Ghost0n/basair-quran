@@ -6,6 +6,9 @@
  */
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000").replace(/\/$/, "");
 
+/** Where the source code is published (AGPL-3.0 §13: the service offers its source to its users). */
+export const SOURCE_URL = "https://github.com/Ghost0n/Q-Basair";
+
 /** Public pages search engines should list (the app itself lives at "/"). */
 export const PUBLIC_PAGES: readonly { path: string; priority: number }[] = [
   { path: "/", priority: 1 },

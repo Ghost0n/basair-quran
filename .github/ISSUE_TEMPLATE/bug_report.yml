@@ -1,0 +1,40 @@
+name: Bug or wrong result
+description: Something doesn't work, or a search, root, count or verse is wrong.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. A wrong Quranic result is the most important kind of bug: please give the exact search or verse so it can be checked.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what you saw instead.
+    validations:
+      required: true
+  - type: input
+    id: reference
+    attributes:
+      label: Search, page or verse
+      description: "The words or root searched (and word/root/phrase mode), or the page / surah:ayah, e.g. 2:255."
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - Website on a computer
+        - Website on a phone
+        - iPhone / iPad app
+        - Android app
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version, browser, language of the interface
+      placeholder: "e.g. app 0.1.90 · Safari 18 · Arabic"
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots or a short video
