@@ -457,6 +457,35 @@
 
 /* «الدعم والملاحظات» (features/feedback/feedback-card.tsx) */
 
+/* The guide, before writing to the team. */
+.qb-feedback-guide {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--glass-rim);
+  background: color-mix(in srgb, var(--gold-text) 7%, transparent);
+  color: var(--fg-1);
+  text-decoration: none;
+}
+
+.qb-feedback-guide .qb-icon {
+  flex: none;
+  color: var(--gold-text);
+}
+
+.qb-feedback-guide span {
+  display: grid;
+  gap: 2px;
+}
+
+.qb-feedback-guide small {
+  font-size: 13px;
+  color: var(--fg-2);
+}
+
 .qb-feedback-form {
   display: flex;
   flex-direction: column;

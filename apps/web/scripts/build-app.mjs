@@ -45,5 +45,7 @@ const manifest = JSON.parse(readFileSync(path.join(offline, "manifest.json"), "u
 writeFileSync(path.join(out, "assets/databases/core.version"), `${manifest.core.version}\n`);
 await bundleScriptFonts(out);
 rmSync(path.join(out, "offline"), { recursive: true, force: true });
+// The guide's screenshots and clips stay on the website (the app links to its /guide).
+rmSync(path.join(out, "guide-media"), { recursive: true, force: true });
 if (withPacks) cpSync(offline, path.join(out, "offline"), { recursive: true });
 console.log(`app bundle → ${out}${withPacks ? " (with packs under /offline)" : ""}`);

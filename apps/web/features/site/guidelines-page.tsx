@@ -4,12 +4,10 @@ import "./site.css";
 
 import { Fragment, type ReactNode } from "react";
 
-import { BrandMark } from "@/components/brand-mark";
 import { useI18n } from "@/lib/i18n/provider";
 
-import { t } from "@/lib/i18n";
-
 import { GUIDELINES } from "./guidelines-content";
+import { SiteBar, SiteFoot } from "./site-chrome";
 
 /** «**bold**» spans inside a guideline. */
 function rich(text: string): ReactNode {
@@ -23,15 +21,7 @@ export function GuidelinesPage() {
   const dir = locale === "ar" ? "rtl" : "ltr";
   return (
     <div className="qb-site">
-      <header className="qb-site-bar">
-        <a className="brand" href="/about" aria-label={t("بصائر القرآن")}>
-          <BrandMark size={34} />
-          <span>{t("بصائر")}</span>
-        </a>
-        <a className="qb-site-cta sm" href="/">
-          {t("افتح التطبيق")}
-        </a>
-      </header>
+      <SiteBar current="/guidelines" />
       <main className="qb-site-doc" dir={dir} lang={locale === "ar" ? "ar" : "en"}>
         <h1>{text.title}</h1>
         <p className="intro">{text.intro}</p>
@@ -50,6 +40,7 @@ export function GuidelinesPage() {
           );
         })}
       </main>
+      <SiteFoot />
     </div>
   );
 }

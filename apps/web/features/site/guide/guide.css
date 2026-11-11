@@ -1,0 +1,585 @@
+/* =====================================================================
+   The guide (/guide): a hero with a filter, an index that follows the
+   reading (chips on phones, a sticky column on wide screens), and each
+   feature as a card — its steps, and a real screenshot or clip in a phone
+   that tilts into place. Mobile first; no motion under reduced motion.
+   ===================================================================== */
+
+html:has(.qb-guide) {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.qb-guide) {
+    scroll-behavior: auto;
+  }
+}
+
+/* ---------- Hero ---------- */
+
+.qb-guide-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 48px 16px 34px;
+  text-align: center;
+}
+
+.qb-guide-hero .pattern {
+  position: absolute;
+  inset: -20% -10% auto;
+  z-index: -1;
+  height: 140%;
+  width: 120%;
+  opacity: 0.08;
+  color: var(--gold-text);
+  -webkit-mask-image: radial-gradient(closest-side, #000, transparent);
+  mask-image: radial-gradient(closest-side, #000, transparent);
+}
+
+.qb-guide-hero .eyebrow {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--gold-text);
+}
+
+.qb-guide-hero h1 {
+  margin: 8px 0 0;
+  font-family: var(--font-arabic-heading);
+  font-size: clamp(34px, 7vw, 56px);
+  line-height: 1.25;
+}
+
+.qb-guide-hero .lead {
+  max-width: 620px;
+  margin: 12px auto 0;
+  font-size: 17px;
+  line-height: 1.9;
+  color: var(--fg-2);
+}
+
+.qb-guide-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 520px;
+  min-height: 52px;
+  margin: 24px auto 0;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-rim);
+  background: var(--glass-tint);
+  background-image: var(--glass-sheen);
+  color: var(--fg-3);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.qb-guide-search:focus-within {
+  border-color: color-mix(in srgb, var(--gold-text) 60%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold-text) 14%, transparent);
+}
+
+.qb-guide-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  font: inherit;
+  font-size: 16px;
+  color: var(--fg-1);
+}
+
+.qb-guide-search input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.qb-guide-search button {
+  display: inline-flex;
+  padding: 6px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--fg-2);
+  cursor: pointer;
+}
+
+/* The phone / computer switch. */
+.qb-guide-platform {
+  display: inline-flex;
+  gap: 4px;
+  margin: 22px auto 0;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-rim);
+  background: var(--glass-tint);
+}
+
+.qb-guide-platform button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg-2);
+  cursor: pointer;
+  transition: background-color 250ms ease, color 250ms ease;
+}
+
+.qb-guide-platform button.is-on {
+  color: #140f00;
+  background: var(--gold-gel, var(--gold-400));
+  box-shadow: var(--gold-gel-shadow, none);
+}
+
+.qb-guide-hero .qb-guide-search {
+  margin-top: 16px;
+}
+
+/* ---------- Index: chips on phones ---------- */
+
+.qb-guide-chips {
+  position: sticky;
+  top: calc(env(safe-area-inset-top, 0px) + 61px);
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px 16px;
+  scrollbar-width: none;
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+
+.qb-guide-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.qb-guide-chips a {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-rim);
+  font-size: 14px;
+  color: var(--fg-2);
+  text-decoration: none;
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+
+.qb-guide-chips a.is-active {
+  border-color: transparent;
+  color: #140f00;
+  background: var(--gold-gel, var(--gold-400));
+}
+
+/* ---------- Layout ---------- */
+
+.qb-guide-body {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 8px 16px 56px;
+}
+
+.qb-guide-index {
+  display: none;
+}
+
+@media (min-width: 1040px) {
+  .qb-guide-chips {
+    display: none;
+  }
+
+  .qb-guide-body {
+    display: grid;
+    grid-template-columns: 250px minmax(0, 1fr);
+    gap: 48px;
+    padding-inline: 40px;
+  }
+
+  .qb-guide-index {
+    display: block;
+    position: sticky;
+    top: 92px;
+    align-self: start;
+    max-height: calc(100dvh - 120px);
+    overflow-y: auto;
+    padding-top: 28px;
+    scrollbar-width: thin;
+  }
+}
+
+.qb-guide-index ol,
+.qb-guide-index ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.qb-guide-index > ol > li + li {
+  margin-top: 6px;
+}
+
+.qb-guide-index > ol > li > a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  color: var(--fg-2);
+  text-decoration: none;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+.qb-guide-index > ol > li.is-active > a {
+  color: var(--gold-text);
+  background: var(--glass-tint);
+}
+
+/* The current chapter's topics unfold under it. */
+.qb-guide-index .sub {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms ease;
+}
+
+.qb-guide-index li.is-active .sub {
+  grid-template-rows: 1fr;
+}
+
+.qb-guide-index .sub ul {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.qb-guide-index ul a {
+  display: block;
+  padding: 4px 12px;
+  padding-inline-start: 36px;
+  font-size: 14px;
+  color: var(--fg-3);
+  text-decoration: none;
+}
+
+.qb-guide-index ul a:hover {
+  color: var(--fg-1);
+}
+
+/* ---------- Chapters and topics ---------- */
+
+.qb-guide-chapter {
+  scroll-margin-top: 130px;
+  padding-top: 28px;
+}
+
+.qb-guide-chapter + .qb-guide-chapter {
+  margin-top: 26px;
+}
+
+.qb-guide-chapter > header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.qb-guide-chapter > header .icon {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  color: var(--gold-text);
+  background: var(--glass-tint);
+  border: 1px solid var(--glass-rim);
+}
+
+.qb-guide-chapter h2 {
+  margin: 0;
+  font-family: var(--font-arabic-heading);
+  font-size: clamp(26px, 4.4vw, 34px);
+  line-height: 1.3;
+}
+
+.qb-guide-chapter > header p {
+  margin: 2px 0 0;
+  color: var(--fg-2);
+  line-height: 1.7;
+}
+
+.qb-guide-topic {
+  scroll-margin-top: 130px;
+  margin-top: 14px;
+  padding: 22px 20px;
+  border-radius: 24px;
+  border: 1px solid var(--glass-rim);
+  background: var(--glass-tint-soft, var(--glass-tint));
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 600ms ease, transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 400ms ease, border-color 400ms ease;
+}
+
+.qb-guide-topic.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* A topic opened by its link glows for a moment. */
+.qb-guide-topic:target {
+  opacity: 1;
+  transform: none;
+  animation: qb-guide-target 2.4s ease;
+}
+
+@keyframes qb-guide-target {
+  0%,
+  40% {
+    border-color: color-mix(in srgb, var(--gold-text) 70%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold-text) 18%, transparent);
+  }
+}
+
+.qb-guide-topic h3 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.5;
+}
+
+.qb-guide-topic h3 a {
+  color: var(--fg-1);
+  text-decoration: none;
+}
+
+.qb-guide-topic h3 a:hover {
+  color: var(--gold-text);
+}
+
+.qb-guide-topic .badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold-text);
+  border: 1px solid color-mix(in srgb, var(--gold-text) 40%, transparent);
+}
+
+.qb-guide-topic .summary {
+  margin: 8px 0 0;
+  font-size: 16px;
+  line-height: 1.9;
+  color: var(--fg-2);
+}
+
+.qb-guide-topic .steps {
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.qb-guide-topic .steps li {
+  position: relative;
+  padding-inline-start: 38px;
+  font-size: 15.5px;
+  line-height: 1.85;
+  color: var(--fg-1);
+  counter-increment: step;
+  opacity: 0;
+  transform: translateX(calc(var(--dir-sign, 1) * 10px));
+  transition: opacity 500ms ease, transform 500ms ease;
+  transition-delay: calc(200ms + var(--i, 0) * 80ms);
+}
+
+[dir="rtl"] .qb-guide-topic .steps li {
+  --dir-sign: -1;
+}
+
+.qb-guide-topic.is-in .steps li,
+.qb-guide-topic:target .steps li {
+  opacity: 1;
+  transform: none;
+}
+
+.qb-guide-topic .steps li + li {
+  margin-top: 8px;
+}
+
+.qb-guide-topic .steps li::before {
+  content: counter(step);
+  position: absolute;
+  inset-inline-start: 0;
+  top: 2px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
+  color: #140f00;
+  background: var(--gold-gel, var(--gold-400));
+}
+
+.qb-guide-topic .tip {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-size: 14.5px;
+  line-height: 1.8;
+  color: var(--fg-2);
+  background: color-mix(in srgb, var(--gold-text) 8%, transparent);
+}
+
+.qb-guide-topic .tip .qb-icon {
+  flex: none;
+  margin-top: 4px;
+  color: var(--gold-text);
+}
+
+/* ---------- The phone ---------- */
+
+.qb-guide-shot {
+  margin: 22px 0 0;
+  perspective: 1200px;
+}
+
+.qb-guide-phone {
+  width: min(250px, 68vw);
+  aspect-ratio: 390 / 844;
+  margin: 0 auto;
+  padding: 8px;
+  border-radius: 40px;
+  background: linear-gradient(145deg, #3a3426, #15130f 40%, #2a261c);
+  box-shadow: 0 0 0 1px rgba(255, 248, 228, 0.12), 0 30px 60px rgba(0, 0, 0, 0.45), inset 0 0 0 2px rgba(0, 0, 0, 0.6);
+  transform: rotateY(calc(var(--dir-sign, 1) * 14deg)) rotateX(4deg) translateY(26px) scale(0.94);
+  opacity: 0;
+  transition: transform 900ms cubic-bezier(0.2, 0.7, 0.2, 1) 150ms, opacity 700ms ease 150ms;
+}
+
+[dir="rtl"] .qb-guide-phone {
+  --dir-sign: -1;
+}
+
+.qb-guide-topic.is-in .qb-guide-phone,
+.qb-guide-topic:target .qb-guide-phone {
+  transform: none;
+  opacity: 1;
+}
+
+.qb-guide-phone img,
+.qb-guide-phone video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 32px;
+  background: var(--bg);
+}
+
+/* ---------- The browser window (the computer's guide) ---------- */
+
+.qb-guide-window {
+  overflow: hidden;
+  max-width: 880px;
+  margin: 0 auto;
+  border-radius: 14px;
+  border: 1px solid var(--glass-rim);
+  background: #121110;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+  transform: perspective(1400px) rotateX(8deg) translateY(30px) scale(0.96);
+  transform-origin: 50% 100%;
+  opacity: 0;
+  transition: transform 900ms cubic-bezier(0.2, 0.7, 0.2, 1) 150ms, opacity 700ms ease 150ms;
+}
+
+.qb-guide-topic.is-in .qb-guide-window,
+.qb-guide-topic:target .qb-guide-window {
+  transform: none;
+  opacity: 1;
+}
+
+.qb-guide-window .bar {
+  display: flex;
+  gap: 6px;
+  padding: 9px 12px;
+  direction: ltr;
+  background: #1d1b17;
+  border-bottom: 1px solid rgba(255, 248, 228, 0.08);
+}
+
+.qb-guide-window .bar i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(255, 248, 228, 0.18);
+}
+
+.qb-guide-window img,
+.qb-guide-window video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  background: var(--bg);
+}
+
+@media (min-width: 760px) {
+  .qb-guide-topic {
+    padding: 28px 30px;
+  }
+
+  .qb-guide-topic.on-mobile.has-media {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 250px;
+    align-items: center;
+    gap: 36px;
+  }
+
+  .qb-guide-topic.on-mobile.has-media .qb-guide-shot {
+    margin: 0;
+  }
+}
+
+.qb-guide-empty {
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--fg-2);
+  line-height: 1.9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-guide-topic,
+  .qb-guide-topic .steps li,
+  .qb-guide-phone,
+  .qb-guide-window {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .qb-guide-topic:target {
+    animation: none;
+  }
+}
