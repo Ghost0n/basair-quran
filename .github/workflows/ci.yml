@@ -143,7 +143,7 @@ jobs:
       # mistake, and misconfigurations in the Dockerfiles. Fails on a CRITICAL
       # or HIGH finding that has a fix; accepted exceptions: .trivyignore.
       - name: Scan the repository
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -157,7 +157,7 @@ jobs:
       # The full report (every severity) for review, kept with the run.
       - name: Full report (all severities)
         if: always()
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -207,7 +207,7 @@ jobs:
           pytest -q --cov=src --cov-report=xml:coverage.xml
       - name: Analyse
         if: steps.enabled.outputs.on == 'true'
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v8
         with:
           args: >
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY || 'ghost0n_q-basair' }}

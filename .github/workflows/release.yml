@@ -86,7 +86,7 @@ jobs:
       # Nothing ships with a known CRITICAL or HIGH vulnerability that has a
       # fix (accepted exceptions, with their reason: .trivyignore).
       - name: Scan the image (Trivy)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: qbasair-${{ matrix.image }}:candidate
           scanners: vuln,secret
