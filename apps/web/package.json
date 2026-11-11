@@ -25,7 +25,7 @@
     "@q-basair/offline-engine": "workspace:*",
     "@q-basair/shared": "workspace:*",
     "@xyflow/react": "^12.8.0",
-    "next": "15.5.15",
+    "next": "15.5.29",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "sql.js": "1.14.2"
@@ -35,8 +35,8 @@
     "@types/react": "19.1.2",
     "@types/react-dom": "19.1.2",
     "@types/sql.js": "^1.4.11",
-    "happy-dom": "15.11.7",
+    "happy-dom": "21.0.4",
     "typescript": "5.8.3",
-    "vitest": "^2.1.9"
+    "vitest": "3.2.7"
   }
 }
