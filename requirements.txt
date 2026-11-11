@@ -1,12 +1,12 @@
 # Runtime dependencies, pinned for reproducible builds (Phase 0 CI gate).
 # Versions match the verified local/runtime environment.
-fastapi==0.109.0
-starlette==0.35.1
-pydantic==2.5.3
+fastapi==0.162.4
+starlette==1.10.0
+pydantic==2.14.3
 uvicorn==0.27.0
 itsdangerous==2.2.0
 # Sign-in with Keycloak (docs/keycloak.md): ID / access token checks (RS256 / PS256 / ES256).
-PyJWT==2.14.0
+PyJWT==2.15.1
 cryptography==50.0.1
 # A guest's email for the feedback centre: does its domain take mail (src/app/services/email_check.py).
-dnspython==2.7.0
+dnspython==2.9.2
