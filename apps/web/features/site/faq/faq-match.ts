@@ -38,11 +38,13 @@ function words(text: string): string[] {
     .map(stem);
 }
 
-/** Two words meet when they are equal or one begins the other (3 letters at least): «حساب» ~ «حسابي», «font» ~ «fonts». */
+/** Two words meet when they are equal or one begins the other (3 letters at least, 2 Korean or Chinese syllables): «حساب» ~ «حسابي», «font» ~ «fonts». */
 function meet(a: string, b: string): boolean {
   if (a === b) return true;
   const [short, long] = a.length <= b.length ? [a, b] : [b, a];
-  return short.length >= 3 && long.startsWith(short);
+  // A Korean or Chinese syllable carries more than a letter: two are a word (계정 ~ 계정을).
+  const least = /[\p{Script=Hangul}\p{Script=Han}]/u.test(short) ? 2 : 3;
+  return short.length >= least && long.startsWith(short);
 }
 
 /** Letter pairs, for the languages written without spaces (Chinese, Japanese). */
