@@ -36,13 +36,12 @@ describe("ensureScriptFont", () => {
     expect(appended[0].dataset.scriptFont).toBe("devanagari");
   });
 
-  it("falls back to Google Fonts when the self-hosted stylesheet fails", async () => {
+  it("never reaches a third party, even when the self-hosted stylesheet fails", async () => {
     const appended = stubDocument();
     const { ensureScriptFont } = await freshModule();
     ensureScriptFont("ja");
     appended[0].onerror?.();
-    expect(appended[0].href).toBe("https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600&display=swap");
-    expect(appended[0].onerror).toBeNull();
+    expect(appended[0].href).toBe("/fonts/noto/ja.css");
   });
 });
 
