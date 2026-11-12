@@ -1,5 +1,6 @@
 /**
- * Icon catalogue — Lucide-style stroke icons on a 24px viewBox.
+ * Icon catalogue — Lucide-style stroke icons on a 24px viewBox, some adapted
+ * from Lucide (ISC, ./LICENSE-lucide.txt; see NOTICE.md).
  * Stroke 1.75 by default, inherits currentColor.
  * Add icons here rather than inlining SVG in components.
  */

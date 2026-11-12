@@ -22,6 +22,7 @@ the source.
 | `data/word_root_dictionary.json` | Fallback word → root table for spellings the corpus never uses | Derived from the Quranic Arabic Corpus morphology data | As the Quranic Arabic Corpus: GNU GPL, attribution required |
 | `apps/web/public/fonts/AmiriQuran-Regular.ttf`, `apps/web/public/fonts/ui/amiri-*` | Amiri and Amiri Quran | Khaled Hosny, the Amiri project | SIL Open Font License 1.1 (`apps/web/public/fonts/ui/OFL-Amiri.txt`) |
 | `apps/web/public/fonts/ui/cairo-*` | Cairo | Mohamed Gaber, the Cairo project | SIL Open Font License 1.1 (`apps/web/public/fonts/ui/OFL-Cairo.txt`) |
+| `apps/web/components/icon.tsx` | Interface icons, some adapted from Lucide | Lucide Contributors (portions from Feather, Cole Bemis) | ISC (`apps/web/components/LICENSE-lucide.txt`) |
 | `apps/web/public/guide-media/` | Screenshots and clips of the app (the guide) | This project | AGPL-3.0, with the Quran text they show under its own terms above |
 
 ## Fetched at build or deploy time (never committed)
@@ -31,8 +32,35 @@ the source.
 | `scripts/fetch_mushaf_fonts.py` | QPC V1 page fonts (604 + basmala), served unmodified | KFGQPC, via `nuqayah/qpc-fonts` | KFGQPC "Freeware, Non-Commercial": free to use, copy and distribute; no sale, no modification or subsetting, no reverse engineering |
 | `scripts/build_mushaf_layout.py` | Line-by-line Madani page layout | `zonetecde/mushaf-layout` (QUL / Tarteel data family) | Freely redistributable layout data |
 | `scripts/build_translations.py` | Translations of the meanings (`data/translations.db`) | QuranEnc (Noble Quran Encyclopedia) first, Tanzil for gaps (`scripts/translation_sources.json`) | QuranEnc: free with attribution, unmodified. Tanzil: non-commercial, with attribution, verbatim. Each text is stored and shown with its source, translator and version |
-| `scripts/build_recitations.py` | Recitation audio and verse timings (`data/recitations/`) | Quran.com, mp3quran.net, everyayah.com (`scripts/recitation_sources.json`) | Each source's terms; every prepared surah keeps its attribution, shown in the reciter list |
+| `scripts/build_recitations.py` | Recitation audio and verse timings (`data/recitations/`), copied to the server and served from it | Quran.com / QuranicAudio, mp3quran.net, everyayah.com (`scripts/recitation_sources.json`) | **Not yet confirmed.** The recordings belong to their reciters and publishers; written permission to re-host and stream them is being requested from each source (see below). Every prepared surah keeps its attribution, shown in the reciter list |
 | `apps/web/scripts/fetch-script-fonts.mjs` | Noto fonts for non-Latin interface scripts | Google Fonts / Noto | SIL Open Font License 1.1 |
+
+## Services the app calls while running
+
+| Service | What for | Terms |
+|---|---|---|
+| Quran.com (`api.qurancdn.com`, `download.quranicaudio.com`), mp3quran.net, everyayah.com | Playing a recitation straight from its source when the server has not prepared it, and its verse timings | Each source's terms — **not yet confirmed**, as above |
+| The AI provider a user connects (Anthropic, OpenAI, Google, Mistral, Groq, DeepSeek, xAI, OpenRouter) | The study assistant, with the user's own key or sign-in | That provider's terms, accepted by the user |
+| Ollama (the server's default model) | The study assistant and moderation, for users without their own provider | The operator's Ollama account and the model's own licence |
+| Yamli (`api.yamli.com`) | Optional Arabic typing aid; **off** in production (`NEXT_PUBLIC_ENABLE_YAMLI=0`) | Yamli's terms, if an operator turns it on |
+
+Interface fonts are self-hosted: Google Fonts is only contacted when the build
+downloads them (`apps/web/scripts/fetch-script-fonts.mjs`), never by a visitor's
+browser.
+
+### Recitations: permission status
+
+| Source | Re-hosting on our server | Streaming from the source |
+|---|---|---|
+| Quran.com / QuranicAudio | to request | to request |
+| mp3quran.net | to request | to request |
+| everyayah.com | to request | to request |
+
+The request sent to each source, in English and Arabic, is
+`docs/recitation-permission-request.md`; record each answer (date, conditions)
+in this table. Until a source answers yes, an operator should not prepare
+(re-host) its recordings; `QBASAIR_PREPARE_RECITERS` limits which reciters are
+prepared.
 
 The research corpus under `data/research_sources/` is private to each
 installation and is never part of the repository.
