@@ -49,12 +49,10 @@ Google font host and lists every third-party host contacted.
 
 ## Other third-party requests
 
-The same rule holds for everything a visitor's browser loads. The only optional
-third-party script, Yamli (Arabic typing aid, `api.yamli.com`), is **opt-in**: it
-loads only when the web is built with `NEXT_PUBLIC_ENABLE_YAMLI=1`, and the
-production build sets `0`. The app also plays recitations straight from their
-sources when the server has not prepared them (`NOTICE.md` → *Services the app
-calls while running*); the AI providers are reached by the server, not the
+The same rule holds for everything a visitor's browser loads: no analytics, no
+advertising, no third-party scripts. The app does play recitations straight from
+their sources when the server has not prepared them (`NOTICE.md` → *Services the
+app calls while running*); the AI providers are reached by the server, not the
 browser.
 
 ## Last audit (November 2026)
@@ -63,6 +61,6 @@ browser.
 in Arabic, English, Japanese, Hindi, Korean, Urdu, Bengali, Chinese and
 Russian, desktop and phone, plus the run with the self-hosted fonts blocked):
 **0 requests** to `fonts.googleapis.com` or `fonts.gstatic.com`. The only
-third-party host was Yamli, because the test server was built without
-`NEXT_PUBLIC_ENABLE_YAMLI`, which then defaulted to on; it is now opt-in, and a
-second pass contacted no third-party host at all.
+other third-party host was the Yamli typing aid, which the test build had left
+on; it has since been removed from the app, and a second pass contacted no
+third-party host at all.

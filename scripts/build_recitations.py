@@ -46,7 +46,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.app.core import config  # noqa: E402
 from src.app.services import reciter_service  # noqa: E402
 from src.app.services import recitation_sources as sources  # noqa: E402
-from src.app.services.recitation_cache_service import ayah_count  # noqa: E402
 
 logger = logging.getLogger("qbasair.build_recitations")
 

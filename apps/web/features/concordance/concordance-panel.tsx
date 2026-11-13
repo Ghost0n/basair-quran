@@ -474,8 +474,7 @@ export function ConcordancePanel() {
                       title={t("ثبّت في الدفتر")}
                       onClick={(event) => {
                         event.stopPropagation();
-                        // Nothing is saved until «تمّ» in the sheet, so no
-                        // fly-to-notebook flourish here.
+                        // Nothing is saved until «تمّ» in the sheet.
                         pinVerse(verse);
                       }}
                     >

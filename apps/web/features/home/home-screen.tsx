@@ -89,7 +89,7 @@ type Card = {
 export function HomeScreen() {
   const { setMode } = useShellMode();
   const formatNumber = useNumerals();
-  const { preferences, ready } = usePreferences();
+  const { preferences } = usePreferences();
   const mushaf = useMushaf();
   const recitation = useRecitation();
   const { user } = useAuthSession();

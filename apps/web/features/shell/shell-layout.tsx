@@ -1,13 +1,7 @@
 import { Suspense, type ReactNode } from "react";
-import Script from "next/script";
 
-import { YamliInit } from "@/components/yamli-init";
 import { ShellGate } from "@/features/identity/shell-gate";
 import { Shell } from "@/features/shell/shell";
-
-// Yamli is a third-party script (the visitor's browser contacts api.yamli.com): opt-in only,
-// so a build without the variable never loads it (NOTICE.md, docs/privacy-fonts.md).
-const yamliEnabled = process.env.NEXT_PUBLIC_ENABLE_YAMLI === "1";
 
 /**
  * The workspace shell around every route in the (shell) group: WorkspaceProvider,
@@ -28,8 +22,6 @@ export function ShellLayout({ children }: { children: ReactNode }) {
           </div>
         </ShellGate>
       </Suspense>
-      {yamliEnabled ? <Script src="https://api.yamli.com/js/yamli_api.js" strategy="afterInteractive" /> : null}
-      {yamliEnabled ? <YamliInit targetId="searchInput" /> : null}
     </>
   );
 }

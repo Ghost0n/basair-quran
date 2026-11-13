@@ -11,7 +11,7 @@ import { StudioPanel } from "@/features/studio/studio-panel";
 import { useBand } from "@/lib/bands";
 import { useWebDesign } from "@/lib/use-web-design";
 
-import { useShellMode, type ShellMode } from "./mode-context";
+import { type ShellMode } from "./mode-context";
 import { useRoomReset, useRoomWide } from "./room";
 
 /**

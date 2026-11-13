@@ -2,12 +2,10 @@
 
 import { useRef, useState } from "react";
 
-import { createQBasairApiClient } from "@q-basair/api-client";
-
 import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-mark";
 import { Icon } from "@/components/icon";
 import { Sheet, usePhoneSheets } from "@/components/sheet";
-import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
+import { AUTH_ENABLED } from "@/lib/config";
 import { useAuthSession } from "@/lib/auth-session-context";
 import { clearGuestChoice, signOutEverywhere } from "@/features/auth/identity-flow";
 
@@ -15,7 +13,6 @@ import "./account-menu.css";
 
 import { t } from "@/lib/i18n";
 
-const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 const MOTIFS = Object.keys(AVATAR_MOTIFS) as AvatarMotif[];
 
 function toMotif(value?: string | null): AvatarMotif {

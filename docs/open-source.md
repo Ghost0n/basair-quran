@@ -148,3 +148,57 @@ is public. Two ways to close that gap:
 - **Keep this repository** and ask GitHub Support to purge the cached pull
   request references after the rewrite (their "removing sensitive data"
   procedure) before changing the visibility.
+
+## Code assessment for copyright and conformity (November 2026)
+
+A pass over the code itself before going public, with no change to how the
+app behaves (all tests, the typecheck and a browser check of every screen
+unchanged).
+
+**Checked and clean**
+
+- Dependencies: all 217 npm packages and every Python dependency are under
+  licences compatible with AGPL-3.0 (details in the PR that added `NOTICE.md`).
+- No third-party code copied into the repository: no foreign licence headers,
+  no vendored or minified files; the "ported from" notes in
+  `packages/offline-engine` point at the project's own Python.
+- Assets are original: app icons and covers are generated from the project's
+  mark (`apps/mobile/scripts/make_icons.py`), the share image by
+  `scripts/make-og-image.mjs`, the page-turn cursors are hand-written SVG; no
+  third-party logo (AI providers, Google, Apple) is drawn anywhere.
+- No secret in the mobile projects: Android signing reads environment
+  variables; no keystore, provisioning profile or Firebase file is committed.
+- No analytics, advertising or tracking code; Next.js telemetry is disabled in
+  the web image; error reports go only to our own server (automatic capture is
+  opt-in, the «أبلِغ» button sends on the user's request).
+- No request from a visitor's browser to a third party
+  (`docs/privacy-fonts.md`, `apps/web/scripts/audit-third-party-requests.mjs`).
+
+**Patched**
+
+- Yamli (third-party Arabic typing script) removed entirely: component, search
+  hook handler, build arguments, CSP entry and docs. It was already off in
+  production; Latin-to-Arabic search suggestions do not depend on it.
+- Stale code removed: unused imports and variables (TypeScript with
+  `noUnusedLocals`/`noUnusedParameters`, ruff F401/F841), and three files
+  nothing used (`auth-topbar.tsx`, `logout-button.tsx`, `fly-to-notebook.ts`)
+  with the CSS only they needed.
+- Test fixtures and the moderation benchmark no longer carry realistic contact
+  details that could belong to real people: phone numbers, a Gmail address, a
+  social handle, a street address and named institutions became obvious
+  placeholders (each item keeps its label and meaning).
+- `NOTICE.md` now also lists the committed files generated from the Quran text
+  (landing-page verses, juz/hizb tables).
+
+**For the owner before launch**
+
+- **Recitation permissions:** send `docs/recitation-permission-request.md` and
+  record the answers in `NOTICE.md`.
+- **A privacy policy and a legal notice** (in the EU, and required by the App
+  Store and Google Play): the service stores account emails, feedback
+  addresses and community posts, and sends study questions and posts for
+  moderation to an AI provider (the operator's Ollama account by default). The
+  policy should say what is collected, why, for how long, who processes it
+  (the hosting provider, the AI provider), and how a person can see or delete
+  their data. The app already lets users delete their account and data.
+

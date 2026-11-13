@@ -33,7 +33,7 @@ if (!existsSync(path.join(offline, "core.db"))) {
 const build = spawnSync(process.execPath, [path.join(web, "node_modules/next/dist/bin/next"), "build"], {
   cwd: web,
   stdio: "inherit",
-  env: { ...process.env, NEXT_PUBLIC_APP_MODE: "1", NEXT_PUBLIC_ENABLE_YAMLI: process.env.NEXT_PUBLIC_ENABLE_YAMLI ?? "0" },
+  env: { ...process.env, NEXT_PUBLIC_APP_MODE: "1" },
 });
 if (build.status !== 0) process.exit(build.status ?? 1);
 

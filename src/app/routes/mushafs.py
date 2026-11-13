@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException, Path, Query, Response
 
 from src.app.models.api import MushafItem, ReciterDurations, ReciterItem, SurahListItem
 from src.app.services import recitation_service
-from src.app.services import quran_service, recitation_cache_service, reciter_service
+from src.app.services import quran_service, recitation_cache_service
 
 router = APIRouter(prefix="/api", tags=["catalog"])
 
