@@ -7,8 +7,9 @@
  * its WOFF2 files are downloaded into <root>/fonts/noto/: the stylesheet as
  * <script>.css, pointing at the local files, and the files under their
  * fonts.gstatic.com path (which carries the font version, so they can be
- * cached as immutable). `ensureScriptFont` loads /fonts/noto/<script>.css and
- * falls back to Google Fonts when it is missing.
+ * cached as immutable). `ensureScriptFont` loads /fonts/noto/<script>.css; when
+ * it is missing the text uses the device's fonts. This build step is the only
+ * place that talks to Google: a visitor's browser never does.
  *
  *   node scripts/fetch-script-fonts.mjs            → public/ (the web app)
  *   bundleScriptFonts(out) from build-app.mjs      → out/ (the phone app, offline)
@@ -68,12 +69,15 @@ export async function bundleScriptFonts(root) {
         }
         local = local.split(url).join(`/fonts/noto/${relative}`);
       }
+      // Visitors' browsers must never reach Google (NOTICE.md, docs/privacy-fonts.md):
+      // a stylesheet that still names a Google host is not written.
+      if (/fonts\.(googleapis|gstatic)\.com/.test(local)) throw new Error("the stylesheet still points at Google");
       // Written last: a stylesheet only exists once all its files do.
       writeFileSync(path.join(dir, `${script}.css`), local);
       bundled += 1;
       files += urls.length;
     } catch (error) {
-      console.warn(`script font ${script} not bundled (${error.message}); it will load from Google Fonts`);
+      console.warn(`script font ${script} not bundled (${error.message}); its text falls back to the device's fonts`);
     }
   }
   console.log(`script fonts: ${bundled}/${fonts.length} bundled in ${dir} (${files} files downloaded, ${(bytes / 1e6).toFixed(1)} MB)`);
