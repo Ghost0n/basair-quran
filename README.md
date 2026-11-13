@@ -44,7 +44,7 @@ Q-Basair is an open-source tool for reading and researching the Quran with evide
   for a run, or the verse-number ornament for the whole verse; then exact / root search, ask the
   Studio, count the phrase and each letter in page / surah / Quran, or copy with the reference) and
   «تظليل» (a tap anywhere on a verse selects it whole and opens save + themes — the only save path;
-  there is no per-verse bookmark). Contextual tafssir is asked from the Studio.
+  there is no per-verse bookmark). A question about a verse is asked from the Studio.
 - Page turns: swipe on touch screens (every reading mode; the continuous ones scroll a page); on
   pointer screens, glowing edge zones (click) and the mouse wheel / trackpad once the page can't
   scroll further. A tap on the empty page toggles focus mode. Saving a page: on desktop every page
@@ -151,8 +151,8 @@ Q-Basair is an open-source tool for reading and researching the Quran with evide
   browser, or the installed app), uploaded to the account when they sign in.
 - Sign-in with Keycloak (email, Apple, Google, Meta; 2FA for moderators) behind `QBASAIR_AUTH_PROVIDER=keycloak`: OpenID Connect code flow with PKCE, roles mirrored from Keycloak, the realm as code (`scripts/keycloak_realm.py`), a local Keycloak with `scripts/keycloak_dev.sh` — see `docs/keycloak.md`. The default stays `local` until the production platform's cut-over.
 - The study's AI: Basair's own model, or the reader's account with OpenRouter (sign-in), OpenAI, Anthropic, Gemini, Mistral, DeepSeek, Groq, xAI or Ollama Cloud — a key or a sign-in and a model, never an address (Settings → «الذكاء الاصطناعي», `docs/ai-connections.md`).
-- Strict-context research agent that uses local transcript/book sources for term discovery and answers only from Quran search results.
-- Dedicated `/research` workspace with per-session Ollama cloud key entry, model switching, request-usage observability, and an experimental Tafssir mode that reads every ayah with its neighbouring ayahs and its surah's context (and can be centred on one ayah).
+- A research agent that answers from the Quran alone: search terms come from the question and the Quran's own vocabulary, the answer only from the ayahs Quran search returns (each read with its neighbouring ayahs), with no tafsir, hadith, book or other outside source; it can be centred on one ayah.
+- Dedicated `/research` workspace with per-session Ollama cloud key entry, model switching and request-usage observability.
 
 ## Project Layout
 
@@ -182,15 +182,7 @@ The builder now precomputes phrase-token metadata and morphology search variants
 
 Each word's root is read from the morphology source (`data/quran-morphology.txt`, the Quranic Arabic Corpus, Ḥafṣ) word by word, not looked up by spelling: «قُلۡ» is قول while «قَلَّ» is قلل, and particles such as «مِن», «ما», «إنّ» or «على» have no root. Narrations that number or spell verses differently take the root of the same word in a nearby verse of the surah (hamza seats, alifs and the final yā' barī «ے» set aside); `data/word_root_dictionary.json` is only the fallback for spellings the source never uses. Each build prints, per narration, how many roots came from each step (`scripts/build_db.py`, `RootResolver`; tests in `tests/test_build_db.py`).
 
-3. Add optional research-agent sources under `data/research_sources/`, then build the generated research index:
-
-```powershell
-python scripts/build_research_index.py
-```
-
-Supported source formats are `.txt`, `.md`, `.json`, `.srt`, `.vtt`, and `.pdf` when `pypdf` is installed. Add `--with-embeddings` to store Ollama embeddings in the index; otherwise the agent uses FTS5 plus the Quran term catalog.
-
-4. Start the API on port `8001`:
+3. Start the API on port `8001`:
 
 ```powershell
 python -m uvicorn src.main:app --host 127.0.0.1 --port 8001
@@ -295,7 +287,7 @@ persistent `data/` storage and one API replica (the app relies on SQLite).
 - **Release** (`.github/workflows/release.yml`, every push to `main`): the API and web images are built
   on GitHub, scanned with Trivy, pushed to GitHub Container Registry and deployed over SSH by
   `deploy/server/deploy.sh`, health-gated with automatic rollback. Deploy tags in the merge commit
-  (`[rebuild-db]`, `[rebuild-index]`, `[rebuild-translations]`, `[prefill-recitation]`,
+  (`[rebuild-db]`, `[rebuild-translations]`, `[prefill-recitation]`,
   `[prepare-recitations]`) start the matching data jobs.
 - **Server**: `deploy/server/setup.sh` (one-time preparation), `tls.sh` (Let's Encrypt),
   `backup.sh` (nightly), `deploy.sh` (deploy and rollback).

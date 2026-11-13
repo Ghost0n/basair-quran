@@ -1705,5 +1705,7 @@
  "وقفة، انقطاع، فاصل، صوت، قطع": "jeda, terputus, putus-putus, berhenti, suara, audio, sela",
  "يمرّ كل بحث بفحوص آلية (الآيات والمراجع ووسم المحتوى الآلي)، ثم بمراجعة وفق الإرشادات، ويراجع مشرفٌ أوّل منشور لكل مستخدم. إن طُلب منك تعديل تجد السبب.": "Setiap penyelidikan melalui semakan automatik (ayat, rujukan dan label kandungan janaan AI), kemudian semakan mengikut garis panduan, dan seorang moderator menyemak hantaran pertama setiap pengguna. Jika anda diminta membuat pindaan, anda akan melihat sebabnya.",
  "الشيفرة المصدرية": "Kod sumber",
- "«بصائر» مفتوح المصدر: اقرأ شيفرته أو ساهم فيها.": "Basair ialah sumber terbuka: baca kodnya atau sumbangkan."
+ "«بصائر» مفتوح المصدر: اقرأ شيفرته أو ساهم فيها.": "Basair ialah sumber terbuka: baca kodnya atau sumbangkan.",
+ "لا يدخل الجوابَ إلا الآياتُ التي وجدها البحث، بنصّها ومراجعها، وكل آية تفتح موضعها في المصحف. ولا يستعين الباحث بتفسير ولا بقول من خارج القرآن.": "Jawapan hanya mengandungi ayat yang ditemui oleh carian, bersama teks dan rujukannya, dan setiap ayat membuka kedudukannya dalam mushaf. Penyelidik tidak menggunakan sebarang tafsir atau kata-kata dari luar al-Quran.",
+ "لا يدخل الجوابَ إلا الآياتُ التي وجدها البحث، بنصّها ومراجعها.": "Jawapan hanya mengandungi ayat yang ditemui oleh carian, bersama teks dan rujukannya."
 }

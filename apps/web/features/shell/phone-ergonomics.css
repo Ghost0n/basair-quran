@@ -772,8 +772,6 @@
   html:root .qb-nav-sheet .tabs button,
   html:root .qb-studio-tab,
   html:root .qb-studio-tab .label,
-  html:root .qb-mode-tab,
-  html:root .qb-studio .tool-chip,
   html:root .qb-studio .send {
     min-height: 44px;
   }

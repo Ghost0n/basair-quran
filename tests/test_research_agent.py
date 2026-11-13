@@ -1,47 +1,33 @@
-import sqlite3
-
 import pytest
 
-from src.app.core import config
 from src.app.models.api import (
     ResearchAgentAyah,
     ResearchAgentMessage,
     ResearchRelatedTerm,
     ResearchSearchItem,
-    TafssirStructuredAnswer,
 )
 from src.app.services import quran_service, research_agent_service
 
 
 class StubResearchProvider(research_agent_service.ResearchLlmProvider):
-    def __init__(self, plan, answer="Answer from ayahs only.", tafssir_answer="Experimental tafssir answer."):
+    def __init__(self, plan, answer="Answer from ayahs only."):
         self.plan = plan
         self.answer = answer
-        self.tafssir_answer = tafssir_answer
-        self.planning_chunks = []
-        self.expansion_chunks = []
         self.answer_ayahs = []
-        self.tafssir_chunks = []
 
-    def expand_search_candidates(self, messages, source_chunks, quran_terms, answer_language):
-        self.expansion_chunks = source_chunks
+    def expand_search_candidates(self, messages, quran_terms, answer_language):
         return research_agent_service.CandidateExpansion(
             related_terms=self.plan.related_terms,
             searches=self.plan.searches,
         )
 
-    def create_search_plan(self, messages, source_chunks, quran_terms, expanded_candidates, answer_language):
-        self.planning_chunks = source_chunks
+    def create_search_plan(self, messages, quran_terms, expanded_candidates, answer_language):
         return self.plan
 
     def synthesize_answer(self, messages, ayahs, related_terms, searches, answer_language):
         self.answer_ayahs = ayahs
         return self.answer
 
-    def synthesize_tafssir_answer(self, messages, ayahs, related_terms, searches, source_chunks, answer_language):
-        self.answer_ayahs = ayahs
-        self.tafssir_chunks = source_chunks
-        return self.tafssir_answer
 
 
 @pytest.fixture(autouse=True)
@@ -185,205 +171,36 @@ def test_merge_model_catalogs_keeps_unique_names_and_combines_capabilities():
     assert sorted(merged[0].capabilities) == ["chat", "cloud"]
 
 
-def create_minimal_research_index(path):
-    connection = sqlite3.connect(path)
-    cursor = connection.cursor()
-    cursor.executescript(
-        """
-        CREATE TABLE source_documents (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            source_path TEXT NOT NULL,
-            title TEXT NOT NULL,
-            source_type TEXT NOT NULL,
-            content_hash TEXT NOT NULL,
-            indexed_at REAL NOT NULL,
-            metadata_json TEXT NOT NULL DEFAULT '{}'
-        );
-        CREATE TABLE source_chunks (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            document_id INTEGER NOT NULL,
-            chunk_index INTEGER NOT NULL,
-            content TEXT NOT NULL,
-            content_simple TEXT NOT NULL,
-            token_count INTEGER NOT NULL,
-            metadata_json TEXT NOT NULL DEFAULT '{}'
-        );
-        CREATE VIRTUAL TABLE source_chunks_fts USING fts5(content, content_simple, title, source_path);
-        CREATE TABLE quran_terms (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            mushaf_id INTEGER NOT NULL,
-            term_type TEXT NOT NULL,
-            text TEXT NOT NULL,
-            normalized TEXT NOT NULL,
-            root_id INTEGER,
-            frequency INTEGER NOT NULL DEFAULT 0,
-            metadata_json TEXT NOT NULL DEFAULT '{}'
-        );
-        CREATE VIRTUAL TABLE quran_terms_fts USING fts5(term_type, text, normalized);
-        """
+def _search_plan():
+    return research_agent_service.SearchPlan(
+        status="search",
+        related_terms=[ResearchRelatedTerm(type="root", text="shared-root-a")],
+        searches=[ResearchSearchItem(mode="root", query="shared")],
     )
-    cursor.execute(
-        """
-        INSERT INTO source_documents (
-            source_path, title, source_type, content_hash, indexed_at
-        ) VALUES ('lecture.txt', 'Lecture', 'txt', 'hash', 1.0)
-        """
-    )
-    cursor.execute(
-        """
-        INSERT INTO source_chunks (
-            document_id, chunk_index, content, content_simple, token_count
-        ) VALUES (1, 0, 'FORBIDDEN_TRANSCRIPT_CLAIM shared', 'FORBIDDEN_TRANSCRIPT_CLAIM shared', 2)
-        """
-    )
-    cursor.execute(
-        """
-        INSERT INTO source_chunks_fts (
-            rowid, content, content_simple, title, source_path
-        ) VALUES (1, 'FORBIDDEN_TRANSCRIPT_CLAIM shared', 'FORBIDDEN_TRANSCRIPT_CLAIM shared', 'Lecture', 'lecture.txt')
-        """
-    )
-    connection.commit()
-    connection.close()
 
 
-def test_research_agent_keeps_source_chunks_out_of_final_answer_context(api_client, tmp_path):
-    research_index_path = tmp_path / "research_agent.db"
-    create_minimal_research_index(research_index_path)
-    original_path = config.get_research_index_path()
-    config.set_research_index_path(str(research_index_path))
-
-    provider = StubResearchProvider(
-        research_agent_service.SearchPlan(
-            status="search",
-            related_terms=[ResearchRelatedTerm(type="root", text="shared-root-a")],
-            searches=[ResearchSearchItem(mode="root", query="shared")],
-        )
-    )
+def test_research_agent_answers_legacy_tafssir_requests_in_strict_mode(api_client):
+    """Interpretive (Tafssir) mode is gone: older clients that still ask for it get a strict answer."""
+    provider = StubResearchProvider(_search_plan())
     research_agent_service.set_llm_provider_for_tests(provider)
 
-    try:
-        response = api_client.post(
-            "/api/research-agent",
-            json={"messages": [{"role": "user", "content": "FORBIDDEN_TRANSCRIPT_CLAIM"}], "mushaf": 1},
-        )
-    finally:
-        config.set_research_index_path(original_path)
-
-    assert response.status_code == 200
-    assert provider.expansion_chunks
-    assert provider.planning_chunks
-    assert "FORBIDDEN_TRANSCRIPT_CLAIM" in provider.planning_chunks[0].content
-    assert provider.answer_ayahs
-    assert provider.tafssir_chunks == []
-    assert all("FORBIDDEN_TRANSCRIPT_CLAIM" not in ayah.text for ayah in provider.answer_ayahs)
-
-
-def test_research_agent_tafssir_mode_passes_source_chunks_and_disclaimer(api_client, tmp_path):
-    research_index_path = tmp_path / "research_agent.db"
-    create_minimal_research_index(research_index_path)
-    original_path = config.get_research_index_path()
-    config.set_research_index_path(str(research_index_path))
-
-    provider = StubResearchProvider(
-        research_agent_service.SearchPlan(
-            status="search",
-            related_terms=[ResearchRelatedTerm(type="root", text="shared-root-a")],
-            searches=[ResearchSearchItem(mode="root", query="shared")],
-        ),
-        tafssir_answer="Experimental tafssir answer.",
+    response = api_client.post(
+        "/api/research-agent",
+        json={
+            "messages": [{"role": "user", "content": "Where is this shared idea?"}],
+            "mushaf": 1,
+            "response_mode": "tafssir",
+            "tafssir_depth": "deep",
+        },
     )
-    research_agent_service.set_llm_provider_for_tests(provider)
-
-    try:
-        response = api_client.post(
-            "/api/research-agent",
-            json={
-                "messages": [{"role": "user", "content": "FORBIDDEN_TRANSCRIPT_CLAIM"}],
-                "mushaf": 1,
-                "response_mode": "tafssir",
-            },
-        )
-    finally:
-        config.set_research_index_path(original_path)
 
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "answered"
-    assert body["mode"] == "tafssir"
-    assert body["answer"] == "Experimental tafssir answer."
-    assert "تجريبي" in body["disclaimer"]
-    assert provider.tafssir_chunks
-    assert "FORBIDDEN_TRANSCRIPT_CLAIM" in provider.tafssir_chunks[0].content
-
-
-def test_research_agent_tafssir_depth_and_structured_sections(api_client, tmp_path):
-    class StructuredTafssirProvider(StubResearchProvider):
-        def __init__(self, plan):
-            super().__init__(plan)
-            self.tafssir_depth = None
-
-        def finalize_tafssir_answer(
-            self,
-            messages,
-            ayahs,
-            related_terms,
-            searches,
-            source_chunks,
-            answer_language,
-            tafssir_depth="balanced",
-        ):
-            self.answer_ayahs = ayahs
-            self.tafssir_chunks = source_chunks
-            self.tafssir_depth = tafssir_depth
-            return research_agent_service.AnswerReview(
-                answer="Structured tafssir fallback string.",
-                keep_ayah_ids=[ayahs[0].ayah_id],
-                discard_ayah_ids=[ayahs[-1].ayah_id],
-                tafssir=TafssirStructuredAnswer(
-                    summary="Short structured summary.",
-                    linguistic_analysis="Root-level analysis.",
-                    ayah_connections="Only the kept ayah supports the answer.",
-                    corpus_insight="Internal corpus shaped this reading.",
-                    limits_and_cautions="Experimental, not authoritative.",
-                ),
-            )
-
-    research_index_path = tmp_path / "research_agent.db"
-    create_minimal_research_index(research_index_path)
-    original_path = config.get_research_index_path()
-    config.set_research_index_path(str(research_index_path))
-    provider = StructuredTafssirProvider(
-        research_agent_service.SearchPlan(
-            status="search",
-            related_terms=[ResearchRelatedTerm(type="root", text="shared-root-a")],
-            searches=[ResearchSearchItem(mode="root", query="shared")],
-        )
-    )
-    research_agent_service.set_llm_provider_for_tests(provider)
-
-    try:
-        response = api_client.post(
-            "/api/research-agent",
-            json={
-                "messages": [{"role": "user", "content": "shared tafssir question"}],
-                "mushaf": 1,
-                "response_mode": "tafssir",
-                "tafssir_depth": "deep",
-                "max_results": 3,
-            },
-        )
-    finally:
-        config.set_research_index_path(original_path)
-
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "answered"
-    assert body["tafssir"]["summary"] == "Short structured summary."
-    assert body["tafssir"]["linguistic_analysis"] == "Root-level analysis."
-    assert provider.tafssir_depth == "deep"
-    assert len(body["ayahs"]) == 1
-    assert body["ayahs"][0]["ayah_id"] == provider.answer_ayahs[0].ayah_id
+    assert body["mode"] == "strict"
+    assert body["answer"] == "Answer from ayahs only."
+    assert body.get("tafssir") is None
+    assert body.get("disclaimer") is None
 
 
 def test_research_agent_rejects_invalid_tafssir_depth(api_client):
@@ -400,69 +217,89 @@ def test_research_agent_rejects_invalid_tafssir_depth(api_client):
     assert response.status_code == 422
 
 
-def test_research_agent_strict_mode_ignores_valid_tafssir_depth(api_client):
-    provider = StubResearchProvider(
-        research_agent_service.SearchPlan(
-            status="search",
-            related_terms=[ResearchRelatedTerm(type="root", text="shared-root-a")],
-            searches=[ResearchSearchItem(mode="root", query="shared")],
-        )
+def test_search_terms_come_from_the_quran_database_only(api_client):
+    terms = research_agent_service.retrieve_quran_terms("shared", 1)
+    assert terms
+    assert all(term.type in {"root", "word"} for term in terms)
+
+
+def test_planner_prompts_carry_no_outside_source(api_client, monkeypatch):
+    """Only the conversation and Quranic vocabulary reach the planner: no book, transcript or corpus."""
+    provider = research_agent_service.OllamaResearchLlmProvider(research_agent_service.build_runtime_settings())
+    captured: list[list[dict]] = []
+
+    def fake_chat(messages, *args, **kwargs):
+        captured.append(messages)
+        return '{"status":"search","related_terms":[],"searches":[]}'
+
+    monkeypatch.setattr(provider, "_chat", fake_chat)
+    messages = [ResearchAgentMessage(role="user", content="سؤال")]
+    terms = [research_agent_service.QuranTermCandidate(type="root", text="صبر", score=1.0)]
+    expansion = provider.expand_search_candidates(messages, terms, "arabic")
+    provider.create_search_plan(messages, terms, expansion, "arabic")
+
+    assert len(captured) == 2
+    for system, user in captured:
+        payload = research_agent_service.json.loads(user["content"])
+        assert set(payload) <= {"conversation", "quran_term_candidates", "expanded_candidates", "answer_language"}
+        assert "source chunk" not in system["content"].lower()
+
+
+def test_final_prompt_answers_from_the_quran_alone_and_reads_in_context(api_client, monkeypatch):
+    provider = research_agent_service.OllamaResearchLlmProvider(research_agent_service.build_runtime_settings())
+    captured: list[list[dict]] = []
+
+    def fake_chat(messages, *args, **kwargs):
+        captured.append(messages)
+        return '{"answer":"جواب من الآيات","keep_ayah_ids":[5]}'
+
+    monkeypatch.setattr(provider, "_chat", fake_chat)
+    review = provider.finalize_answer(
+        [ResearchAgentMessage(role="user", content="ما معنى الآية؟")],
+        [_ayah(5)],
+        [],
+        [],
+        "arabic",
+        focus_ayah_id=5,
     )
-    research_agent_service.set_llm_provider_for_tests(provider)
 
-    response = api_client.post(
-        "/api/research-agent",
-        json={
-            "messages": [{"role": "user", "content": "Where is this shared idea?"}],
-            "mushaf": 1,
-            "response_mode": "strict",
-            "tafssir_depth": "deep",
-        },
+    assert review.answer == "جواب من الآيات"
+    assert review.keep_ayah_ids == [5]
+    system, user = captured[0]
+    rules = system["content"]
+    assert "ONLY the ayahs" in rules
+    assert "tafsir" in rules and "hadith" in rules
+    assert "rulings" in rules
+    assert "CONTEXT RULE" in rules
+    payload = research_agent_service.json.loads(user["content"])
+    assert payload["focus_ayah_id"] == 5
+    entry = payload["ayahs"][0]
+    assert entry["context"]["before"][-1] == {"ayah": 4, "text": "shared verse 4"}
+    assert entry["context"]["after"][0] == {"ayah": 6, "text": "shared verse 6"}
+
+
+def test_final_stage_falls_back_to_a_plain_answer_on_bad_json(api_client, monkeypatch):
+    provider = research_agent_service.OllamaResearchLlmProvider(research_agent_service.build_runtime_settings())
+    replies = iter(["not json", "Plain answer from the ayahs."])
+    monkeypatch.setattr(provider, "_chat", lambda *args, **kwargs: next(replies))
+
+    review = provider.finalize_answer(
+        [ResearchAgentMessage(role="user", content="q")], [_ayah(3), _ayah(4)], [], [], "english"
     )
 
-    assert response.status_code == 200
-    body = response.json()
-    assert body["mode"] == "strict"
-    assert body["answer"] == "Answer from ayahs only."
-    assert "tafssir" not in body
+    assert review.answer == "Plain answer from the ayahs."
+    assert review.keep_ayah_ids == [3, 4]
 
 
-def test_parse_answer_review_reads_structured_tafssir_payload():
-    ayah = ResearchAgentAyah(
-        ayah_id=11,
-        mushaf_id=1,
-        surah="Fixture",
-        surah_id=1,
-        ayah=1,
-        text="fixture ayah",
-        global_index=1,
-        highlights=[],
-        matched_terms=["fixture"],
-    )
-
+def test_parse_answer_review_keeps_only_known_ayahs():
     review = research_agent_service.parse_answer_review(
-        """
-        {
-          "answer": "Plain answer.",
-          "tafssir": {
-            "summary": "Summary.",
-            "linguistic_analysis": "Language.",
-            "ayah_connections": "Connections.",
-            "corpus_insight": "Corpus-shaped insight.",
-            "limits_and_cautions": "Caution."
-          },
-          "keep_ayah_ids": [11],
-          "discard_ayah_ids": []
-        }
-        """,
-        [ayah],
+        '{"answer":"A.","keep_ayah_ids":[3,99],"discard_ayah_ids":[4],"tafssir":{"summary":"ignored"}}',
+        [_ayah(3), _ayah(4)],
         "",
     )
-
-    assert review.answer == "Plain answer."
-    assert review.tafssir is not None
-    assert review.tafssir.summary == "Summary."
-    assert review.tafssir.corpus_insight == "Corpus-shaped insight."
+    assert review.answer == "A."
+    assert review.keep_ayah_ids == [3]
+    assert review.discard_ayah_ids == [4]
 
 
 def test_execute_searches_resolves_transliterated_root_queries(monkeypatch):
@@ -639,34 +476,6 @@ def test_bounded_provider_error_caps_reflected_body():
     assert len(bounded) <= research_agent_service.MAX_PROVIDER_ERROR_CHARS
 
 
-def test_source_path_is_never_sent_to_the_llm(monkeypatch):
-    """T3.7: corpus source_path must not leak into any LLM prompt."""
-    runtime = research_agent_service.build_runtime_settings()
-    provider = research_agent_service.OllamaResearchLlmProvider(runtime)
-
-    captured: list[str] = []
-
-    def fake_chat(messages, *args, **kwargs):
-        captured.append(research_agent_service.json.dumps(messages, ensure_ascii=False))
-        return '{"related_terms":[],"searches":[]}'
-
-    monkeypatch.setattr(provider, "_chat", fake_chat)
-
-    chunk = research_agent_service.SourceChunk(
-        id=1, title="Note", source_path="/srv/secret/internal/note.txt", content="نص", score=1.0
-    )
-    provider.expand_search_candidates(
-        messages=[ResearchAgentMessage(role="user", content="سؤال")],
-        source_chunks=[chunk],
-        quran_terms=[],
-        answer_language="ar",
-    )
-
-    assert captured, "expected the provider to build an LLM prompt"
-    assert "secret/internal" not in captured[0]
-    assert "source_path" not in captured[0]
-
-
 def _ayah(i: int) -> ResearchAgentAyah:
     return ResearchAgentAyah(
         ayah_id=i, mushaf_id=1, surah="س", surah_id=1, ayah=i, text=f"v{i}", global_index=i
@@ -738,7 +547,7 @@ def test_public_catalog_background_refresh_populates_cache(monkeypatch):
         research_agent_service._public_ollama_cloud_catalog_cache = previous
 
 
-# --- Contextual tafssir (Q-Basair-14) -------------------------------------------------
+# --- Ayahs read in their passage (Q-Basair-14) ----------------------------------------
 
 
 def test_get_ayah_context_returns_neighbours_within_the_surah(api_client):
@@ -761,55 +570,24 @@ def test_get_ayah_context_stops_at_surah_edges_and_rejects_unknown(api_client):
     assert quran_service.get_ayah_context(1, 2, 1) is None
 
 
-def test_tafssir_payload_carries_context_and_widens_it_for_the_focus(api_client):
+def test_ayah_payload_carries_context_and_widens_it_for_the_focus(api_client):
     ayahs = [_ayah(3), _ayah(8)]
-    payload = research_agent_service.build_tafssir_ayah_payload(ayahs, window=1, focus_ayah_id=8)
+    payload = research_agent_service.build_ayah_payload(ayahs, window=1, focus_ayah_id=8)
     first, focus = payload
     assert first["context"]["position"] == "3/15"
     assert [n["ayah"] for n in first["context"]["before"]] == [2]
     assert [n["ayah"] for n in first["context"]["after"]] == [4]
     assert first["context"]["surah"]["type"] == "meccan"
-    window = research_agent_service.TAFSSIR_FOCUS_CONTEXT_WINDOW
+    window = research_agent_service.FOCUS_CONTEXT_WINDOW
     assert [n["ayah"] for n in focus["context"]["before"]] == list(range(8 - window, 8))
     assert [n["ayah"] for n in focus["context"]["after"]] == list(range(9, 9 + window))
 
 
-def test_tafssir_final_prompt_requires_reading_in_context(api_client, monkeypatch):
-    provider = research_agent_service.OllamaResearchLlmProvider(research_agent_service.build_runtime_settings())
-    captured: list[list[dict]] = []
-
-    def fake_chat(messages, *args, **kwargs):
-        captured.append(messages)
-        return '{"answer":"قراءة في السياق","keep_ayah_ids":[5]}'
-
-    monkeypatch.setattr(provider, "_chat", fake_chat)
-    review = provider.finalize_tafssir_answer(
-        [ResearchAgentMessage(role="user", content="ما معنى الآية؟")],
-        [_ayah(5)],
-        [],
-        [],
-        [],
-        "arabic",
-        "balanced",
-        focus_ayah_id=5,
-    )
-
-    assert review.answer == "قراءة في السياق"
-    system, user = captured[0]
-    assert "CONTEXT RULE" in system["content"]
-    assert "whole surah" in system["content"]
-    payload = research_agent_service.json.loads(user["content"])
-    assert payload["focus_ayah_id"] == 5
-    entry = payload["ayahs"][0]
-    assert entry["context"]["before"][-1] == {"ayah": 4, "text": "shared verse 4"}
-    assert entry["context"]["after"][0] == {"ayah": 6, "text": "shared verse 6"}
-
-
 def test_context_text_is_clipped():
-    long_text = "ا" * (research_agent_service.TAFSSIR_CONTEXT_AYAH_CHARS + 50)
+    long_text = "ا" * (research_agent_service.CONTEXT_AYAH_CHARS + 50)
     clipped = research_agent_service._clip_context_text(long_text)
     assert clipped.endswith("…")
-    assert len(clipped) <= research_agent_service.TAFSSIR_CONTEXT_AYAH_CHARS + 2
+    assert len(clipped) <= research_agent_service.CONTEXT_AYAH_CHARS + 2
 
 
 class FocusRecordingProvider(StubResearchProvider):
@@ -818,16 +596,13 @@ class FocusRecordingProvider(StubResearchProvider):
         self.focus_ayah_id = None
         self.final_messages = []
 
-    def finalize_tafssir_answer(
-        self, messages, ayahs, related_terms, searches, source_chunks, answer_language,
-        tafssir_depth="balanced", focus_ayah_id=None,
-    ):
+    def finalize_answer(self, messages, ayahs, related_terms, searches, answer_language, focus_ayah_id=None):
         self.final_messages = messages
         self.answer_ayahs = ayahs
         self.focus_ayah_id = focus_ayah_id
         # An over-eager review that drops the focus ayah: the pipeline must keep it.
         return research_agent_service.AnswerReview(
-            answer="Contextual reading.",
+            answer="Reading in context.",
             keep_ayah_ids=[a.ayah_id for a in ayahs if a.ayah_id != focus_ayah_id][:1],
         )
 
@@ -845,9 +620,8 @@ def test_focus_ayah_leads_evidence_and_is_always_kept(api_client):
     response = api_client.post(
         "/api/research-agent",
         json={
-            "messages": [{"role": "user", "content": "فسّر هذه الآية في سياقها"}],
+            "messages": [{"role": "user", "content": "ماذا تقول هذه الآية في سياقها؟"}],
             "mushaf": 1,
-            "response_mode": "tafssir",
             "max_results": 3,
             "focus": {"surah": 1, "ayah": 9},
         },
@@ -877,9 +651,8 @@ def test_focus_ayah_skips_clarification_and_answers_without_search_hits(api_clie
     response = api_client.post(
         "/api/research-agent",
         json={
-            "messages": [{"role": "user", "content": "فسّر هذه الآية"}],
+            "messages": [{"role": "user", "content": "ماذا تقول هذه الآية؟"}],
             "mushaf": 1,
-            "response_mode": "tafssir",
             "focus": {"surah": 1, "ayah": 2},
         },
     )

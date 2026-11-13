@@ -1727,5 +1727,7 @@
  "وقفة، انقطاع، فاصل، صوت، قطع": "pauza, uzilish, to‘xtash, oraliq, tovush, ovoz, bo‘shliq",
  "يمرّ كل بحث بفحوص آلية (الآيات والمراجع ووسم المحتوى الآلي)، ثم بمراجعة وفق الإرشادات، ويراجع مشرفٌ أوّل منشور لكل مستخدم. إن طُلب منك تعديل تجد السبب.": "Har bir tadqiqot avtomatik tekshiruvlardan (oyatlar, manbalar va sun’iy intellekt kontentini belgilash), so‘ng qoidalar asosida ko‘rib chiqishdan o‘tadi, har bir foydalanuvchining birinchi postini esa moderator ko‘rib chiqadi. Sizdan tahrir so‘ralsa, sababini ko‘rasiz.",
  "الشيفرة المصدرية": "Manba kodi",
- "«بصائر» مفتوح المصدر: اقرأ شيفرته أو ساهم فيها.": "Basair ochiq manbali: kodini oʻqing yoki hissa qoʻshing."
+ "«بصائر» مفتوح المصدر: اقرأ شيفرته أو ساهم فيها.": "Basair ochiq manbali: kodini oʻqing yoki hissa qoʻshing.",
+ "لا يدخل الجوابَ إلا الآياتُ التي وجدها البحث، بنصّها ومراجعها، وكل آية تفتح موضعها في المصحف. ولا يستعين الباحث بتفسير ولا بقول من خارج القرآن.": "Javobga faqat qidiruv topgan oyatlar, matni va manbalari bilan kiradi va har bir oyat Mushafdagi o‘rnini ochadi. Tadqiqotchi hech qanday tafsirga va Qur’ondan tashqaridagi hech qanday so‘zga tayanmaydi.",
+ "لا يدخل الجوابَ إلا الآياتُ التي وجدها البحث، بنصّها ومراجعها.": "Javobga faqat qidiruv topgan oyatlar, matni va manbalari bilan kiradi."
 }

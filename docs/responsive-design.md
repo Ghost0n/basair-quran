@@ -58,7 +58,7 @@ home on them. Every screen matters equally.
   `node scripts/i18n.mjs check`.
 - **Safe areas.** Content and bars respect `env(safe-area-inset-*)`: notch, home indicator, Android gesture
   bar and landscape phones.
-- **Flag.** The explanatory reading («قراءة تفسيرية») stays hidden behind `NEXT_PUBLIC_QB_TAFSSIR`.
+- **Quran only.** The study answers from the Quran alone; the former explanatory reading («قراءة تفسيرية») was removed, and only its saved answers still display, with their disclaimer.
 - **Blur.** It stays off in the web design except where a decision above asks for glass: the iPhone tab
   bar and iPhone sheets. The studio sessions pane is the existing exception.
 

@@ -1727,5 +1727,7 @@
  "وقفة، انقطاع، فاصل، صوت، قطع": "pausa, corte, intervalo, silêncio, interrupção, áudio, som, falha",
  "يمرّ كل بحث بفحوص آلية (الآيات والمراجع ووسم المحتوى الآلي)، ثم بمراجعة وفق الإرشادات، ويراجع مشرفٌ أوّل منشور لكل مستخدم. إن طُلب منك تعديل تجد السبب.": "Cada pesquisa passa por verificações automáticas (versículos, referências e identificação de conteúdo gerado por IA), depois por uma revisão segundo as Diretrizes, e um moderador revisa a primeira publicação de cada usuário. Se pedirem uma alteração, você verá o motivo.",
  "الشيفرة المصدرية": "Código-fonte",
- "«بصائر» مفتوح المصدر: اقرأ شيفرته أو ساهم فيها.": "O Basair é de código aberto: leia o código ou contribua."
+ "«بصائر» مفتوح المصدر: اقرأ شيفرته أو ساهم فيها.": "O Basair é de código aberto: leia o código ou contribua.",
+ "لا يدخل الجوابَ إلا الآياتُ التي وجدها البحث، بنصّها ومراجعها، وكل آية تفتح موضعها في المصحف. ولا يستعين الباحث بتفسير ولا بقول من خارج القرآن.": "Só entram na resposta os versículos encontrados pela pesquisa, com o seu texto e as suas referências, e cada versículo abre o seu lugar no mushaf. O investigador não recorre a nenhum tafsir nem a nenhum dito exterior ao Alcorão.",
+ "لا يدخل الجوابَ إلا الآياتُ التي وجدها البحث، بنصّها ومراجعها.": "Só entram na resposta os versículos encontrados pela pesquisa, com o seu texto e as suas referências."
 }

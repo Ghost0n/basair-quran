@@ -9,9 +9,8 @@
 const KEY = "qb.studio.ask";
 export const STUDIO_ASK_EVENT = "qb:studio-ask";
 
-/** Optional context for a hand-off ask: the research mode and one focus ayah. */
+/** Optional context for a hand-off ask: one focus ayah. */
 export type StudioAskOptions = {
-  mode?: "strict" | "tafssir";
   focus?: { surah: number; ayah: number };
   /** How to name the focus ayah in the Studio (e.g. «البقرة، الآية ٢٥٥»). */
   focusLabel?: string;
@@ -48,7 +47,6 @@ export function parseStudioAsk(value: string): StudioAsk | null {
     if (typeof parsed === "string") ask = { question: parsed };
     else if (parsed && typeof parsed.question === "string") {
       ask = { question: parsed.question };
-      if (parsed.mode === "strict" || parsed.mode === "tafssir") ask.mode = parsed.mode;
       const focus = parsed.focus;
       if (focus && Number.isInteger(focus.surah) && Number.isInteger(focus.ayah)) {
         ask.focus = { surah: focus.surah, ayah: focus.ayah };

@@ -3,9 +3,15 @@
 **Status:** implemented in phases Q-Basair-14 → 19 (see §7); the community (publishing, feed,
 likes, comments, reports, moderation, AI audit) shipped in Q-Basair-19, feed search/filters and
 saved posts in Q-Basair-23, and the artifacts studio in Q-Basair-24.
-**Principles (AGENTS.md):** Quran text is the evidence; strict mode stays Quran-only;
-Tafssir stays labelled experimental; user data is private by default; nothing here
-changes search results or the strict research contract.
+**Principles (AGENTS.md):** Quran text is the evidence; the research agent is Quran-only;
+user data is private by default; nothing here changes search results or the research
+contract.
+
+**Update (Q-Basair-109):** the experimental explanatory reading (Tafssir mode) and the
+research corpus it drew on were removed; the agent now answers from the Quran alone. The
+context rule of §4 (each ayah read with its neighbours and its surah) and the focus ayah
+were kept and now apply to every answer. Documents and posts made in the old mode keep
+their disclaimer (§5–6).
 
 ## 1. Themes (المواضيع) — saving becomes grouping
 
@@ -68,20 +74,19 @@ shortcut, handlers), so new tools are additive. Toolbox UI: a slim vertical rail
 reader's edge on desktop, a «الأداة» chooser in the reader bar on phones; keys `1…9`
 (today `1` = تحديد, `2` = تظليل).
 
-## 4. Contextual tafssir
+## 4. Ayahs read in context (formerly «contextual tafssir»)
 
-Tafssir must read an ayah **in its context**, not in isolation.
+The answer must read an ayah **in its context**, not in isolation.
 
-- Every ayah sent to the tafssir stage carries `context_before` / `context_after`
-  (2 ayahs each, same surah) and `surah` metadata (name, Meccan/Medinan, ayah count,
+- Every ayah sent to the final stage carries `context_before` / `context_after`
+  (1 ayah each, same surah) and `surah` metadata (name, Meccan/Medinan, ayah count,
   the ayah's position in it).
 - A request may target one ayah: `focus` `{mushaf, surah, ayah}`. The focus ayah is
-  always kept, with ±3 neighbours and the surah metadata, and the question defaults to
-  «فسّر هذه الآية في سياقها».
-- The tafssir system prompt explicitly instructs: read the ayah with what precedes and
-  follows it and with the surah's overall context before interpreting; say when context
-  changes the reading; never interpret a fragment alone.
-- Strict mode is unchanged (its final answer is still built only from search results).
+  always kept, with ±5 neighbours and the surah metadata.
+- The final-stage system prompt instructs: read each ayah with what precedes and
+  follows it; say when the passage narrows or changes the meaning; never use a fragment
+  alone. The answer is still built only from the ayahs search returned (neighbours are
+  context, not evidence).
 
 ## 5. Research documents — the shareable format, prepared now
 

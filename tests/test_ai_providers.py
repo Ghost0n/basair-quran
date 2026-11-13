@@ -93,7 +93,6 @@ def test_chat_goes_to_the_providers_chat_completions_and_retries_without_tempera
     assert "temperature" not in second["body"]
     usage = provider.usage_summary()
     assert usage.prompt_eval_count == 12 and usage.eval_count == 3
-    assert provider.supports_embeddings is False
 
 
 def test_gemini_model_names_lose_their_prefix():

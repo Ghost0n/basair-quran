@@ -6,7 +6,6 @@
 #   - auth.db       accounts and sessions
 #   - app_data.db   notebook, themes, study sessions, followed roots, research
 #                   documents, preferences, community, feedback
-#   - research_agent.db (regenerable, best effort)
 #   - .env.production (the server's settings and secrets)
 # quran.db, translations.db, the offline packs and the recitations are not
 # backed up: the deploy regenerates them.
@@ -37,7 +36,7 @@ dest="${BACKUP_DIR}/${timestamp}"
 mkdir -p "${dest}"
 chmod 700 "${BACKUP_DIR}" "${dest}"
 
-DATABASES="auth.db app_data.db research_agent.db"
+DATABASES="auth.db app_data.db"
 
 timestamp="$(date +%Y%m%d-%H%M%S)"
 dest="${BACKUP_DIR}/${timestamp}"

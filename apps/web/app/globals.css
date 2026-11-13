@@ -550,8 +550,7 @@ code, .mono {
   }
 
   .qb-setting-seg button,
-  .qb-auth-tab,
-  .qb-mode-tab {
+  .qb-auth-tab {
     min-height: 40px;
   }
 

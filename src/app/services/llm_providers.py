@@ -136,8 +136,6 @@ def make_openai_compatible_provider(runtime: Any) -> Any:
     from src.app.services import research_agent_service as agent
 
     class OpenAICompatibleResearchLlmProvider(agent.OllamaResearchLlmProvider):
-        supports_embeddings = False
-
         def __init__(self, settings: Any) -> None:
             super().__init__(settings)
             self.spec = provider_spec(settings.provider_name)
@@ -195,9 +193,6 @@ def make_openai_compatible_provider(runtime: Any) -> Any:
             if self.chat_model and self.chat_model not in names:
                 names.insert(0, self.chat_model)
             return [agent.make_model_item(name, is_cloud=True, capabilities=["completion"]) for name in names]
-
-        def embed_text(self, text: str) -> list[float]:
-            raise agent.ResearchProviderUnavailable("Embeddings stay on the server.")
 
         def provider_info(self) -> Any:
             return agent.ResearchProviderInfo(

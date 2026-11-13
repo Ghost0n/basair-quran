@@ -27,7 +27,6 @@ import { PostCard, type PostCardActions } from "./post-card";
 import { sharePostLink } from "./share-link";
 import { useCommunityAccess } from "./use-community-access";
 
-import { TAFSSIR_ENABLED } from "@/lib/features";
 import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
@@ -129,7 +128,7 @@ export function CommunityScreen() {
     },
     // `filters.q` is read through `debouncedQ`, so typing doesn't refetch per key.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filters.sort, filters.surah, filters.tag, filters.mode, filters.board, filters.author, debouncedQ, tab],
+    [filters.sort, filters.surah, filters.tag, filters.board, filters.author, debouncedQ, tab],
   );
 
   useEffect(() => {
@@ -369,29 +368,6 @@ export function CommunityScreen() {
                 options={surahOptions}
                 onChange={(value) => setFilter("surah", value ? Number(value) : null)}
               />
-              {/* The reading kind: only in a build with the explanatory reading (lib/features.ts). */}
-              {TAFSSIR_ENABLED ? (
-                <div className="qb-segmented qb-fit-track" data-autofit="1" suppressHydrationWarning role="radiogroup" aria-label={t("نوع البحث")}>
-                  {(
-                    [
-                      [null, t("الكل")],
-                      ["strict", t("القرآن وحدَه")],
-                      ["tafssir", t("تفسيرية")],
-                    ] as const
-                  ).map(([value, label]) => (
-                    <button
-                      key={label}
-                      type="button"
-                      role="radio"
-                      aria-checked={filters.mode === value}
-                      className={filters.mode === value ? (value === "tafssir" ? "on copper" : "on") : ""}
-                      onClick={() => setFilter("mode", value)}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
               <button
                 type="button"
                 className={`qb-chip toggle${filters.board ? " on" : ""}`}
@@ -426,9 +402,6 @@ export function CommunityScreen() {
               ) : null}
               {filters.tag ? <FilterPill label={`#${filters.tag}`} onClear={() => setFilter("tag", null)} /> : null}
               {filters.surah ? <FilterPill label={t("سورة {0}", { 0: surahName(filters.surah) })} onClear={() => setFilter("surah", null)} /> : null}
-              {filters.mode ? (
-                <FilterPill label={filters.mode === "tafssir" ? t("تفسيرية") : t("القرآن وحدَه")} onClear={() => setFilter("mode", null)} />
-              ) : null}
               {filters.board ? <FilterPill label={t("بلوحة موضوع")} onClear={() => setFilter("board", false)} /> : null}
               {filters.q.trim() ? <FilterPill label={`«${filters.q.trim()}»`} onClear={() => setFilter("q", "")} /> : null}
               <button type="button" className="clear-all" onClick={() => setFilters({ ...EMPTY_FILTERS, sort: filters.sort })}>

@@ -39,8 +39,8 @@ Contents:
    nginx :80/:443 ──► web (Next.js) ──► api (FastAPI) ◄── worker (moderation batches)
      │                                    │
      └─ static: data/recitations          └─ data/: quran.db, translations.db, auth.db,
-                                              app_data.db, research_agent.db, cache.db,
-                                              offline/, recitations/
+                                              app_data.db, cache.db, offline/,
+                                              recitations/
 ```
 
 | Piece | Where |
@@ -173,8 +173,8 @@ is included in the nightly backup.
 On GitHub: **Actions → Release → Run workflow** on `main`, with the data jobs
 the first start needs:
 
-- `jobs`: `rebuild-db,rebuild-index` (the Quran database with the Madani page
-  layout, and the research index). Add `prepare-recitations` to start
+- `jobs`: `rebuild-db` (the Quran database with the Madani page layout). Add
+  `prepare-recitations` to start
   preparing the recitations as well ([below](#preparing-the-recitations-one-recording-per-surah)).
 
 The run builds and scans both images, pushes them, copies the deploy files to
@@ -236,7 +236,6 @@ of a manual run) when generated data must be rebuilt:
 | Tag | When | What runs |
 |---|---|---|
 | `[rebuild-db]` | `scripts/build_db.py`, `build_mushaf_layout.py`, `build_morphology.py` or Quran source data changed | `quran.db` + the Madani layout tables, API restarted, API cache emptied; then the offline packs (background) |
-| `[rebuild-index]` | `scripts/build_research_index.py` or `data/research_sources/` changed | the research index, API restarted |
 | `[rebuild-translations]` | `scripts/build_translations.py` or `translation_sources.json` changed | `translations.db`, then the offline packs (background, resumable) |
 | `[prefill-recitation]` | the reciter catalogue changed | the shared verse-duration cache, `data/cache.db` (background, resumable) |
 | `[prepare-recitations]` | `scripts/build_recitations.py` or `recitation_sources.json` changed, or to prepare more reciters | one recording per surah (background, resumable — below) |
@@ -340,11 +339,26 @@ A rollback doesn't undo data jobs: if a release rebuilt `quran.db` with a new
 schema, roll back with `jobs` = `rebuild-db` so the old code gets its database.
 User data (`auth.db`, `app_data.db`) is never rebuilt — for it, see backups.
 
+## Removing the former research corpus (once)
+
+The research agent no longer reads any corpus or index (it answers from the
+Quran alone). A server set up before that change may still hold the old
+corpus and its index; delete them once, after the release that removed them
+is live:
+
+```bash
+cd /srv/q-basair
+rm -rf data/research_sources data/research_agent.db data/research_agent.db-shm data/research_agent.db-wal
+```
+
+Older backup archives may also contain `research_agent.db`; they expire after
+`QBASAIR_BACKUP_RETENTION_DAYS`, or can be deleted by hand.
+
 ## Backups
 
 `deploy/server/backup.sh` runs nightly at 02:42 (cron from `setup.sh`):
 consistent SQLite copies of `auth.db` and `app_data.db` (accounts and
-everything readers saved), `research_agent.db`, and `.env.production`, in
+everything readers saved) and `.env.production`, in
 `/srv/q-basair/backups/<timestamp>.tar.gz`, kept 14 days
 (`QBASAIR_BACKUP_RETENTION_DAYS`). Everything else in `data/` is regenerated
 by the deploy.

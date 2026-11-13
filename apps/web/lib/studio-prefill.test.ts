@@ -34,18 +34,18 @@ describe("looksLikeQuestion", () => {
 });
 
 describe("parseStudioAsk", () => {
-  it("reads the queued JSON with mode and focus", () => {
+  it("reads the queued JSON with its focus, and ignores an older queued mode", () => {
     const ask = parseStudioAsk(
-      JSON.stringify({ question: " فسّر ", mode: "tafssir", focus: { surah: 2, ayah: 255 }, focusLabel: "البقرة" }),
+      JSON.stringify({ question: " ما تقول ", mode: "tafssir", focus: { surah: 2, ayah: 255 }, focusLabel: "البقرة" }),
     );
-    expect(ask).toEqual({ question: "فسّر", mode: "tafssir", focus: { surah: 2, ayah: 255 }, focusLabel: "البقرة" });
+    expect(ask).toEqual({ question: "ما تقول", focus: { surah: 2, ayah: 255 }, focusLabel: "البقرة" });
   });
 
   it("accepts the older plain-string queue format", () => {
     expect(parseStudioAsk("ما معنى البصائر؟")).toEqual({ question: "ما معنى البصائر؟" });
   });
 
-  it("drops invalid mode / focus and empty questions", () => {
+  it("drops an invalid focus and empty questions", () => {
     expect(parseStudioAsk(JSON.stringify({ question: "q", mode: "x", focus: { surah: "2" } }))).toEqual({
       question: "q",
     });

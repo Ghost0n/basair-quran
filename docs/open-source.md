@@ -28,8 +28,10 @@ the repository moves.
 - **Secrets:** the whole history was searched for keys, tokens, private keys
   and filled-in `.env` values — none. Production secrets live only in the
   server's `.env.production` and the GitHub `production` environment.
-- **Private corpus:** `data/research_sources/` was never committed (only its
-  `.gitkeep`).
+- **Research corpus:** the books and lectures once used by the research agent
+  (`data/research_sources/`) were never committed (only a `.gitkeep`), and the
+  corpus was then removed from the app entirely: the agent answers from the
+  Quran alone, and nothing in the repository reads such a corpus.
 - **Workflows:** pull requests from forks run CI without secrets
   (`pull_request`); release and deploy run only on `main` behind the
   `production` environment. The only `pull_request_target` workflow is the CLA
@@ -202,3 +204,25 @@ unchanged).
   (the hosting provider, the AI provider), and how a person can see or delete
   their data. The app already lets users delete their account and data.
 
+- **The former research corpus on the server:** delete `data/research_sources/`
+  and `data/research_agent.db` once (`docs/deployment.md` → *Removing the
+  former research corpus*).
+
+## Research corpus removed (November 2026)
+
+The research agent used to read a private corpus of modern books and lectures
+(`data/research_sources/`, indexed into `data/research_agent.db`): excerpts
+went to the AI provider to discover search terms, and the experimental
+explanatory reading («قراءة تفسيرية») drew on them for its answers. Those
+works are under copyright, so the corpus was removed from the app entirely
+rather than published or kept behind a licence question:
+
+- the agent reads nothing but the Quran: search terms come from the question
+  and the Quran's own roots and words, and the answer only from the ayahs
+  Quran search returns (each read with its neighbouring ayahs); its prompts
+  forbid tafsir, hadith, scholars' opinions, rulings and outside knowledge;
+- the explanatory reading is gone from the backend and the interface; answers
+  saved with it still display, with their disclaimer;
+- the index builder (`scripts/build_research_index.py`), its configuration
+  (`QBASAIR_RESEARCH_INDEX_PATH`, `QBASAIR_RESEARCH_SOURCES_PATH`), the
+  `[rebuild-index]` deploy job and the index's backup were removed.

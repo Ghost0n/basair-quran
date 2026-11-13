@@ -9,8 +9,8 @@ describe("feed filters", () => {
     expect(activeFilterCount({ ...EMPTY_FILTERS, sort: "latest" })).toBe(0);
     expect(activeFilterCount({ ...EMPTY_FILTERS, q: "   " })).toBe(0);
     expect(
-      activeFilterCount({ ...EMPTY_FILTERS, q: "صبر", tag: "تدبر", surah: 2, mode: "strict", board: true, author: { id: 3, name: "أ" } }),
-    ).toBe(6);
+      activeFilterCount({ ...EMPTY_FILTERS, q: "صبر", tag: "تدبر", surah: 2, board: true, author: { id: 3, name: "أ" } }),
+    ).toBe(5);
   });
 
   it("maps the state to the API query (debounced text, author id, saved tab)", () => {
@@ -21,7 +21,6 @@ describe("feed filters", () => {
       q: "صبر",
       surah: null,
       tag: "تدبر",
-      mode: null,
       board: false,
       author: 7,
       saved: true,

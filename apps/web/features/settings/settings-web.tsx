@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-import type { NumeralScript, ResearchDefaults } from "@q-basair/shared";
+import type { NumeralScript } from "@q-basair/shared";
 
 import { Icon, type IconName } from "@/components/icon";
 import { SelectMenu } from "@/components/select-menu";
@@ -27,8 +27,6 @@ import { LanguageSelect } from "./language-select";
 import { chipCentringDelta, chipScrollTarget } from "./settings-index";
 import { TranslationsSettings } from "./translations-settings";
 
-import { TAFSSIR_ENABLED } from "@/lib/features";
-
 import { t } from "@/lib/i18n";
 
 const NUMERALS: { value: NumeralScript; label: () => string }[] = [
@@ -37,20 +35,9 @@ const NUMERALS: { value: NumeralScript; label: () => string }[] = [
   { value: "persian", label: () => t("فارسيّة ۰۱۲") },
 ];
 
-const STUDY_MODES: { value: ResearchDefaults["default_mode"]; icon: IconName; label: () => string }[] = [
-  { value: "strict", icon: "scale", label: () => t("القرآن وحدَه") },
-  { value: "tafssir", icon: "feather", label: () => t("قراءة تفسيرية") },
-];
-
-const DEPTHS: { value: ResearchDefaults["depth"]; label: () => string }[] = [
-  { value: "fast", label: () => t("سريع") },
-  { value: "balanced", label: () => t("متوازن") },
-  { value: "deep", label: () => t("عميق") },
-];
-
 /** Arabic without its marks (and tatweel), lower-cased: what a search compares. */
 function fold(text: string): string {
-  return text.replace(/[ً-ٰٟـ]/g, "").toLowerCase().trim();
+  return text.replace(/[ً-ٰٟـ]/g, "").toLowerCase().trim();
 }
 
 /** What a search can show or hide inside a section (Home's switches, a translation…). */
@@ -62,7 +49,6 @@ const SECTIONS: { id: string; icon: IconName; label: () => string }[] = [
   { id: "translations", icon: "globe", label: () => t("ترجمة المعاني") },
   { id: "reading", icon: "book", label: () => t("القراءة والمصحف") },
   { id: "recitation", icon: "volume", label: () => t("التلاوة") },
-  { id: "study", icon: "sparkles", label: () => t("الدراسة") },
   { id: "ai", icon: "zap", label: () => t("الذكاء الاصطناعي") },
   { id: "home", icon: "home", label: () => t("الرئيسية") },
   { id: "downloads", icon: "download", label: () => t("التنزيلات") },
@@ -274,7 +260,6 @@ export function SettingsWeb() {
   const edition = state.edition;
   const readerMode = resolveReaderMode(preferences.reader_layout);
   const reciterId = preferences.reciter || recitation.reciter?.id || "";
-  const research = preferences.research;
 
   const section = (id: string, children: ReactNode) => (
     <div id={`settings-${id}`} data-settings-section className="qb-settings-sec">
@@ -418,37 +403,6 @@ export function SettingsWeb() {
                 <span className="value">{t("جارٍ التحميل…")}</span>
               )}
             </Row>
-          </section>,
-        )}
-
-        {/* «الدراسة» holds only the explanatory reading's choices: it exists
-            only in a build that has that reading (lib/features.ts). */}
-        {TAFSSIR_ENABLED && section(
-          "study",
-          <section className="qb-setting-card">
-            <h3>{t("الدراسة")}</h3>
-            <p className="card-sub">{t("كيف تبدأ كل دراسة جديدة؛ تغيّرها لكل سؤال من صفحة الدراسة.")}</p>
-            <Row
-              label={t("المنهج")}
-              hint={research.default_mode === "strict" ? t("أجوبة من نص القرآن وحده.") : t("قراءة تستعين بالتفاسير، مع التنبيه عليها.")}
-            >
-              <Segments
-                label={t("المنهج")}
-                value={research.default_mode}
-                options={STUDY_MODES.map((option) => ({ value: option.value, label: option.label(), icon: option.icon }))}
-                onChange={(default_mode) => void updateAccount({ research: { default_mode } })}
-              />
-            </Row>
-            {research.default_mode === "tafssir" ? (
-              <Row label={t("العمق")} hint={t("الأعمق أدقّ وأبطأ.")}>
-                <Segments
-                  label={t("العمق")}
-                  value={research.depth}
-                  options={DEPTHS.map((option) => ({ value: option.value, label: option.label() }))}
-                  onChange={(depth) => void updateAccount({ research: { depth } })}
-                />
-              </Row>
-            ) : null}
           </section>,
         )}
 

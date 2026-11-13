@@ -8,13 +8,10 @@ import type {
   ResearchAgentResponse,
   ResearchFocusAyah,
   StoredMessage,
-  TafssirDepth,
 } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
-import { allowedStudyMode } from "@/lib/features";
 import { isTechnicalMessage, reportError } from "@/lib/error-report";
-import { usePreferences } from "@/lib/preferences-context";
 import { aiHeaders } from "@/lib/ai-connection";
 
 import { t } from "@/lib/i18n";
@@ -23,6 +20,11 @@ import { dropExtraBlanks, NEW_SESSION_PREFIX, placeNewSession, putSession } from
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
+/**
+ * Study answers from the Quran alone. "tafssir" only labels sessions saved when
+ * the experimental explanatory reading existed: they reopen and display as
+ * they were, and every new turn in them is answered from the Quran alone.
+ */
 export type StudioMode = "strict" | "tafssir";
 
 export type StudioMessage = {
@@ -36,7 +38,6 @@ export type StudioSession = {
   title: string;
   messages: StudioMessage[];
   mode: StudioMode;
-  depth: TafssirDepth;
   /** The ayah this session is about (from the reader's tafssir tool), sent with every turn. */
   focus?: ResearchFocusAyah | null;
   focusLabel?: string;
@@ -64,8 +65,6 @@ function loadPersistedSessions(): PersistedStudioState | null {
 
 let sessionCounter = 0;
 function createSession(defaults?: {
-  mode?: StudioMode;
-  depth?: TafssirDepth;
   focus?: ResearchFocusAyah | null;
   focusLabel?: string;
 }): StudioSession {
@@ -74,8 +73,7 @@ function createSession(defaults?: {
     id: `${NEW_SESSION_PREFIX}${Date.now()}-${sessionCounter}`,
     title: t("جلسة جديدة"),
     messages: [],
-    mode: allowedStudyMode(defaults?.mode ?? "strict"),
-    depth: defaults?.depth ?? "balanced",
+    mode: "strict",
     focus: defaults?.focus ?? null,
     focusLabel: defaults?.focusLabel,
   };
@@ -98,21 +96,8 @@ function assistantText(response: ResearchAgentResponse): string {
  * will persist them to the backend via /api/sessions.
  */
 export function useStudioSessions() {
-  // A new research session inherits the user's saved default mode/depth (written
-  // by Settings). The ref keeps the latest values so callbacks created once still
-  // read fresh prefs; the initial session is seeded from prefs available at mount.
-  const { preferences } = usePreferences();
-  const researchDefaultsRef = useRef<{ mode: StudioMode; depth: TafssirDepth }>({
-    mode: allowedStudyMode(preferences.research.default_mode),
-    depth: preferences.research.depth,
-  });
-  researchDefaultsRef.current = {
-    mode: allowedStudyMode(preferences.research.default_mode),
-    depth: preferences.research.depth,
-  };
-
   const [sessions, setSessions] = useState<StudioSession[]>(() => [
-    createSession(researchDefaultsRef.current),
+    createSession(),
   ]);
   const [activeId, setActiveId] = useState<string>(() => sessions[0]?.id ?? "");
   const [isResearching, setIsResearching] = useState(false);
@@ -171,14 +156,14 @@ export function useStudioSessions() {
   }, []);
 
   const newSession = useCallback(() => {
-    placeSession(createSession(researchDefaultsRef.current));
+    placeSession(createSession());
   }, [placeSession]);
 
   const closeSession = useCallback(
     (id: string) => {
       setSessions((current) => {
         const remaining = current.filter((session) => session.id !== id);
-        const next = remaining.length > 0 ? remaining : [createSession(researchDefaultsRef.current)];
+        const next = remaining.length > 0 ? remaining : [createSession()];
         setActiveId((currentActive) =>
           currentActive === id ? next[next.length - 1]?.id ?? "" : currentActive,
         );
@@ -186,20 +171,6 @@ export function useStudioSessions() {
       });
     },
     [],
-  );
-
-  const setMode = useCallback(
-    (mode: StudioMode) => {
-      if (active) patchSession(active.id, { mode: allowedStudyMode(mode) });
-    },
-    [active, patchSession],
-  );
-
-  const setDepth = useCallback(
-    (depth: TafssirDepth) => {
-      if (active) patchSession(active.id, { depth });
-    },
-    [active, patchSession],
   );
 
   const submitInto = useCallback(
@@ -230,10 +201,9 @@ export function useStudioSessions() {
             mushaf: Number.isFinite(mushaf) && mushaf > 0 ? Math.trunc(mushaf) : 1,
             max_results: 8,
             answer_language: "auto",
-            // A session saved in the explanatory mode continues from the Quran
-            // alone when this build leaves that mode out (lib/features.ts).
-            response_mode: allowedStudyMode(target.mode),
-            tafssir_depth: allowedStudyMode(target.mode) === "tafssir" ? target.depth : undefined,
+            // Every turn is answered from the Quran alone, in a saved
+            // explanatory-reading session too.
+            response_mode: "strict",
             focus: target.focus ?? undefined,
           },
           // The AI chosen in Settings (lib/ai-connection.ts); none: the server's own.
@@ -295,12 +265,10 @@ export function useStudioSessions() {
     async (
       content: string,
       mushaf: number,
-      options: { mode?: StudioMode; focus?: ResearchFocusAyah | null; focusLabel?: string } = {},
+      options: { focus?: ResearchFocusAyah | null; focusLabel?: string } = {},
     ) => {
       const session = placeSession(
         createSession({
-          ...researchDefaultsRef.current,
-          ...(options.mode ? { mode: allowedStudyMode(options.mode) } : {}),
           focus: options.focus ?? null,
           focusLabel: options.focusLabel,
         }),
@@ -339,7 +307,6 @@ export function useStudioSessions() {
           title: detail.title,
           messages,
           mode: detail.mode,
-          depth: "balanced",
         };
         setSessions((current) =>
           current.some((s) => s.id === id) ? current : [...current, session],
@@ -361,8 +328,6 @@ export function useStudioSessions() {
     setActiveId,
     newSession,
     closeSession,
-    setMode,
-    setDepth,
     submit,
     askInNewSession,
     openSavedSession,

@@ -96,51 +96,6 @@
   color: var(--fg-mute);
 }
 
-/* ---------- Mode toggle (strict / tafssir) ---------- */
-
-.qb-mode-tabs {
-  display: flex;
-  padding: 4px;
-  background: var(--glass-tint-soft);
-  border: 1px solid var(--glass-rim);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
-  border-radius: var(--r-pill);
-  margin: 14px 20px 8px;
-  flex-shrink: 0;
-}
-
-.qb-mode-tab {
-  flex: 1;
-  padding: 9px 10px;
-  border-radius: var(--r-pill);
-  transition: background-color var(--motion-dur-base) var(--spring-soft), color var(--motion-dur-fast),
-    box-shadow var(--motion-dur-base);
-  font-size: 12px;
-  color: var(--fg-2);
-  font-weight: 600;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.qb-mode-tab.active.strict {
-  background: var(--seg-on-bg);
-  background-image: var(--glass-sheen);
-  box-shadow: var(--seg-on-shadow);
-  color: var(--gold-text);
-}
-
-.qb-mode-tab.active.tafssir {
-  background: var(--seg-copper-bg);
-  background-image: var(--glass-sheen);
-  box-shadow: var(--glass-edge), inset 0 0 0 1px rgba(201, 138, 91, 0.4);
-  color: var(--tafssir-fg);
-}
-
 /* ---------- Tafssir disclaimer ---------- */
 
 .qb-tafssir-warn {
@@ -471,31 +426,7 @@
   cursor: not-allowed;
 }
 
-.qb-composer .tool-chip {
-  height: 28px;
-  padding: 0 10px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border);
-  color: var(--fg-3);
-  font-size: 11px;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.qb-composer .tool-chip:hover {
-  color: var(--gold-text);
-}
-
-.qb-composer .tool-chip.active {
-  color: var(--gold-text);
-  border-color: var(--border-accent);
-  background: rgba(212, 175, 55, 0.08);
-}
-
-/* A session centred on one ayah (reader «تفسير» tool). */
+/* A session centred on one ayah. */
 .qb-studio-focus {
   display: flex;
   align-items: center;
@@ -605,16 +536,6 @@
   color: var(--fg-2);
 }
 
-.qb-composer .tool-chip.phone-only {
-  display: none;
-}
-
-.qb-composer .tool-chip.tafssir.active {
-  color: var(--tafssir-fg);
-  border-color: rgba(217, 162, 122, 0.45);
-  background: rgba(217, 162, 122, 0.1);
-}
-
 .qb-studio-sessions .menu-list {
   display: grid;
   gap: 4px;
@@ -699,7 +620,6 @@
   }
 
   html:root .qb-studio-tabs,
-  html:root .qb-studio .qb-mode-tabs,
   html:root .qb-studio .close.desk-only {
     display: none;
   }
@@ -726,10 +646,6 @@
 
   html:root .qb-studio-title > .qb-icon {
     display: inline-block;
-  }
-
-  html:root .qb-composer .tool-chip.phone-only {
-    display: inline-flex;
   }
 
   html:root .qb-composer {

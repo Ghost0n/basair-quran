@@ -16,8 +16,6 @@ services:
       PORT: "8001"
       QBASAIR_DB_PATH: /app/data/quran.db
       QBASAIR_AUTH_DB_PATH: /app/data/auth.db
-      QBASAIR_RESEARCH_INDEX_PATH: /app/data/research_agent.db
-      QBASAIR_RESEARCH_SOURCES_PATH: /app/data/research_sources
       QBASAIR_TRANSLATIONS_DB_PATH: /app/data/translations.db
       # Shared cache (e.g. verse audio durations), computed once, served to all.
       QBASAIR_CACHE_DB_PATH: /app/data/cache.db

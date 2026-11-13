@@ -96,7 +96,7 @@ are two taps (Home tile, or the surah name for the index).
   the app's own (the web view's system gesture isn't used), and the split
   into the reader needs view transitions (iOS 18+): older systems switch
   without the animation.
-- The study screen is a conversation: no frame, no session tabs (the session title opens a sheet of open sessions with new/close), no close or export buttons; the strict/tafssir switch sits in the composer. «حوّل إلى بحث» shows only once the session has messages and asks for confirmation in a banner before creating the document.
+- The study screen is a conversation: no frame, no session tabs (the session title opens a sheet of open sessions with new/close), no close or export buttons, and no mode switch (the study answers from the Quran alone). «حوّل إلى بحث» shows only once the session has messages and asks for confirmation in a banner before creating the document.
 - Catalogues the app can't work without (reciters, surahs, mushafs, account
   preferences) now retry until they load (`lib/retry.ts`: 1 s doubling to
   30 s, and at once when the connection returns or the app comes back). A

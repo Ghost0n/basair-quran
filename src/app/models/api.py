@@ -357,6 +357,8 @@ class ResearchAgentRequest(BaseModel):
     mushaf: int = 1
     max_results: int = Field(8, ge=1, le=20)
     answer_language: str = Field("auto", max_length=32)
+    # Legacy, accepted and ignored: every answer comes from the Quran alone
+    # (the experimental explanatory reading was removed).
     response_mode: Literal["strict", "tafssir"] = "strict"
     tafssir_depth: Literal["fast", "balanced", "deep"] = "balanced"
     # Optional: centre the research on one ayah (always kept, read in context).
@@ -381,6 +383,8 @@ class ResearchAgentAyah(SearchVerse):
     matched_terms: List[str] = Field(default_factory=list)
 
 
+# Sections of an answer from the former explanatory reading: no longer produced,
+# kept so the response shape (and answers saved back then) stay valid.
 class TafssirStructuredAnswer(BaseModel):
     summary: Optional[str] = None
     linguistic_analysis: Optional[str] = None
@@ -463,6 +467,7 @@ class ResearchAgentSettingsResponse(BaseModel):
 
 class ResearchAgentResponse(BaseModel):
     status: Literal["needs_clarification", "answered", "no_results"]
+    # Always "strict"; `disclaimer` and `tafssir` stay null (legacy fields).
     mode: Literal["strict", "tafssir"] = "strict"
     answer: Optional[str] = None
     clarifying_question: Optional[str] = None

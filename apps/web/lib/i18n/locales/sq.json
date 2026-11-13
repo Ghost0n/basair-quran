@@ -1727,5 +1727,7 @@
  "وقفة، انقطاع، فاصل، صوت، قطع": "pauzë, ndërprerje, heshtje, ndalim, boshllëk, zë, audio",
  "يمرّ كل بحث بفحوص آلية (الآيات والمراجع ووسم المحتوى الآلي)، ثم بمراجعة وفق الإرشادات، ويراجع مشرفٌ أوّل منشور لكل مستخدم. إن طُلب منك تعديل تجد السبب.": "Çdo kërkim kalon nëpër kontrolle automatike (ajetet, referencat dhe etiketimi i përmbajtjes së krijuar me IA), pastaj nëpër shqyrtim sipas udhëzimeve, dhe një moderator shqyrton postimin e parë të çdo përdoruesi. Nëse ju kërkohet ndonjë ndryshim, do ta shihni arsyen.",
  "الشيفرة المصدرية": "Kodi burimor",
- "«بصائر» مفتوح المصدر: اقرأ شيفرته أو ساهم فيها.": "Basair është me burim të hapur: lexoni kodin ose kontribuoni."
+ "«بصائر» مفتوح المصدر: اقرأ شيفرته أو ساهم فيها.": "Basair është me burim të hapur: lexoni kodin ose kontribuoni.",
+ "لا يدخل الجوابَ إلا الآياتُ التي وجدها البحث، بنصّها ومراجعها، وكل آية تفتح موضعها في المصحف. ولا يستعين الباحث بتفسير ولا بقول من خارج القرآن.": "Në përgjigje hyjnë vetëm ajetet që gjeti kërkimi, me tekstin dhe referencat e tyre, dhe çdo ajet hap vendin e vet në Mushaf. Studiuesi nuk mbështetet në asnjë tefsir dhe në asnjë fjalë jashtë Kuranit.",
+ "لا يدخل الجوابَ إلا الآياتُ التي وجدها البحث، بنصّها ومراجعها.": "Në përgjigje hyjnë vetëm ajetet që gjeti kërkimi, me tekstin dhe referencat e tyre."
 }
