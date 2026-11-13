@@ -46,7 +46,7 @@ the source.
 
 Interface fonts are self-hosted: Google Fonts is only contacted when the build
 downloads them (`apps/web/scripts/fetch-script-fonts.mjs`), never by a visitor's
-browser.
+browser — a rule CI enforces (`docs/privacy-fonts.md`).
 
 ### Recitations: permission status
 
