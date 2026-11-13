@@ -41,3 +41,28 @@ log", filter on `google`, then visit the landing page, `/guide` (both
 versions), `/faq`, `/guidelines` and the app's screens, switching the interface
 to a language with its own script (Japanese, Hindi, Urdu). The filter stays
 empty.
+
+`apps/web/scripts/audit-third-party-requests.mjs` does the same in a browser,
+for every page, in nine interface languages, on desktop and phone sizes, and
+once more with the self-hosted Noto files blocked; it fails on any request to a
+Google font host and lists every third-party host contacted.
+
+## Other third-party requests
+
+The same rule holds for everything a visitor's browser loads. The only optional
+third-party script, Yamli (Arabic typing aid, `api.yamli.com`), is **opt-in**: it
+loads only when the web is built with `NEXT_PUBLIC_ENABLE_YAMLI=1`, and the
+production build sets `0`. The app also plays recitations straight from their
+sources when the server has not prepared them (`NOTICE.md` → *Services the app
+calls while running*); the AI providers are reached by the server, not the
+browser.
+
+## Last audit (November 2026)
+
+273 page loads and 10,087 requests (the public pages and the app's main screens,
+in Arabic, English, Japanese, Hindi, Korean, Urdu, Bengali, Chinese and
+Russian, desktop and phone, plus the run with the self-hosted fonts blocked):
+**0 requests** to `fonts.googleapis.com` or `fonts.gstatic.com`. The only
+third-party host was Yamli, because the test server was built without
+`NEXT_PUBLIC_ENABLE_YAMLI`, which then defaulted to on; it is now opt-in, and a
+second pass contacted no third-party host at all.

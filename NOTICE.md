@@ -42,7 +42,7 @@ the source.
 | Quran.com (`api.qurancdn.com`, `download.quranicaudio.com`), mp3quran.net, everyayah.com | Playing a recitation straight from its source when the server has not prepared it, and its verse timings | Each source's terms — **not yet confirmed**, as above |
 | The AI provider a user connects (Anthropic, OpenAI, Google, Mistral, Groq, DeepSeek, xAI, OpenRouter) | The study assistant, with the user's own key or sign-in | That provider's terms, accepted by the user |
 | Ollama (the server's default model) | The study assistant and moderation, for users without their own provider | The operator's Ollama account and the model's own licence |
-| Yamli (`api.yamli.com`) | Optional Arabic typing aid; **off** in production (`NEXT_PUBLIC_ENABLE_YAMLI=0`) | Yamli's terms, if an operator turns it on |
+| Yamli (`api.yamli.com`) | Optional Arabic typing aid; **opt-in**: loaded only by a build with `NEXT_PUBLIC_ENABLE_YAMLI=1`, never in production | Yamli's terms, if an operator turns it on |
 
 Interface fonts are self-hosted: Google Fonts is only contacted when the build
 downloads them (`apps/web/scripts/fetch-script-fonts.mjs`), never by a visitor's

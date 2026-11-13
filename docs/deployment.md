@@ -137,7 +137,7 @@ required reviewer if every release should wait for a click). Its secrets:
 | `QBASAIR_PUBLIC_DOMAIN` | `basairquran.com` | release (site URL baked into the web, outside check) |
 | `QBASAIR_IMAGE_PREFIX` | `ghcr.io/ghost0n/basair-quran` (default) | release |
 | `NEXT_PUBLIC_AUTH_ENABLED` | `1` (default) | web image build |
-| `NEXT_PUBLIC_ENABLE_YAMLI` | `0` (default) | web image build |
+| `NEXT_PUBLIC_ENABLE_YAMLI` | `0` (default; only `1` loads the third-party Yamli script, `docs/privacy-fonts.md`) | web image build |
 | `QBASAIR_REMOTE_ORIGIN` | `https://basairquran.com` | the iPhone/Android builds (`mobile.yml`): the server the app talks to |
 | `QBASAIR_SITE_URL` | `https://basairquran.com` | the app builds |
 | `SONAR_*` | see [scans](#code-quality-and-security-scans) | CI |
