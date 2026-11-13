@@ -388,8 +388,6 @@ export function MushafStage() {
   // Madani (QCF) glyph page. The layout hook is fallback-safe — until a page's
   // layout + glyph font are ready, the Unicode text stands in as a loading state.
   const authentic = state.edition.authentic;
-  // «صفحتان» (header switcher + Shift+M) needs the glyph page.
-  const spreadAvailable = authentic;
 
   // Two modes (see reader-modes.ts): the printed page (one page or a spread)
   // and verse by verse, on every device.
@@ -628,7 +626,6 @@ export function MushafStage() {
   // always keeps it in view: pages turn to it, the verse-by-verse list
   // scrolls to it. Each verse is followed once, so a reader who turns away
   // mid-verse is only brought back by the next verse.
-  const recitation = useRecitation();
   const reciting = recitedNow;
   const recitingKey = reciting ? `${reciting.surah}:${reciting.ayah}` : null;
   const followedRef = useRef<string | null>(null);

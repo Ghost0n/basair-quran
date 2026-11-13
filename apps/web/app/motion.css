@@ -87,27 +87,12 @@
   to   { transform: translateX(-280%); }
 }
 
-/* ---------- Pin-to-notebook ghost flight ---------- */
-/* A ghost copy flies toward the notebook icon and shrinks away. The
-   target offset is supplied inline as --fly-x / --fly-y. */
-@keyframes qbFly {
-  0%   { opacity: 1;    transform: translate(0, 0) scale(1); }
-  72%  { opacity: 0.85; }
-  100% { opacity: 0;    transform: translate(var(--fly-x), var(--fly-y)) scale(0.1); }
-}
-
 /* ---------- Badge pop — the ONLY overshoot in the whole app ---------- */
 /* Bounded emphasis (≤4%). Use with --motion-ease-emphasis. */
 @keyframes qbPop {
   0%   { transform: scale(0.5); }
   62%  { transform: scale(1.22); }
   100% { transform: scale(1); }
-}
-
-/* ---------- Notebook icon ring pulse ---------- */
-@keyframes qbPulseRing {
-  0%   { box-shadow: 0 0 0 0 var(--gold-a40); }
-  100% { box-shadow: 0 0 0 14px transparent; }
 }
 
 /* ---------- Skeleton (loading) — no spinners; blocks pulse ---------- */
@@ -132,38 +117,6 @@
    in the reader are left alone. */
 button:not(:disabled):active {
   transform: scale(var(--motion-press-scale));
-}
-
-/* ---------- Pin-to-notebook ghost flight ---------- */
-/* A ghost copy of the pinned card flies to the rail notebook icon (qbFly, with
-   --fly-x/--fly-y set inline from geometry); the icon then pulses (qbPulseRing).
-   Spawned imperatively — see lib/fly-to-notebook.ts. */
-.qb-pin-ghost {
-  position: fixed;
-  z-index: calc(var(--elev-toast) + 10);
-  pointer-events: none;
-  max-width: 190px;
-  padding: 6px 12px;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--border-strong);
-  background: var(--bg-elev-3);
-  box-shadow: var(--shadow-3);
-  font-family: var(--font-arabic-display);
-  direction: rtl;
-  font-size: 12.5px;
-  color: var(--fg-1);
-  white-space: nowrap;
-  overflow: hidden;
-  /* Clip the ellipsis axis only: stacked Arabic marks stay visible. */
-  overflow-x: clip;
-  overflow-y: visible;
-  text-overflow: ellipsis;
-  transform-origin: top center;
-  animation: qbFly var(--motion-dur-travel) var(--motion-ease-travel) forwards;
-}
-
-.qb-notebook-pulse {
-  animation: qbPulseRing 500ms var(--motion-ease-settle) both;
 }
 
 /* ---------- Evidence thread (citation ﴿n﴾ → target ayah) ---------- */

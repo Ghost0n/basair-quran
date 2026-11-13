@@ -248,7 +248,7 @@ function useMushafController(): MushafController {
   }, []);
 
   const loadByAyah = useCallback(
-    async (mushafId: number, ayahId: number, highlights: number[] = [], options: { transient?: boolean } = {}) => {
+    async (mushafId: number, ayahId: number, highlights: number[] = [], _options: { transient?: boolean } = {}) => {
       noteReaderLoad();
       setIsLoading(true);
       setError(null);

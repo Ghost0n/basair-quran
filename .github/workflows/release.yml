@@ -77,7 +77,6 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=/api
             NEXT_PUBLIC_AUTH_ENABLED=${{ vars.NEXT_PUBLIC_AUTH_ENABLED || '1' }}
-            NEXT_PUBLIC_ENABLE_YAMLI=${{ vars.NEXT_PUBLIC_ENABLE_YAMLI || '0' }}
             NEXT_PUBLIC_SITE_URL=https://${{ env.PUBLIC_DOMAIN }}
             QBASAIR_API_ORIGIN=http://api:8001
           cache-from: type=gha,scope=${{ matrix.image }}

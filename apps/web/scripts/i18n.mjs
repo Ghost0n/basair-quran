@@ -36,7 +36,6 @@ const EXCLUDED_FILES = new Set([
   "lib/arabic-transliteration.ts",
   "lib/quran-nav.ts",
   "lib/numerals.ts",
-  "components/yamli-init.tsx",
   "features/workspace/lib/search-helpers.ts",
   "lib/studio-prefill.ts",
 ]);

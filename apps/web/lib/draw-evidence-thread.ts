@@ -3,8 +3,8 @@ import { WIDE_MIN } from "./bands";
 /**
  * Evidence thread: when a Studio evidence citation ﴿n﴾ is clicked, a fine gold
  * line draws from the citation to the ayah it lands on in the reader — tying the
- * answer's evidence to its place in the muṣḥaf. Imperative on purpose (like
- * lib/fly-to-notebook.ts): a fire-and-forget SVG overlay, not React state.
+ * answer's evidence to its place in the muṣḥaf. Imperative on purpose: a
+ * fire-and-forget SVG overlay, not React state.
  *
  * The target ayah renders asynchronously (the click triggers loadByAyah), so we
  * POLL for the reader's freshly-selected ayah — matched by data-ayah-id so a

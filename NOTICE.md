@@ -22,6 +22,7 @@ the source.
 | `data/word_root_dictionary.json` | Fallback word → root table for spellings the corpus never uses | Derived from the Quranic Arabic Corpus morphology data | As the Quranic Arabic Corpus: GNU GPL, attribution required |
 | `apps/web/public/fonts/AmiriQuran-Regular.ttf`, `apps/web/public/fonts/ui/amiri-*` | Amiri and Amiri Quran | Khaled Hosny, the Amiri project | SIL Open Font License 1.1 (`apps/web/public/fonts/ui/OFL-Amiri.txt`) |
 | `apps/web/public/fonts/ui/cairo-*` | Cairo | Mohamed Gaber, the Cairo project | SIL Open Font License 1.1 (`apps/web/public/fonts/ui/OFL-Cairo.txt`) |
+| `apps/web/features/site/landing-data.json`, `apps/web/lib/quran-divisions.generated.ts` | Verses quoted on the landing page; juz, hizb and quarter starts | Generated from the Ḥafṣ text: `data/quran.db`, itself built from `data/` (`scripts/build_landing_data.py`), and `data/quran-narrations/hafs.json` (`scripts/build_quran_divisions.py`) | As their source: the Quranic text is unaltered |
 | `apps/web/components/icon.tsx` | Interface icons, some adapted from Lucide | Lucide Contributors (portions from Feather, Cole Bemis) | ISC (`apps/web/components/LICENSE-lucide.txt`) |
 | `apps/web/public/guide-media/` | Screenshots and clips of the app (the guide) | This project | AGPL-3.0, with the Quran text they show under its own terms above |
 
@@ -42,7 +43,6 @@ the source.
 | Quran.com (`api.qurancdn.com`, `download.quranicaudio.com`), mp3quran.net, everyayah.com | Playing a recitation straight from its source when the server has not prepared it, and its verse timings | Each source's terms — **not yet confirmed**, as above |
 | The AI provider a user connects (Anthropic, OpenAI, Google, Mistral, Groq, DeepSeek, xAI, OpenRouter) | The study assistant, with the user's own key or sign-in | That provider's terms, accepted by the user |
 | Ollama (the server's default model) | The study assistant and moderation, for users without their own provider | The operator's Ollama account and the model's own licence |
-| Yamli (`api.yamli.com`) | Optional Arabic typing aid; **opt-in**: loaded only by a build with `NEXT_PUBLIC_ENABLE_YAMLI=1`, never in production | Yamli's terms, if an operator turns it on |
 
 Interface fonts are self-hosted: Google Fonts is only contacted when the build
 downloads them (`apps/web/scripts/fetch-script-fonts.mjs`), never by a visitor's

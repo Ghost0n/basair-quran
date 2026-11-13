@@ -19,7 +19,7 @@ import { useWorkspace } from "@/features/shell/workspace-context";
 import { setShowHighlights, useShowHighlights } from "@/features/themes/ayah-marks";
 import { hapticsAvailable, hapticsEnabled, setHapticsEnabled, subscribeHaptics } from "@/lib/haptics";
 import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
-import { useNumerals, usePreferences } from "@/lib/preferences-context";
+import { usePreferences } from "@/lib/preferences-context";
 
 import { AiSettings } from "./ai-settings";
 import { HomeSettings } from "./home-settings";
@@ -141,7 +141,6 @@ export function SettingsWeb() {
   const { preferences, updateAccount } = usePreferences();
   const { state, actions } = useWorkspace();
   const recitation = useRecitation();
-  const formatNumber = useNumerals();
   const showHighlights = useShowHighlights();
   const haptics = useHapticsSetting();
   const pageRef = useRef<HTMLDivElement>(null);

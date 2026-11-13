@@ -62,8 +62,7 @@ function detectIntent(raw: string): CommandIntent | null {
  *
  * Phase 1: routes typed input through the legacy useSearchWorkspace hook
  * via WorkspaceContext, so search behavior is unchanged. The input owns
- * id="searchInput" — Yamli (Latin → Arabic) and the existing inputRef
- * both expect that id.
+ * id="searchInput" — the existing inputRef expects that id.
  *
  * Phase 2+ will teach the input to parse intent (root vs word vs ayah
  * jump vs research question) and dispatch accordingly.

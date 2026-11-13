@@ -2,12 +2,10 @@ from collections import OrderedDict, defaultdict
 from difflib import SequenceMatcher
 import logging
 import math
-import os
 from pathlib import Path
 import re
 import sqlite3
 import threading
-from typing import Optional
 
 from src.app.core import config
 

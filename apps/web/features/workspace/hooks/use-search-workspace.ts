@@ -87,7 +87,6 @@ export function useSearchWorkspace() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const suggestionsRef = useRef<HTMLDivElement | null>(null);
   const previousMushafRef = useRef(selectedMushaf);
-  const yamliRequestIdRef = useRef(0);
   // Monotonic id so an earlier (slower) runSearch can't overwrite a newer one's
   // results when responses resolve out of order (stale-response race).
   const runSearchIdRef = useRef(0);
@@ -434,66 +433,6 @@ export function useSearchWorkspace() {
       window.clearTimeout(timer);
     };
   }, [deferredQuery, isInputFocused, searchMode, searchModeInitialized, selectedMushaf, suggestionsWithChakl]);
-
-  useEffect(() => {
-    async function handleYamliSuggestions(event: Event) {
-      const customEvent = event as CustomEvent<{ targetId?: string; suggestions?: string[] }>;
-      const detail = customEvent.detail;
-      if (!detail?.suggestions?.length || detail.targetId !== "searchInput") {
-        return;
-      }
-
-      const activeQuery = query.trim();
-      if (!isInputFocused || !activeQuery || !isLatinQuery(activeQuery)) {
-        return;
-      }
-
-      const requestId = ++yamliRequestIdRef.current;
-      const suggestionContext = getSuggestionContext(activeQuery);
-      const candidates = detail.suggestions.slice(0, 5);
-
-      try {
-        if (suggestionContext.prefixQuery) {
-          const phraseItems = dedupeSuggestionItems(
-            await buildPhraseSuggestionItems(activeQuery, { sourceCandidates: candidates }),
-          );
-          if (requestId !== yamliRequestIdRef.current) {
-            return;
-          }
-
-          setSuggestions(phraseItems.slice(0, MAX_SUGGESTIONS));
-          setSuggestionsOpen(phraseItems.length > 0);
-          setActiveSuggestionIndex(-1);
-          return;
-        }
-
-        const items = await api.getSuggestionsBatch(
-          candidates,
-          searchModeInitialized ? searchMode : "root",
-          selectedMushaf,
-          suggestionsWithChakl,
-        );
-        if (requestId !== yamliRequestIdRef.current) {
-          return;
-        }
-
-        const uniqueItems = dedupeSuggestionItems(items);
-        setSuggestions(uniqueItems.slice(0, MAX_SUGGESTIONS));
-        setSuggestionsOpen(uniqueItems.length > 0);
-        setActiveSuggestionIndex(-1);
-      } catch {
-        if (requestId === yamliRequestIdRef.current) {
-          setSuggestions([]);
-          setSuggestionsOpen(false);
-        }
-      }
-    }
-
-    window.addEventListener("qbasair:yamli-suggestions", handleYamliSuggestions as EventListener);
-    return () => {
-      window.removeEventListener("qbasair:yamli-suggestions", handleYamliSuggestions as EventListener);
-    };
-  }, [api, isInputFocused, previewValue, query, searchMode, searchModeInitialized, selectedMushaf, suggestionsWithChakl]);
 
   useEffect(() => {
     if (!suggestionsOpen && previewValue !== null) {
