@@ -62,9 +62,6 @@ in this table. Until a source answers yes, an operator should not prepare
 (re-host) its recordings; `QBASAIR_PREPARE_RECITERS` limits which reciters are
 prepared.
 
-The research corpus under `data/research_sources/` is private to each
-installation and is never part of the repository.
-
 ## Using Q-Basair commercially
 
 The AGPL allows commercial use of the code. Some of the data above does not:

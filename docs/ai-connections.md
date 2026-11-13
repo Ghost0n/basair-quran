@@ -30,8 +30,9 @@ The study sends `X-QBasair-LLM-Provider`, `X-QBasair-LLM-Key`, `X-QBasair-LLM-Mo
 - talks to that provider's fixed address: the OpenAI chat-completions dialect for all but
   Ollama Cloud (its own API); one client covers them and reuses every step of the research
   agent; a model that refuses a custom temperature is asked again without it;
-- keeps retrieval embeddings on its side (a provider is used for chat only);
-- keeps strict mode Quran-only and Tafssir experimental, whatever the provider.
+- is used for chat only;
+- answers from the Quran alone, whatever the provider: only the question, Quranic vocabulary
+  and ayahs reach the model.
 
 Without the provider header, the earlier behaviour holds (the server's model, or the older
 `X-QBasair-Ollama-*` override headers).

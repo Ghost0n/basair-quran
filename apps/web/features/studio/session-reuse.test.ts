@@ -9,7 +9,6 @@ function session(id: string, asked = false, extra: Partial<StudioSession> = {}):
     title: id,
     messages: asked ? [{ role: "user", content: "?" }] : [],
     mode: "strict",
-    depth: "balanced",
     focus: null,
     ...extra,
   };
@@ -31,9 +30,9 @@ describe("placeNewSession", () => {
   });
 
   it("gives the reused blank session the new session's settings", () => {
-    const fresh = session("new", false, { mode: "tafssir", focusLabel: "Al-Fatiha 1" });
+    const fresh = session("new", false, { focus: { surah: 1, ayah: 1 }, focusLabel: "Al-Fatiha 1" });
     const result = placeNewSession([session("blank", false, { mode: "strict" })], fresh, "studio-blank");
-    expect(result.session).toMatchObject({ id: "studio-blank", mode: "tafssir", focusLabel: "Al-Fatiha 1" });
+    expect(result.session).toMatchObject({ id: "studio-blank", focus: { surah: 1, ayah: 1 }, focusLabel: "Al-Fatiha 1" });
     expect(result.sessions).toHaveLength(1);
   });
 
@@ -65,10 +64,10 @@ describe("a reopened saved session", () => {
 
 describe("putSession", () => {
   it("replaces the tab with the same id, in place", () => {
-    const fresh = session("b", false, { mode: "tafssir" });
+    const fresh = session("b", false, { focusLabel: "Al-Baqarah 255" });
     const tabs = putSession([session("a", true), session("b")], fresh);
     expect(tabs.map((s) => s.id)).toEqual(["studio-a", "studio-b"]);
-    expect(tabs[1].mode).toBe("tafssir");
+    expect(tabs[1].focusLabel).toBe("Al-Baqarah 255");
   });
 
   it("adds it when the tabs changed meanwhile (a restore landed), keeping them", () => {

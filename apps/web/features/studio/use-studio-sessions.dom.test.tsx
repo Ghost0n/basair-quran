@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useStudioSessions } from "./use-studio-sessions";
 
@@ -55,5 +55,42 @@ describe("useStudioSessions (the hook's wiring)", () => {
     await act(async () => studio.newSession());
     expect(studio.sessions).toHaveLength(2);
     expect(studio.activeId).toBe("studio-b1");
+  });
+
+  it("answers every turn from the Quran alone, in a session saved in the former explanatory reading too", async () => {
+    const legacyAnswer = { status: "answered", mode: "tafssir", answer: "old", tafssir: { summary: "old" }, related_terms: [], searches: [], ayahs: [] };
+    window.sessionStorage.setItem(
+      "qbasair.studio.sessions",
+      JSON.stringify({
+        sessions: [{ ...asked("saved-1"), mode: "tafssir", messages: [{ role: "user", content: "?" }, { role: "assistant", content: "old", response: legacyAnswer }] }],
+        activeId: "saved-1",
+      }),
+    );
+    const bodies: Record<string, unknown>[] = [];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/research-agent")) {
+        bodies.push(JSON.parse(String(init?.body)));
+        return new Response(JSON.stringify({ status: "answered", mode: "strict", answer: "new", related_terms: [], searches: [], ayahs: [] }), {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      await mount();
+      await act(async () => studio.submit("سؤال جديد", 1));
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(bodies).toHaveLength(1);
+    expect(bodies[0].response_mode).toBe("strict");
+    expect(bodies[0]).not.toHaveProperty("tafssir_depth");
+    const messages = studio.sessions[0].messages;
+    // The saved explanatory answer stays as it was; the new turn is a Quran-only answer.
+    expect(messages[1].response?.mode).toBe("tafssir");
+    expect(messages[3].response?.mode).toBe("strict");
   });
 });

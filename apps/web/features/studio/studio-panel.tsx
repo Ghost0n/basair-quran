@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } f
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
-import type { ResearchAgentResponse, TafssirDepth } from "@q-basair/shared";
+import type { ResearchAgentResponse } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { Sheet, usePhoneSheets } from "@/components/sheet";
@@ -23,7 +23,6 @@ import { useNumerals } from "@/lib/preferences-context";
 import { renderHighlightedVerseText } from "@/lib/quran-ui";
 import { STUDIO_ASK_EVENT, drainStudioAsk, drainStudioOpenSession, type StudioAsk } from "@/lib/studio-prefill";
 import { useMushaf } from "@/features/reading/mushaf-context";
-import { TAFSSIR_ENABLED } from "@/lib/features";
 import { useStickyState } from "@/lib/use-sticky-state";
 import { useDialog } from "@/lib/use-dialog";
 import { useShellMode } from "@/features/shell/mode-context";
@@ -35,21 +34,9 @@ import { documentFromSession } from "@/features/documents/convert";
 import { createDocumentUrl } from "@/features/documents/open-document";
 
 import { TafssirDisclaimer } from "./tafssir-disclaimer";
-import { useStudioSessions, type StudioMode } from "./use-studio-sessions";
+import { useStudioSessions } from "./use-studio-sessions";
 
 import { t, tn } from "@/lib/i18n";
-
-const DEPTH_OPTIONS: { value: TafssirDepth; label: string }[] = [
-  { value: "fast", get label() {
-    return t("سريع");
-  } },
-  { value: "balanced", get label() {
-    return t("متوازن");
-  } },
-  { value: "deep", get label() {
-    return t("عميق");
-  } },
-];
 
 const TAFSSIR_SECTIONS: { key: keyof NonNullable<ResearchAgentResponse["tafssir"]>; label: string }[] = [
   { key: "summary", get label() {
@@ -125,8 +112,9 @@ export function StudioPanel() {
   const [awayFromEnd, setAwayFromEnd] = useState(false);
 
   const active = studio.active;
-  // The explanatory reading exists only in a build that has it (lib/features.ts).
-  const isTafssir = TAFSSIR_ENABLED && active?.mode === "tafssir";
+  // Study answers from the Quran alone. A session saved when the experimental
+  // explanatory reading existed still shows its answers, under its disclaimer.
+  const hasLegacyTafssir = Boolean(active?.messages.some((message) => message.response?.mode === "tafssir"));
   const hasMessages = Boolean(active && active.messages.length > 0);
   // The history: the sessions that hold a conversation, newest first. An
   // empty session is not history; with none, there is no pane to open.
@@ -177,7 +165,6 @@ export function StudioPanel() {
   const askRef = useRef<(ask: StudioAsk) => void>(() => {});
   askRef.current = (ask) =>
     void studio.askInNewSession(ask.question, state.selectedMushaf, {
-      mode: ask.mode,
       focus: ask.focus,
       focusLabel: ask.focusLabel,
     });
@@ -377,7 +364,7 @@ export function StudioPanel() {
                 </h3>
                 <div className="meta">
                   {tn("{0} رسالة", active?.messages.length ?? 0, { 0: formatNumber(active?.messages.length ?? 0) })} ·{" "}
-                  {isTafssir ? t("قراءة تفسيرية") : t("القرآن وحدَه")}
+                  {t("القرآن وحدَه")}
                 </div>
               </div>
               {headActions}
@@ -430,30 +417,7 @@ export function StudioPanel() {
           </div>
         ) : null}
 
-        {/* The Quran alone is the implicit way; a choice appears only in a build
-            with the explanatory reading (lib/features.ts). */}
-        {TAFSSIR_ENABLED ? (
-        <div className="qb-mode-tabs" role="group" aria-label={t("وضع البحث")}>
-          <button
-            type="button"
-            className={`qb-mode-tab strict${active?.mode === "strict" ? " active" : ""}`}
-            aria-pressed={active?.mode === "strict"}
-            onClick={() => studio.setMode("strict" as StudioMode)}
-          >
-            <Icon name="scale" size={12} /> {t("القرآن وحدَه")}
-          </button>
-          <button
-            type="button"
-            className={`qb-mode-tab tafssir${active?.mode === "tafssir" ? " active" : ""}`}
-            aria-pressed={active?.mode === "tafssir"}
-            onClick={() => studio.setMode("tafssir" as StudioMode)}
-          >
-            <Icon name="feather" size={12} /> {t("قراءة تفسيرية")}
-          </button>
-        </div>
-        ) : null}
-
-        {isTafssir ? <TafssirDisclaimer /> : null}
+        {hasLegacyTafssir ? <TafssirDisclaimer /> : null}
 
         {/* Desk: the error sits on the question field instead (below). */}
         {studio.error && !topSlots ? <div className="qb-studio-error">{studio.error}</div> : null}
@@ -530,39 +494,7 @@ export function StudioPanel() {
               onKeyDown={handleKeyDown}
             />
             <div className="row">
-              {TAFSSIR_ENABLED ? (
-                <>
-                  <button
-                    type="button"
-                    className={`tool-chip${active?.mode === "strict" ? " active" : ""}`}
-                    onClick={() => studio.setMode("strict")}
-                  >
-                    <Icon name="scale" size={10} /> {t("القرآن وحدَه")}
-                  </button>
-                  {/* Phones: the mode switch lives here, by the field (the
-                      segmented control above is hidden to give the thread room). */}
-                  <button
-                    type="button"
-                    className={`tool-chip phone-only tafssir${isTafssir ? " active" : ""}`}
-                    aria-pressed={isTafssir}
-                    onClick={() => studio.setMode("tafssir")}
-                  >
-                    <Icon name="feather" size={10} /> {t("قراءة تفسيرية")}
-                  </button>
-                  {isTafssir
-                    ? DEPTH_OPTIONS.map((option) => (
-                        <button
-                          key={option.value}
-                          type="button"
-                          className={`tool-chip${active?.depth === option.value ? " active" : ""}`}
-                          onClick={() => studio.setDepth(option.value)}
-                        >
-                          <Icon name="layers" size={10} /> {option.label}
-                        </button>
-                      ))
-                    : null}
-                </>
-              ) : topSlots ? (
+              {topSlots ? (
                 <span className="hint">{t("Enter للإرسال، Shift+Enter لسطر جديد")}</span>
               ) : null}
               <div className="grow" />

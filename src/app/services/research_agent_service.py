@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
-import math
-from pathlib import Path
 import re
 import sqlite3
 import threading
@@ -24,7 +22,6 @@ from src.app.models.api import (
     ResearchProviderInfo,
     ResearchRelatedTerm,
     ResearchSearchItem,
-    TafssirStructuredAnswer,
     ResearchUsageStep,
     ResearchUsageSummary,
 )
@@ -41,39 +38,6 @@ class ResearchProviderUnavailable(ResearchAgentError):
 
 class ResearchProviderResponseError(ResearchAgentError):
     """Raised when the provider returns unusable structured output."""
-
-
-# Tafssir must read each ayah in its setting, never as an isolated fragment.
-TAFSSIR_CONTEXT_INSTRUCTION = (
-    "CONTEXT RULE: before interpreting any ayah, read it within its context. Each ayah carries "
-    "`context.before` and `context.after` (the neighbouring ayahs of the same surah, in order) and "
-    "`context.surah` (name, Meccan/Medinan type, ayah count) with `context.position`. Use the "
-    "preceding and following ayahs to identify the passage's subject, addressee and flow of "
-    "meaning, and relate that passage to the overall themes and purpose of the whole surah. Never "
-    "interpret a fragment in isolation; when the surrounding context narrows, widens or changes the "
-    "reading, say so explicitly in ayah_connections. Neighbouring ayahs are context only: cite or "
-    "keep only ayahs listed in `ayahs` (keep_ayah_ids must come from their ayah_id values). "
-    "When `focus_ayah_id` is present the question is about that ayah: centre the answer on it, "
-    "read in its passage and surah, and keep it."
-)
-# Neighbouring ayahs can be long (e.g. 2:282); bound each so the prompt stays sized.
-TAFSSIR_CONTEXT_AYAH_CHARS = 600
-# The ayah a user explicitly asks about gets a wider window than search hits.
-TAFSSIR_FOCUS_CONTEXT_WINDOW = 5
-
-TAFSSIR_DISCLAIMER_AR = (
-    "وضع التفسير التجريبي مخصص للتجربة فقط، وقد ينتج عنه أخطاء أو فهم غير دقيق. "
-    "لا تعتمد عليه بوصفه تفسيراً معتمداً."
-)
-
-
-@dataclass
-class SourceChunk:
-    id: int
-    title: str
-    source_path: str
-    content: str
-    score: float
 
 
 @dataclass
@@ -103,7 +67,6 @@ class AnswerReview:
     answer: str
     keep_ayah_ids: list[int] = field(default_factory=list)
     discard_ayah_ids: list[int] = field(default_factory=list)
-    tafssir: TafssirStructuredAnswer | None = None
 
 
 @dataclass
@@ -152,15 +115,46 @@ PUBLIC_OLLAMA_CLOUD_CACHE_TTL_SECONDS = 1800
 _public_ollama_cloud_catalog_cache: tuple[float, list[OllamaModelItem]] | None = None
 
 
+# Every answer comes from the Quran alone: the ayahs the search returned, and nothing else.
+QURAN_ONLY_ANSWER_RULES = (
+    "You answer questions about the Quran using ONLY the ayahs given in the JSON payload. "
+    "Rules: "
+    "1) Base every statement on those ayahs. Do not use tafsir, hadith, the sayings of scholars, "
+    "fiqh rulings, historical reports (asbab al-nuzul, Israiliyyat) or any knowledge from outside "
+    "the payload, and do not attribute views to anyone. "
+    "2) Cite each ayah you rely on by surah name and ayah number (for example: البقرة 153), and "
+    "quote the words of the ayah exactly as given when you quote; never quote or paraphrase an "
+    "ayah that is not in the payload. "
+    "3) Report what the ayahs say, and keep it apart from any connection you draw between them; "
+    "present such a connection as an observation from the ayahs' wording, not as a ruling or a "
+    "definitive interpretation. Do not issue religious rulings (halal/haram, obligations) or fatwas. "
+    "4) If the ayahs do not answer the question, or answer only part of it, say so plainly instead "
+    "of filling the gap. "
+    "5) Write in the requested answer_language, clearly and concisely; keep Quranic words in Arabic."
+)
+
+# The final stage reads every ayah in its passage: its neighbours come from the Quran database.
+QURAN_CONTEXT_RULE = (
+    "CONTEXT RULE: each ayah carries `context.before` and `context.after` (the neighbouring ayahs of "
+    "the same surah, in order) and `context.surah` (name, Meccan/Medinan type, ayah count) with "
+    "`context.position`. Read every ayah within its passage before using it, never as an isolated "
+    "fragment, and say so when the passage narrows or changes the meaning. Neighbouring ayahs are "
+    "context only: keep_ayah_ids must come from the ayah_id values listed in `ayahs`. When "
+    "`focus_ayah_id` is present the question is about that ayah: centre the answer on it and keep it."
+)
+# Neighbouring ayahs can be long (e.g. 2:282); bound each so the prompt stays sized.
+CONTEXT_AYAH_CHARS = 600
+# Neighbours on each side of a search hit, and of the ayah a reader asks about.
+CONTEXT_WINDOW = 1
+FOCUS_CONTEXT_WINDOW = 5
+
+
 class ResearchLlmProvider:
     """Interface for research-agent LLM providers."""
-
-    supports_embeddings = False
 
     def expand_search_candidates(
         self,
         messages: list[ResearchAgentMessage],
-        source_chunks: list[SourceChunk],
         quran_terms: list[QuranTermCandidate],
         answer_language: str,
     ) -> CandidateExpansion:
@@ -180,7 +174,6 @@ class ResearchLlmProvider:
     def create_search_plan(
         self,
         messages: list[ResearchAgentMessage],
-        source_chunks: list[SourceChunk],
         quran_terms: list[QuranTermCandidate],
         expanded_candidates: CandidateExpansion,
         answer_language: str,
@@ -196,20 +189,6 @@ class ResearchLlmProvider:
         answer_language: str,
     ) -> str:
         raise NotImplementedError
-
-    def synthesize_tafssir_answer(
-        self,
-        messages: list[ResearchAgentMessage],
-        ayahs: list[ResearchAgentAyah],
-        related_terms: list[ResearchRelatedTerm],
-        searches: list[ResearchSearchItem],
-        source_chunks: list[SourceChunk],
-        answer_language: str,
-    ) -> str:
-        raise NotImplementedError
-
-    def embed_text(self, text: str) -> list[float]:
-        raise ResearchProviderUnavailable("The configured provider does not support embeddings.")
 
     def complete_json(self, system: str, user: str, *, stage: str) -> str:
         """One deterministic JSON completion (used by the community audit agent)."""
@@ -238,32 +217,14 @@ class ResearchLlmProvider:
         related_terms: list[ResearchRelatedTerm],
         searches: list[ResearchSearchItem],
         answer_language: str,
+        focus_ayah_id: int | None = None,
     ) -> AnswerReview:
         return AnswerReview(
             answer=self.synthesize_answer(messages, ayahs, related_terms, searches, answer_language),
             keep_ayah_ids=[ayah.ayah_id for ayah in ayahs],
         )
 
-    def finalize_tafssir_answer(
-        self,
-        messages: list[ResearchAgentMessage],
-        ayahs: list[ResearchAgentAyah],
-        related_terms: list[ResearchRelatedTerm],
-        searches: list[ResearchSearchItem],
-        source_chunks: list[SourceChunk],
-        answer_language: str,
-        tafssir_depth: str = "balanced",
-        focus_ayah_id: int | None = None,
-    ) -> AnswerReview:
-        return AnswerReview(
-            answer=self.synthesize_tafssir_answer(messages, ayahs, related_terms, searches, source_chunks, answer_language),
-            keep_ayah_ids=[ayah.ayah_id for ayah in ayahs],
-        )
-
-
 class OllamaResearchLlmProvider(ResearchLlmProvider):
-    supports_embeddings = True
-
     def __init__(self, settings: ResearchRuntimeSettings | None = None) -> None:
         runtime = settings or build_runtime_settings()
         self.base_url = runtime.base_url
@@ -373,19 +334,11 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
     def expand_search_candidates(
         self,
         messages: list[ResearchAgentMessage],
-        source_chunks: list[SourceChunk],
         quran_terms: list[QuranTermCandidate],
         answer_language: str,
     ) -> CandidateExpansion:
         payload = {
             "conversation": [dump_model(message) for message in messages],
-            "retrieved_source_chunks": [
-                {
-                    "title": chunk.title,
-                    "content": chunk.content[:1800],
-                }
-                for chunk in source_chunks[:6]
-            ],
             "quran_term_candidates": [
                 {"type": term.type, "text": term.text, "root_id": term.root_id, "score": term.score}
                 for term in quran_terms[:36]
@@ -397,9 +350,11 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
                 {
                     "role": "system",
                     "content": (
-                        "You are the first stage of a Quran research planner. "
-                        "Be permissive and exploratory. Use the user's wording as the highest priority, and use "
-                        "retrieved source chunks only to understand possible Quranic vocabulary and themes. "
+                        "You are the first stage of a Quran research planner. Your only job is to find the "
+                        "Quranic vocabulary (roots, words, phrases as they occur in the Quran) that could answer "
+                        "the user's question. Be permissive and exploratory. Use the user's wording as the "
+                        "highest priority and the quran_term_candidates (taken from the Quran's own vocabulary) "
+                        "as hints; think of the Quran's own expressions for the idea, its synonyms and opposites. "
                         "Do not answer the user and do not decide yet which terms are best. "
                         "Return strict JSON only with this shape: "
                         '{"related_terms":[{"type":"root|word|phrase","text":"...","reason":"..."}],'
@@ -418,20 +373,12 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
     def create_search_plan(
         self,
         messages: list[ResearchAgentMessage],
-        source_chunks: list[SourceChunk],
         quran_terms: list[QuranTermCandidate],
         expanded_candidates: CandidateExpansion,
         answer_language: str,
     ) -> SearchPlan:
         payload = {
             "conversation": [dump_model(message) for message in messages],
-            "retrieved_source_chunks": [
-                {
-                    "title": chunk.title,
-                    "content": chunk.content[:1800],
-                }
-                for chunk in source_chunks[:6]
-            ],
             "quran_term_candidates": [
                 {"type": term.type, "text": term.text, "root_id": term.root_id}
                 for term in quran_terms[:30]
@@ -448,7 +395,7 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
                     "role": "system",
                     "content": (
                         "You are the second stage of a Quran research planner. Choose the best Quranic candidates "
-                        "from the user's question first, then the retrieved source chunks, then the broad candidate list. "
+                        "from the user's question first, then the broad candidate list. "
                         "Do not answer the user. "
                         "Return strict JSON only with this shape: "
                         '{"status":"needs_clarification|search","clarifying_question":null|string,'
@@ -498,65 +445,13 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
                 {
                     "role": "system",
                     "content": (
-                        "Answer the user using only the ayahs provided in the JSON payload. "
-                        "Do not cite or use transcript/book/source-corpus content. "
-                        "If the ayahs are insufficient, say that clearly. Keep the response concise and comprehensive."
+                        QURAN_ONLY_ANSWER_RULES
                     ),
                 },
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
             ],
             temperature=0.15,
             stage="synthesize_strict",
-        )
-
-    def synthesize_tafssir_answer(
-        self,
-        messages: list[ResearchAgentMessage],
-        ayahs: list[ResearchAgentAyah],
-        related_terms: list[ResearchRelatedTerm],
-        searches: list[ResearchSearchItem],
-        source_chunks: list[SourceChunk],
-        answer_language: str,
-    ) -> str:
-        payload = {
-            "conversation": [dump_model(message) for message in messages],
-            "answer_language": answer_language,
-            "related_terms": [dump_model(term) for term in related_terms],
-            "searches": [dump_model(search) for search in searches],
-            "ayahs": [
-                {
-                    "surah": ayah.surah,
-                    "surah_id": ayah.surah_id,
-                    "ayah": ayah.ayah,
-                    "text": ayah.text,
-                    "matched_terms": ayah.matched_terms,
-                }
-                for ayah in ayahs
-            ],
-            "source_chunks": [
-                {
-                    "title": chunk.title,
-                    "content": chunk.content[:1400],
-                }
-                for chunk in source_chunks[:5]
-            ],
-        }
-        return self._chat(
-            [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are producing an experimental Quran interpretation note. "
-                        "Use the ayahs as the primary evidence and the source chunks only as a secondary interpretive aid. "
-                        "Do not present the corpus as authoritative revelation or definitive tafsir. "
-                        "Explain one plausible reading connected to the user's question, mention uncertainty when needed, "
-                        "and keep the answer grounded in the retrieved ayahs."
-                    ),
-                },
-                {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
-            ],
-            temperature=0.2,
-            stage="synthesize_tafssir",
         )
 
     def finalize_answer(
@@ -566,33 +461,31 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
         related_terms: list[ResearchRelatedTerm],
         searches: list[ResearchSearchItem],
         answer_language: str,
+        focus_ayah_id: int | None = None,
     ) -> AnswerReview:
-        payload = {
+        payload: dict[str, Any] = {
             "conversation": [dump_model(message) for message in messages],
             "answer_language": answer_language,
             "related_terms": [dump_model(term) for term in related_terms],
             "searches": [dump_model(search) for search in searches],
-            "ayahs": [
-                {
-                    "ayah_id": ayah.ayah_id,
-                    "surah": ayah.surah,
-                    "ayah": ayah.ayah,
-                    "text": ayah.text,
-                    "matched_terms": ayah.matched_terms,
-                }
-                for ayah in ayahs
-            ],
+            "ayahs": build_ayah_payload(ayahs, window=CONTEXT_WINDOW, focus_ayah_id=focus_ayah_id),
         }
+        if focus_ayah_id is not None:
+            payload["focus_ayah_id"] = focus_ayah_id
         content = self._chat(
             [
                 {
                     "role": "system",
                     "content": (
-                        "You are the final strict Quran answer stage. Use only the ayahs in the payload. "
-                        "Return strict JSON only with this shape: "
+                        "You are the final answer stage of a Quran research tool. "
+                        + QURAN_ONLY_ANSWER_RULES
+                        + " "
+                        + QURAN_CONTEXT_RULE
+                        + " Return strict JSON only with this shape: "
                         '{"answer":"...","keep_ayah_ids":[1,2],"discard_ayah_ids":[3]}. '
                         "The answer and the kept ayahs must stay aligned. "
-                        "Discard ayahs that are off-topic, misleading, or driven by a weak root match."
+                        "Keep only the ayahs the answer relies on; discard ayahs that are off-topic, misleading, "
+                        "or driven by a weak root match."
                     ),
                 },
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
@@ -608,95 +501,6 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
             pass
         fallback_answer = self.synthesize_answer(messages, ayahs, related_terms, searches, answer_language)
         return AnswerReview(answer=fallback_answer, keep_ayah_ids=[ayah.ayah_id for ayah in ayahs])
-
-    def finalize_tafssir_answer(
-        self,
-        messages: list[ResearchAgentMessage],
-        ayahs: list[ResearchAgentAyah],
-        related_terms: list[ResearchRelatedTerm],
-        searches: list[ResearchSearchItem],
-        source_chunks: list[SourceChunk],
-        answer_language: str,
-        tafssir_depth: str = "balanced",
-        focus_ayah_id: int | None = None,
-    ) -> AnswerReview:
-        depth_profile = tafssir_depth_profile(tafssir_depth)
-        chunk_count = int(depth_profile["chunk_count"])
-        chunk_chars = int(depth_profile["chunk_chars"])
-        payload = {
-            "conversation": [dump_model(message) for message in messages],
-            "answer_language": answer_language,
-            "tafssir_depth": tafssir_depth,
-            "related_terms": [dump_model(term) for term in related_terms],
-            "searches": [dump_model(search) for search in searches],
-            "ayahs": build_tafssir_ayah_payload(
-                ayahs,
-                window=int(depth_profile["context_window"]),
-                focus_ayah_id=focus_ayah_id,
-            ),
-            "source_chunks": [
-                {
-                    "title": chunk.title,
-                    "content": chunk.content[:chunk_chars],
-                }
-                for chunk in source_chunks[:chunk_count]
-            ],
-        }
-        if focus_ayah_id is not None:
-            payload["focus_ayah_id"] = focus_ayah_id
-        content = self._chat(
-            [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are the final experimental tafssir stage. Use ayahs as the primary evidence and "
-                        "source chunks only as a secondary interpretive aid. The corpus is internal-only: do not "
-                        "quote chunks, expose source paths, or cite the corpus to the user. "
-                        f"{depth_profile['guidance']} "
-                        f"{TAFSSIR_CONTEXT_INSTRUCTION} "
-                        "Return strict JSON only with this shape: "
-                        '{"answer":"...",'
-                        '"tafssir":{"summary":"...","linguistic_analysis":"...",'
-                        '"ayah_connections":"...","corpus_insight":"...","limits_and_cautions":"..."},'
-                        '"keep_ayah_ids":[1,2],"discard_ayah_ids":[3]}. '
-                        "The answer should be a readable plain-text synthesis of the same sections. "
-                        "The tafssir fields should use concise labels implicitly: summary, linguistic analysis, "
-                        "ayah connections, corpus-informed insight, and limits/cautions. "
-                        "Prioritize Quranic ayahs over corpus interpretation. "
-                        "The answer and the kept ayahs must stay aligned. "
-                        "Discard ayahs that do not support the experimental reading you present."
-                    ),
-                },
-                {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
-            ],
-            temperature=float(depth_profile["temperature"]),
-            stage="finalize_tafssir",
-        )
-        try:
-            review = parse_answer_review(content, ayahs, "")
-            if review.answer.strip():
-                return review
-        except ResearchProviderResponseError:
-            pass
-        fallback_answer = self.synthesize_tafssir_answer(
-            messages,
-            ayahs,
-            related_terms,
-            searches,
-            source_chunks,
-            answer_language,
-        )
-        return AnswerReview(answer=fallback_answer, keep_ayah_ids=[ayah.ayah_id for ayah in ayahs])
-
-    def embed_text(self, text: str) -> list[float]:
-        if not self.embed_model:
-            raise ResearchProviderUnavailable("No Ollama embedding model is configured.")
-        response = self._post_json("/api/embeddings", {"model": self.embed_model, "prompt": text}, stage="embedding", model=self.embed_model)
-        embedding = response.get("embedding")
-        if not isinstance(embedding, list):
-            raise ResearchProviderResponseError("Ollama returned an invalid embedding response.")
-        return [float(value) for value in embedding]
-
 
 def infer_model_capabilities(name: str, *, is_cloud: bool = False) -> list[str]:
     lowered = name.lower()
@@ -1160,7 +964,6 @@ def parse_candidate_expansion(text: str, fallback_terms: list[QuranTermCandidate
 def parse_answer_review(text: str, ayahs: list[ResearchAgentAyah], fallback_answer: str) -> AnswerReview:
     parsed = parse_json_object(text)
     answer = coerce_optional_text(parsed.get("answer")) or fallback_answer
-    tafssir = parse_tafssir_structured_answer(parsed.get("tafssir"))
     ayah_ids = {ayah.ayah_id for ayah in ayahs}
 
     keep_ayah_ids = [int(value) for value in coerce_list(parsed.get("keep_ayah_ids")) if isinstance(value, int) and value in ayah_ids]
@@ -1173,23 +976,7 @@ def parse_answer_review(text: str, ayahs: list[ResearchAgentAyah], fallback_answ
         answer=answer,
         keep_ayah_ids=list(dict.fromkeys(keep_ayah_ids)),
         discard_ayah_ids=list(dict.fromkeys(discard_ayah_ids)),
-        tafssir=tafssir,
     )
-
-
-def parse_tafssir_structured_answer(value: Any) -> TafssirStructuredAnswer | None:
-    if not isinstance(value, dict):
-        return None
-    fields = {
-        "summary": coerce_optional_text(value.get("summary")),
-        "linguistic_analysis": coerce_optional_text(value.get("linguistic_analysis")),
-        "ayah_connections": coerce_optional_text(value.get("ayah_connections")),
-        "corpus_insight": coerce_optional_text(value.get("corpus_insight")),
-        "limits_and_cautions": coerce_optional_text(value.get("limits_and_cautions")),
-    }
-    if not any(fields.values()):
-        return None
-    return TafssirStructuredAnswer(**fields)
 
 
 def coerce_list(value: Any) -> list[Any]:
@@ -1346,64 +1133,20 @@ def latest_user_message(messages: list[ResearchAgentMessage]) -> str:
     raise ValueError("Research agent requests must include at least one user message.")
 
 
-def is_tafssir_mode(req: ResearchAgentRequest) -> bool:
-    return req.response_mode == "tafssir"
-
-
-def build_research_disclaimer(req: ResearchAgentRequest) -> str | None:
-    return TAFSSIR_DISCLAIMER_AR if is_tafssir_mode(req) else None
-
-
-def tafssir_depth_profile(depth: str) -> dict[str, int | str | float]:
-    if depth == "fast":
-        return {
-            "chunk_count": 3,
-            "chunk_chars": 900,
-            "context_window": 1,
-            "temperature": 0.14,
-            "guidance": (
-                "FAST depth: produce a compact answer with short sections, minimal linguistic analysis, "
-                "and only the most direct ayah relationships."
-            ),
-        }
-    if depth == "deep":
-        return {
-            "chunk_count": 9,
-            "chunk_chars": 1900,
-            "context_window": 3,
-            "temperature": 0.2,
-            "guidance": (
-                "DEEP depth: produce a richer answer with stronger linguistic analysis, explicit ayah-to-ayah "
-                "relations, careful caveats, and deeper use of the internal corpus. Prefer Ibn Fares-style "
-                "root meaning when relevant, but never treat the corpus as Quranic authority."
-            ),
-        }
-    return {
-        "chunk_count": 5,
-        "chunk_chars": 1400,
-        "context_window": 2,
-        "temperature": 0.16,
-        "guidance": (
-            "BALANCED depth: produce clear sectioned analysis with moderate corpus use, enough linguistic detail, "
-            "and concise caveats."
-        ),
-    }
-
-
 def _clip_context_text(text: str) -> str:
-    return text if len(text) <= TAFSSIR_CONTEXT_AYAH_CHARS else text[:TAFSSIR_CONTEXT_AYAH_CHARS].rstrip() + " …"
+    return text if len(text) <= CONTEXT_AYAH_CHARS else text[:CONTEXT_AYAH_CHARS].rstrip() + " …"
 
 
-def build_tafssir_ayah_payload(
+def build_ayah_payload(
     ayahs: list[ResearchAgentAyah],
     *,
     window: int,
     focus_ayah_id: int | None = None,
 ) -> list[dict[str, Any]]:
-    """Tafssir-stage ayah entries, each with its surah context and neighbours.
+    """Final-stage ayah entries, each with its surah context and neighbouring ayahs.
 
     Neighbours come straight from the Quran DB (same mushaf, same surah), so the
-    model reads every ayah in its passage — never corpus text, never a guess.
+    model reads every ayah in its passage, from the Quran and nothing else.
     """
     entries: list[dict[str, Any]] = []
     for ayah in ayahs:
@@ -1415,7 +1158,7 @@ def build_tafssir_ayah_payload(
             "text": ayah.text,
             "matched_terms": ayah.matched_terms,
         }
-        span = TAFSSIR_FOCUS_CONTEXT_WINDOW if ayah.ayah_id == focus_ayah_id else window
+        span = FOCUS_CONTEXT_WINDOW if ayah.ayah_id == focus_ayah_id else window
         context = quran_service.get_ayah_context(ayah.mushaf_id, ayah.surah_id, ayah.ayah, before=span, after=span)
         if context is not None:
             surah = context["surah"]
@@ -1452,255 +1195,9 @@ def detect_answer_language(query: str, requested_language: str) -> str:
     return "english"
 
 
-def build_fts_query(text: str, limit: int = 12) -> str:
-    stopwords = {
-        "a",
-        "an",
-        "and",
-        "are",
-        "de",
-        "des",
-        "du",
-        "est",
-        "is",
-        "la",
-        "le",
-        "les",
-        "of",
-        "or",
-        "the",
-        "to",
-        "un",
-        "une",
-        "what",
-        "with",
-    }
-    tokens = []
-    for token in re.findall(r"[\w\u0600-\u06FF]+", text.lower()):
-        token = token.strip("_")
-        if len(token) < 2 or token in stopwords:
-            continue
-        tokens.append(token)
-    unique_tokens = list(dict.fromkeys(tokens))[:limit]
-    return " OR ".join(f"{token}*" for token in unique_tokens)
-
-
-def research_index_exists() -> bool:
-    return Path(config.get_research_index_path()).exists()
-
-
-def connect_research_index() -> sqlite3.Connection:
-    connection = sqlite3.connect(config.get_research_index_path())
-    connection.row_factory = sqlite3.Row
-    return connection
-
-
-def table_exists(cursor: sqlite3.Cursor, table_name: str) -> bool:
-    cursor.execute("SELECT name FROM sqlite_master WHERE type IN ('table', 'view') AND name = ?", (table_name,))
-    return cursor.fetchone() is not None
-
-
-def retrieve_source_chunks(query: str, provider: ResearchLlmProvider, limit: int = 6) -> list[SourceChunk]:
-    if not research_index_exists():
-        return []
-
-    merged: dict[int, SourceChunk] = {}
-    try:
-        with connect_research_index() as connection:
-            cursor = connection.cursor()
-            if table_exists(cursor, "source_chunks_fts"):
-                for chunk in retrieve_source_chunks_by_fts(cursor, query, limit):
-                    merged[chunk.id] = chunk
-
-            if provider.supports_embeddings and table_exists(cursor, "chunk_embeddings"):
-                for chunk in retrieve_source_chunks_by_embedding(cursor, query, provider, limit):
-                    current = merged.get(chunk.id)
-                    merged[chunk.id] = chunk if current is None else SourceChunk(
-                        id=current.id,
-                        title=current.title,
-                        source_path=current.source_path,
-                        content=current.content,
-                        score=current.score + chunk.score,
-                    )
-
-            if not merged and table_exists(cursor, "source_chunks"):
-                for chunk in retrieve_source_chunks_by_like(cursor, query, limit):
-                    merged[chunk.id] = chunk
-    except sqlite3.Error:
-        return []
-
-    return sorted(merged.values(), key=lambda item: item.score, reverse=True)[:limit]
-
-
-def retrieve_source_chunks_by_fts(cursor: sqlite3.Cursor, query: str, limit: int) -> list[SourceChunk]:
-    fts_query = build_fts_query(query)
-    if not fts_query:
-        return []
-    try:
-        cursor.execute(
-            """
-            SELECT
-                sc.id,
-                sd.title,
-                sd.source_path,
-                sc.content,
-                bm25(source_chunks_fts) AS rank
-            FROM source_chunks_fts
-            JOIN source_chunks sc ON sc.id = source_chunks_fts.rowid
-            JOIN source_documents sd ON sd.id = sc.document_id
-            WHERE source_chunks_fts MATCH ?
-            ORDER BY rank
-            LIMIT ?
-            """,
-            (fts_query, limit),
-        )
-    except sqlite3.Error:
-        return []
-    chunks = []
-    for row in cursor.fetchall():
-        rank = abs(float(row["rank"] or 0.0))
-        chunks.append(
-            SourceChunk(
-                id=row["id"],
-                title=row["title"] or "Untitled source",
-                source_path=row["source_path"] or "",
-                content=row["content"],
-                score=1.0 / (1.0 + rank),
-            )
-        )
-    return chunks
-
-
-def retrieve_source_chunks_by_like(cursor: sqlite3.Cursor, query: str, limit: int) -> list[SourceChunk]:
-    tokens = [token for token in re.findall(r"[\w\u0600-\u06FF]+", query) if len(token) >= 3][:4]
-    if not tokens:
-        return []
-    clauses = " OR ".join("sc.content LIKE ?" for _ in tokens)
-    params = [f"%{token}%" for token in tokens]
-    cursor.execute(
-        f"""
-        SELECT sc.id, sd.title, sd.source_path, sc.content
-        FROM source_chunks sc
-        JOIN source_documents sd ON sd.id = sc.document_id
-        WHERE {clauses}
-        LIMIT ?
-        """,
-        [*params, limit],
-    )
-    return [
-        SourceChunk(
-            id=row["id"],
-            title=row["title"] or "Untitled source",
-            source_path=row["source_path"] or "",
-            content=row["content"],
-            score=0.25,
-        )
-        for row in cursor.fetchall()
-    ]
-
-
-def retrieve_source_chunks_by_embedding(
-    cursor: sqlite3.Cursor,
-    query: str,
-    provider: ResearchLlmProvider,
-    limit: int,
-) -> list[SourceChunk]:
-    try:
-        query_embedding = provider.embed_text(query)
-    except ResearchAgentError:
-        return []
-
-    cursor.execute(
-        """
-        SELECT
-            ce.chunk_id,
-            ce.embedding_json,
-            sc.content,
-            sd.title,
-            sd.source_path
-        FROM chunk_embeddings ce
-        JOIN source_chunks sc ON sc.id = ce.chunk_id
-        JOIN source_documents sd ON sd.id = sc.document_id
-        LIMIT 5000
-        """
-    )
-    scored = []
-    for row in cursor.fetchall():
-        try:
-            embedding = [float(value) for value in json.loads(row["embedding_json"])]
-        except (TypeError, ValueError, json.JSONDecodeError):
-            continue
-        score = cosine_similarity(query_embedding, embedding)
-        if score <= 0:
-            continue
-        scored.append(
-            SourceChunk(
-                id=row["chunk_id"],
-                title=row["title"] or "Untitled source",
-                source_path=row["source_path"] or "",
-                content=row["content"],
-                score=score,
-            )
-        )
-    return sorted(scored, key=lambda item: item.score, reverse=True)[:limit]
-
-
-def cosine_similarity(left: list[float], right: list[float]) -> float:
-    if not left or not right or len(left) != len(right):
-        return 0.0
-    dot = sum(a * b for a, b in zip(left, right))
-    left_norm = math.sqrt(sum(value * value for value in left))
-    right_norm = math.sqrt(sum(value * value for value in right))
-    if left_norm == 0 or right_norm == 0:
-        return 0.0
-    return dot / (left_norm * right_norm)
-
-
-def retrieve_quran_terms(query: str, source_chunks: list[SourceChunk], mushaf: int, limit: int = 30) -> list[QuranTermCandidate]:
-    combined_query = " ".join([query, *[chunk.content[:900] for chunk in source_chunks[:4]]])
-    candidates = retrieve_quran_terms_from_research_index(combined_query, mushaf, limit)
-    if len(candidates) < 6:
-        candidates.extend(retrieve_quran_terms_from_quran_db(combined_query, mushaf, limit - len(candidates)))
-    return dedupe_quran_term_candidates(candidates)[:limit]
-
-
-def retrieve_quran_terms_from_research_index(query: str, mushaf: int, limit: int) -> list[QuranTermCandidate]:
-    if not research_index_exists():
-        return []
-    fts_query = build_fts_query(query, limit=16)
-    if not fts_query:
-        return []
-    try:
-        with connect_research_index() as connection:
-            cursor = connection.cursor()
-            if not table_exists(cursor, "quran_terms_fts"):
-                return []
-            cursor.execute(
-                """
-                SELECT
-                    qt.term_type,
-                    qt.text,
-                    qt.root_id,
-                    bm25(quran_terms_fts) AS rank
-                FROM quran_terms_fts
-                JOIN quran_terms qt ON qt.id = quran_terms_fts.rowid
-                WHERE quran_terms_fts MATCH ? AND qt.mushaf_id = ?
-                ORDER BY rank
-                LIMIT ?
-                """,
-                (fts_query, mushaf, limit),
-            )
-            return [
-                QuranTermCandidate(
-                    type=row["term_type"],
-                    text=row["text"],
-                    root_id=row["root_id"],
-                    score=1.0 / (1.0 + abs(float(row["rank"] or 0.0))),
-                )
-                for row in cursor.fetchall()
-            ]
-    except sqlite3.Error:
-        return []
+def retrieve_quran_terms(query: str, mushaf: int, limit: int = 30) -> list[QuranTermCandidate]:
+    """Quranic vocabulary (roots and words) matching the question, from the Quran database only."""
+    return dedupe_quran_term_candidates(retrieve_quran_terms_from_quran_db(query, mushaf, limit))[:limit]
 
 
 def retrieve_quran_terms_from_quran_db(query: str, mushaf: int, limit: int) -> list[QuranTermCandidate]:
@@ -1866,14 +1363,12 @@ def run_research_agent(req: ResearchAgentRequest, runtime: ResearchRuntimeSettin
     user_query = latest_user_message(messages)
     answer_language = detect_answer_language(latest_user_message(req.messages), req.answer_language)
     provider = get_llm_provider(runtime)
-    disclaimer = build_research_disclaimer(req)
     provider_info = provider.provider_info()
 
-    source_limit = int(tafssir_depth_profile(req.tafssir_depth)["chunk_count"]) if is_tafssir_mode(req) else 6
-    source_chunks = retrieve_source_chunks(user_query, provider, limit=source_limit)
-    quran_terms = retrieve_quran_terms(user_query, source_chunks, req.mushaf)
-    expanded_candidates = provider.expand_search_candidates(messages, source_chunks, quran_terms, answer_language)
-    plan = provider.create_search_plan(messages, source_chunks, quran_terms, expanded_candidates, answer_language)
+    # Search terms come from the question and the Quran's own vocabulary; no other source is read.
+    quran_terms = retrieve_quran_terms(user_query, req.mushaf)
+    expanded_candidates = provider.expand_search_candidates(messages, quran_terms, answer_language)
+    plan = provider.create_search_plan(messages, quran_terms, expanded_candidates, answer_language)
     if not plan.related_terms:
         plan.related_terms = expanded_candidates.related_terms
 
@@ -1881,9 +1376,8 @@ def run_research_agent(req: ResearchAgentRequest, runtime: ResearchRuntimeSettin
     if plan.status == "needs_clarification" and plan.clarifying_question and focus_ayah is None:
         return ResearchAgentResponse(
             status="needs_clarification",
-            mode=req.response_mode,
+            mode="strict",
             clarifying_question=plan.clarifying_question,
-            disclaimer=disclaimer,
             provider=provider_info,
             usage=provider.usage_summary(),
             related_terms=plan.related_terms,
@@ -1903,9 +1397,8 @@ def run_research_agent(req: ResearchAgentRequest, runtime: ResearchRuntimeSettin
     if not ayahs:
         return ResearchAgentResponse(
             status="no_results",
-            mode=req.response_mode,
+            mode="strict",
             answer=build_no_results_answer(answer_language),
-            disclaimer=disclaimer,
             provider=provider_info,
             usage=provider.usage_summary(),
             related_terms=plan.related_terms,
@@ -1913,30 +1406,18 @@ def run_research_agent(req: ResearchAgentRequest, runtime: ResearchRuntimeSettin
             ayahs=[],
         )
 
-    if is_tafssir_mode(req):
-        # Only pass focus_ayah_id when set, so older provider overrides keep working.
-        focus_kwargs = {"focus_ayah_id": focus_ayah.ayah_id} if focus_ayah else {}
-        review = provider.finalize_tafssir_answer(
-            messages,
-            ayahs,
-            plan.related_terms,
-            executed_searches,
-            source_chunks,
-            answer_language,
-            req.tafssir_depth,
-            **focus_kwargs,
-        )
-    else:
-        review = provider.finalize_answer(messages, ayahs, plan.related_terms, executed_searches, answer_language)
+    # Only pass focus_ayah_id when set, so provider overrides without it keep working.
+    focus_kwargs = {"focus_ayah_id": focus_ayah.ayah_id} if focus_ayah else {}
+    review = provider.finalize_answer(
+        messages, ayahs, plan.related_terms, executed_searches, answer_language, **focus_kwargs
+    )
 
     kept = filter_ayahs_by_review(ayahs, review)
     ayahs = merge_focus_ayah(focus_ayah, kept, len(kept) + 1) if focus_ayah else kept
     return ResearchAgentResponse(
         status="answered",
-        mode=req.response_mode,
+        mode="strict",
         answer=review.answer,
-        disclaimer=disclaimer,
-        tafssir=review.tafssir if is_tafssir_mode(req) else None,
         provider=provider_info,
         usage=provider.usage_summary(),
         related_terms=plan.related_terms,

@@ -146,8 +146,8 @@ native backups to R2.
 - Routing: a connected provider is always used; without one, a signed-in
   user's question uses the demo allowance (rolling window per user, plus a
   global daily ceiling); visitors who aren't signed in get no AI.
-- Embeddings for retrieval stay on our side.
-- Strict mode stays Quran-only and Tafssir experimental whatever the provider.
+- The research agent answers from the Quran alone whatever the provider (no corpus, no
+  interpretive mode).
 - Built ahead of the platform (Q-Basair-72, `docs/ai-connections.md`): the registry, keys and
   OpenRouter's sign-in on the reader's device, Settings → «الذكاء الاصطناعي»; server-side
   encrypted keys and the demo allowance wait for accounts.

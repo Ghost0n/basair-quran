@@ -170,6 +170,11 @@ export interface ResearchAgentAyah extends SearchVerse {
 
 export type TafssirDepth = "fast" | "balanced" | "deep";
 
+/**
+ * The sections of an answer from the former experimental explanatory reading
+ * («قراءة تفسيرية»). The research agent no longer produces them; they remain
+ * so answers saved back then still display.
+ */
 export interface TafssirStructuredAnswer {
   summary?: string | null;
   linguistic_analysis?: string | null;
@@ -250,7 +255,9 @@ export interface ResearchAgentRequest {
   mushaf: number;
   max_results?: number;
   answer_language?: string;
+  /** Legacy: accepted and ignored; every answer comes from the Quran alone. */
   response_mode?: "strict" | "tafssir";
+  /** Legacy: accepted and ignored. */
   tafssir_depth?: TafssirDepth;
   /** Centre the research on one ayah: always kept, read with its neighbours and surah. */
   focus?: ResearchFocusAyah | null;
@@ -737,10 +744,13 @@ export interface ResearchFocusAyah {
 
 export interface ResearchAgentResponse {
   status: "needs_clarification" | "answered" | "no_results";
+  /** Always "strict" from the agent; "tafssir" only in answers saved from the former explanatory reading. */
   mode: "strict" | "tafssir";
   answer?: string | null;
   clarifying_question?: string | null;
+  /** Legacy (explanatory-reading answers saved earlier); the agent sends null. */
   disclaimer?: string | null;
+  /** Legacy (explanatory-reading answers saved earlier); the agent sends null. */
   tafssir?: TafssirStructuredAnswer | null;
   provider?: ResearchProviderInfo | null;
   usage?: ResearchUsageSummary | null;

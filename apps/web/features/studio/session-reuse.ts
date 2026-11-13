@@ -14,7 +14,7 @@ function isBlank(session: StudioSession): boolean {
 
 /**
  * Where a new study session goes. A blank session already open is never
- * doubled: it takes the new session's settings (mode, depth, focus) under its
+ * doubled: it takes the new session's settings (focus) under its
  * own id and place, and becomes the one shown; the open one is preferred when
  * several are blank. Otherwise the new session is added at the end.
  */

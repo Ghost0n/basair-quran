@@ -599,24 +599,29 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   - When a client supplies a base-URL override, the server's own Ollama key is **never** attached — only a client-supplied `X-QBasair-Ollama-Key` is honored for that request.
   - The server's own `QBASAIR_OLLAMA_BASE_URL` (no client override) is trusted and not subject to the allowlist.
   - Upstream provider error details reflected back to the client are collapsed and capped (≤200 chars) so a 5xx cannot become an exfiltration oracle.
-- `POST /api/research-agent` may now include:
-  - provider metadata
-  - per-request usage metrics
-  - structured Tafssir sections when `response_mode="tafssir"`
-- **Contextual Tafssir.** In `response_mode="tafssir"` every ayah sent to the final stage
-  carries its context from the Quran DB: `context.surah` (name, Meccan/Medinan type, ayah
-  count), `context.position`, and `context.before` / `context.after` — neighbouring ayahs of
-  the same surah (±1 fast, ±2 balanced, ±3 deep; ±5 for the focus ayah; each clipped to 600
-  chars). The system prompt requires reading each ayah with its neighbours and the whole
-  surah's themes before interpreting, and saying when context changes the reading.
-  Neighbours are context only: kept ayahs still come from the evidence list. Strict mode is
-  unchanged.
+- **Quran only.** The agent reads nothing but the Quran. Search terms come from the
+  conversation and the Quran's own vocabulary (roots and words from `quran.db`); no book,
+  transcript, tafsir or other corpus is retrieved or sent to the model. The final answer is
+  written only from the ayahs Quran search returned; its prompt (`QURAN_ONLY_ANSWER_RULES`)
+  forbids tafsir, hadith, scholars' opinions, rulings and outside knowledge, asks for each
+  ayah to be cited by surah and number, and for the answer to say when the ayahs do not
+  answer the question.
+- **Ayahs read in their passage.** Every ayah sent to the final stage carries its context
+  from the Quran DB: `context.surah` (name, Meccan/Medinan type, ayah count),
+  `context.position`, and `context.before` / `context.after`, the neighbouring ayahs of the
+  same surah (±1; ±5 for the focus ayah; each clipped to 600 chars). Neighbours are context
+  only: kept ayahs still come from the evidence list.
+- **No interpretive mode.** `response_mode` and `tafssir_depth` are still accepted (older
+  clients send them) and ignored: the response's `mode` is always `"strict"`, and its
+  `tafssir` and `disclaimer` are `null`. Answers saved by the former experimental
+  explanatory reading («قراءة تفسيرية») keep their `mode: "tafssir"` and display with
+  their disclaimer.
+- `POST /api/research-agent` also returns provider metadata and per-request usage metrics.
 - **Focus ayah (additive).** `ResearchAgentRequest.focus = {surah, ayah}` (optional, read in
   the request's `mushaf`) centres the research on one ayah: its reference and DB text are
   appended to the latest user message for every stage, it leads the evidence list, it is
   always kept after review, the answer is never turned into a clarifying question, and a
-  search with no hits still answers from it. An unknown ayah returns `422`. Works in both
-  modes (in strict mode it is Quran evidence like any other ayah).
+  search with no hits still answers from it. An unknown ayah returns `422`.
 - `GET /api/research-agent/settings` returns:
   - current provider metadata
   - `available_models`

@@ -32,7 +32,6 @@ import { createDocumentUrl } from "@/features/documents/open-document";
 
 import { relativeAge, useCompanions } from "./use-companions";
 
-import { TAFSSIR_ENABLED } from "@/lib/features";
 import { t as tt, tn } from "@/lib/i18n";
 
 type LibraryTab = "verses" | "boards" | "documents" | "sessions" | "roots";
@@ -43,20 +42,8 @@ export function libraryTab(value: string | null): LibraryTab {
   return LIBRARY_TABS.includes(value as LibraryTab) ? (value as LibraryTab) : "verses";
 }
 type VerseView = "recent" | "themes";
-type SessionFilter = "all" | "strict" | "tafssir";
 
 const UNTAGGED = "بلا موضوع";
-const SESSION_FILTERS: { value: SessionFilter; label: string }[] = [
-  { value: "all", get label() {
-    return tt("الكل");
-  } },
-  { value: "strict", get label() {
-    return tt("القرآن وحدَه");
-  } },
-  { value: "tafssir", get label() {
-    return tt("تفسيرية");
-  } },
-];
 
 /**
  * Library (الدفتر) — the single home for everything a user keeps: saved verses
@@ -97,7 +84,6 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
     setMode("heatmap", { params: { root: rootText, tab: null, focus: null } });
   }
   const [verseView, setVerseView] = useStickyState<VerseView>("qb.notebook.verseView", "recent", ["recent", "themes"]);
-  const [sessionFilter, setSessionFilter] = useStickyState<SessionFilter>("qb.notebook.sessionFilter", "all", ["all", "strict", "tafssir"]);
 
   function openVerse(item: NotebookItem) {
     // A verse saved under another riwāyah opens in the current edition by its
@@ -124,9 +110,7 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
   const untagged = companions.notebook.filter(
     (item) => !(item.theme_ids ?? []).some((themeId) => themeById(themeId) != null),
   );
-  const visibleSessions = companions.sessions.filter(
-    (s) => !TAFSSIR_ENABLED || sessionFilter === "all" || s.mode === sessionFilter,
-  );
+  const visibleSessions = companions.sessions;
 
   const savedCounts = citedSurahCounts(companions.notebook.map((item) => ({ surah_id: item.surah_id ?? 0 })));
 
@@ -346,16 +330,6 @@ export function LibraryScreen({ initialTab = "verses" }: { initialTab?: LibraryT
       {/* ---- Sessions ---- */}
       {tab === "sessions" && !companions.loading ? (
         <>
-          {/* Sessions sort by reading kind only where the explanatory reading exists. */}
-          {TAFSSIR_ENABLED ? (
-            <div className="qb-form-tabs" style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-              {SESSION_FILTERS.map((option) => (
-                <button key={option.value} type="button" className={`qb-pill${sessionFilter === option.value ? " active" : ""}`} onClick={() => setSessionFilter(option.value)}>
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          ) : null}
           {visibleSessions.length === 0 ? (
             <div className="qb-aux-state">{tt("لا توجد جلسات محفوظة في هذا التصنيف.")}</div>
           ) : (

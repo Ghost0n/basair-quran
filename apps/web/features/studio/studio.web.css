@@ -43,7 +43,6 @@
 .qb-web .qb-msg.bot .ev-spread { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; font-size: 11.5px; color: var(--fg-3); }
 
 /* Mode tabs: gold for «القرآن وحدَه», copper for «قراءة تفسيرية». */
-.qb-web .qb-mode-tabs { background: var(--bg-elev-2); border: 0; box-shadow: none; border-radius: var(--r-ctl); }
 
 /* Composer: a flat field with the gold «اسأل». */
 .qb-web .qb-composer { background: var(--bg-elev-1); border: 1px solid var(--border-strong); box-shadow: none; border-radius: 14px; }

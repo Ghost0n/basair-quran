@@ -19,9 +19,8 @@ data/cache.db-shm
 data/cache.db-wal
 data/auth.db-shm
 data/auth.db-wal
-data/research_sources/**
-!data/research_sources/
-!data/research_sources/.gitkeep
+# The research corpus was removed (the agent reads the Quran only); never commit a stale local copy.
+data/research_sources/
 node_modules/
 .next/
 dist/

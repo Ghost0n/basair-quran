@@ -7,8 +7,8 @@ name: Release
 # roll back to an earlier release's images with `image_tag`.
 #
 # Deploy tags in the merge commit's message start data jobs on the server
-# (AGENTS.md → "Deploy tags"): [rebuild-db] [rebuild-index]
-# [rebuild-translations] [prefill-recitation] [prepare-recitations].
+# (AGENTS.md → "Deploy tags"): [rebuild-db] [rebuild-translations]
+# [prefill-recitation] [prepare-recitations].
 
 on:
   push:
@@ -20,7 +20,7 @@ on:
         required: false
         default: ""
       jobs:
-        description: "Data jobs, comma-separated (rebuild-db, rebuild-index, rebuild-translations, prefill-recitation, prepare-recitations)"
+        description: "Data jobs, comma-separated (rebuild-db, rebuild-translations, prefill-recitation, prepare-recitations)"
         required: false
         default: ""
 
@@ -127,7 +127,7 @@ jobs:
           tag="${INPUT_TAG:-$GITHUB_SHA}"
           jobs="${INPUT_JOBS}"
           if [ -z "$jobs" ]; then
-            for job in rebuild-db rebuild-index rebuild-translations prefill-recitation prepare-recitations; do
+            for job in rebuild-db rebuild-translations prefill-recitation prepare-recitations; do
               case "$COMMIT_MESSAGE" in *"[$job]"*) jobs="${jobs:+$jobs,}$job" ;; esac
             done
           fi

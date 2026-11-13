@@ -26,9 +26,9 @@ one will not be merged.
 - **The Quran text is never altered.** Text, morphology, roots and mushaf
   metadata come from documented sources (`NOTICE.md`) through the build
   scripts; generated databases are never edited by hand or committed.
-- **Strict research mode is Quran-only.** Its final answer is built only from
-  verses returned by the Quran search. Tafssir mode stays labelled
-  experimental. Corpus text never appears as authority in the interface.
+- **The research agent is Quran-only.** Its final answer is built only from
+  verses returned by the Quran search; no tafsir, book, transcript or other
+  corpus enters its prompts.
 - **Neutral voice.** The app and its texts describe a method; they take no side
   between schools, groups or beliefs (see the
   [community guidelines](https://basairquran.com/guidelines)).

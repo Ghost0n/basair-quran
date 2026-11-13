@@ -16,7 +16,6 @@
 # Data jobs (--jobs, comma-separated; the workflow passes the deploy tags
 # found in the merge commit's message — AGENTS.md → "Deploy tags"):
 #   rebuild-db            quran.db + the Madani layout tables, then restart the API
-#   rebuild-index         the research agent's index
 #   rebuild-translations  translations.db then the app's offline packs (background)
 #   prefill-recitation    the shared verse-duration cache (background)
 #   prepare-recitations   one recording per surah (background, resumable;
@@ -103,7 +102,7 @@ start_release() {
 # 1. The new release.
 start_release "${TAG}"
 
-# 2. Data jobs that the new code needs before it serves (quran.db, index).
+# 2. Data jobs that the new code needs before it serves (quran.db).
 if has_job rebuild-db; then
   log "rebuilding quran.db and the Madani layout tables"
   compose "${TAG}" run --rm api python scripts/build_db.py
@@ -112,11 +111,6 @@ if has_job rebuild-db; then
   compose "${TAG}" up -d --no-deps --no-build api worker
   # The API cache (docs/caching.md) may hold an hour of answers from the old database.
   compose "${TAG}" exec -T nginx sh -c 'rm -rf /var/cache/nginx/qbasair/*' || true
-fi
-if has_job rebuild-index; then
-  log "rebuilding the research index"
-  compose "${TAG}" run --rm api python scripts/build_research_index.py
-  compose "${TAG}" up -d --no-deps --no-build api
 fi
 
 # 3. Readiness: the new commit answers, with its database. Otherwise roll back.
