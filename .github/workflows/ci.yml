@@ -10,6 +10,9 @@ on:
   push:
     branches: [develop, main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -19,8 +22,8 @@ jobs:
     name: Backend (pytest)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
           cache: pip
@@ -35,7 +38,7 @@ jobs:
     name: Nginx config (nginx -t)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Validate the site configs (HTTP, TLS, TLS behind a CDN)
         # Runs the real start-nginx.sh in the production image (with a throwaway
         # certificate and the upstream hosts pointed at localhost), stopping at
@@ -83,11 +86,11 @@ jobs:
     # Honor the documented tiny-commit escape hatch for the expensive job.
     if: ${{ !contains(github.event.head_commit.message, '[skip-expensive-ci]') }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 10.8.1
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: pnpm
@@ -109,15 +112,15 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ !contains(github.event.head_commit.message, '[skip-expensive-ci]') }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
           cache: pip
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 10.8.1
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: pnpm
@@ -138,12 +141,12 @@ jobs:
     name: Security scan (Trivy)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       # Dependencies (pnpm-lock.yaml, requirements*.txt), secrets committed by
       # mistake, and misconfigurations in the Dockerfiles. Fails on a CRITICAL
       # or HIGH finding that has a fix; accepted exceptions: .trivyignore.
       - name: Scan the repository
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -157,7 +160,7 @@ jobs:
       # The full report (every severity) for review, kept with the run.
       - name: Full report (all severities)
         if: always()
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -166,7 +169,7 @@ jobs:
           format: sarif
           output: trivy-report.sarif
           exit-code: "0"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: trivy-report
@@ -183,7 +186,7 @@ jobs:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0  # blame information for new-code detection
       - name: Sonar configured?
@@ -193,7 +196,7 @@ jobs:
             echo "on=false" >> "$GITHUB_OUTPUT"
             echo "SONAR_TOKEN is not set: Sonar analysis skipped." >> "$GITHUB_STEP_SUMMARY"
           fi
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         if: steps.enabled.outputs.on == 'true'
         with:
           python-version: "3.11"
@@ -207,7 +210,7 @@ jobs:
           pytest -q --cov=src --cov-report=xml:coverage.xml
       - name: Analyse
         if: steps.enabled.outputs.on == 'true'
-        uses: SonarSource/sonarqube-scan-action@v8
+        uses: SonarSource/sonarqube-scan-action@59202af334b4ba7b5db01b701b8e79f8b3bef0f4 # v8
         with:
           args: >
             -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY || 'ghost0n_q-basair' }}

@@ -17,6 +17,7 @@ owner can change).
 | `.github/ISSUE_TEMPLATE/`, `.github/PULL_REQUEST_TEMPLATE.md` | Bug / idea / translation forms; links to the guide, the FAQ and private security reports |
 | `.github/dependabot.yml` | Weekly grouped updates (npm, pip, Actions, Docker) against `develop` |
 | `.github/CODEOWNERS` | Every change reviewed by the maintainer |
+| `.github/rulesets/*.json` | Branch and tag rules to import (Settings → Rules → Rulesets → Import) |
 
 The app links to its source (`lib/site.ts` → `SOURCE_URL`): in the public
 pages' footer and in Settings → «الدعم والملاحظات». The AGPL (§13) asks a
@@ -38,34 +39,85 @@ the repository moves.
   check, which never checks out or runs the pull request's code.
 - **Personal details in files:** removed (local paths in `AGENTS.md`).
 
-## Remaining before the switch to public
+## Second audit (November 2026, before the switch)
 
-1. ~~Confirm the data terms in `NOTICE.md`~~ — done: the King Fahd Complex
-   terms for `data/quran-narrations/*.json` and the origin of
-   `data/word_root_dictionary.json` (the Quranic Arabic Corpus) were confirmed
-   by the maintainer.
-2. **Rewrite the history** (below): your personal email is the author of
-   about 300 commits, and five old copies of the generated `quran.db` make a
-   clone 127 MB.
-3. **Repository settings** (Settings → …):
-   - *General*: description, website `https://basairquran.com`, topics
-     (`quran`, `arabic`, `nextjs`, `fastapi`, `open-source`, `research`,
-     `rtl`); social preview `apps/web/public/og-image.png`; enable
-     Discussions; disable Wiki if unused.
-   - *Code security*: private vulnerability reporting, Dependabot alerts and
-     security updates, secret scanning **with push protection**, CodeQL
-     default setup.
-   - *Branches*: protect `main` and `develop` — pull request required, the CI
-     checks and `CLA` required, no force pushes (after the rewrite), linear
-     history optional. Leave `cla-signatures` unprotected.
-   - *Actions → General*: "Require approval for first-time contributors" for
-     fork pull requests; workflow permissions read-only by default (each
-     workflow asks for what it needs).
-   - *Packages*: make the `basair-quran-api` / `basair-quran-web` images public on
-     GHCR, or keep them private (the server logs in to pull them).
-4. **Labels** used by the templates and CONTRIBUTING: `bug`, `enhancement`,
-   `i18n`, `good first issue`, `help wanted`.
-5. **Settings → General → Danger zone → Change visibility → Public.**
+A full mirror of the repository (every branch, tag and pull-request ref, 520
+commits, 4,546 file versions) was scanned again:
+
+- **No secret anywhere in the history:** no private key, cloud or GitHub
+  token, AI-provider key, JWT, password in a URL or filled-in `.env`; no
+  database, book, PDF, keystore, provisioning profile or signed app ever
+  committed. The only credentials in the code are local-development defaults
+  (`qbasair-dev-session-secret`, the Keycloak test accounts), and the API
+  refuses to start with the dev session secret when sign-in is on.
+- **Identities:** commits carry `Ghost0n` (GitHub no-reply address), `Claude`
+  and `GitHub` only — except merges made on GitHub's website or API, which
+  take the account's **display name** (Settings → Public profile → Name).
+  Set that name to what should appear publicly before merging anything else.
+- **Already-removed test data** (fictional phone numbers, an e-mail address,
+  a social-media handle) remains in commits from before November 13; the
+  current files hold only placeholders.
+- **Workflows:** no `pull_request_target` workflow runs pull-request code;
+  every workflow is read-only by default and asks for more per job;
+  third-party actions are pinned to a commit (Dependabot keeps them current).
+  The iOS build (a macOS runner) runs only on `mobile-v*` tags and on demand.
+- **Actions history:** no release or deploy run exists in this repository, so
+  no log mentions the server.
+
+## Go-live checklist (in this order)
+
+Only the owner can do these; each is a repository or account setting.
+
+1. **Your public name.** GitHub → Settings → Public profile → *Name*: set it
+   to what may appear on every merge commit from now on (or leave it empty).
+2. **Default branch:** Settings → General → Default branch → `develop`
+   (issues, the CLA workflow's comments and new pull requests use it).
+3. **Bring `main` up to date** with a `develop` → `main` pull request
+   (no deploy tag needed). Until then `main` still holds the code from before
+   the open-source preparation: no `LICENSE` or `NOTICE.md`, the corpus code,
+   and an old `deploy.yml` that asks for a *self-hosted* runner.
+4. **Clean the refs:**
+   - delete the merged branches (`chore/Q-Basair-108-…`, `feat/Q-Basair-109-…`,
+     `fix/Q-Basair-106-…`, `fix/Q-Basair-107-…`, and `docs/Q-Basair-110-…`
+     once merged); Settings → General → *Automatically delete head branches*;
+   - delete the four `iphone-test-*` pre-releases **and** their tags
+     (Releases → each one → Delete; then Tags → delete): they hold unsigned
+     test builds of the app.
+5. **Actions:** Settings → Actions → Runners must list **no self-hosted
+   runner** (a public repository's pull requests could reach it). Actions →
+   General: "Require approval for all external contributors" for fork pull
+   requests; *Workflow permissions* → read repository contents (the
+   workflows ask for more per job).
+6. **Environment `production`:** Settings → Environments → production →
+   *Deployment branches and tags* → selected branches → `main` only (the
+   release can then never deploy another branch); add the `DEPLOY_*` secrets
+   there.
+7. **Branch and tag rules:** Settings → Rules → Rulesets → New ruleset →
+   *Import a ruleset*, once with `.github/rulesets/protect-main-develop.json`
+   (no deletion, no force push, changes by pull request with conversations
+   resolved, the five CI checks green; the admin may still merge a pull
+   request whose checks cannot run) and once with
+   `.github/rulesets/protect-release-tags.json` (only the admin creates,
+   moves or deletes `mobile-v*`, `android-v*` and `v*` tags, which upload to
+   TestFlight). `cla-signatures` stays unprotected: the CLA workflow writes
+   to it.
+8. **Code security** (Settings → Code security): private vulnerability
+   reporting, Dependabot alerts and security updates, secret scanning **with
+   push protection**, CodeQL default setup (free once public).
+9. **General:** description, website `https://basairquran.com`, topics
+   (`quran`, `arabic`, `nextjs`, `fastapi`, `open-source`, `research`,
+   `rtl`); social preview `apps/web/public/og-image.png`; Discussions on if
+   wanted; Wiki and Projects off if unused. Labels used by the templates:
+   `bug`, `enhancement`, `i18n`, `good first issue`, `help wanted`.
+10. **Packages:** GHCR `basair-quran-api` / `basair-quran-web` — make them
+    public, or keep them private (the server logs in to pull them).
+11. **Outside GitHub:** delete the old DuckDNS name the early deploy
+    scripts used (it is in the history), and keep the server's ports 80/443
+    open only as `deploy/server/setup.sh` sets them.
+12. **Settings → General → Danger zone → Change visibility → Public.**
+    Afterwards: open the repository signed out (a private window) and check
+    the README, `LICENSE` and the default branch; re-run CI on any open pull
+    request (public repositories get standard runners free).
 
 ## Rewriting the history
 
