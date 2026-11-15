@@ -33,7 +33,7 @@ tap, root distribution map, notebook + sessions + followed roots (account-synced
 at the exact verse, recitation with single-ayah repeat, strict research agent grounded in
 Quran search, Markdown/JSON export, web manifest.
 
-Missing versus the market: classical tafsir text, word meanings, tajweed colours,
+Missing versus the market: word meanings, tajweed colours,
 range repeat / hifz aids, reading plans, offline use, verse sharing as an image, pattern
 search, research-grade statistics export, verifiable citations in AI answers.
 
@@ -57,7 +57,7 @@ Priority: **P1** next release · **P2** following · **P3** later.
 
 | # | P | Task | Evidence | Today | Size |
 |---|---|---|---|---|---|
-| B1 | P1 | **Classical tafsir panel** per ayah: التفسير الميسّر, السعدي, ابن كثير (public-domain Arabic texts), shown beside the page; one tap from the morphology popover and the verse row. Strictly separate from the AI Tafssir mode. | Greentech ships 8 Arabic tafsirs; tafsir.app / الباحث القرآني | only AI Tafssir (experimental) | L (data pipeline + UI) |
+| ~~B1~~ | — | ~~**Classical tafsir panel** per ayah.~~ **Dropped (Q-Basair-110):** Basair reads and studies the Quran from its own text alone; no tafsir is shown, in the reader or in the research agent (AGENTS.md). | — | — | — |
 | B2 | P1 | **Word meaning in the morphology popover** (غريب القرآن / Arabic lexicon gloss) alongside root, lemma, POS, iʿrāb. | Greentech "tap any word → meaning, root" | root / lemma / POS / iʿrāb | M (data) |
 | B3 | P2 | **Root → derivatives view:** every lemma of a root with counts and the verses, grouped by form (verb forms I–X, nouns). | QAC concordance; Greentech "root and derivatives" | root search + distribution map | M |
 | B4 | P2 | **Pattern (wazn) and POS filters** in search, in plain Arabic ("أسماء الفاعل من الجذر…"), not codes. | QAC users ask for pattern search; non-experts find morphological search hard | exact / root / phrase | M |
@@ -90,8 +90,9 @@ Priority: **P1** next release · **P2** following · **P3** later.
 
 ## 4. Suggested next release (P1)
 
-A1 · A2 · A3 · B1 · B2 · C1 · C2 · E1 — about 3–4 weeks. B1/B2 need data sourcing and
-licence checks first (public-domain tafsir texts; lexicon source).
+A1 · A2 · A3 · B2 · C1 · C2 · E1 — about 3 weeks. B2 needs data sourcing and a licence
+check first (lexicon source). Classical tafsir (B1) is out of scope: the app stays with
+the Quran text alone.
 
 ## Sources
 
