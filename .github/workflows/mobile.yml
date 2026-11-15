@@ -10,6 +10,8 @@ name: Mobile
 # iOS signing (optional, Xcode cloud-managed signing): secrets APPLE_TEAM_ID,
 #   APPSTORE_API_KEY_ID, APPSTORE_API_ISSUER_ID, APPSTORE_API_KEY_P8 (the .p8
 #   file's contents). A `mobile-v*` tag also uploads the build to TestFlight.
+# The iOS job (a macOS runner, the costly one) runs only on `mobile-v*` tags
+# and when started by hand; pushes to develop/main build the bundle and Android.
 on:
   workflow_dispatch:
   push:
@@ -30,7 +32,7 @@ on:
       - ".github/workflows/mobile.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: mobile-${{ github.ref }}
@@ -52,8 +54,8 @@ jobs:
       NEXT_PUBLIC_SITE_URL: ${{ vars.QBASAIR_SITE_URL }}
       NEXT_PUBLIC_AUTH_ENABLED: "1"
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
           cache: pip
@@ -72,7 +74,7 @@ jobs:
       # between runs. Restore and save are separate so a failed, timed-out or
       # cancelled run still keeps what it downloaded: the next run resumes.
       - name: Restore the translation downloads
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: data/translation_cache
           key: translations-${{ hashFiles('scripts/translation_sources.json', 'scripts/build_translations.py') }}-${{ github.run_id }}
@@ -89,7 +91,7 @@ jobs:
         run: python scripts/build_translations.py
       - name: Save the translation downloads
         if: always()
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: data/translation_cache
           key: translations-${{ hashFiles('scripts/translation_sources.json', 'scripts/build_translations.py') }}-${{ github.run_id }}
@@ -99,10 +101,10 @@ jobs:
           PYTHONUNBUFFERED: "1"
           QBASAIR_BUILD_DB_ON_START: never
         run: python scripts/build_offline_packs.py --verify
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 10.8.1
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: pnpm
@@ -112,7 +114,7 @@ jobs:
         run: pnpm --filter @q-basair/web build:app
       # Test branch only: the bundle goes through the Actions cache because the
       # artifact storage quota is full.
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: apps/web/out/
           key: app-bundle-${{ github.run_id }}
@@ -127,25 +129,25 @@ jobs:
       QBASAIR_VERSION_CODE: ${{ github.run_number }}
       QBASAIR_VERSION_NAME: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || format('0.1.{0}', github.run_number) }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 10.8.1
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: pnpm
       - name: Node dependencies
         run: pnpm install --frozen-lockfile
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: app-bundle
           path: apps/web/out/
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           distribution: temurin
           java-version: "21"
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
         with:
           # The default ("tools") no longer exists in the SDK repository.
           packages: platform-tools
@@ -182,7 +184,7 @@ jobs:
         if: env.QBASAIR_RELEASE_SIGNED != '1'
         working-directory: apps/mobile/android/app/build/outputs
         run: rm -f apk/release/*.apk bundle/release/*.aab
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: basair-android-${{ env.VERSION_NAME }}
           path: |
@@ -194,7 +196,10 @@ jobs:
   ios:
     name: iOS (simulator build, IPA)
     needs: bundle
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/mobile-v')
     runs-on: macos-15
+    permissions:
+      contents: write # the test pre-release below
     timeout-minutes: 60
     env:
       PROJECT: apps/mobile/ios/App/App.xcodeproj
@@ -203,17 +208,17 @@ jobs:
       APPSTORE_API_ISSUER_ID: ${{ secrets.APPSTORE_API_ISSUER_ID }}
       APPSTORE_API_KEY_P8: ${{ secrets.APPSTORE_API_KEY_P8 }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 10.8.1
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: pnpm
       - name: Node dependencies
         run: pnpm install --frozen-lockfile
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: apps/web/out/
           key: app-bundle-${{ github.run_id }}
@@ -287,13 +292,14 @@ jobs:
             -authenticationKeyIssuerID "$APPSTORE_API_ISSUER_ID"
           if [ "$destination" = upload ]; then echo "::notice::Uploaded to App Store Connect (TestFlight)."; fi
 
-      # Test branch only: a pre-release instead of an artifact (storage is full).
+      # Started by hand: the builds as a pre-release (artifact storage is limited).
       - name: Test pre-release
+        if: github.event_name == 'workflow_dispatch'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "iphone-test-$VERSION_NAME" --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" --prerelease \
-            --title "iPhone test build $VERSION_NAME (Q-Basair-52, native phone feel)" \
+            --title "iPhone test build $VERSION_NAME" \
             --notes "Unsigned test build of $GITHUB_REF_NAME. Re-sign it before installing." \
             "$RUNNER_TEMP/Basair-unsigned.ipa" "$RUNNER_TEMP/Basair-simulator.zip"
