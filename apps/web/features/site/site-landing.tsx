@@ -9,11 +9,12 @@ import { BrandMark } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
 import { continueAsGuest } from "@/features/auth/identity-flow";
 import { AUTH_ENABLED } from "@/lib/config";
-import { useNumerals } from "@/lib/preferences-context";
+import { PreferencesProvider, useNumerals } from "@/lib/preferences-context";
 
 import { t } from "@/lib/i18n";
 
 import data from "./landing-data.json";
+import { LandingLocalePicker } from "./landing-locale-picker";
 import { QuranNumbers } from "./landing/numbers";
 import { GirihPattern } from "./landing/pattern";
 import { PhoneStory } from "./landing/phone-story";
@@ -36,6 +37,17 @@ type Item = { icon: IconName; title: string; body: string };
  * then opens the app in place).
  */
 export function SiteLanding({ onEnter }: { onEnter?: () => void }) {
+  // The landing sits outside the app shell (ShellGate, /about): its own
+  // preferences, so the digits it shows and the picker in its bar follow the
+  // visitor's choice (docs/i18n.md).
+  return (
+    <PreferencesProvider>
+      <LandingPage onEnter={onEnter} />
+    </PreferencesProvider>
+  );
+}
+
+function LandingPage({ onEnter }: { onEnter?: () => void }) {
   const formatNumber = useNumerals();
   const heroRef = useRef<HTMLElement | null>(null);
 
@@ -109,6 +121,7 @@ export function SiteLanding({ onEnter }: { onEnter?: () => void }) {
           <a href="#guidelines">{t("الإرشادات")}</a>
           <a href="/guide">{t("الدليل")}</a>
         </nav>
+        <LandingLocalePicker />
         <button type="button" className="qb-site-cta sm" onClick={enter}>
           {t("افتح التطبيق")}
         </button>
