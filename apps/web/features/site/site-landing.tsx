@@ -8,6 +8,7 @@ import { useRef, type PointerEvent, type ReactNode } from "react";
 import { BrandMark } from "@/components/brand-mark";
 import { Icon, type IconName } from "@/components/icon";
 import { continueAsGuest } from "@/features/auth/identity-flow";
+import { LocaleAccountSync } from "@/features/shell/locale-account-sync";
 import { AUTH_ENABLED } from "@/lib/config";
 import { PreferencesProvider, useNumerals } from "@/lib/preferences-context";
 
@@ -39,9 +40,11 @@ type Item = { icon: IconName; title: string; body: string };
 export function SiteLanding({ onEnter }: { onEnter?: () => void }) {
   // The landing sits outside the app shell (ShellGate, /about): its own
   // preferences, so the digits it shows and the picker in its bar follow the
-  // visitor's choice (docs/i18n.md).
+  // visitor's choice, and the shell's locale sync, so a first visit in the
+  // browser's language gets that language's digits here too (docs/i18n.md).
   return (
     <PreferencesProvider>
+      <LocaleAccountSync />
       <LandingPage onEnter={onEnter} />
     </PreferencesProvider>
   );
