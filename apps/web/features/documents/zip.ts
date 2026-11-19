@@ -25,7 +25,7 @@ export type ZipEntry = { name: string; data: Uint8Array };
 const DOS_TIME = 0;
 const DOS_DATE = (2026 - 1980) << 9 | 1 << 5 | 1;
 
-export function buildZip(entries: ZipEntry[]): Uint8Array {
+export function buildZip(entries: ZipEntry[]): Uint8Array<ArrayBuffer> {
   const encoder = new TextEncoder();
   const locals: Uint8Array[] = [];
   const centrals: Uint8Array[] = [];
