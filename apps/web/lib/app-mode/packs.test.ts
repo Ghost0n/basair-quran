@@ -117,7 +117,7 @@ function setup(files: Record<string, Uint8Array>, overrides: Partial<Record<stri
   vi.stubGlobal("fetch", async (url: string) => {
     const name = String(url).split("/").pop()!;
     if (name === "manifest.json") return new Response(JSON.stringify(manifest));
-    return files[name] ? new Response(files[name]) : new Response("missing", { status: 404 });
+    return files[name] ? new Response(new Uint8Array(files[name])) : new Response("missing", { status: 404 });
   });
   const api = { reset: vi.fn() };
   const manager = new PackManager(platform, device(quran), device(translations), api as never);

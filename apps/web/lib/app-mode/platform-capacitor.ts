@@ -140,7 +140,7 @@ class NativeDatabase implements DeviceDatabase {
     return `packs/${this.scope}/${id}.db`;
   }
 
-  async importPack(bytes: Uint8Array, id: string): Promise<Record<string, number>> {
+  async importPack(bytes: Uint8Array<ArrayBuffer>, id: string): Promise<Record<string, number>> {
     const { statements, counts } = await packStatements(bytes);
     await this.transaction(statements);
     // Kept so an app update that replaces the core can apply it again offline.

@@ -96,7 +96,7 @@ class WebDatabase implements DeviceDatabase {
   }
 
   /** Copy a pack's rows in, then keep its bytes so the next start re-applies it. */
-  async importPack(bytes: Uint8Array, id: string): Promise<Record<string, number>> {
+  async importPack(bytes: Uint8Array<ArrayBuffer>, id: string): Promise<Record<string, number>> {
     const counts = await this.copyFrom(bytes);
     await idbCall("packs", "readwrite", (store) => store.put(bytes, `${this.scope}:${id}`));
     return counts;

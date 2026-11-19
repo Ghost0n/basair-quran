@@ -18,6 +18,13 @@ updates:
     ignore:
       - dependency-name: "@types/node"
         update-types: [version-update:semver-major]
+      # TypeScript 7 (the native compiler) drops the JavaScript API that
+      # Next.js 15 uses to load next.config.ts and type-check the build, and
+      # that scripts/i18n.mjs uses to read the sources. The code is ready for
+      # it (no baseUrl, typed byte arrays, declared CSS imports): move to 7
+      # together with a Next.js version that supports it.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
   - package-ecosystem: pip
     directory: /
     target-branch: develop

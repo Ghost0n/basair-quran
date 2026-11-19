@@ -49,12 +49,12 @@ export const interfaceKey = (code: string) => `qb.interface.${code}`;
 
 export class PackError extends Error {}
 
-async function sha256Hex(bytes: Uint8Array): Promise<string> {
+async function sha256Hex(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function download(url: string, expected: number | undefined, onProgress?: (received: number, total: number) => void): Promise<Uint8Array> {
+async function download(url: string, expected: number | undefined, onProgress?: (received: number, total: number) => void): Promise<Uint8Array<ArrayBuffer>> {
   const response = await fetch(url);
   if (!response.ok || !response.body) throw new PackError(`download failed (${response.status})`);
   const total = expected ?? Number(response.headers.get("content-length") ?? 0);
