@@ -30,3 +30,14 @@ export function numeralsForLanguageChoice({
   const wanted = localeInfo(code).numerals;
   return wanted === accountNumerals ? undefined : wanted;
 }
+
+/**
+ * The digits a language picked by the reader brings (the landing page's bar,
+ * Settings, the app's onboarding): that language's usual digits, every time —
+ * the digits menu stays to set others afterwards. Returns `undefined` when the
+ * digits already are those.
+ */
+export function numeralsForLanguage(code: string, currentNumerals: string): Numerals | undefined {
+  const wanted = localeInfo(code).numerals;
+  return wanted === currentNumerals ? undefined : wanted;
+}

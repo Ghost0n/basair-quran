@@ -41,7 +41,8 @@ phones are drawn in the app's style; real screenshots can replace them later):
 
 The bar carries the interface language and the digits
 (`features/site/landing-locale-picker.tsx`), so a visitor can switch before
-entering: the same controls as Settings (`LanguageSelect`, `numerals`), saved
+entering: the same controls as Settings (`LanguageSelect`, `numerals`; a
+language brings its usual digits, the digits menu sets others), saved
 the same way — in the browser for a visitor or guest (`lib/guest-data.ts`),
 on the account once signed in — so the app opens as chosen. On phones they
 take a row of their own under the brand.

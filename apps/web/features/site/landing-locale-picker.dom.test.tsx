@@ -6,10 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // The landing's picker reuses the preferences and the locale of the app.
 const updateAccount = vi.fn(async () => undefined);
 const setLocale = vi.fn(async () => undefined);
+let numerals = "arabic-indic";
 vi.mock("@/lib/preferences-context", () => ({
   usePreferences: () => ({
-    preferences: { numerals: "arabic-indic" },
-    account: { numerals: "arabic-indic", ui_language: "ar" },
+    preferences: { numerals },
+    account: { numerals, ui_language: "ar" },
     updateAccount,
   }),
 }));
@@ -24,7 +25,12 @@ import { LandingLocalePicker } from "./landing-locale-picker";
 let root: Root;
 let host: HTMLElement;
 
+async function mount() {
+  await act(async () => root.render(<LandingLocalePicker />));
+}
+
 beforeEach(async () => {
+  numerals = "arabic-indic";
   updateAccount.mockClear();
   setLocale.mockClear();
   host = document.createElement("div");
@@ -59,11 +65,17 @@ describe("LandingLocalePicker", () => {
     expect(digits.textContent).toContain("٠١٢");
   });
 
-  it("switches the interface language and saves it, as Settings does", async () => {
+  it("switches the interface language and saves it with the language's usual digits", async () => {
     await choose(triggers()[0], "English");
     expect(setLocale).toHaveBeenCalledWith("en");
-    // The first language choice also brings the language's usual digits.
     expect(updateAccount).toHaveBeenCalledWith({ ui_language: "en", numerals: "latin" });
+  });
+
+  it("brings the language's digits even after the reader chose other digits", async () => {
+    numerals = "latin";
+    await mount();
+    await choose(triggers()[0], "فارسی");
+    expect(updateAccount).toHaveBeenCalledWith({ ui_language: "fa", numerals: "persian" });
   });
 
   it("saves the chosen digits", async () => {
