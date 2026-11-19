@@ -17,7 +17,10 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
-const ts = require("typescript");
+// TypeScript's JavaScript API (createSourceFile, forEachChild…), which the
+// native TypeScript 7 compiler no longer ships: the "typescript-api" alias is
+// TypeScript 6, used only here to read the sources.
+const ts = require("typescript-api");
 
 // fileURLToPath, not URL.pathname: the latter yields "/C:/…" on Windows.
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
