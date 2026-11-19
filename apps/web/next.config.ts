@@ -42,7 +42,9 @@ const webConfig: NextConfig = {
 
 // The standalone (Android) app: a static export (`out/`) served from the
 // device, with /api answered on the device (lib/app-mode). There is no server,
-// so no rewrites, headers or middleware (".tsx" pages only leaves middleware.ts out).
+// so no rewrites, headers or proxy (proxy.ts does not run in a static export).
+// `.app.tsx` route files take precedence: built with `next build --webpack`
+// (scripts/build-app.mjs), since Turbopack does not honour this order.
 const appConfig: NextConfig = {
   output: "export",
   pageExtensions: ["app.tsx", "tsx", "ts", "jsx", "js"],
