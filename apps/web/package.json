@@ -7,7 +7,6 @@
     "dev": "next dev",
     "build": "node scripts/fetch-script-fonts.mjs && next build",
     "start": "next start",
-    "lint": "next lint",
     "test": "vitest run",
     "i18n:check": "node scripts/i18n.mjs check",
     "build:app": "node scripts/build-app.mjs",
@@ -26,7 +25,7 @@
     "@q-basair/offline-engine": "workspace:*",
     "@q-basair/shared": "workspace:*",
     "@xyflow/react": "^13.0.1",
-    "next": "15.5.29",
+    "next": "16.4.6",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "sql.js": "1.16.0"

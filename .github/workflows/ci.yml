@@ -105,7 +105,8 @@ jobs:
       - name: Build the standalone app bundle (static export)
         env:
           NEXT_PUBLIC_APP_MODE: "1"
-        run: pnpm --filter @q-basair/web exec next build
+        # Webpack, as scripts/build-app.mjs builds it (the .app.tsx precedence).
+        run: pnpm --filter @q-basair/web exec next build --webpack
 
   offline-engine:
     name: Offline engine (server parity)

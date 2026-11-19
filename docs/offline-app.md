@@ -124,6 +124,10 @@ last device to sync wins, per row.
 The app build is selected by `NEXT_PUBLIC_APP_MODE=1`: `next.config.ts`
 switches to `output: "export"` and gives `.app.tsx` route files precedence,
 and the i18n loader bundles only English (other dictionaries are packs).
+That precedence needs Webpack: the app is built with `next build --webpack`
+(`scripts/build-app.mjs`, CI), while the website uses Turbopack, the default
+since Next.js 16 (which ignores the `pageExtensions` order and would pick the
+website's force-dynamic `layout.tsx`, failing the export).
 Everything app-only is behind the build-time `APP_MODE` constant, so the web
 build does not change.
 
