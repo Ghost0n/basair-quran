@@ -19,11 +19,16 @@ permissions:
 jobs:
   cla:
     runs-on: ubuntu-latest
-    # Bots (Dependabot…) can't sign, and their commits carry GitHub's own
-    # committer identity, which no allowlist entry matches: skip them.
+    # Skipped for pull requests opened by a bot (Dependabot…: it can't sign,
+    # and its commits carry GitHub's own committer identity, which no
+    # allowlist entry matches) or by the repository owner, who holds the
+    # copyright (the owner's decision; commits written with an AI assistant
+    # carry an address no account matches). Everyone else's pull requests
+    # are checked.
     if: >-
       (github.event_name == 'pull_request_target' &&
-        github.event.pull_request.user.type != 'Bot') ||
+        github.event.pull_request.user.type != 'Bot' &&
+        github.event.pull_request.author_association != 'OWNER') ||
       (github.event.issue.pull_request &&
         (github.event.comment.body == 'recheck' ||
          github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA'))
