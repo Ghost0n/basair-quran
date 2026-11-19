@@ -26,7 +26,7 @@
     "@q-basair/offline-engine": "workspace:*",
     "@q-basair/shared": "workspace:*",
     "@xyflow/react": "^13.0.1",
-    "next": "15.5.29",
+    "next": "16.4.6",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "sql.js": "1.16.0"
