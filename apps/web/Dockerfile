@@ -23,12 +23,14 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages/api-client/package.json packages/api-client/package.json
 COPY packages/shared/package.json packages/shared/package.json
+COPY packages/offline-engine/package.json packages/offline-engine/package.json
 
 RUN pnpm install --frozen-lockfile
 
 COPY apps/web ./apps/web
 COPY packages/api-client ./packages/api-client
 COPY packages/shared ./packages/shared
+COPY packages/offline-engine ./packages/offline-engine
 
 RUN pnpm --filter @q-basair/web build
 
