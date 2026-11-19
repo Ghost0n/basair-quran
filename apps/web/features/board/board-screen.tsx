@@ -1039,7 +1039,7 @@ function Board() {
             }}
             // Match the app theme: React Flow's default "light" class would pull
             // the app's light tokens into the canvas in dark mode.
-            colorMode={workspace.theme === "light" ? "light" : "dark"}
+            forceColorMode={workspace.theme === "light" ? "light" : "dark"}
             connectionMode={ConnectionMode.Loose}
             defaultEdgeOptions={{ type: "smoothstep", markerEnd: { type: MarkerType.ArrowClosed } }}
             deleteKeyCode={["Backspace", "Delete"]}
