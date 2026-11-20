@@ -550,6 +550,9 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   when unset, registration stays open. Login runs a constant-time hash on unknown emails to avoid an
   enumeration timing oracle.
 - `POST /api/auth/logout` revokes the current session row and clears the cookie.
+  The web then forgets what the account left in the browser (study sessions, cached
+  preferences, recents, reading progress, the AI connection; `apps/web/lib/forget-account.ts`),
+  keeping only the device's own choices (language, theme).
 - `POST /api/auth/forgot-password` `{ email }` always returns `{ ok: true }` (no account enumeration).
   When the account exists it mints a single-use, 1-hour reset token and **emails** it (Arabic message with
   a link `${QBASAIR_PUBLIC_URL}/login?reset=<token>` that opens the reset step pre-filled, plus the raw
