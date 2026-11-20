@@ -325,71 +325,6 @@
   animation: qbFade var(--motion-dur-base) var(--motion-ease-settle) both;
 }
 
-.qb-welcome-step {
-  font-size: 11px;
-  color: var(--fg-3);
-}
-
-.qb-welcome-step strong {
-  color: var(--gold-text-bright);
-}
-
-/* Avatar picker */
-.qb-avatar-preview {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-5);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--r-lg);
-  padding: var(--sp-5) var(--sp-6);
-  background: linear-gradient(135deg, var(--gold-a12), var(--gold-a04));
-  animation: qbRise var(--motion-dur-slow) var(--motion-ease-settle) both;
-}
-
-.qb-avatar-preview-copy {
-  max-width: 280px;
-}
-
-.qb-avatar-preview-copy .name {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--fg-1);
-}
-
-.qb-avatar-preview-copy .hint {
-  font-size: 11.5px;
-  color: var(--fg-3);
-  line-height: 1.8;
-}
-
-.qb-avatar-tiles {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--sp-3);
-  max-width: 420px;
-  animation: qbRise var(--motion-dur-slow) var(--motion-ease-settle) 100ms both;
-}
-
-.qb-avatar-tile {
-  width: 58px;
-  height: 58px;
-  border-radius: var(--r-md);
-  background: transparent;
-  border: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: border-color var(--motion-dur-fast) var(--motion-ease-settle),
-    background var(--motion-dur-fast) var(--motion-ease-settle);
-}
-
-.qb-avatar-tile.selected {
-  border: 2px solid var(--gold-a55);
-  background: var(--gold-a12);
-}
-
 .qb-welcome-cta {
   padding: 10px 28px;
   border-radius: var(--r-pill);
@@ -406,10 +341,6 @@
 
 .qb-welcome-cta:hover:not(:disabled) {
   transform: translateY(-1px);
-}
-
-.qb-welcome-cta.step-avatar {
-  animation: qbRise var(--motion-dur-slow) var(--motion-ease-settle) 180ms both;
 }
 
 /* Onboarding — three cards, gold-before-copper, staggered 450/650/1150ms */
@@ -476,28 +407,6 @@
     grid-template-columns: 1fr;
     max-width: 320px;
   }
-}
-
-/* Onboarding skip affordance — a quiet way past the avatar/intro steps. */
-.qb-welcome-skip {
-  margin-top: 12px;
-  background: transparent;
-  border: none;
-  color: var(--fg-3);
-  font-family: var(--font-arabic-ui);
-  font-size: 13px;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.qb-welcome-skip:hover {
-  color: var(--fg-2);
-}
-
-.qb-welcome-skip:disabled {
-  opacity: 0.5;
-  cursor: default;
 }
 
 /* Password-reset sub-flow */

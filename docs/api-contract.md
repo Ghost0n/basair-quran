@@ -541,7 +541,7 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
 - **One-time re-login on deploy.** Switching the identity source from signed-cookie sessions to the token
   table invalidates any pre-existing signed-cookie sessions — users sign in once after this ships.
 - `GET /api/auth/session` returns `{ enabled, authenticated, user }`. `user` carries `name`, `avatar`
-  (a calligraphic medallion character/index — not an image URL), and `onboarded`.
+  (the medallion's look, `p<pattern>t<tone>` — not an image URL; `null` or an older value means the look given from the account id, `apps/web/lib/avatar.ts`), and `onboarded`.
 - `POST /api/auth/login` accepts `email`, `password`, and optional `device_label` / `platform`; it mints a
   session and returns the raw `token` (native clients keep it; the web app uses the cookie).
 - `POST /api/auth/signup` accepts `email`, `password`, optional `name`, optional `invite_code`, and optional
@@ -563,8 +563,9 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
 - `DELETE /api/auth/account` (auth) permanently deletes the account: all app data (notebook, sessions,
   followed roots, preferences, merge log), then the user row and **every** session (all devices), and clears
   the cookie. Returns `{ deleted }`. Irreversible; guest (`user_id=0`) data is never touched.
-- `PATCH /api/auth/profile` (auth) sets `name` / `avatar` / `onboarded` — used by the avatar picker and the
-  once-per-account onboarding.
+- `PATCH /api/auth/profile` (auth) sets `name` / `avatar` / `onboarded` — used by Settings (name, the
+  medallion's pattern and colour) and the once-per-account onboarding (`onboarded` only: a new
+  account chooses nothing there).
 - `GET /api/auth/devices` (auth) lists active sessions with an `is_current` flag;
   `DELETE /api/auth/devices/{session_id}` (auth) ejects a device (ejecting the current row == logout).
 - **Guest identity header.** Guest (`user_id=0`) rows written before guests kept their data on their device

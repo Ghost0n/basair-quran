@@ -16,7 +16,8 @@
 .qb-account-pop {
   position: fixed;
   z-index: calc(var(--elev-popover) + 1);
-  width: 264px;
+  width: 296px;
+  max-width: calc(100vw - 16px);
   overflow: hidden;
   animation: qbRise var(--motion-dur-base) var(--motion-ease-settle) both;
   background: var(--glass-tint-overlay);
@@ -65,6 +66,84 @@
   overflow-y: visible;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Quick settings: one row per control, label at the start, control at the end. */
+.qb-account-quick {
+  display: grid;
+  gap: 2px;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
+}
+
+.qb-account-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+  padding-block: 2px;
+  padding-inline: 12px 6px;
+}
+
+.qb-account-row .lbl {
+  font-size: 12px;
+  color: var(--fg-2);
+  white-space: nowrap;
+}
+
+.qb-account-row .qb-select {
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.qb-account-row .qb-select-btn {
+  min-height: 30px;
+  max-width: 140px;
+  padding-block: 4px;
+  font-size: 12px;
+}
+
+.qb-account-theme {
+  display: inline-flex;
+  padding: 2px;
+  gap: 2px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+}
+
+.qb-account-theme button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 26px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-3);
+  cursor: pointer;
+  transition:
+    background var(--motion-dur-fast) var(--motion-ease-settle),
+    color var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-account-theme button:hover {
+  color: var(--fg-1);
+}
+
+.qb-account-theme button[aria-pressed="true"] {
+  background: var(--bg-elev-2);
+  color: var(--gold-500);
+  box-shadow: var(--shadow-1);
+}
+
+.qb-account-theme button:focus-visible,
+.qb-account-link:focus-visible,
+.qb-account-signout:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 1px;
 }
 
 .qb-account-body {

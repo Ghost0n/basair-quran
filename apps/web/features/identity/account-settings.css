@@ -45,33 +45,63 @@
   background: var(--gold-a08);
 }
 
-.qb-account-motifs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
+/* The medallion's pattern and colour (lib/avatar.ts): two rows of the
+   reader's own letter, one choice changed at a time. */
+.qb-account-look {
+  display: grid;
+  gap: var(--sp-3);
   margin-top: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--gold-a04);
   animation: qbFade var(--motion-dur-base) both;
 }
 
-.qb-account-motifs .tile {
-  width: 46px;
-  height: 46px;
-  border-radius: var(--r-md);
-  border: 1px solid var(--border);
-  background: transparent;
+.qb-account-look .row {
+  display: grid;
+  gap: 6px;
+}
+
+.qb-account-look .lbl {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--fg-3);
+}
+
+.qb-account-look .tiles {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.qb-account-look .tile {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
   cursor: pointer;
-  transition: border-color var(--motion-dur-fast) var(--motion-ease-settle),
-    background var(--motion-dur-fast) var(--motion-ease-settle);
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-settle),
+    transform var(--motion-dur-fast) var(--motion-ease-settle);
 }
 
-.qb-account-motifs .tile.selected {
+.qb-account-look .tile:hover {
+  transform: translateY(-1px);
+}
+
+.qb-account-look .tile.selected {
   border: 2px solid var(--gold-a55);
-  background: var(--gold-a12);
 }
 
+.qb-account-look .tile:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 2px;
+}
 /* ---------- Guest sign-in / sign-up ---------- */
 
 .qb-account-guest {
