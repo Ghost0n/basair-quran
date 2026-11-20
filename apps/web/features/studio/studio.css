@@ -199,6 +199,121 @@
   white-space: pre-wrap;
 }
 
+/* «آيات أخرى»: more ayahs from the answer's own searches, set apart. */
+.qb-msg.bot .ev-more-label {
+  margin: 10px 0 2px;
+  color: var(--fg-3);
+  font-size: 11.5px;
+}
+
+.qb-msg.bot .ev-more {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  margin-top: 4px;
+  padding: 0 12px;
+  border: 1px dashed var(--border-accent);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--gold-text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-msg.bot .ev-more:hover:not(:disabled) {
+  background: var(--gold-a08);
+}
+
+.qb-msg.bot .ev-more:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+/* An answer's Markdown (chat-markdown-view.tsx). */
+.qb-msg.bot .qb-md > :last-child {
+  margin-bottom: 10px;
+}
+
+.qb-msg.bot .qb-md :is(h4, h5, h6) {
+  margin: 12px 0 6px;
+  color: var(--fg-1);
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.qb-msg.bot .qb-md h4 {
+  font-size: 16px;
+}
+
+.qb-msg.bot .qb-md :is(ul, ol) {
+  margin: 0 0 10px;
+  padding-inline-start: 22px;
+  color: var(--fg-1);
+  font-size: 13.5px;
+  line-height: 1.75;
+}
+
+.qb-msg.bot .qb-md li + li {
+  margin-top: 3px;
+}
+
+.qb-msg.bot .qb-md blockquote {
+  margin: 0 0 10px;
+  padding-inline-start: 12px;
+  border-inline-start: 3px solid var(--border-accent);
+  color: var(--fg-2, var(--fg-1));
+}
+
+.qb-msg.bot .qb-md code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-soft);
+  font-size: 0.92em;
+}
+
+.qb-msg.bot .qb-md hr {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Under each message: copy it (the question, or the answer with its ayahs). */
+.qb-msg-tools {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.qb-msg-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-3);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.qb-msg-copy:hover,
+.qb-msg-copy:focus-visible {
+  color: var(--fg-1);
+  border-color: var(--border);
+}
+
+.qb-msg-copy.is-done {
+  color: var(--gold-text);
+}
+
 .qb-msg.bot .section {
   padding: 8px 0;
   border-top: 1px dashed rgba(201, 138, 91, 0.22);
@@ -760,6 +875,11 @@
 
 .qb-studio-notice.is-warn > .qb-icon {
   color: var(--danger-fg);
+}
+
+/* The risks of AI answers (risk-consent.tsx): no close, it is accepted. */
+.qb-studio-notice.is-risk {
+  padding-inline-end: 14px;
 }
 
 .qb-studio-notice :focus-visible {

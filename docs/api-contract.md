@@ -277,6 +277,8 @@ Publishing and the community (guidelines: `docs/community-guidelines.md`; modera
 `docs/feedback-centre.md`.
 
 - `POST /api/feedback {kind: contact|bug|help|feature|error, message, email?, detail?, url?, language?}`
+  (a `contact` message is also emailed to `QBASAIR_CONTACT_EMAIL`, default `contact@basairquran.com`,
+  when SMTP is configured; `docs/feedback-centre.md`)
   → `FeedbackItem`. It is open to guests and rate-limited per IP (`QBASAIR_RATE_LIMIT_FEEDBACK_MAX`,
   default 10). Every kind needs a message except `error`. An `error` report needs its diagnostic
   `detail` (≤32 KB, `413` beyond). A guest's message (any kind but `error`) needs an `email`, which
@@ -571,8 +573,9 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   enumeration timing oracle.
 - `POST /api/auth/logout` revokes the current session row and clears the cookie.
   The web then forgets what the account left in the browser (study sessions, cached
-  preferences, recents, reading progress, the AI connection; `apps/web/lib/forget-account.ts`),
-  keeping only the device's own choices (language, theme).
+  preferences, recents, reading progress; `apps/web/lib/forget-account.ts`),
+  keeping the device's own choices (language, theme, and the AI connection: the reader's
+  provider keys stay on this device across sign-out and sign-in).
 - `POST /api/auth/forgot-password` `{ email }` always returns `{ ok: true }` (no account enumeration).
   When the account exists it mints a single-use, 1-hour reset token and **emails** it (Arabic message with
   a link `${QBASAIR_PUBLIC_URL}/login?reset=<token>` that opens the reset step pre-filled, plus the raw
@@ -616,7 +619,8 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   answers `503`. `ResearchProviderInfo.provider` names it. When present, it replaces the
   `X-QBasair-Ollama-*` headers below.
 - `X-QBasair-LLM-Thinking` (optional, with a provider): `off` · `low` · `medium` · `high`, how much
-  the model thinks before answering (the chat's selector). Only the levels the provider lists in
+  the model thinks before answering. The web no longer sends it (each model's default); it is
+  kept for older clients. Only the levels the provider lists in
   `AiProviderItem.thinking` are sent on; anything else means the model's own default. A model that
   refuses the thinking fields is asked again without them.
 - `GET /api/ai/providers` → `AiProviderItem[]` `{id, name, key_url, signin, prefer, thinking}`
@@ -640,7 +644,17 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   written only from the ayahs Quran search returned; its prompt (`QURAN_ONLY_ANSWER_RULES`)
   forbids tafsir, hadith, scholars' opinions, rulings and outside knowledge, asks for each
   ayah to be cited by surah and number, and for the answer to say when the ayahs do not
-  answer the question.
+  answer the question. The answer is short and points to the ayahs (they are shown beside it,
+  so it names them by reference instead of copying them out; Markdown, often a short list),
+  and ends with one follow-up question that would narrow the search when the question is
+  vague or the ayahs only touch it from afar.
+- **Answer language.** `answer_language` (`"auto"` by default: detected from the question —
+  Arabic, French, else English) names the language of the answer and of any clarifying
+  question, e.g. `"english"`, `"urdu"`; the model writes in it whatever language the question
+  is in. The web sends the reader's «لغة الجواب» (Settings → AI; the interface language
+  unless another is chosen, `apps/web/lib/answer-language.ts`). The fixed fallback texts (no
+  ayah found, a generic clarifying question) exist in Arabic, French and English; other
+  languages get the English one.
 - **Ayahs read in their passage.** Every ayah sent to the final stage carries its context
   from the Quran DB: `context.surah` (name, Meccan/Medinan type, ayah count),
   `context.position`, and `context.before` / `context.after`, the neighbouring ayahs of the

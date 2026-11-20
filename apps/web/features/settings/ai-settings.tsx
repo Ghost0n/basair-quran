@@ -12,13 +12,15 @@ import {
   chooseProvider,
   maskKey,
   preferredModel,
+  recommendedModels,
   setProviderKey,
   setProviderModel,
   subscribeAiConnection,
 } from "@/lib/ai-connection";
+import { FOLLOW_INTERFACE, setAnswerLanguage, useAnswerLanguageChoice } from "@/lib/answer-language";
 import { APP_MODE } from "@/lib/app-mode/config";
 import { startOpenRouterSignIn } from "@/lib/openrouter-signin";
-import { t } from "@/lib/i18n";
+import { LOCALES, t } from "@/lib/i18n";
 
 const SERVER = "server";
 
@@ -72,6 +74,15 @@ export function AiSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [provider, key, spec?.id]);
 
+  // The recommended models only (as in the chat), plus the one already chosen.
+  const offered = spec ? recommendedModels(spec.prefer, check.models, model) : check.models;
+
+  const answerLanguage = useAnswerLanguageChoice();
+  const languageOptions = [
+    { value: FOLLOW_INTERFACE, label: t("لغة الواجهة") },
+    ...LOCALES.map((locale) => ({ value: locale.code, label: locale.native })),
+  ];
+
   const options = [
     { value: SERVER, label: t("نموذج بصائر (الافتراضي)") },
     ...providers.map((item) => ({ value: item.id, label: item.name })),
@@ -83,6 +94,23 @@ export function AiSettings() {
       <p className="card-sub">
         {t("تعمل الدراسة بنموذج بصائر، أو بحسابك لدى أحد المزوّدين: يكفي مفتاحك أو الدخول بحسابك، دون أي عنوان خادم.")}
       </p>
+
+      {/* The study answers in this language, whatever the question is written in. */}
+      <div className="qb-setting-row is-split">
+        <div className="txt">
+          <span className="name">{t("لغة الجواب")}</span>
+          <span className="hint">{t("يجيب الباحث بهذه اللغة أيّاً كانت لغة سؤالك.")}</span>
+        </div>
+        <div className="ctl">
+          <SelectMenu
+            className="qb-setting-menu"
+            ariaLabel={t("لغة الجواب")}
+            value={answerLanguage}
+            options={languageOptions}
+            onChange={setAnswerLanguage}
+          />
+        </div>
+      </div>
 
       <div className="qb-setting-row is-split">
         <div className="txt">
@@ -178,12 +206,12 @@ export function AiSettings() {
                 </span>
               </div>
               <div className="ctl">
-                {check.models.length ? (
+                {offered.length ? (
                   <SelectMenu
                     className="qb-setting-menu"
                     ariaLabel={t("النموذج")}
-                    value={model ?? check.models[0]}
-                    options={check.models.map((name) => ({ value: name, label: name }))}
+                    value={model ?? offered[0]}
+                    options={offered.map((name) => ({ value: name, label: name }))}
                     onChange={(name) => setProviderModel(provider, name)}
                   />
                 ) : (

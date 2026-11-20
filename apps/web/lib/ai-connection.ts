@@ -12,7 +12,7 @@ export type AiConnection = {
   provider: AiProviderId | null;
   keys: Partial<Record<AiProviderId, string>>;
   models: Partial<Record<AiProviderId, string>>;
-  /** Per provider, the thinking level picked in the chat (none: the model's default). */
+  /** Former per-provider thinking levels: still read, no longer picked nor sent (each model's default). */
   thinking: Partial<Record<AiProviderId, ThinkingLevel>>;
 };
 
@@ -98,15 +98,6 @@ export function setProviderModel(provider: AiProviderId, model: string): void {
   saveAiConnection({ ...current, models: { ...current.models, [provider]: model } });
 }
 
-/** The thinking level for a provider (null: the model's default). */
-export function setProviderThinking(provider: AiProviderId, level: ThinkingLevel | null): void {
-  const current = aiConnection();
-  const thinking = { ...current.thinking };
-  if (level) thinking[provider] = level;
-  else delete thinking[provider];
-  saveAiConnection({ ...current, thinking });
-}
-
 /** A key as shown once saved: its last four characters. */
 export function maskKey(key: string | undefined): string {
   return key ? `••••${key.slice(-4)}` : "";
@@ -121,9 +112,23 @@ export function aiHeaders(connection: AiConnection = aiConnection()): Record<str
   const model = connection.models[provider];
   if (key) headers["X-QBasair-LLM-Key"] = key;
   if (model) headers["X-QBasair-LLM-Model"] = model;
-  const thinking = connection.thinking[provider];
-  if (thinking) headers["X-QBasair-LLM-Thinking"] = thinking;
+  // No thinking level: each model's own default is enough for the study.
   return headers;
+}
+
+/**
+ * The models offered in the chat: only the recommended ones among those the
+ * provider lists (`AiProviderItem.prefer`, in that order), plus the one already
+ * chosen. A provider listing none of them shows its whole list.
+ */
+export function recommendedModels(prefer: readonly string[], names: readonly string[], current?: string): string[] {
+  const kept: string[] = [];
+  for (const wanted of prefer) {
+    for (const name of names) if (name.includes(wanted) && !kept.includes(name)) kept.push(name);
+  }
+  if (!kept.length) return [...names];
+  if (current && names.includes(current) && !kept.includes(current)) kept.unshift(current);
+  return kept;
 }
 
 /** The model to preselect among those a provider lists. */

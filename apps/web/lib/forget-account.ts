@@ -2,15 +2,15 @@
  * What an account leaves in this browser, forgotten at sign-out so the next
  * person at the same screen sees none of it (docs/api-contract.md): the study's
  * sessions, the cached preferences (reading position, saved pages, recents),
- * reading progress, the last board and notebook, and the AI connection (its
- * keys are kept on the device only, lib/ai-connection.ts). The device's own
- * choices — interface language, theme, haptics, guide version — stay.
+ * reading progress, the last board and notebook. The device's own choices —
+ * interface language, theme, haptics, guide version, and the AI connection
+ * (the reader's provider keys, kept on this device only, lib/ai-connection.ts:
+ * signing out and in again must not ask for them anew) — stay.
  */
 const LOCAL_KEYS = [
   "qb.prefs.cache",
   "qb.recents",
   "qb.reading.progress",
-  "qb.ai.connection",
   "qb.lastBoard",
   "qb.lastNotebook",
 ];

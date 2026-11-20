@@ -71,7 +71,7 @@ export function PhoneStory() {
     { id: "search", icon: "search", title: t("ابحث في الكلمة وجذرها"), body: t("اكتب كلمة فتجد مواضعها ومشتقّاتها في كل المصحف، مظلّلةً في سياقها."), media: { name: "search", kind: "video" } },
     { id: "word", icon: "tree", title: t("صرف الكلمة"), body: t("حدّد أي كلمة في المصحف لترى جذرها وأصلها وإعرابها."), media: { name: "morphology", kind: "image" } },
     { id: "recite", icon: "ear", title: t("استمع وتابع"), body: t("قرّاء متعدّدون، وتكرار الآية أو المقطع؛ التلاوة على شاشة القفل، والصفحة تتبعها."), media: { name: "recitation", kind: "image" } },
-    { id: "study", icon: "sparkles", title: t("ادرس بالدليل"), body: t("لا يدخل الجوابَ إلا الآياتُ التي وجدها البحث، بنصّها ومراجعها."), media: { name: "study", kind: "image" } },
+    { id: "study", icon: "sparkles", title: t("ادرس بالدليل"), body: t("اسأل بأيّ لغة، فيدلّك على أقرب الآيات إلى سؤالك بنصّها ومراجعها، ويسألك ليضيّق البحث إن لم يتّضح."), media: { name: "study", kind: "image" } },
     { id: "notebook", icon: "notebook", title: t("الدفتر"), body: t("احفظ الآيات وأضف إليها ملاحظاتك، ونظّمها في محاور."), media: { name: "notebook", kind: "image" } },
   ];
   const [active, setActive] = useState(0);

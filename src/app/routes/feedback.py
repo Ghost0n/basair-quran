@@ -4,11 +4,11 @@ Open to guests (rate-limited per IP); a signed-in sender is recorded and can
 see what they sent. Staff triage it under ``/api/moderation/feedback``.
 """
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Request
 
 from src.app.core import config
 from src.app.models.api import FeedbackCreate, FeedbackItem
-from src.app.services import app_data_service, feedback_service
+from src.app.services import app_data_service, feedback_service, mail_service
 
 router = APIRouter(prefix="/api", tags=["feedback"])
 
@@ -21,7 +21,7 @@ def _user_id(request: Request) -> int | None:
 
 
 @router.post("/feedback", response_model=FeedbackItem, response_model_exclude_none=True)
-def submit(request: Request, payload: FeedbackCreate) -> FeedbackItem:
+def submit(request: Request, payload: FeedbackCreate, background: BackgroundTasks) -> FeedbackItem:
     try:
         item = feedback_service.submit(
             payload.kind,
@@ -38,6 +38,18 @@ def submit(request: Request, payload: FeedbackCreate) -> FeedbackItem:
     except feedback_service.FeedbackError as exc:
         detail = {"code": exc.code, "message": str(exc)} if exc.code else str(exc)
         raise HTTPException(status_code=exc.status, detail=detail) from exc
+    if payload.kind == "contact":
+        # The contact form reaches the team's mailbox too (contact@…, QBASAIR_CONTACT_EMAIL),
+        # after the answer: a slow SMTP server never holds the sender up.
+        background.add_task(
+            mail_service.send_contact_message,
+            item["id"],
+            payload.message,
+            # Checked by the service before it was kept.
+            reply_to=(payload.email or "").strip() or None,
+            language=payload.language,
+            url=payload.url,
+        )
     return FeedbackItem(**item)
 
 

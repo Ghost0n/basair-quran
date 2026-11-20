@@ -35,8 +35,7 @@ function writeFlag(storage: "local" | "session", key: string): void {
  * - a guest (accounts on): sign in or create an account, so the sessions are
  *   kept on the account and follow the reader;
  * - a provider chosen without its key: add it (the study fails without);
- * - Basair's own model: connect an account with a provider to pick the model
- *   and the thinking.
+ * - Basair's own model: connect an account with a provider to pick the model.
  */
 export function StudioNotices({ onOpenAiSettings }: { onOpenAiSettings: () => void }) {
   const { user, ready } = useAuthSession();
@@ -88,7 +87,7 @@ export function StudioNotices({ onOpenAiSettings }: { onOpenAiSettings: () => vo
     return (
       <Notice
         icon="sparkles"
-        text={t("تعمل الدراسة بنموذج بصائر. اربط حسابك لدى أحد المزوّدين لتختار النموذج ومدى التفكير.")}
+        text={t("تعمل الدراسة بنموذج بصائر. اربط حسابك لدى أحد المزوّدين لتختار النموذج.")}
         onDismiss={() => {
           writeFlag("local", AI_DISMISSED);
           setAiSetAside(true);

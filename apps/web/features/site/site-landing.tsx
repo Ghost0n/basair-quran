@@ -22,6 +22,7 @@ import { RootRibbon } from "./landing/root-ribbon";
 import { useBarScroll } from "./landing/use-bar-scroll";
 import { useInView } from "./landing/use-reveal";
 import { SiteFoot } from "./site-chrome";
+import { Sources, StoreBadges } from "./landing/sources";
 
 /** Al-Jāthiya 45:20 — «هذا بصائر للناس» — in the mushaf's text (landing-data.json). */
 const VERSE = data.basair.find((verse) => verse.surah === 45 && verse.ayah === 20)!;
@@ -57,6 +58,7 @@ function LandingPage({ onEnter }: { onEnter?: () => void }) {
     { id: "features", label: t("المزايا") },
     { id: "privacy", label: t("الخصوصية") },
     { id: "guidelines", label: t("الإرشادات") },
+    { id: "sources", label: t("المصادر") },
   ];
   const [barRef, current] = useBarScroll<HTMLElement>(sections.map((section) => section.id));
 
@@ -86,7 +88,7 @@ function LandingPage({ onEnter }: { onEnter?: () => void }) {
   const pillars: Item[] = [
     { icon: "book", title: t("النصّ أولاً"), body: t("كل نتيجة تُبنى على آيات تُعرض بنصّها وموضعها في المصحف، ويبقى فهم الإنسان منفصلاً عن النص ومنسوباً إلى صاحبه.") },
     { icon: "shieldCheck", title: t("قابلٌ للتحقّق والتكرار"), body: t("البحث في الكلمات والجذور حتميّ: المدخل نفسه يعطي النتيجة نفسها لكل باحث، بعدد المواضع ومكانها، فيتحقّق منها من شاء.") },
-    { icon: "globe", title: t("متاح للجميع"), body: t("مجاني، بأكثر من عشرين لغة للواجهة، ويعمل على الهاتف دون اتصال.") },
+    { icon: "globe", title: t("متاح للجميع"), body: t("مجاني، بأكثر من عشرين لغة للواجهة، في المتصفح اليوم وعلى الهاتف قريباً.") },
   ];
   // The method: how a question becomes a reviewable answer (docs/public-site.md).
   const method = [
@@ -97,10 +99,10 @@ function LandingPage({ onEnter }: { onEnter?: () => void }) {
     { title: t("المراجعة"), body: t("انشر بحثك بمراجعه وخطوات وصولك إليه، ليتحقّق منه غيرك أو يصحّحه.") },
   ];
   const technical: Item[] = [
-    { icon: "smartphone", title: t("يعمل دون اتصال"), body: t("المصحف والبحث والتلاوات المنزَّلة تعمل على جهازك بلا إنترنت.") },
+    { icon: "user", title: t("حسابك اختياري"), body: t("اقرأ وابحث وادرس دون حساب، أو سجّل الدخول لتجد جلساتك ودفترك على كل أجهزتك.") },
     { icon: "check", title: t("نصّ موثَّق"), body: t("يُبنى نص المصحف وصرفه وجذوره من مصادر موثَّقة، وتُطابَق كل آية مقتبسة مع المصحف.") },
     { icon: "link", title: t("ترجمات من مصادر موثوقة"), body: t("ترجمات المعاني من QuranEnc وTanzil، تُعرض كما هي منسوبةً إلى مترجميها.") },
-    { icon: "scale", title: t("حدود واضحة للذكاء الاصطناعي"), body: t("الوضع الصارم لا يجيب إلا من الآيات المسترجعة، ولا يدخل جوابَه أيُّ نص آخر.") },
+    { icon: "scale", title: t("حدود واضحة للذكاء الاصطناعي"), body: t("لا يجيب الباحث إلا من الآيات التي وجدها البحث: لا تفسير ولا حديث ولا مصدر آخر، ويقول حين لا تجيب الآيات عن السؤال.") },
   ];
   const promises = [
     t("لا إعلانات ولا متتبّعات"),
@@ -130,7 +132,7 @@ function LandingPage({ onEnter }: { onEnter?: () => void }) {
           ))}
         </nav>
         {/* Another page, not a section of this one: its own shape, apart from the section links. */}
-        <a className="qb-site-door" href="/guide">
+        <a className="qb-site-door" href="/guide" target="_blank" rel="noopener">
           <Icon name="book" size={16} />
           <span className="label">{t("الدليل")}</span>
           <Icon name="arrowUpLeft" size={14} className="away" />
@@ -271,12 +273,15 @@ function LandingPage({ onEnter }: { onEnter?: () => void }) {
           </a>
         </Reveal>
 
+        <Sources />
+
         <section className="qb-final">
           <GirihPattern className="pattern" />
           <h2>{t("ابدأ رحلتك مع القرآن")}</h2>
           <button type="button" className="qb-site-cta" onClick={enter}>
             {t("ابدأ القراءة")}
           </button>
+          <StoreBadges />
         </section>
       </main>
 

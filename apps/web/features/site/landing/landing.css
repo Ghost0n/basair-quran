@@ -306,8 +306,11 @@
   display: flex;
   justify-content: center;
   gap: clamp(18px, 5vw, 40px);
-  /* The letters' tails (ر, ص) reach below the line: room for them before the text. */
-  margin: -0.28em 0 0.06em;
+  /* The letters' tails reach below the line box in the display font, the
+     deepest (ح ج م, about 0.56em under the baseline) far more than ر or ص:
+     a clear band sized for them before the text under them (measured with
+     canvas actualBoundingBoxDescent; it clashed with 0.06em and 0.38em). */
+  margin: -0.28em 0 0.56em;
   font-family: var(--font-arabic-display);
   font-size: clamp(76px, 16vw, 128px);
   /* Amiri Quran's tall marks need a roomy line box, or they run into the text below. */
@@ -1133,6 +1136,113 @@
   opacity: 0.6;
   -webkit-mask-image: radial-gradient(circle at center, #000 10%, transparent 55%);
   mask-image: radial-gradient(circle at center, #000 10%, transparent 55%);
+}
+
+/* ---------- Sources (sources.tsx) ---------- */
+
+.qb-sources {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 56px 16px;
+  scroll-margin-top: 88px;
+}
+
+.qb-sources dl {
+  display: grid;
+  gap: 1px;
+  margin: 32px 0 20px;
+  background: var(--border);
+  border-block: 1px solid var(--border);
+}
+
+@media (min-width: 760px) {
+  .qb-sources dl {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1040px) {
+  .qb-sources dl {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.qb-sources dl > div {
+  padding: 20px;
+  background: var(--bg);
+}
+
+.qb-sources dt {
+  margin: 0 0 10px;
+  font-family: var(--font-arabic-heading);
+  font-size: 18px;
+  color: var(--fg-1);
+}
+
+.qb-sources dd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.qb-sources dd a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--gold-text);
+  text-decoration: none;
+  font-size: 15px;
+}
+
+.qb-sources dd a:hover {
+  text-decoration: underline;
+}
+
+[dir="ltr"] .qb-sources .away {
+  transform: scaleX(-1);
+}
+
+/* ---------- The phone app's stores, greyed out until published ---------- */
+
+.qb-stores {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.qb-stores .store {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 168px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--fg-1) 4%, transparent);
+  color: var(--fg-3);
+  filter: grayscale(1);
+  opacity: 0.75;
+  cursor: default;
+}
+
+.qb-stores .txt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.25;
+  text-align: start;
+}
+
+.qb-stores small {
+  font-size: 11.5px;
+}
+
+.qb-stores b {
+  font-size: 16px;
+  color: var(--fg-2);
+  direction: ltr;
 }
 
 /* ---------- Light theme ---------- */

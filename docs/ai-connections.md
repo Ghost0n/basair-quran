@@ -13,8 +13,10 @@ A provider needs only:
 - **a sign-in** — OpenRouter (OAuth with PKCE: «الدخول بحساب OpenRouter»; the web for now), or
 - **a key** — pasted once, with a link to the provider's key page;
 
-then a **model**, chosen from the list the provider itself returns (the key is tested by that
-list; a preferred model is preselected). **No address is ever asked**: each provider's address
+then a **model**, chosen among the **recommended** ones (`prefer` in `llm_providers.py`) that
+the provider itself returns, plus the one already chosen — the whole list only when none of
+them is there (`recommendedModels`; the key is tested by that list; the first recommended model
+is preselected). **No address is ever asked**: each provider's address
 is known on the server (`src/app/services/llm_providers.py`).
 
 The key and the choice stay **on this device** (`apps/web/lib/ai-connection.ts`, local
@@ -23,15 +25,17 @@ storage); «نسيان المفتاح» removes a key. The study page's former O
 ## In the chat
 
 - Beside the send button (`apps/web/features/studio/ai-picker.tsx`): the connected provider's
-  **model** (the list it returns for the reader's key) and, when the provider can be asked, the
-  **thinking** («مدى التفكير»: automatic, none, light, medium, deep). Both are saved per provider
-  with the connection. With Basair's model there is nothing to pick: «نموذج بصائر» opens Settings.
+  **model**, among the recommended ones it returns for the reader's key, saved per provider with
+  the connection. There is no thinking choice: each model thinks as it does by default (a level
+  saved by an earlier version is no longer sent). With Basair's model there is nothing to pick:
+  «نموذج بصائر» opens Settings.
 - One notice at most above the thread (`studio-notices.tsx`): a guest is asked to sign in or
   create an account (the usual sign-in page; set aside for the tab); a
   provider chosen without its key asks for it (it can't be set aside: the study fails without);
   Basair's model offers to connect a provider (set aside on this device).
 
-How each provider is asked to think (`thinking_payload` in `llm_providers.py`):
+The server still accepts `X-QBasair-LLM-Thinking` from older clients; how each provider is then
+asked to think (`thinking_payload` in `llm_providers.py`):
 
 | Provider | Levels | Sent as |
 |---|---|---|
@@ -67,7 +71,7 @@ an API key; Google's would need a verified OAuth app for a sensitive scope.
 
 ## How a request goes
 
-The study sends `X-QBasair-LLM-Provider`, `X-QBasair-LLM-Key`, `X-QBasair-LLM-Model`, `X-QBasair-LLM-Thinking`
+The study sends `X-QBasair-LLM-Provider`, `X-QBasair-LLM-Key`, `X-QBasair-LLM-Model`
 (`POST /api/research-agent`, `GET /api/research-agent/settings`). The server:
 
 - accepts only a provider of the registry (else `503`), with the reader's key only (never the

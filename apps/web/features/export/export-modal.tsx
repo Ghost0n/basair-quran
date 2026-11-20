@@ -6,6 +6,8 @@ import { useMemo, useState } from "react";
 
 import { Icon } from "@/components/icon";
 import { useDialog } from "@/lib/use-dialog";
+import { textDirection } from "@/features/studio/chat-markdown";
+import { ChatMarkdown } from "@/features/studio/chat-markdown-view";
 import { TAFSSIR_DISCLAIMER_TEXT } from "@/features/studio/tafssir-disclaimer";
 import type { StudioSession } from "@/features/studio/use-studio-sessions";
 
@@ -78,7 +80,15 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
           </div>
 
           <div className="qb-export-section-label">{t("معاينة")}</div>
-          <div className="qb-export-preview">{content.slice(0, 1200)}</div>
+          {/* Markdown shows as it reads once opened (headings, quotes, lists);
+              JSON as its text. */}
+          {format === "md" ? (
+            <div className="qb-export-preview is-rendered" dir={textDirection(content)}>
+              <ChatMarkdown source={content} />
+            </div>
+          ) : (
+            <div className="qb-export-preview">{content.slice(0, 1200)}</div>
+          )}
         </div>
 
         <div className="qb-export-foot">
@@ -126,8 +136,10 @@ export function buildExport(session: StudioSession, format: ExportFormat): strin
   }
 
   const lines: string[] = [`# ${session.title}`, ""];
-  lines.push(t("> الوضع: {0}", { 0: session.mode === "tafssir" ? t("قراءة تفسيرية") : t("القرآن وحدَه") }), "");
+  // There are no modes any more: only a session of the former explanatory
+  // reading says what it is, with its disclaimer.
   if (disclaimer) {
+    lines.push(t("> الوضع: {0}", { 0: t("قراءة تفسيرية") }), "");
     lines.push(`> ${t(TAFSSIR_DISCLAIMER_TEXT)}`, "");
   }
 

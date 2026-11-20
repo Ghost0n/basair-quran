@@ -75,7 +75,7 @@ export function FaqPage() {
           </section>
         ))}
         <p className="qb-faq-more">
-          {t("تجد كل ميزة خطوةً خطوة في")} <a href="/guide">{t("الدليل")}</a>.
+          {t("تجد كل ميزة خطوةً خطوة في")} <a href="/guide" target="_blank" rel="noopener">{t("الدليل")}</a>.
         </p>
       </main>
 

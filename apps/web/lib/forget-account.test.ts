@@ -31,7 +31,8 @@ describe("forgetAccountOnThisDevice", () => {
 
     forgetAccountOnThisDevice();
 
-    expect(Object.keys({ ...window.localStorage }).sort()).toEqual(["qb.locale", "theme"]);
+    // The provider keys are the device's: signing out and in again keeps them.
+    expect(Object.keys({ ...window.localStorage }).sort()).toEqual(["qb.ai.connection", "qb.locale", "theme"]);
     expect(window.sessionStorage.length).toBe(0);
   });
 });

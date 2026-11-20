@@ -8,10 +8,10 @@ import {
   chooseProvider,
   maskKey,
   preferredModel,
+  recommendedModels,
   resetAiConnectionForTests,
   setProviderKey,
   setProviderModel,
-  setProviderThinking,
 } from "./ai-connection";
 import { pkcePair, signInUrl } from "./openrouter-signin";
 
@@ -44,13 +44,23 @@ describe("the AI connection (Settings → «الذكاء الاصطناعي»)",
     expect(JSON.parse(window.localStorage.getItem(AI_CONNECTION_KEY) as string).provider).toBe("openai");
   });
 
-  it("sends the thinking level picked for the provider, and none once back to the default", () => {
-    setProviderKey("openai", "sk-openai");
-    chooseProvider("openai");
-    setProviderThinking("openai", "high");
-    expect(aiHeaders()["X-QBasair-LLM-Thinking"]).toBe("high");
-    setProviderThinking("openai", null);
+  it("sends no thinking level, even one saved by an earlier version: each model's default", () => {
+    window.localStorage.setItem(
+      AI_CONNECTION_KEY,
+      JSON.stringify({ provider: "openai", keys: { openai: "sk-openai" }, models: {}, thinking: { openai: "high" } }),
+    );
     expect(aiHeaders()["X-QBasair-LLM-Thinking"]).toBeUndefined();
+  });
+
+  it("offers only the recommended models, plus the one already chosen", () => {
+    const listed = ["anthropic/claude-sonnet-4.5", "meta/llama-3", "openai/gpt-4o-mini", "anthropic/claude-sonnet-4", "x/other"];
+    const prefer = ["anthropic/claude-sonnet", "openai/gpt-4o-mini"];
+    expect(recommendedModels(prefer, listed)).toEqual(["anthropic/claude-sonnet-4.5", "anthropic/claude-sonnet-4", "openai/gpt-4o-mini"]);
+    expect(recommendedModels(prefer, listed, "x/other")[0]).toBe("x/other");
+    // A chosen model the provider no longer lists is not offered.
+    expect(recommendedModels(prefer, listed, "gone")).not.toContain("gone");
+    // None recommended among them: the whole list.
+    expect(recommendedModels(["nothing"], ["b", "a"])).toEqual(["b", "a"]);
   });
 
   it("forgets a key, and shows a saved one by its last four characters", () => {

@@ -395,27 +395,127 @@ body:has(.qb-site) {
 /* ---------- Footer ---------- */
 
 .qb-site-foot {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
   max-width: 1080px;
   margin: 0 auto;
-  padding: 22px 16px calc(env(safe-area-inset-bottom, 0px) + 22px);
+  padding: 28px 16px calc(env(safe-area-inset-bottom, 0px) + 22px);
   border-top: 1px solid var(--border);
   font-size: 14px;
   color: var(--fg-3);
 }
 
+.qb-site-foot .foot-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
 .qb-site-foot nav {
   display: flex;
-  gap: 18px;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 6px;
 }
 
 .qb-site-foot a {
   color: var(--fg-2);
   text-decoration: none;
+}
+
+.qb-site-foot a:hover {
+  color: var(--gold-text);
+}
+
+.qb-site-foot .foot-base {
+  margin: 24px 0 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+
+/* «راسلنا» (contact-form.tsx). */
+.qb-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 520px;
+}
+
+.qb-contact h2 {
+  margin: 0;
+  font-family: var(--font-arabic-heading);
+  font-size: 20px;
+  color: var(--fg-1);
+}
+
+.qb-contact .hint {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.qb-contact input,
+.qb-contact textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-soft, transparent);
+  color: var(--fg-1);
+  font: inherit;
+  font-size: 15px;
+  resize: vertical;
+}
+
+.qb-contact input:focus-visible,
+.qb-contact textarea:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 1px;
+}
+
+.qb-contact .error {
+  margin: 0;
+  color: var(--danger-fg);
+  font-size: 13px;
+}
+
+.qb-contact .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.qb-contact .direct a {
+  color: var(--gold-text);
+}
+
+.qb-contact.is-sent {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  color: var(--fg-1);
+}
+
+.qb-contact.is-sent > .qb-icon {
+  color: var(--gold-text);
+}
+
+.qb-contact.is-sent p {
+  margin: 0;
+  flex: 1 1 220px;
+}
+
+@media (max-width: 720px) {
+  .qb-site-foot .foot-main {
+    grid-template-columns: 1fr;
+  }
+
+  .qb-site-foot nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 12px 18px;
+  }
 }
 
 /* ---------- Long-form pages (/guidelines) ---------- */

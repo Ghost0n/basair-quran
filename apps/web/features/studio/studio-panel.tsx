@@ -7,7 +7,8 @@ import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } f
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
-import type { ResearchAgentResponse } from "@q-basair/shared";
+import { createQBasairApiClient } from "@q-basair/api-client";
+import type { ResearchAgentResponse, SearchVerse } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { Sheet, usePhoneSheets } from "@/components/sheet";
@@ -34,11 +35,20 @@ import { documentFromSession } from "@/features/documents/convert";
 import { createDocumentUrl } from "@/features/documents/open-document";
 
 import { AiPicker } from "./ai-picker";
+import { ChatMarkdown } from "./chat-markdown-view";
+import { textDirection } from "./chat-markdown";
+import { CopyButton } from "./copy-button";
+import { answerAsText } from "./message-text";
+import { hasMoreAyahs, loadMoreAyahsPool, MORE_AYAHS_STEP } from "./more-ayahs";
+import { RiskConsent, useStudyRisksAccepted } from "./risk-consent";
 import { StudioNotices } from "./studio-notices";
 import { TafssirDisclaimer } from "./tafssir-disclaimer";
 import { useStudioSessions } from "./use-studio-sessions";
 
 import { t, tn } from "@/lib/i18n";
+import { API_BASE_URL } from "@/lib/config";
+
+const searchApi = createQBasairApiClient({ baseUrl: API_BASE_URL });
 
 const TAFSSIR_SECTIONS: { key: keyof NonNullable<ResearchAgentResponse["tafssir"]>; label: string }[] = [
   { key: "summary", get label() {
@@ -75,6 +85,8 @@ export function StudioPanel() {
   const formatNumber = useNumerals();
 
   const [draft, setDraft] = useState("");
+  // No question goes out before the reader accepts that answers can be wrong.
+  const risksAccepted = useStudyRisksAccepted();
   const [exportOpen, setExportOpen] = useState(false);
   const [converting, setConverting] = useState(false);
   // «حوّل إلى بحث» asks first (a banner under the header): the tap creates a
@@ -123,6 +135,20 @@ export function StudioPanel() {
   const history = [...studio.sessions].reverse().filter((session) => session.messages.length > 0);
   const paneOpen = sideOpen && history.length > 0;
 
+  // A click (or tap) outside the open sessions pane folds it away, as the
+  // Escape key does; its own toggle in the top bar keeps toggling it.
+  const sideRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!paneOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      if (!target || sideRef.current?.contains(target) || target.closest?.(".qb-studio-side-toggle")) return;
+      setSideOpen(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [paneOpen, setSideOpen]);
+
   // A question asked about one session never carries over to another.
   useEffect(() => setConvertAsk("closed"), [active?.id]);
 
@@ -154,7 +180,7 @@ export function StudioPanel() {
 
   async function submit() {
     const content = draft.trim();
-    if (!content || studio.isResearching) return;
+    if (!content || studio.isResearching || !risksAccepted) return;
     setDraft("");
     setSideOpen(false);
     // Unanswered (the error says why): the question comes back to the field,
@@ -168,11 +194,17 @@ export function StudioPanel() {
   // session-open (Home / history) hydrates that saved thread as a tab. The refs
   // always hold the latest bindings so the deferred drain uses live settings.
   const askRef = useRef<(ask: StudioAsk) => void>(() => {});
-  askRef.current = (ask) =>
+  askRef.current = (ask) => {
+    // Not accepted yet: the question waits in the field, under the banner.
+    if (!risksAccepted) {
+      setDraft(ask.question);
+      return;
+    }
     void studio.askInNewSession(ask.question, state.selectedMushaf, {
       focus: ask.focus,
       focusLabel: ask.focusLabel,
     });
+  };
   const openRef = useRef<(id: string) => void>(() => {});
   openRef.current = (id) => void studio.openSavedSession(id);
 
@@ -225,6 +257,7 @@ export function StudioPanel() {
   );
   const sessionsSide = (
     <nav
+      ref={sideRef}
       className={`qb-studio-side${paneOpen ? " open" : ""}`}
       aria-label={t("الجلسات")}
       inert={!paneOpen}
@@ -426,7 +459,7 @@ export function StudioPanel() {
 
         {hasLegacyTafssir ? <TafssirDisclaimer /> : null}
 
-        <StudioNotices onOpenAiSettings={openAiSettings} />
+        {risksAccepted ? <StudioNotices onOpenAiSettings={openAiSettings} /> : <RiskConsent />}
 
         {/* Desk: the error sits on the question field instead (below). */}
         {studio.error && !topSlots ? <div className="qb-studio-error">{studio.error}</div> : null}
@@ -449,9 +482,12 @@ export function StudioPanel() {
           >
             {active.messages.map((message, index) =>
               message.role === "user" ? (
-                <div key={`${active.id}-${index}`} className="qb-msg user">
+                <div key={`${active.id}-${index}`} className="qb-msg user qb-selectable">
                   <div className="lbl">{t("السؤال")}</div>
-                  <p>{message.content}</p>
+                  <p dir="auto">{message.content}</p>
+                  <div className="qb-msg-tools">
+                    <CopyButton label={t("نسخ السؤال")} text={() => message.content} />
+                  </div>
                 </div>
               ) : (
                 <BotMessage
@@ -512,7 +548,7 @@ export function StudioPanel() {
                 type="button"
                 className="send"
                 onClick={submit}
-                disabled={studio.isResearching || !draft.trim()}
+                disabled={studio.isResearching || !draft.trim() || !risksAccepted}
                 aria-label={t("اسأل")}
                 title={t("اسأل")}
               >
@@ -637,9 +673,15 @@ function BotMessage({
   const ayahs = response?.ayahs ?? [];
   // Web design: which surahs the evidence comes from.
   const web = useWebDesign();
+  // The answer is Markdown, laid out in its own language's direction (the
+  // reader may have it answer in another language than the interface's).
+  const body = response?.answer ?? fallback;
+  const dir = textDirection(sections.length ? sections.map((section) => section.content).join(" ") : body);
 
   return (
-    <div className={`qb-msg bot${isTafssir ? " tafssir" : ""}`}>
+    // The chat's text selects with the mouse (or a long press), like any
+    // conversation: the interface around it does not (shell.web.css).
+    <div className={`qb-msg bot qb-selectable${isTafssir ? " tafssir" : ""}`} dir={dir}>
       <div className="lbl">
         <Icon name={isTafssir ? "feather" : "scale"} size={11} />
         {isTafssir ? t("قراءة تفسيرية تجريبية") : t("جواب — مستند على القرآن وحدَه")}
@@ -649,11 +691,11 @@ function BotMessage({
         sections.map((section) => (
           <div key={section.label} className="section">
             <h5>{section.label}</h5>
-            <p>{section.content}</p>
+            <ChatMarkdown source={section.content as string} />
           </div>
         ))
       ) : (
-        <p>{response?.answer ?? fallback}</p>
+        <ChatMarkdown source={body} />
       )}
 
       {ayahs.length > 0 ? (
@@ -666,30 +708,114 @@ function BotMessage({
             </div>
           ) : null}
           {ayahs.map((ayah, index) => (
-            <button
-              key={ayah.ayah_id}
-              type="button"
-              className="ev-row"
-              style={{ "--i": index } as CSSProperties}
-              onClick={(event) => {
-                // Draw the thread from the citation chip to where the ayah lands
-                // in the reader, then perform the jump (which selects + blooms it).
-                const chip = event.currentTarget.querySelector<HTMLElement>(".num");
-                drawEvidenceThread(chip ?? event.currentTarget, ayah.ayah_id);
-                onJump(ayah.ayah_id, ayah.mushaf_id, ayah.highlights ?? []);
-              }}
-            >
-              <span className="num">[{formatNumber(index + 1)}]</span>
-              <span className="ev-body">
-                <span className="ev-meta">
-                  {t("سورة")} {ayah.surah}: {formatNumber(ayah.ayah)}
-                </span>
-                <span className="ev-text">{renderHighlightedVerseText(ayah.text.trim(), ayah.highlights ?? [])}</span>
-              </span>
-            </button>
+            <EvidenceRow key={ayah.ayah_id} ayah={ayah} index={index} onJump={onJump} />
           ))}
+          {response ? <MoreAyahs response={response} onJump={onJump} /> : null}
         </div>
       ) : null}
+
+      <div className="qb-msg-tools">
+        <CopyButton
+          label={t("نسخ الجواب")}
+          text={() => answerAsText(response, fallback, (ayah) => `${t("سورة")} ${ayah.surah}: ${formatNumber(ayah.ayah)}`)}
+        />
+      </div>
     </div>
+  );
+}
+
+type JumpTo = (ayahId: number, mushafId: number, highlights: number[]) => void;
+
+/** One ayah of the evidence: a tap opens it in the reader. */
+function EvidenceRow({ ayah, index, onJump }: { ayah: SearchVerse; index: number; onJump: JumpTo }) {
+  const formatNumber = useNumerals();
+  return (
+    <button
+      type="button"
+      className="ev-row"
+      style={{ "--i": index } as CSSProperties}
+      onClick={(event) => {
+        // Draw the thread from the citation chip to where the ayah lands
+        // in the reader, then perform the jump (which selects + blooms it).
+        const chip = event.currentTarget.querySelector<HTMLElement>(".num");
+        drawEvidenceThread(chip ?? event.currentTarget, ayah.ayah_id);
+        onJump(ayah.ayah_id, ayah.mushaf_id, ayah.highlights ?? []);
+      }}
+    >
+      <span className="num">[{formatNumber(index + 1)}]</span>
+      <span className="ev-body">
+        <span className="ev-meta">
+          {t("سورة")} {ayah.surah}: {formatNumber(ayah.ayah)}
+        </span>
+        <span className="ev-text" dir="rtl">
+          {renderHighlightedVerseText(ayah.text.trim(), ayah.highlights ?? [])}
+        </span>
+      </span>
+    </button>
+  );
+}
+
+/**
+ * «آيات أخرى»: more ayahs from the answer's own Quran searches (run again, no
+ * model involved), a few at a time, set apart from the evidence the answer
+ * rests on. Not kept with the session.
+ */
+function MoreAyahs({ response, onJump }: { response: ResearchAgentResponse; onJump: JumpTo }) {
+  const formatNumber = useNumerals();
+  const [pool, setPool] = useState<SearchVerse[] | null>(null);
+  const [shown, setShown] = useState(0);
+  const [state, setState] = useState<"idle" | "loading" | "failed">("idle");
+  const shownBefore = response.ayahs.length;
+
+  if (!hasMoreAyahs(response.searches ?? [], shownBefore)) return null;
+
+  async function showMore() {
+    if (state === "loading") return;
+    if (pool) {
+      setShown((count) => count + MORE_AYAHS_STEP);
+      return;
+    }
+    setState("loading");
+    try {
+      const mushaf = response.ayahs[0]?.mushaf_id ?? 1;
+      const found = await loadMoreAyahsPool(
+        (query, mode, mushafId, pageSize) => searchApi.searchV2(query, mode, mushafId, pageSize),
+        response.searches,
+        mushaf,
+        new Set(response.ayahs.map((ayah) => ayah.ayah_id)),
+      );
+      setPool(found);
+      setShown(MORE_AYAHS_STEP);
+      setState("idle");
+    } catch {
+      setState("failed");
+    }
+  }
+
+  const extra = pool ? pool.slice(0, shown) : [];
+  const exhausted = pool !== null && shown >= pool.length;
+
+  return (
+    <>
+      {extra.length ? (
+        <div className="ev-more-label">{t("آيات أخرى من البحث نفسه، لم يُبنَ عليها الجواب")}</div>
+      ) : null}
+      {extra.map((ayah, index) => (
+        <EvidenceRow key={ayah.ayah_id} ayah={ayah} index={shownBefore + index} onJump={onJump} />
+      ))}
+      {pool !== null && pool.length === 0 ? <div className="ev-more-label">{t("لا آيات أخرى في هذا البحث.")}</div> : null}
+      {exhausted ? null : (
+        <button type="button" className="ev-more" onClick={() => void showMore()} disabled={state === "loading"}>
+          <Icon name="plus" size={13} />
+          <span>
+            {state === "loading"
+              ? t("جارٍ البحث…")
+              : state === "failed"
+                ? t("تعذّر جلب آيات أخرى. حاول مرة أخرى.")
+                : t("آيات أخرى ({0})", { 0: formatNumber(MORE_AYAHS_STEP) })}
+          </span>
+        </button>
+      )}
+    </>
   );
 }

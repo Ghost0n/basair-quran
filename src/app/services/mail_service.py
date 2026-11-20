@@ -146,3 +146,76 @@ def send_password_reset(to: str, token: str) -> bool:
         return False
     logger.info("Password reset email sent to %s", to)
     return True
+
+
+# Where messages from the contact form (feedback kind "contact") are forwarded.
+DEFAULT_CONTACT_EMAIL = "contact@basairquran.com"
+
+
+def contact_address() -> str:
+    return os.environ.get("QBASAIR_CONTACT_EMAIL", "").strip() or DEFAULT_CONTACT_EMAIL
+
+
+def build_contact_message(
+    *,
+    to: str,
+    sender: str,
+    item_id: int,
+    message: str,
+    reply_to: str | None,
+    language: str | None,
+    url: str | None,
+) -> EmailMessage:
+    """A contact-form message as a plain-text email; replying answers the sender."""
+    mail = EmailMessage()
+    mail["Subject"] = f"رسالة من بصائر — #{item_id}"
+    mail["From"] = sender
+    mail["To"] = to
+    if reply_to:
+        mail["Reply-To"] = reply_to
+    lines = [
+        message.strip(),
+        "",
+        "—",
+        f"#{item_id}",
+        f"From: {reply_to or '(signed-in user, no address given)'}",
+    ]
+    if language:
+        lines.append(f"Language: {language}")
+    if url:
+        lines.append(f"Page: {url}")
+    mail.set_content("\n".join(lines))
+    return mail
+
+
+def send_contact_message(
+    item_id: int,
+    message: str,
+    *,
+    reply_to: str | None = None,
+    language: str | None = None,
+    url: str | None = None,
+) -> bool:
+    """Forward a contact message to the contact address (`QBASAIR_CONTACT_EMAIL`).
+    It is kept in the feedback centre either way; True once handed to SMTP."""
+    settings = smtp_settings()
+    if settings is None:
+        logger.info("Contact message #%s kept in the feedback centre — no SMTP configured", item_id)
+        return False
+    try:
+        transport(
+            settings,
+            build_contact_message(
+                to=contact_address(),
+                sender=settings.sender,
+                item_id=item_id,
+                message=message,
+                reply_to=reply_to,
+                language=language,
+                url=url,
+            ),
+        )
+    except Exception:  # noqa: BLE001 — the message is saved; delivery is best effort
+        logger.exception("Forwarding contact message #%s failed", item_id)
+        return False
+    return True

@@ -133,7 +133,15 @@ QURAN_ONLY_ANSWER_RULES = (
     "definitive interpretation. Do not issue religious rulings (halal/haram, obligations) or fatwas. "
     "4) If the ayahs do not answer the question, or answer only part of it, say so plainly instead "
     "of filling the gap. "
-    "5) Write in the requested answer_language, clearly and concisely; keep Quranic words in Arabic."
+    "5) Write the whole answer in answer_language, even when the question is written in another "
+    "language; keep Quranic words and quotations in Arabic. "
+    "6) Be brief and point to the ayahs: the reader came to find the ayahs closest to the question, "
+    "and they are shown beside the answer. In a few sentences, say which ayahs answer it (by "
+    "reference) and what each says about it; a short Markdown list is welcome. No essay, background, "
+    "lessons or long explanations, and do not copy out whole ayahs. "
+    "7) When the question is vague or broad, or the ayahs only touch it from afar, end with one short "
+    "follow-up question (in answer_language) that would narrow the search — an aspect, a situation or "
+    "a Quranic term to look for — rather than a longer answer."
 )
 
 # The final stage reads every ayah in its passage: its neighbours come from the Quran database.
@@ -422,7 +430,8 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
                         "(example: صلو, not ص ل و). "
                         "If the intent is broad or has multiple plausible Quranic themes, choose needs_clarification "
                         "and ask exactly one focused question that mentions the most likely candidate themes or terms. "
-                        "Do not ask a generic clarification question."
+                        "Do not ask a generic clarification question. "
+                        "Write clarifying_question in answer_language, whatever language the user wrote in."
                     ),
                 },
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},

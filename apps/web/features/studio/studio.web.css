@@ -26,6 +26,11 @@
 .qb-web .qb-msg.bot .lbl { color: var(--world); font-weight: 700; }
 .qb-web .qb-msg.bot.tafssir .lbl { color: var(--copper); }
 .qb-web .qb-msg.bot p { font-size: 15px; line-height: 1.95; color: var(--fg-1); }
+.qb-web .qb-msg.bot .qb-md ul,
+.qb-web .qb-msg.bot .qb-md ol { font-size: 15px; line-height: 1.95; }
+.qb-web .qb-msg.bot .qb-md h4,
+.qb-web .qb-msg.bot .qb-md h5,
+.qb-web .qb-msg.bot .qb-md h6 { font-family: var(--font-arabic-heading); font-size: 17px; }
 .qb-web .qb-msg.bot .section h5 { font-family: var(--font-arabic-heading); font-size: 17px; color: var(--copper); }
 
 /* Evidence: numbered citations, hairline rows, verse in Amiri Quran. */

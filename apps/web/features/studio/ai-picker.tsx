@@ -2,23 +2,13 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 
-import type { AiProviderItem, ThinkingLevel } from "@q-basair/shared";
+import type { AiProviderItem } from "@q-basair/shared";
 
 import { Icon } from "@/components/icon";
 import { SelectMenu } from "@/components/select-menu";
 import { identityApi } from "@/features/auth/identity-flow";
-import { aiConnection, aiHeaders, setProviderModel, setProviderThinking, subscribeAiConnection } from "@/lib/ai-connection";
+import { aiConnection, aiHeaders, recommendedModels, setProviderModel, subscribeAiConnection } from "@/lib/ai-connection";
 import { t } from "@/lib/i18n";
-
-const DEFAULT_THINKING = "auto";
-
-const THINKING_LABELS: Record<ThinkingLevel | typeof DEFAULT_THINKING, () => string> = {
-  auto: () => t("تفكير تلقائي"),
-  off: () => t("بلا تفكير"),
-  low: () => t("تفكير قليل"),
-  medium: () => t("تفكير متوسّط"),
-  high: () => t("تفكير عميق"),
-};
 
 // Fetched once per page: the providers, and each provider+key's models.
 let providersOnce: Promise<AiProviderItem[]> | null = null;
@@ -63,12 +53,12 @@ export function useAiProvider() {
 }
 
 /**
- * The chat's AI controls, beside the send button: the connected provider's
- * model (from the list the provider gives for the reader's key) and, when that
- * provider can be asked to think longer or shorter, how much (`X-QBasair-LLM-
- * Thinking`, docs/ai-connections.md). Both are saved with the connection, per
- * provider, on this device. With Basair's own model there is nothing to pick:
- * its name opens the AI settings.
+ * The chat's AI control, beside the send button: the connected provider's
+ * model, among the recommended ones the provider lists for the reader's key
+ * (`recommendedModels`, docs/ai-connections.md). Saved with the connection,
+ * per provider, on this device. No thinking level is picked: each model's own
+ * default. With Basair's own model there is nothing to pick: its name opens
+ * the AI settings.
  */
 export function AiPicker({ onOpenSettings }: { onOpenSettings: () => void }) {
   const { connection, spec } = useAiProvider();
@@ -97,9 +87,8 @@ export function AiPicker({ onOpenSettings }: { onOpenSettings: () => void }) {
   }
   if (!spec || !key) return null;
 
-  const modelOptions = (models.length ? models : model ? [model] : []).map((name) => ({ value: name, label: name }));
-  const levels = spec.thinking;
-  const thinking = connection.thinking[provider];
+  const listed = recommendedModels(spec.prefer, models, model);
+  const modelOptions = (listed.length ? listed : model ? [model] : []).map((name) => ({ value: name, label: name }));
 
   return (
     <div className="qb-ai-picker">
@@ -110,18 +99,6 @@ export function AiPicker({ onOpenSettings }: { onOpenSettings: () => void }) {
           value={model ?? modelOptions[0].value}
           options={modelOptions}
           onChange={(name) => setProviderModel(provider, name)}
-        />
-      ) : null}
-      {levels.length ? (
-        <SelectMenu
-          className="qb-ai-select is-thinking"
-          ariaLabel={t("مدى التفكير")}
-          value={thinking && levels.includes(thinking) ? thinking : DEFAULT_THINKING}
-          options={[DEFAULT_THINKING, ...levels].map((level) => ({
-            value: level,
-            label: THINKING_LABELS[level as ThinkingLevel | typeof DEFAULT_THINKING](),
-          }))}
-          onChange={(level) => setProviderThinking(provider, level === DEFAULT_THINKING ? null : (level as ThinkingLevel))}
         />
       ) : null}
     </div>
