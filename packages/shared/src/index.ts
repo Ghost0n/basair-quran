@@ -75,6 +75,27 @@ export interface DeviceInfo {
   is_current: boolean;
 }
 
+/** A sign-in provider of the realm (Keycloak mode), linked to the account or not. */
+export interface LinkedProvider {
+  /** Keycloak's alias: "apple", "google", "facebook". */
+  alias: string;
+  name: string;
+  linked: boolean;
+  /** The provider's own account name (often the email), when linked. */
+  username?: string | null;
+}
+
+export interface LinkedAccountsResponse {
+  providers: LinkedProvider[];
+  /** False: the account signs in only through providers; unlinking one first sets a password. */
+  has_password: boolean;
+}
+
+export interface UnlinkProviderRequest {
+  /** Required when the account has no password: it becomes the account's password. */
+  password?: string | null;
+}
+
 export interface GuestMergeRequest {
   notebook_ids?: number[];
   session_ids?: string[];

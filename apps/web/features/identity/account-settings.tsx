@@ -24,6 +24,8 @@ import {
 
 import "./account-settings.css";
 
+import { LinkedAccounts } from "./linked-accounts";
+
 import { relativeAge } from "@/features/companions/use-companions";
 import { t } from "@/lib/i18n";
 
@@ -340,6 +342,8 @@ export function AccountSettings() {
           </div>
         )}
       </section>
+
+      <LinkedAccounts email={user.email} />
 
       <section className="qb-setting-card">
         <h3>{t("الأجهزة النشطة")}{devices.length ? ` (${formatNumber(devices.length)})` : ""}</h3>

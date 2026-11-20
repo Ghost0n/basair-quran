@@ -39,6 +39,9 @@ This document freezes the backend contract that the future frontend migration wi
 - `PATCH /api/auth/profile`
 - `GET /api/auth/devices`
 - `DELETE /api/auth/devices/{session_id}`
+- `GET /api/auth/linked-accounts` (Keycloak mode)
+- `POST /api/auth/linked-accounts/{alias}/unlink` (Keycloak mode)
+- `GET /api/auth/oidc/link/{alias}` (Keycloak mode, a browser navigation)
 - `POST /api/auth/merge-guest-data`
 - `POST /api/auth/merge-guest-data/undo`
 - `GET /api/mushafs` — each `MushafItem` now includes a normalized `riwayah` key (matches
@@ -507,6 +510,23 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   tokens may be Keycloak access tokens (audience `qbasair-api`); the password routes (`login`,
   `signup`, `forgot-password`, `reset-password`) answer `409 {code: "use_identity_provider"}`.
   `AuthSessionResponse.provider` is `"local"` otherwise.
+- **Linked sign-in providers** (Keycloak mode; `404` with local accounts; auth required):
+  - `GET /api/auth/linked-accounts` → `LinkedAccountsResponse { providers: LinkedProvider[], has_password }`:
+    the realm's enabled providers (Apple, Google, Meta, in that order) as `{ alias, name, linked, username }`
+    (`username`: the provider's account name, when linked), and whether the account has a password.
+    `503` when Keycloak cannot be reached.
+  - `GET /api/auth/oidc/link/{alias}?return_to=&locale=` (a page load) asks Keycloak to link that provider
+    to the signed-in account (`kc_action=idp_link:<alias>`, `login_hint` = the account's email): Keycloak
+    confirms, sends the reader to the provider, then back through `/api/auth/oidc/callback`, which leaves
+    the session as it was and returns to `return_to` with `linked=<alias>` or
+    `link_error=cancelled|in_use|other_account|failed` (`other_account`: Keycloak was signed in to another
+    account). Signed out → `/login?next=<return_to>`. A provider account already linked to another
+    account stops on Keycloak's own error page.
+  - `POST /api/auth/linked-accounts/{alias}/unlink` `UnlinkProviderRequest { password? }` →
+    `LinkedAccountsResponse`. An account **without a password** must send `password`, set as its password
+    (Keycloak's policy: 10+ characters, not the email) **before** the link goes, so it can still sign in:
+    missing → `422 {code: "password_required"}`, refused by the policy → `422 {code: "password_rejected",
+    reason}` (the link stays). Not linked → `404`.
 
 - Authentication is controlled by `QBASAIR_AUTH_ENABLED`.
 - **Open by default.** When enabled, every router is **open to guests** with *soft* auth: if a valid

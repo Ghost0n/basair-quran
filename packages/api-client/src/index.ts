@@ -50,6 +50,8 @@ import type {
   GuestMergeRequest,
   GuestMergeResult,
   GuestMergeUndoRequest,
+  LinkedAccountsResponse,
+  UnlinkProviderRequest,
   MorphologyResponse,
   MushafItem,
   NotebookItem,
@@ -292,6 +294,24 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
         { method: "DELETE", headers: options?.headers },
         options,
       );
+    },
+    /** Keycloak mode: the realm's sign-in providers and which are linked (404 otherwise). */
+    getLinkedAccounts(options?: RequestOptions): Promise<LinkedAccountsResponse> {
+      return request<LinkedAccountsResponse>("/auth/linked-accounts", { headers: options?.headers }, options);
+    },
+    /** Unlink a provider; without a password the account sets `password` first (422 `password_required`). */
+    unlinkProvider(alias: string, req: UnlinkProviderRequest = {}, options?: RequestOptions): Promise<LinkedAccountsResponse> {
+      return request<LinkedAccountsResponse>(
+        `/auth/linked-accounts/${encodeURIComponent(alias)}/unlink`,
+        { method: "POST", headers: options?.headers, body: JSON.stringify(req) },
+        options,
+      );
+    },
+    /** Where the browser goes to link a provider (a page load, not a fetch); it comes back to `returnTo`. */
+    linkProviderUrl(alias: string, returnTo: string, locale?: string): string {
+      const params = new URLSearchParams({ return_to: returnTo });
+      if (locale) params.set("locale", locale);
+      return `${baseUrl}/auth/oidc/link/${encodeURIComponent(alias)}?${params.toString()}`;
     },
     mergeGuestData(req: GuestMergeRequest, options?: RequestOptions): Promise<GuestMergeResult> {
       return request<GuestMergeResult>(

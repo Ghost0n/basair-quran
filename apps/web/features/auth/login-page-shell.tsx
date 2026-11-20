@@ -18,7 +18,7 @@ import { useI18n } from "@/lib/i18n/provider";
 
 type AuthTab = "in" | "up";
 /** Keycloak holds the credentials (docs/keycloak.md): sign in and up on its page. */
-type IdentityProvider = { loginUrl: string; signupUrl: string };
+type IdentityProvider = { loginUrl: string };
 
 /** Why Keycloak sent the reader back (`/login?error=…`, routes/auth.py). */
 function keycloakError(code: string | null): string {
@@ -86,19 +86,26 @@ export function LoginPageShell() {
           return;
         }
         if (session.provider === "keycloak" && session.login_url && session.signup_url) {
-          setIdentityProvider({ loginUrl: session.login_url, signupUrl: session.signup_url });
+          // One account page on Keycloak (its «دخول | حساب جديد» tabs and the providers): go
+          // straight there, unless it just sent the reader back (an error to read, or a
+          // finished sign-in that did not take — never bounce between the two).
+          if (!searchParams.get("error") && searchParams.get("from") !== "idp") {
+            const target = searchParams.get("tab") === "signup" ? session.signup_url : session.login_url;
+            window.location.replace(providerUrl(target, nextPath, locale));
+            return;
+          }
+          setIdentityProvider({ loginUrl: session.login_url });
         }
       } catch {
         // Keep the form visible when the session probe fails.
-      } finally {
-        if (active) setCheckingSession(false);
       }
+      if (active) setCheckingSession(false);
     }
     void checkSession();
     return () => {
       active = false;
     };
-  }, [nextPath]);
+  }, [nextPath, searchParams, locale]);
 
   function switchTab(next: AuthTab) {
     setTab(next);
@@ -198,15 +205,13 @@ export function LoginPageShell() {
         <BrandMark size={66} />
       </div>
       <div className="qb-auth-head" style={{ animation: "qbRise 500ms var(--motion-ease-settle) 80ms both" }}>
-        <div className="qb-auth-wordmark">{t("بَصَائِر القُرآن")}</div>
-        <div className="qb-auth-sub">BASAIR · THE SCHOLAR&apos;S ROOM</div>
-      </div>
+        <div className="qb-auth-wordmark">{t("بَصَائِر القُرآن")}</div>      </div>
 
       {notice ? <div className="qb-auth-notice" role="status">{notice}</div> : null}
 
       {identityProvider ? (
         <div className="qb-auth-card qb-auth-provider" style={{ animation: "qbRise 500ms var(--motion-ease-settle) 160ms both" }}>
-          <div className="qb-auth-reset-title">{t("حسابك في بصائر")}</div>
+          <div className="qb-auth-reset-title">{t("حسابك في بصائر القرآن")}</div>
           <p className="qb-auth-provider-note">
             {t("الدخول بالبريد أو بحساب Apple أو Google أو Meta، على صفحة دخول بصائر الآمنة.")}
           </p>
@@ -215,11 +220,9 @@ export function LoginPageShell() {
               {keycloakError(searchParams.get("error"))}
             </div>
           ) : null}
+          {/* Keycloak's account page holds both tabs: one way back to it. */}
           <a className="qb-auth-cta" href={providerUrl(identityProvider.loginUrl, nextPath, locale)}>
             {t("دخول")}
-          </a>
-          <a className="qb-auth-secondary" href={providerUrl(identityProvider.signupUrl, nextPath, locale)}>
-            {t("حساب جديد")}
           </a>
         </div>
       ) : view === "forgot" ? (

@@ -103,6 +103,27 @@ class DeviceInfo(BaseModel):
     is_current: bool = False
 
 
+class LinkedProvider(BaseModel):
+    # Keycloak's provider alias ("google", "apple", "facebook") and display name.
+    alias: str
+    name: str
+    linked: bool = False
+    # The provider's own account name (often the email), when linked.
+    username: Optional[str] = None
+
+
+class LinkedAccountsResponse(BaseModel):
+    providers: List[LinkedProvider] = Field(default_factory=list)
+    # False: the account signs in only through its providers, so unlinking one
+    # first sets a password (UnlinkProviderRequest.password).
+    has_password: bool = False
+
+
+class UnlinkProviderRequest(BaseModel):
+    # Required when the account has no password: it becomes the account's password.
+    password: Optional[str] = Field(None, min_length=1, max_length=128)
+
+
 class GuestMergeRequest(BaseModel):
     notebook_ids: List[int] = Field(default_factory=list)
     session_ids: List[str] = Field(default_factory=list)

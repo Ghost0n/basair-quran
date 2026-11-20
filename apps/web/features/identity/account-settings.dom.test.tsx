@@ -12,7 +12,12 @@ const { updateProfile, patchUser, user } = vi.hoisted(() => ({
 vi.mock("@/lib/config", () => ({ AUTH_ENABLED: true, API_BASE_URL: "" }));
 vi.mock("@q-basair/api-client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@q-basair/api-client")>()),
-  createQBasairApiClient: () => ({ updateProfile, getDevices: async () => [] }),
+  // No providers in the realm: the linked-accounts card stays hidden.
+  createQBasairApiClient: () => ({
+    updateProfile,
+    getDevices: async () => [],
+    getLinkedAccounts: async () => ({ providers: [], has_password: true }),
+  }),
 }));
 vi.mock("@/lib/auth-session-context", () => ({ useAuthSession: () => ({ user, ready: true, patchUser }) }));
 vi.mock("@/features/auth/identity-flow", () => ({ clearGuestChoice: vi.fn(), signOutEverywhere: vi.fn() }));

@@ -8,6 +8,7 @@ from pathlib import Path
 import secrets
 import sqlite3
 import time
+from typing import Callable
 
 from src.app.core import config
 
@@ -566,6 +567,7 @@ def _resolve_access_token(raw_token: str) -> ResolvedSession | None:
             email_verified=identity.email_verified,
             name=identity.name,
             roles=identity.roles,
+            subject_is_gone=oidc_service.admin_user_is_gone,
         )
     except (oidc_service.OidcError, AuthError):
         return None
@@ -706,6 +708,7 @@ def upsert_external_user(
     email_verified: bool,
     name: str | None,
     roles: set[str],
+    subject_is_gone: Callable[[str], bool] | None = None,
 ) -> AuthUser:
     """The account of a Keycloak identity (docs/keycloak.md), created or updated at each sign-in.
 
@@ -713,8 +716,14 @@ def upsert_external_user(
     is linked — only when Keycloak verified that email, so nobody takes over an
     account by claiming its address; else a new account. The roles (``admin``,
     ``moderator``) are mirrored from Keycloak every time: Keycloak decides.
-    Raises ``EmailAlreadyExistsError`` when an unverified email belongs to
-    another account.
+
+    An account already tied to another Keycloak identity moves to this one only
+    when ``subject_is_gone`` says that identity no longer exists in Keycloak (its
+    Keycloak account was deleted, or the realm rebuilt): Keycloak's emails are
+    unique, so the verified owner of the address is then this identity. While
+    the old identity exists (it may have changed its email in Keycloak since
+    its last sign-in here), the account stays its own.
+    Raises ``EmailAlreadyExistsError`` when the email belongs to another account.
     """
     ensure_auth_db()
     now = int(time.time())
@@ -726,8 +735,11 @@ def upsert_external_user(
         row = connection.execute("SELECT id, name FROM users WHERE external_id = ?", (external_id,)).fetchone()
         if row is None and email_verified:
             row = connection.execute(
-                "SELECT id, name FROM users WHERE email = ? AND external_id IS NULL", (address,)
+                "SELECT id, name, external_id FROM users WHERE email = ?", (address,)
             ).fetchone()
+            previous = row["external_id"] if row is not None else None
+            if previous is not None and not (subject_is_gone is not None and subject_is_gone(str(previous))):
+                row = None
         if row is not None:
             connection.execute(
                 "UPDATE users SET external_id = ?, email = ?, name = COALESCE(name, ?), is_admin = ?, is_moderator = ?, "

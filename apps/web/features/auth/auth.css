@@ -30,14 +30,6 @@
   color: var(--gold-text);
 }
 
-.qb-auth-sub {
-  font-family: var(--font-mono);
-  font-size: 9.5px;
-  letter-spacing: 0.22em;
-  color: var(--fg-mute);
-  margin-top: var(--sp-1);
-}
-
 .qb-auth-card {
   width: 100%;
   max-width: 380px;

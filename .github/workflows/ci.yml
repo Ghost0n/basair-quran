@@ -100,6 +100,13 @@ jobs:
         run: pnpm --filter @q-basair/web test
       - name: Check interface translations catalog
         run: pnpm --filter @q-basair/web i18n:check
+      # The Keycloak login theme reuses the web's tokens, components and strings
+      # (docs/keycloak.md): a web change that breaks it fails here. The JAR
+      # itself (Maven) is built where Keycloak is deployed.
+      - name: Keycloak login theme (tests + build)
+        run: |
+          pnpm --filter @q-basair/keycloak-theme test
+          pnpm --filter @q-basair/keycloak-theme build
       - name: Build web
         run: pnpm --filter @q-basair/web build
       - name: Build the standalone app bundle (static export)
@@ -107,6 +114,22 @@ jobs:
           NEXT_PUBLIC_APP_MODE: "1"
         # Webpack, as scripts/build-app.mjs builds it (the .app.tsx precedence).
         run: pnpm --filter @q-basair/web exec next build --webpack
+
+  keycloak-email-code:
+    name: Keycloak email code (Maven)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      # The required action against Keycloak's own SPI (docs/keycloak.md «Email code»):
+      # compiles, runs the code's unit tests and packages the provider JAR.
+      - name: Build and test
+        working-directory: apps/keycloak-email-code
+        run: mvn -B -q package
 
   offline-engine:
     name: Offline engine (server parity)
