@@ -14,30 +14,15 @@ import { t } from "@/lib/i18n";
 type ExportFormat = "md" | "json";
 
 /**
- * Export modal — shares a Studio session as Markdown or JSON. Export runs
- * fully client-side (Blob download); the Tafssir disclaimer travels in
- * every export of a tafssir session.
- *
- * PDF and DOCX are intentionally deferred — they need server-side
- * rendering dependencies (weasyprint / python-docx) that warrant a
- * dedicated review.
+ * Export modal — shares a Studio session as Markdown or JSON, with the
+ * cited verses. Export runs fully client-side (Blob download); the former
+ * explanatory reading's disclaimer travels in every export of such a session.
  */
 export function ExportModal({ session, onClose }: { session: StudioSession; onClose: () => void }) {
   const [format, setFormat] = useState<ExportFormat>("md");
-  const [includeEvidence, setIncludeEvidence] = useState(true);
-  const [includeDisclaimer, setIncludeDisclaimer] = useState(true);
-
-  // The experimental Tafssir disclaimer is MANDATORY on a tafssir export — the
-  // user cannot opt out of it (safety: a tafssir reading must never travel
-  // without its caveat).
-  const isTafssir = session.mode === "tafssir";
-  const disclaimerIncluded = isTafssir ? true : includeDisclaimer;
   const dialogRef = useDialog<HTMLDivElement>(onClose);
 
-  const content = useMemo(
-    () => buildExport(session, format, { includeEvidence, includeDisclaimer: disclaimerIncluded }),
-    [session, format, includeEvidence, disclaimerIncluded],
-  );
+  const content = useMemo(() => buildExport(session, format), [session, format]);
 
   function download() {
     const blob = new Blob([content], {
@@ -90,39 +75,6 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
             >
               <Icon name="layers" size={14} /> JSON
             </button>
-            <button type="button" className="qb-export-format" disabled>
-              <Icon name="page" size={14} /> PDF <span className="soon">{t("قريباً")}</span>
-            </button>
-            <button type="button" className="qb-export-format" disabled>
-              <Icon name="book" size={14} /> DOCX <span className="soon">{t("قريباً")}</span>
-            </button>
-          </div>
-
-          <div className="qb-export-section-label">{t("المحتوى")}</div>
-          <div className="qb-export-toggles">
-            <label className="qb-export-toggle">
-              <input
-                type="checkbox"
-                checked={includeEvidence}
-                onChange={(e) => setIncludeEvidence(e.target.checked)}
-              />
-              {t("تضمين الآيات المُستدَل بها")}
-            </label>
-            {isTafssir ? (
-              <label className="qb-export-toggle" title={t("إلزامي في الوضع التفسيري")}>
-                <input type="checkbox" checked disabled />
-                {t("تنبيه الوضع التفسيري (إلزامي)")}
-              </label>
-            ) : (
-              <label className="qb-export-toggle">
-                <input
-                  type="checkbox"
-                  checked={includeDisclaimer}
-                  onChange={(e) => setIncludeDisclaimer(e.target.checked)}
-                />
-                {t("تضمين تنبيه الوضع التفسيري")}
-              </label>
-            )}
           </div>
 
           <div className="qb-export-section-label">{t("معاينة")}</div>
@@ -142,20 +94,24 @@ export function ExportModal({ session, onClose }: { session: StudioSession; onCl
   );
 }
 
-type ExportOptions = { includeEvidence: boolean; includeDisclaimer: boolean };
-
-function buildExport(session: StudioSession, format: ExportFormat, options: ExportOptions): string {
+/**
+ * The session as text: the cited verses always; a session of the former
+ * explanatory reading always carries its disclaimer (it must never travel
+ * without it).
+ */
+export function buildExport(session: StudioSession, format: ExportFormat): string {
+  const disclaimer = session.mode === "tafssir";
   if (format === "json") {
     return JSON.stringify(
       {
         title: session.title,
         mode: session.mode,
-        disclaimer: options.includeDisclaimer && session.mode === "tafssir" ? TAFSSIR_DISCLAIMER_TEXT : undefined,
+        disclaimer: disclaimer ? TAFSSIR_DISCLAIMER_TEXT : undefined,
         messages: session.messages.map((message) => ({
           role: message.role,
           content: message.content,
           evidence:
-            options.includeEvidence && message.response
+            message.response
               ? message.response.ayahs.map((ayah) => ({
                   surah: ayah.surah,
                   ayah: ayah.ayah,
@@ -171,7 +127,7 @@ function buildExport(session: StudioSession, format: ExportFormat, options: Expo
 
   const lines: string[] = [`# ${session.title}`, ""];
   lines.push(t("> الوضع: {0}", { 0: session.mode === "tafssir" ? t("قراءة تفسيرية") : t("القرآن وحدَه") }), "");
-  if (options.includeDisclaimer && session.mode === "tafssir") {
+  if (disclaimer) {
     lines.push(`> ${t(TAFSSIR_DISCLAIMER_TEXT)}`, "");
   }
 
@@ -180,7 +136,7 @@ function buildExport(session: StudioSession, format: ExportFormat, options: Expo
       lines.push(t("## السؤال"), "", message.content, "");
     } else {
       lines.push(t("## الجواب"), "", message.content, "");
-      if (options.includeEvidence && message.response && message.response.ayahs.length > 0) {
+      if (message.response && message.response.ayahs.length > 0) {
         lines.push(t("### الدليل القرآني"), "");
         message.response.ayahs.forEach((ayah, index) => {
           lines.push(t("[{0}] سورة {1} · {2}", { 0: index + 1, 1: ayah.surah, 2: ayah.ayah }), `> ${ayah.text.trim()}`, "");

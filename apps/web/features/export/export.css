@@ -103,37 +103,10 @@
   font-weight: 600;
 }
 
-.qb-export-format:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
 .qb-export-format.active {
   border-color: var(--border-accent);
   background: rgba(212, 175, 55, 0.10);
   color: var(--gold-text);
-}
-
-.qb-export-format .soon {
-  margin-inline-start: auto;
-  font-size: 10px;
-  color: var(--fg-mute);
-}
-
-.qb-export-toggles {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 18px;
-}
-
-.qb-export-toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--fg-2);
-  cursor: pointer;
 }
 
 .qb-export-preview {
