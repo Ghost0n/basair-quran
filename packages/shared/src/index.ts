@@ -195,7 +195,12 @@ export interface AiProviderItem {
   signin: boolean;
   /** Model names to preselect, in order (substring match). */
   prefer: string[];
+  /** The thinking levels it can be asked for (`X-QBasair-LLM-Thinking`); empty: the model decides. */
+  thinking: ThinkingLevel[];
 }
+
+/** How long the model thinks before answering (the chat's selector). */
+export type ThinkingLevel = "off" | "low" | "medium" | "high";
 
 export interface OpenRouterKeyResponse {
   key: string;

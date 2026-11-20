@@ -33,6 +33,8 @@ import { ExportModal } from "@/features/export/export-modal";
 import { documentFromSession } from "@/features/documents/convert";
 import { createDocumentUrl } from "@/features/documents/open-document";
 
+import { AiPicker } from "./ai-picker";
+import { StudioNotices } from "./studio-notices";
 import { TafssirDisclaimer } from "./tafssir-disclaimer";
 import { useStudioSessions } from "./use-studio-sessions";
 
@@ -155,7 +157,10 @@ export function StudioPanel() {
     if (!content || studio.isResearching) return;
     setDraft("");
     setSideOpen(false);
-    void studio.submit(content, state.selectedMushaf);
+    // Unanswered (the error says why): the question comes back to the field,
+    // unless the reader has started typing another.
+    const answered = await studio.submit(content, state.selectedMushaf);
+    if (!answered) setDraft((current) => current || content);
   }
 
   // A prefilled ask (from the command bar or the Home "اسأل" bar) opens a FRESH
@@ -188,6 +193,8 @@ export function StudioPanel() {
     };
   }, []);
 
+  const openAiSettings = () => setShellMode("settings", { params: { section: "ai" } });
+
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
@@ -211,8 +218,8 @@ export function StudioPanel() {
           <Icon name="sidebar" size={17} />
         </button>
       ) : null}
-      <span className="qb-studio-bar-title" title={active?.title ?? t("جلسة جديدة")}>
-        {active?.title ?? t("جلسة جديدة")}
+      <span className="qb-studio-bar-title" title={titleOf(active)}>
+        {titleOf(active)}
       </span>
     </div>
   );
@@ -267,7 +274,7 @@ export function StudioPanel() {
             style={{ background: "transparent", border: "none", color: "inherit", cursor: "pointer" }}
             onClick={() => studio.setActiveId(session.id)}
           >
-            {session.title}
+            {titleOf(session)}
           </button>
           <button
             type="button"
@@ -315,7 +322,7 @@ export function StudioPanel() {
         title={t("الذكاء الاصطناعي")}
         aria-label={t("الذكاء الاصطناعي")}
         // The AI connection lives in Settings now (features/settings/ai-settings.tsx).
-        onClick={() => setShellMode("settings", { params: { section: "ai" } })}
+        onClick={openAiSettings}
       >
         <Icon name="settings" size={16} />
       </button>
@@ -356,9 +363,9 @@ export function StudioPanel() {
                     className="qb-studio-title"
                     onClick={() => setSessionsOpen(true)}
                     aria-haspopup="dialog"
-                    aria-label={`${active?.title ?? t("جلسة جديدة")} · ${t("الجلسات")}`}
+                    aria-label={`${titleOf(active)} · ${t("الجلسات")}`}
                   >
-                    <span className="txt">{active?.title ?? t("جلسة جديدة")}</span>
+                    <span className="txt">{titleOf(active)}</span>
                     <Icon name="chevDown" size={16} />
                   </button>
                 </h3>
@@ -418,6 +425,8 @@ export function StudioPanel() {
         ) : null}
 
         {hasLegacyTafssir ? <TafssirDisclaimer /> : null}
+
+        <StudioNotices onOpenAiSettings={openAiSettings} />
 
         {/* Desk: the error sits on the question field instead (below). */}
         {studio.error && !topSlots ? <div className="qb-studio-error">{studio.error}</div> : null}
@@ -494,6 +503,7 @@ export function StudioPanel() {
               onKeyDown={handleKeyDown}
             />
             <div className="row">
+              <AiPicker onOpenSettings={openAiSettings} />
               {topSlots ? (
                 <span className="hint">{t("Enter للإرسال، Shift+Enter لسطر جديد")}</span>
               ) : null}
@@ -537,6 +547,15 @@ export function StudioPanel() {
   );
 }
 
+/**
+ * A session's name. An empty one is «جلسة جديدة» in the language on screen: the
+ * name it was given may come from before the dictionary loaded (or another
+ * language), and it only gets its own once a question is asked.
+ */
+function titleOf(session: { title: string; messages: unknown[] } | null | undefined): string {
+  return session && session.messages.length > 0 ? session.title : t("جلسة جديدة");
+}
+
 /** The open sessions, as a bottom sheet: pick one, close one, or start one. */
 function SessionsSheet({
   sessions,
@@ -576,7 +595,7 @@ function SessionsSheet({
                   <Icon name="sparkles" size={18} />
                 </span>
                 <span className="txt">
-                  {session.title}
+                  {titleOf(session)}
                   <small>{tn("{0} رسالة", session.messages.length, { 0: formatNumber(session.messages.length) })}</small>
                 </span>
               </button>

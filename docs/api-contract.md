@@ -594,7 +594,12 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   provider's address is fixed on the server (never sent); an unknown provider or a missing key
   answers `503`. `ResearchProviderInfo.provider` names it. When present, it replaces the
   `X-QBasair-Ollama-*` headers below.
-- `GET /api/ai/providers` → `AiProviderItem[]` `{id, name, key_url, signin, prefer}`.
+- `X-QBasair-LLM-Thinking` (optional, with a provider): `off` · `low` · `medium` · `high`, how much
+  the model thinks before answering (the chat's selector). Only the levels the provider lists in
+  `AiProviderItem.thinking` are sent on; anything else means the model's own default. A model that
+  refuses the thinking fields is asked again without them.
+- `GET /api/ai/providers` → `AiProviderItem[]` `{id, name, key_url, signin, prefer, thinking}`
+  (`thinking`: the levels it takes; empty for Mistral and DeepSeek, whose models decide).
 - `POST /api/ai/openrouter/key` `{code, code_verifier}` → `{key}` (OpenRouter's PKCE sign-in;
   `422` on a malformed verifier, `502` when OpenRouter refuses).
 - Both research endpoints accept optional per-request Ollama override headers:

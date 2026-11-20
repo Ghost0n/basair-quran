@@ -77,6 +77,9 @@ class ResearchRuntimeSettings:
     embed_model: str
     timeout: float
     api_key: str = ""
+    # The reader's thinking level for this request ("" = the model's default;
+    # llm_providers.THINKING_LEVELS).
+    thinking: str = ""
 
 
 @dataclass
@@ -232,6 +235,7 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
         self.embed_model = runtime.embed_model
         self.timeout = runtime.timeout
         self.api_key = runtime.api_key
+        self.thinking = runtime.thinking
         self.usage = UsageAccumulator()
 
     def _post_json(self, path: str, payload: dict[str, Any], *, stage: str = "request", model: str = "") -> dict[str, Any]:
@@ -277,7 +281,19 @@ class OllamaResearchLlmProvider(ResearchLlmProvider):
             "stream": False,
             "options": {"temperature": temperature},
         }
-        response = self._post_json("/api/chat", payload, stage=stage, model=self.chat_model)
+        if self.thinking:
+            # Ollama: true/false, or a named level for the models that take one (gpt-oss).
+            payload["think"] = (
+                False if self.thinking == "off" else self.thinking if "gpt-oss" in self.chat_model.lower() else True
+            )
+        try:
+            response = self._post_json("/api/chat", payload, stage=stage, model=self.chat_model)
+        except ResearchProviderUnavailable as exc:
+            # A model that can't think refuses the field: asked again without it.
+            if "think" not in payload or "think" not in str(exc).lower():
+                raise
+            payload.pop("think")
+            response = self._post_json("/api/chat", payload, stage=stage, model=self.chat_model)
         content = response.get("message", {}).get("content")
         if not isinstance(content, str) or not content.strip():
             raise ResearchProviderResponseError("Ollama returned an empty chat response.")
@@ -713,7 +729,9 @@ def _validate_client_base_url(raw: str) -> str:
     return candidate
 
 
-def build_provider_runtime(provider: str, api_key: str | None, model: str | None) -> ResearchRuntimeSettings:
+def build_provider_runtime(
+    provider: str, api_key: str | None, model: str | None, thinking: str | None = None
+) -> ResearchRuntimeSettings:
     """A reader's own AI provider (llm_providers.PROVIDERS): its fixed address,
     the reader's key only (never the server's), the model they chose."""
     from src.app.services import llm_providers
@@ -724,8 +742,10 @@ def build_provider_runtime(provider: str, api_key: str | None, model: str | None
     key = (api_key or "").strip()
     if not key:
         raise ResearchProviderUnavailable(f"Connect {spec.name} in Settings: its key is missing.")
+    level = llm_providers.normalize_thinking(thinking)
     if spec.dialect == "ollama":
         runtime = build_runtime_settings(api_key=key, chat_model=model, base_url=spec.base_url)
+        runtime.thinking = level
         return runtime
     return ResearchRuntimeSettings(
         provider_name=spec.id,
@@ -734,6 +754,7 @@ def build_provider_runtime(provider: str, api_key: str | None, model: str | None
         embed_model="",
         timeout=config.get_llm_timeout_seconds(),
         api_key=key,
+        thinking=level,
     )
 
 

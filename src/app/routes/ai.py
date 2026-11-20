@@ -15,7 +15,8 @@ def get_providers() -> list[AiProviderItem]:
     """Every provider, with where to get a key and whether it offers a sign-in.
     Their addresses stay on the server: a reader never types one."""
     return [
-        AiProviderItem(id=spec.id, name=spec.name, key_url=spec.key_url, signin=spec.signin, prefer=list(spec.prefer))
+        AiProviderItem(id=spec.id, name=spec.name, key_url=spec.key_url, signin=spec.signin, prefer=list(spec.prefer),
+                       thinking=list(spec.thinking))
         for spec in llm_providers.PROVIDERS.values()
     ]
 

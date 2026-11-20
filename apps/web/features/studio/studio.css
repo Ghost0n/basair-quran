@@ -668,3 +668,153 @@
     padding-inline: 16px;
   }
 }
+
+/* ---------- Notices above the thread (studio-notices.tsx) ---------- */
+.qb-studio-notice {
+  flex-shrink: 0;
+  position: relative;
+  margin: 6px 20px 4px;
+  padding-block: 12px;
+  padding-inline: 14px 40px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  column-gap: 10px;
+  row-gap: 10px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-accent);
+  background: var(--gold-a08);
+  animation: qbFade var(--motion-dur-fast) var(--motion-ease-settle) both;
+}
+
+.qb-studio-notice > .qb-icon {
+  margin-top: 3px;
+  color: var(--gold-text, var(--gold-500));
+}
+
+.qb-studio-notice p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--fg-1);
+}
+
+.qb-studio-notice .actions {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.qb-studio-notice .ok,
+.qb-studio-notice .cancel {
+  min-height: 36px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.qb-studio-notice .ok {
+  border: 0;
+  background: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
+  color: #140f00;
+}
+
+.qb-studio-notice .cancel {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-1);
+}
+
+.qb-studio-notice .x {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+.qb-studio-notice .x:hover {
+  background: var(--surface-soft);
+  color: var(--fg-1);
+}
+
+.qb-studio-notice.is-warn {
+  border-color: color-mix(in srgb, var(--danger-fg) 40%, transparent);
+  background: color-mix(in srgb, var(--danger-fg) 7%, transparent);
+}
+
+.qb-studio-notice.is-warn > .qb-icon {
+  color: var(--danger-fg);
+}
+
+.qb-studio-notice :focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 2px;
+}
+
+/* ---------- The AI controls in the composer (ai-picker.tsx) ---------- */
+.qb-ai-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.qb-ai-chip,
+.qb-ai-select .qb-select-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  max-width: 190px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background var(--motion-dur-fast) var(--motion-ease-settle),
+    color var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-ai-select.is-model .qb-select-btn {
+  direction: ltr;
+}
+
+.qb-ai-chip:hover,
+.qb-ai-select .qb-select-btn:hover,
+.qb-ai-select .qb-select-btn[aria-expanded="true"] {
+  background: var(--surface-soft);
+  color: var(--fg-1);
+}
+
+.qb-ai-chip:focus-visible,
+.qb-ai-select .qb-select-btn:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 1px;
+}
+
+.qb-ai-chip span,
+.qb-ai-select .qb-select-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

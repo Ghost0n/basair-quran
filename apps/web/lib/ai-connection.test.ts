@@ -11,6 +11,7 @@ import {
   resetAiConnectionForTests,
   setProviderKey,
   setProviderModel,
+  setProviderThinking,
 } from "./ai-connection";
 import { pkcePair, signInUrl } from "./openrouter-signin";
 
@@ -43,6 +44,15 @@ describe("the AI connection (Settings → «الذكاء الاصطناعي»)",
     expect(JSON.parse(window.localStorage.getItem(AI_CONNECTION_KEY) as string).provider).toBe("openai");
   });
 
+  it("sends the thinking level picked for the provider, and none once back to the default", () => {
+    setProviderKey("openai", "sk-openai");
+    chooseProvider("openai");
+    setProviderThinking("openai", "high");
+    expect(aiHeaders()["X-QBasair-LLM-Thinking"]).toBe("high");
+    setProviderThinking("openai", null);
+    expect(aiHeaders()["X-QBasair-LLM-Thinking"]).toBeUndefined();
+  });
+
   it("forgets a key, and shows a saved one by its last four characters", () => {
     setProviderKey("groq", "gsk_abcdefgh");
     expect(maskKey(aiConnection().keys.groq)).toBe("••••efgh");
@@ -52,7 +62,7 @@ describe("the AI connection (Settings → «الذكاء الاصطناعي»)",
 
   it("carries over the study page's former Ollama key once", () => {
     window.sessionStorage.setItem("qbasair.research.ollama", JSON.stringify({ apiKey: "ollama-key", chatModel: "gpt-oss:120b", baseUrl: "" }));
-    expect(aiConnection()).toEqual({ provider: "ollama", keys: { ollama: "ollama-key" }, models: { ollama: "gpt-oss:120b" } });
+    expect(aiConnection()).toEqual({ provider: "ollama", keys: { ollama: "ollama-key" }, models: { ollama: "gpt-oss:120b" }, thinking: {} });
     chooseProvider("ollama");
     expect(window.sessionStorage.getItem("qbasair.research.ollama")).toBeNull();
   });

@@ -174,9 +174,10 @@ export function useStudioSessions() {
   );
 
   const submitInto = useCallback(
-    async (target: StudioSession, content: string, mushaf: number) => {
+    /** Resolves `true` once answered; `false` when nothing was asked or the ask failed. */
+    async (target: StudioSession, content: string, mushaf: number): Promise<boolean> => {
       const trimmed = content.trim();
-      if (!trimmed || isResearching) return;
+      if (!trimmed || isResearching) return false;
 
       const priorMessages = target.messages;
       const userMessage: StudioMessage = { role: "user", content: trimmed };
@@ -239,10 +240,15 @@ export function useStudioSessions() {
         } catch {
           // A failed save must not break the chat — the session stays in memory.
         }
+        return true;
       } catch (err) {
         reportError("studio:submit", err);
         const raw = err instanceof Error ? err.message : "";
         setError(isTechnicalMessage(raw) ? t("تعذّر الاتصال بخدمة الباحث الذكي.") : raw);
+        // The question got no answer: it leaves the thread (the panel puts it
+        // back in the field), so asking it again doesn't show it twice.
+        patchSession(target.id, { messages: priorMessages, title: target.title });
+        return false;
       } finally {
         setIsResearching(false);
       }
@@ -252,7 +258,7 @@ export function useStudioSessions() {
 
   const submit = useCallback(
     (content: string, mushaf: number) => {
-      if (!active) return Promise.resolve();
+      if (!active) return Promise.resolve(false);
       return submitInto(active, content, mushaf);
     },
     [active, submitInto],

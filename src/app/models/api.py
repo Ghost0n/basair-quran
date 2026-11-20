@@ -448,6 +448,9 @@ class AiProviderItem(BaseModel):
     signin: bool = False
     # Model names to preselect, in order (substring match).
     prefer: List[str] = Field(default_factory=list)
+    # The thinking levels the study can ask of it (`X-QBasair-LLM-Thinking`);
+    # empty: the model decides (its own default).
+    thinking: List[Literal["off", "low", "medium", "high"]] = Field(default_factory=list)
 
 
 class OpenRouterKeyRequest(BaseModel):

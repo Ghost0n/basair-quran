@@ -93,4 +93,44 @@ describe("useStudioSessions (the hook's wiring)", () => {
     expect(messages[1].response?.mode).toBe("tafssir");
     expect(messages[3].response?.mode).toBe("strict");
   });
+
+  it("takes an unanswered question back out of the thread, so asking it again doesn't show it twice", async () => {
+    window.sessionStorage.setItem("qbasair.studio.sessions", JSON.stringify({ sessions: [blank("studio-c")], activeId: "studio-c" }));
+    let fail = true;
+    const asks: unknown[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input).includes("/research-agent")) {
+          asks.push(JSON.parse(String(init?.body)).messages);
+          if (fail) return new Response(JSON.stringify({ detail: "down" }), { status: 503, headers: { "Content-Type": "application/json" } });
+          return new Response(JSON.stringify({ status: "answered", mode: "strict", answer: "ok", related_terms: [], searches: [], ayahs: [] }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        return new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } });
+      }),
+    );
+    try {
+      await mount();
+      let answered: boolean | undefined;
+      await act(async () => {
+        answered = await studio.submit("ما البصائر؟", 1);
+      });
+      expect(answered).toBe(false);
+      expect(studio.error).toBeTruthy();
+      expect(studio.sessions[0].messages).toEqual([]);
+
+      fail = false;
+      await act(async () => {
+        answered = await studio.submit("ما البصائر؟", 1);
+      });
+      expect(answered).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+    expect(asks[1]).toEqual([{ role: "user", content: "ما البصائر؟" }]);
+    expect(studio.sessions[0].messages.map((m) => m.role)).toEqual(["user", "assistant"]);
+  });
 });

@@ -85,26 +85,18 @@
   text-overflow: ellipsis;
 }
 
-/* The study page sits on the deepest ground, and the top bar over it is
-   darker still: a smoke that thins into the thread instead of ending on a
-   line. */
-.qb-web .qb-side-panel:has(.qb-studio.is-desk) { background: var(--bg); }
-html.qb-web .qb-topbar-web:has(.qb-topbar-reader:not(:empty)) .qb-topbar-page:has(.qb-studio-bar),
-html.qb-web .qb-topbar-web.qb-topbar-web:has(.qb-studio-bar):not(:has(.qb-topbar-reader:not(:empty))) {
-  background: linear-gradient(180deg, var(--shade), color-mix(in srgb, var(--shade) 45%, transparent)), var(--bg);
-}
+/* The study page keeps the ground of every side page (shell.web.css: the
+   warm top fading into the deepest ground); the thread thins out under the
+   top bar into that same warm top instead of ending on a line. */
 .qb-web .qb-studio.is-desk::before {
   content: "";
   position: absolute;
   inset-inline: 0;
   top: 0;
-  height: 56px;
+  height: 40px;
   z-index: 5;
   pointer-events: none;
-  background:
-    radial-gradient(42% 70% at 22% 0, color-mix(in srgb, var(--shade) 30%, transparent), transparent),
-    radial-gradient(38% 60% at 74% 0, color-mix(in srgb, var(--shade) 26%, transparent), transparent),
-    linear-gradient(180deg, color-mix(in srgb, var(--shade) 45%, transparent), transparent);
+  background: linear-gradient(180deg, var(--bg-elev-1), color-mix(in srgb, var(--bg-elev-1) 0%, transparent));
 }
 
 /* The sessions: a pane laid over the thread (never a split), frosted, that
@@ -378,4 +370,17 @@ html.qb-web body .qb-studio-stage > .qb-thread-latest {
 }
 .qb-web .qb-thread-latest:focus:not(:focus-visible) {
   outline: none;
+}
+
+/* The notices take the readable column, like the other banners. */
+.qb-web .qb-studio.is-desk .qb-studio-notice {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 760px;
+  margin-inline: auto;
+  align-self: center;
+}
+/* With the AI controls beside it, the keyboard hint needs more room. */
+@container (max-width: 820px) {
+  .qb-web .qb-studio.is-desk .qb-composer .hint { display: none; }
 }
