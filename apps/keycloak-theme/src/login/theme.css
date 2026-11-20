@@ -607,6 +607,12 @@ html:not([lang="ar"]):not([lang="fa"]):not([lang="ur"]) .qb-kc .qb-auth-wordmark
 .qb-kc .qb-kc-tabs .qb-auth-tab:not(.active):hover {
   color: var(--fg-1);
 }
+/* The tabs are links here: `.qb-kc a:hover` would turn the chosen one's text
+   gold on its gold pill. It keeps the web's dark text (auth.css). */
+.qb-kc .qb-kc-tabs .qb-auth-tab.active,
+.qb-kc .qb-kc-tabs .qb-auth-tab.active:hover {
+  color: #140f00;
+}
 .qb-kc .qb-kc-tabs .qb-auth-tab:focus-visible {
   outline: 2px solid var(--gold-line);
   outline-offset: 2px;
