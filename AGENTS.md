@@ -262,7 +262,7 @@ Production is one Contabo VPS serving `basairquran.com` (full guide: `docs/deplo
 2. Pushes them to GitHub Container Registry (`ghcr.io/ghost0n/basair-quran-{api,web}:<commit>`).
 3. Copies the deploy files to `/srv/q-basair` over SSH and runs `deploy/server/deploy.sh --tag <commit>`: pull, restart, the data jobs named by the deploy tags, then a readiness gate on `/api/ready` reporting that commit — the previous release is put back if it fails.
 
-Every pull request also runs `.github/workflows/ci.yml`: tests, builds, offline-engine parity, nginx/compose checks, a Trivy scan of the repository, and a Sonar analysis once `SONAR_TOKEN` is set. Keep both green; never weaken a scan to pass it.
+Every pull request also runs `.github/workflows/ci.yml`: tests, builds, offline-engine parity, nginx/compose checks, the API and web Docker images (built, not pushed), a Trivy scan of the repository, and a Sonar analysis once `SONAR_TOKEN` is set. Keep both green; never weaken a scan to pass it.
 
 ### Deploy tags
 
