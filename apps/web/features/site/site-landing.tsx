@@ -19,6 +19,7 @@ import { QuranNumbers } from "./landing/numbers";
 import { GirihPattern } from "./landing/pattern";
 import { PhoneStory } from "./landing/phone-story";
 import { RootRibbon } from "./landing/root-ribbon";
+import { useBarScroll } from "./landing/use-bar-scroll";
 import { useInView } from "./landing/use-reveal";
 import { SiteFoot } from "./site-chrome";
 
@@ -50,6 +51,14 @@ export function SiteLanding({ onEnter }: { onEnter?: () => void }) {
 function LandingPage({ onEnter }: { onEnter?: () => void }) {
   const formatNumber = useNumerals();
   const heroRef = useRef<HTMLElement | null>(null);
+  const sections = [
+    { id: "method", label: t("المنهج") },
+    { id: "root", label: t("الجذر") },
+    { id: "features", label: t("المزايا") },
+    { id: "privacy", label: t("الخصوصية") },
+    { id: "guidelines", label: t("الإرشادات") },
+  ];
+  const [barRef, current] = useBarScroll<HTMLElement>(sections.map((section) => section.id));
 
   const enter = () => {
     if (onEnter) {
@@ -108,19 +117,24 @@ function LandingPage({ onEnter }: { onEnter?: () => void }) {
 
   return (
     <div className="qb-site qb-landing">
-      <header className="qb-site-bar">
+      <header ref={barRef} className="qb-site-bar">
         <a className="brand" href="/about" aria-label={t("بصائر القرآن")}>
           <BrandMark size={34} />
           <span>{t("بصائر")}</span>
         </a>
         <nav aria-label={t("أقسام الصفحة")}>
-          <a href="#method">{t("المنهج")}</a>
-          <a href="#root">{t("الجذر")}</a>
-          <a href="#features">{t("المزايا")}</a>
-          <a href="#privacy">{t("الخصوصية")}</a>
-          <a href="#guidelines">{t("الإرشادات")}</a>
-          <a href="/guide">{t("الدليل")}</a>
+          {sections.map((section) => (
+            <a key={section.id} href={`#${section.id}`} aria-current={current === section.id ? "location" : undefined}>
+              {section.label}
+            </a>
+          ))}
         </nav>
+        {/* Another page, not a section of this one: its own shape, apart from the section links. */}
+        <a className="qb-site-door" href="/guide">
+          <Icon name="book" size={16} />
+          <span className="label">{t("الدليل")}</span>
+          <Icon name="arrowUpLeft" size={14} className="away" />
+        </a>
         <LandingLocalePicker />
         <button type="button" className="qb-site-cta sm" onClick={enter}>
           {t("افتح التطبيق")}

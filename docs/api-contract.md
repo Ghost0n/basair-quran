@@ -362,6 +362,12 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   endpoints, whose query default remains `1`); the web client always sends the edition's mushaf.
   A page or verse arriving in another riwāyah (e.g. a notebook item saved under Qālūn) is
   re-opened in the edition by `surah:ayah`.
+- `numerals` is an account preference on `GET/PATCH /api/user/preferences`:
+  `"auto"` (default — the digits of the interface language on screen),
+  `"arabic-indic"`, `"latin"` or `"persian"`. Preferences stored before `"auto"`
+  existed read their `"arabic-indic"` (the old default, saved with every
+  change) as `"auto"` until they are saved again; other scripts are kept
+  (docs/i18n.md).
 - `reader_layout` is an account preference on `GET/PATCH /api/user/preferences`.
   The API keeps its five values for compatibility; the web client offers **two
   reading modes** and maps them:

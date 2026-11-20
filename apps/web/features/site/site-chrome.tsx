@@ -10,6 +10,8 @@ import { SOURCE_URL } from "@/lib/site";
 
 import { t } from "@/lib/i18n";
 
+import { useBarScroll } from "./landing/use-bar-scroll";
+
 /** Open the app from a public page: the visitor becomes a guest on the way in (otherwise "/" shows the landing again). */
 export function openApp(href = "/") {
   continueAsGuest();
@@ -27,8 +29,9 @@ export function siteLinks(): { href: string; label: string }[] {
 
 /** The top bar of a public page (/guide, /guidelines): the mark, the site's pages, «افتح التطبيق». */
 export function SiteBar({ current }: { current?: string }) {
+  const [barRef] = useBarScroll<HTMLElement>();
   return (
-    <header className="qb-site-bar">
+    <header ref={barRef} className="qb-site-bar">
       <a className="brand" href="/about" aria-label={t("بصائر القرآن")}>
         <BrandMark size={34} />
         <span>{t("بصائر")}</span>

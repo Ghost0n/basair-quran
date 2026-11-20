@@ -86,7 +86,7 @@ def test_user_preferences_defaults_and_patch(api_client):
     defaults = api_client.get("/api/user/preferences")
     assert defaults.status_code == 200
     body = defaults.json()
-    assert body["numerals"] == "arabic-indic"
+    assert body["numerals"] == "auto"  # the interface language's own digits
     assert body["mushaf_edition"] == "madani-hafs"  # the Madani mushaf is the default edition
     assert body["riwayah"] == 2  # Ḥafṣ is the default riwāyah
     assert body["mushaf_render"] == "authentic"
@@ -114,6 +114,41 @@ def test_user_preferences_defaults_and_patch(api_client):
     reread = api_client.get("/api/user/preferences")
     assert reread.json()["numerals"] == "latin"
     assert reread.json()["reader_layout"] == "scroll"
+
+
+def _store_raw_preferences(data: dict) -> None:
+    import json
+    import time
+
+    from src.app.services import app_data_service
+
+    with app_data_service._connect() as connection:
+        connection.execute(
+            "INSERT OR REPLACE INTO user_preferences (user_id, data, updated_at) VALUES (?, ?, ?)",
+            (app_data_service.DEFAULT_USER_ID, json.dumps(data), int(time.time())),
+        )
+        connection.commit()
+
+
+def test_user_preferences_old_default_digits_follow_the_language(api_client):
+    # Before "auto", every save wrote the old default «arabic-indic» whether or
+    # not the reader chose it: it now reads as the language's own digits.
+    _store_raw_preferences({"numerals": "arabic-indic", "ui_language": "en", "font_size": 30})
+    body = api_client.get("/api/user/preferences").json()
+    assert body["numerals"] == "auto"
+    assert body["font_size"] == 30
+    assert "numerals_rev" not in body
+
+    # Once saved again, a later explicit «arabic-indic» is kept as chosen.
+    api_client.patch("/api/user/preferences", json={"font_size": 31})
+    assert api_client.get("/api/user/preferences").json()["numerals"] == "auto"
+    api_client.patch("/api/user/preferences", json={"numerals": "arabic-indic"})
+    assert api_client.get("/api/user/preferences").json()["numerals"] == "arabic-indic"
+
+
+def test_user_preferences_old_explicit_digits_are_kept(api_client):
+    _store_raw_preferences({"numerals": "persian", "ui_language": "en"})
+    assert api_client.get("/api/user/preferences").json()["numerals"] == "persian"
 
 
 def test_user_preferences_saved_pages(api_client):

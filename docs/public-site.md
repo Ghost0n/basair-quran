@@ -36,16 +36,26 @@ server-rendered pages exist for visitors, search engines and shared links.
 
 ## The landing page
 
-Built around the app's name, from real data, with no screenshots yet (the
-phones are drawn in the app's style; real screenshots can replace them later):
+Built around the app's name, from real data and real screens of the app.
+
+The bar stays at the top while the page scrolls (glass that thickens once the
+page moves, `landing/use-bar-scroll.ts`), with a gold thread along its lower
+edge for how far the reader has gone. Its links go to the page's sections and
+mark the one being read; the guide, a page of its own, is set apart as an
+outlined «الدليل» with an arrow that points away (on phones, the book alone).
+The sections' links need ≥ 1140 px; below that the bar keeps the brand, the
+guide, the language, digits and theme, and «افتح التطبيق». (Public pages override `globals.css`'s
+`body { overflow-x: hidden }` with `clip`: the former made body a scroll
+container that never scrolls, so nothing on these pages could stick.)
 
 The bar carries the interface language and the digits
 (`features/site/landing-locale-picker.tsx`), so a visitor can switch before
-entering: the same controls as Settings (`LanguageSelect`, `numerals`; a
-language brings its usual digits, the digits menu sets others), saved
+entering: the same controls as Settings (`LanguageSelect`, `numerals`; the
+digits follow the language unless the digits menu sets others), saved
 the same way — in the browser for a visitor or guest (`lib/guest-data.ts`),
-on the account once signed in — so the app opens as chosen. On phones they
-take a row of their own under the brand.
+on the account once signed in — so the app opens as chosen. The light / dark switch beside them is the app's
+own (`useThemeMode`: this device, then the account). On phones they take a row
+of their own under the brand.
 
 1. **Hero** — a rosette (`landing/pattern.tsx`) draws itself around the mark
    while «هذا بصائر للناس» (45:20) appears word by word; a soft light follows
@@ -61,9 +71,14 @@ take a row of their own under the brand.
    `GET /api/root-distribution` (Ḥafṣ) and the occurrences open in the app's
    search. Without the API (offline, static app) the ribbon keeps the name's root
    and says live search isn't available.
-5. **«بصائر في يدك»** (`landing/phone-story.tsx`) — read, search, recite,
-   study, told on a phone that stays in place and changes screen as each step
-   scrolls into view (≥ 900 px); on phones every step carries its own phone.
+5. **«بصائر في يدك»** (`landing/phone-story.tsx`) — read, search, word
+   morphology, recitation, study, notebook, on the guide's real phone screens
+   (`public/guide-media/<ar|en>/mobile/`, the same files and language rule as
+   the guide; the two clips play muted only while shown). On ≥ 900 px the phone
+   stays in place beside the text and each step's screen turns over the last
+   like a mushaf page (from the left in Arabic), while a gold thread fills down
+   the steps; on phones every step carries its own phone. The texts are the
+   guide's, so every interface language already has them.
 6. **Under the hood** — offline, verified text, trusted translations, AI limits.
 7. **The Quran in numbers** (`landing/numbers.tsx`) — counted up when seen.
 8. **The pledge** (privacy promises) and the **community principles**, with a
@@ -73,7 +88,11 @@ Every figure and verse comes from `features/site/landing-data.json`, written by
 `python scripts/build_landing_data.py` from `data/quran.db` (Ḥafṣ) and the
 reciter catalogue; `--check` (and `tests/test_landing_data.py`) fail when the
 committed file no longer matches the database — re-run it after a database
-rebuild. Motion respects `prefers-reduced-motion` (everything is shown at once).
+rebuild. Where the browser supports scroll-driven animations, a few things
+follow the scroll itself: the hero recedes and its rosette turns as it leaves,
+the method's thread draws itself, the phone rises into place, the closing
+rosette opens; elsewhere they simply stand still. Motion respects
+`prefers-reduced-motion` (everything is shown at once).
 
 ## The guide
 

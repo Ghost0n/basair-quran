@@ -953,6 +953,9 @@ export interface MorphologyResponse {
 
 export type NumeralScript = "arabic-indic" | "latin" | "persian";
 
+/** The digits setting: "auto" = the interface language's own digits, else a script. */
+export type NumeralsSetting = "auto" | NumeralScript;
+
 /** How pages/ayahs are arranged in the reader (orthogonal to mushaf_render). */
 export type ReaderLayout = "auto" | "single" | "spread" | "scroll" | "ayah";
 
@@ -1048,7 +1051,7 @@ export interface UserPreferences {
   /** @deprecated since `mushaf_edition`; kept for API compatibility. */
   riwayah: number;
   mushaf_font: string;
-  numerals: NumeralScript;
+  numerals: NumeralsSetting;
   ui_language: string;
   theme: "dark" | "light" | "system";
   font_size: number;
@@ -1127,7 +1130,7 @@ export interface UserPreferencesUpdate {
   mushaf_edition?: MushafEditionId;
   riwayah?: number;
   mushaf_font?: string;
-  numerals?: NumeralScript;
+  numerals?: NumeralsSetting;
   ui_language?: string;
   theme?: "dark" | "light" | "system";
   font_size?: number;

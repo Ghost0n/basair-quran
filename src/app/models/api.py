@@ -1212,7 +1212,8 @@ class UserPreferences(BaseModel):
     # the web client (the edition decides the riwāyah and the renderer).
     riwayah: int = 2  # Ḥafṣ (mushaf id 2)
     mushaf_font: str = "amiri-quran"
-    numerals: Literal["arabic-indic", "latin", "persian"] = "arabic-indic"
+    # "auto" = the interface language's own digits; the others are a choice.
+    numerals: Literal["auto", "arabic-indic", "latin", "persian"] = "auto"
     ui_language: str = "ar"
     theme: Literal["dark", "light", "system"] = "dark"
     font_size: int = Field(28, ge=18, le=48)
@@ -1248,7 +1249,7 @@ class UserPreferencesUpdate(BaseModel):
     mushaf_edition: Optional[MushafEditionId] = None
     riwayah: Optional[int] = None
     mushaf_font: Optional[str] = None
-    numerals: Optional[Literal["arabic-indic", "latin", "persian"]] = None
+    numerals: Optional[Literal["auto", "arabic-indic", "latin", "persian"]] = None
     ui_language: Optional[str] = None
     theme: Optional[Literal["dark", "light", "system"]] = None
     font_size: Optional[int] = Field(None, ge=18, le=48)

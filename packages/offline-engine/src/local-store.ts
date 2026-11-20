@@ -25,6 +25,9 @@ import {
   THEME_COLORS,
 } from "./models.generated";
 import { strip } from "./py";
+
+/** Marks preferences saved since the digits can be "auto" (app_data_service.NUMERALS_REV_KEY). */
+const NUMERALS_REV_KEY = "numerals_rev";
 import type { QuranEngine } from "./quran";
 import { type Issue, dropNone, shapeList, shapeModel, validateModel } from "./shape";
 
@@ -188,6 +191,10 @@ export class LocalStore {
     if (stored) {
       for (const [key, value] of Object.entries(stored)) if (value !== null && value !== undefined) merged[key] = value;
       merged.research = { ...DEFAULT_PREFERENCES.research, ...(stored.research || {}) };
+      // As app_data_service.get_preferences: before "auto", the old default
+      // «arabic-indic» was saved whether or not the reader chose it.
+      delete merged[NUMERALS_REV_KEY];
+      if (!stored[NUMERALS_REV_KEY] && merged.numerals === "arabic-indic") merged.numerals = "auto";
     }
     if (!MUSHAF_EDITION_IDS.includes(merged.mushaf_edition)) merged.mushaf_edition = DEFAULT_MUSHAF_EDITION;
     return merged;
@@ -205,7 +212,7 @@ export class LocalStore {
       delete patch.research;
       for (const [key, value] of Object.entries(patch)) if (value !== null && value !== undefined) current[key] = value;
       if (research && Object.keys(research).length) current.research = { ...current.research, ...research };
-      state.preferences = { data: current, updated_at: this.clock(), dirty: true };
+      state.preferences = { data: { ...current, [NUMERALS_REV_KEY]: 1 }, updated_at: this.clock(), dirty: true };
       return shapeModel("UserPreferences", current);
     }, true);
   }
