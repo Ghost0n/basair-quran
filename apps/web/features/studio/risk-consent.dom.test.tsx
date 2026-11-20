@@ -39,14 +39,14 @@ describe("the study's risks banner", () => {
         </>,
       );
     });
-    const banner = host.querySelector(".qb-studio-notice.is-risk");
+    const banner = host.querySelector(".qb-risk-card");
     expect(banner).not.toBeNull();
     expect(host.querySelector<HTMLButtonElement>("button:not(.ok)")?.disabled).toBe(true);
 
     await act(async () => {
-      host.querySelector<HTMLButtonElement>(".qb-studio-notice .ok")?.click();
+      host.querySelector<HTMLButtonElement>(".qb-risk-card .ok")?.click();
     });
-    expect(host.querySelector(".qb-studio-notice")).toBeNull();
+    expect(host.querySelector(".qb-risk-card")).toBeNull();
     expect(host.querySelector<HTMLButtonElement>("button")?.disabled).toBe(false);
     expect(window.localStorage.getItem(RISKS_ACCEPTED_KEY)).toBe("1");
 
@@ -56,6 +56,6 @@ describe("the study's risks banner", () => {
     await act(async () => {
       root.render(<RiskConsent />);
     });
-    expect(host.querySelector(".qb-studio-notice")).toBeNull();
+    expect(host.querySelector(".qb-risk-card")).toBeNull();
   });
 });

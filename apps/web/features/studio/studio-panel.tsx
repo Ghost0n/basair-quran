@@ -459,7 +459,7 @@ export function StudioPanel() {
 
         {hasLegacyTafssir ? <TafssirDisclaimer /> : null}
 
-        {risksAccepted ? <StudioNotices onOpenAiSettings={openAiSettings} /> : <RiskConsent />}
+        {risksAccepted ? <StudioNotices onOpenAiSettings={openAiSettings} /> : null}
 
         {/* Desk: the error sits on the question field instead (below). */}
         {studio.error && !topSlots ? <div className="qb-studio-error">{studio.error}</div> : null}
@@ -474,7 +474,10 @@ export function StudioPanel() {
         ) : null}
 
         <div className="qb-studio-stage" ref={stageRef}>
-        {active && active.messages.length > 0 ? (
+        {/* Before the first question: the risks, in the middle of the page, to accept. */}
+        {!risksAccepted ? (
+          <RiskConsent />
+        ) : active && active.messages.length > 0 ? (
           <div
             className="qb-thread"
             ref={threadRef}

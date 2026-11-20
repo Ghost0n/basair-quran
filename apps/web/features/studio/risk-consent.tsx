@@ -55,23 +55,27 @@ export function resetStudyRisksForTests(): void {
   listeners.clear();
 }
 
-/** The banner above the thread until the risks are accepted; nothing after. */
+/**
+ * The card in the middle of the empty study until the risks are accepted, in
+ * place of the thread; nothing after.
+ */
 export function RiskConsent() {
   const isAccepted = useStudyRisksAccepted();
   if (isAccepted) return null;
   return (
-    <div className="qb-studio-notice is-risk" role="region" aria-label={t("قبل أن تسأل")}>
-      <Icon name="alert" size={16} />
+    <section className="qb-risk-card" role="region" aria-labelledby="qb-risk-title">
+      <span className="seal" aria-hidden="true">
+        <Icon name="shieldCheck" size={26} />
+      </span>
+      <h2 id="qb-risk-title">{t("قبل أن تسأل")}</h2>
       <p>
         {t(
           "يصوغ الأجوبةَ نموذجُ ذكاء اصطناعي من الآيات التي يجدها البحث، وقد يخطئ أو ينقص أو يفهم السؤال على غير وجهه. ليست فتوى ولا تفسيراً: ارجع دائماً إلى الآيات نفسها.",
         )}
       </p>
-      <div className="actions">
-        <button type="button" className="ok" onClick={acceptStudyRisks}>
-          {t("فهمت، أتابع")}
-        </button>
-      </div>
-    </div>
+      <button type="button" className="ok" onClick={acceptStudyRisks}>
+        {t("فهمت، أتابع")}
+      </button>
+    </section>
   );
 }

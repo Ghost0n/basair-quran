@@ -877,9 +877,78 @@
   color: var(--danger-fg);
 }
 
-/* The risks of AI answers (risk-consent.tsx): no close, it is accepted. */
-.qb-studio-notice.is-risk {
-  padding-inline-end: 14px;
+/* The risks of AI answers (risk-consent.tsx): a card in the middle of the
+   empty study, in place of the thread, until it is accepted. */
+.qb-risk-card {
+  box-sizing: border-box;
+  width: min(520px, calc(100% - 32px));
+  margin: auto;
+  padding: 30px 28px 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  border-radius: var(--r-2xl, 20px);
+  border: 1px solid var(--border-accent);
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(212, 175, 55, 0.12), transparent 70%),
+    var(--bg-elev-1);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  animation: qbPopIn var(--dur, 220ms) var(--ease-out, ease-out);
+}
+
+.qb-risk-card .seal {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--gold-line, var(--border-accent));
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--gold-text, var(--gold-500));
+}
+
+.qb-risk-card h2 {
+  margin: 0;
+  font-family: var(--font-arabic-heading);
+  font-size: 22px;
+  line-height: var(--lh-heading, 1.4);
+  color: var(--fg-1);
+}
+
+.qb-risk-card p {
+  margin: 0;
+  max-width: 40em;
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--fg-2);
+}
+
+.qb-risk-card .ok {
+  margin-top: 6px;
+  min-height: 44px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
+  color: #140f00;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-risk-card .ok:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-risk-card {
+    animation: none;
+  }
 }
 
 .qb-studio-notice :focus-visible {

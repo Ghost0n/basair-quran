@@ -341,6 +341,11 @@ html.qb-web body .qb-studio-stage > .qb-thread-latest {
   -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) !important;
   backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-saturate)) !important;
 }
+/* The risks card (risk-consent.tsx): centred in the room the composer leaves. */
+.qb-web .qb-studio-stage > .qb-risk-card {
+  position: relative;
+  top: calc(var(--qb-composer-h, 120px) / -2);
+}
 .qb-web .qb-studio.is-desk .qb-studio-stage {
   --qb-composer-gap: 0px;
 }

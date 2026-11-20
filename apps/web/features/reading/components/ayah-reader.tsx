@@ -1,9 +1,10 @@
 "use client";
 
-import { Fragment, useCallback, useMemo } from "react";
+import { Fragment, useCallback, useId, useMemo, useState } from "react";
 
 import type { MushafLayoutGlyph, QuranPageAyah, QuranPageResponse } from "@q-basair/shared";
 
+import { Icon } from "@/components/icon";
 import { useNumerals, usePreferences } from "@/lib/preferences-context";
 import { fontStackFor } from "@/lib/script-fonts";
 
@@ -187,12 +188,7 @@ function AyahTranslations({ items }: { items: AyahTranslation[] | undefined }) {
             <a href={item.meta.source_url} target="_blank" rel="noopener noreferrer">
               {item.meta.name}
             </a>
-            {item.footnotes ? (
-              <details>
-                <summary>{t("حواشٍ")}</summary>
-                <p style={{ fontFamily: fontStackFor(item.meta.language) }}>{item.footnotes}</p>
-              </details>
-            ) : null}
+            {item.footnotes ? <Footnotes text={item.footnotes} language={item.meta.language} /> : null}
           </div>
         </div>
       ))}
@@ -261,5 +257,35 @@ export function AyahReader({
       ))}
       {morphTarget ? <MorphPopover target={morphTarget} onClose={onClearMorph} /> : null}
     </div>
+  );
+}
+
+/**
+ * A translation's footnotes: a small arrow beside the source that stays where
+ * it is, open or closed (the word «حواشٍ» stays its name for screen readers
+ * and the tooltip); the notes take a line of their own under it.
+ */
+function Footnotes({ text, language }: { text: string; language: string }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  return (
+    <>
+      <button
+        type="button"
+        className={`notes-toggle${open ? " open" : ""}`}
+        aria-expanded={open}
+        aria-controls={id}
+        aria-label={t("حواشٍ")}
+        title={t("حواشٍ")}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <Icon name="chevDown" size={13} />
+      </button>
+      {open ? (
+        <p id={id} className="notes" style={{ fontFamily: fontStackFor(language) }}>
+          {text}
+        </p>
+      ) : null}
+    </>
   );
 }
