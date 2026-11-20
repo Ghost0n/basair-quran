@@ -61,9 +61,60 @@
   margin-inline-start: auto;
 }
 
+/* Language and digits (landing-locale-picker.tsx): their own row under the
+   brand on phones, beside the button on wider screens. */
+.qb-site-bar {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.qb-site-locale {
+  display: flex;
+  gap: 8px;
+  order: 3;
+  flex-basis: 100%;
+}
+
+.qb-site-locale .qb-site-locale-menu {
+  min-width: 0;
+}
+
+.qb-site-locale .qb-select-btn {
+  height: 34px;
+}
+
+.qb-site-locale .qb-site-locale-menu:not(.is-digits) {
+  flex: 1 1 auto;
+  max-width: 180px;
+}
+
+@media (min-width: 600px) {
+  .qb-site-bar {
+    flex-wrap: nowrap;
+  }
+
+  .qb-site-locale {
+    order: 0;
+    flex-basis: auto;
+    margin-inline-start: auto;
+  }
+
+  .qb-site-bar .qb-site-cta {
+    margin-inline-start: 0;
+  }
+
+  .qb-site-locale .qb-site-locale-menu:not(.is-digits) {
+    width: 132px;
+  }
+}
+
 @media (min-width: 860px) {
   .qb-site-bar {
     padding-inline: 40px;
+  }
+
+  .qb-site-locale {
+    margin-inline-start: 8px;
   }
 
   .qb-site-bar nav {

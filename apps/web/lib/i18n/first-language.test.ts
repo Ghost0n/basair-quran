@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { numeralsForLanguageChoice } from "./first-language";
+import { numeralsForLanguage, numeralsForLanguageChoice } from "./first-language";
 
 const first = { explicit: false, accountLanguage: "ar", accountNumerals: "arabic-indic" };
 
@@ -23,5 +23,19 @@ describe("numeralsForLanguageChoice", () => {
 
   it("keeps digits the reader set themselves", () => {
     expect(numeralsForLanguageChoice({ ...first, accountNumerals: "latin", code: "fa" })).toBeUndefined();
+  });
+});
+
+describe("numeralsForLanguage", () => {
+  it("brings the language's usual digits on every choice", () => {
+    expect(numeralsForLanguage("fr", "arabic-indic")).toBe("latin");
+    expect(numeralsForLanguage("fa", "latin")).toBe("persian");
+    // Back to Arabic after English: Arabic digits again.
+    expect(numeralsForLanguage("ar", "latin")).toBe("arabic-indic");
+  });
+
+  it("changes nothing when the digits already are the language's", () => {
+    expect(numeralsForLanguage("ar", "arabic-indic")).toBeUndefined();
+    expect(numeralsForLanguage("en", "latin")).toBeUndefined();
   });
 });

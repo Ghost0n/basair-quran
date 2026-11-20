@@ -39,6 +39,14 @@ server-rendered pages exist for visitors, search engines and shared links.
 Built around the app's name, from real data, with no screenshots yet (the
 phones are drawn in the app's style; real screenshots can replace them later):
 
+The bar carries the interface language and the digits
+(`features/site/landing-locale-picker.tsx`), so a visitor can switch before
+entering: the same controls as Settings (`LanguageSelect`, `numerals`; a
+language brings its usual digits, the digits menu sets others), saved
+the same way — in the browser for a visitor or guest (`lib/guest-data.ts`),
+on the account once signed in — so the app opens as chosen. On phones they
+take a row of their own under the brand.
+
 1. **Hero** — a rosette (`landing/pattern.tsx`) draws itself around the mark
    while «هذا بصائر للناس» (45:20) appears word by word; a soft light follows
    the pointer on desktop.
