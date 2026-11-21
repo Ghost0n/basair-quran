@@ -594,6 +594,7 @@ df -h /srv && du -sh data/*            # disk
 | Symptom | Look at |
 |---|---|
 | Release fails at "Deploy" with "did not become ready" | the run's log (the last `/api/ready` answer), then on the server `dc logs api`. The previous release was put back. |
+| `/api/offline/manifest.json` answers 404, and the app finds no translations or packs to download | the background pack build failed. Before Q-Basair-131 it died on `No module named 'src'` (the release doesn't copy `src/`; the job now also reads the image's `/app`). The next deploy rebuilds it while the manifest is missing. To see a failure, run it in the foreground: `dc run --rm -v "$PWD:/repo" -w /repo -e PYTHONPATH=/repo:/app api python scripts/build_offline_packs.py --output data/offline` |
 | …and the last answer is nginx's `301 Moved Permanently` | the check asked over plain HTTP while TLS is on: `deploy.sh` from before Q-Basair-129 picked HTTPS only if it could read `letsencrypt/live/` (root-only). Fixed: it asks over HTTPS first. |
 | Release fails at the image scan | the Trivy table in the run: upgrade the package (or base image); accept only with a reason in `.trivyignore` |
 | `Permission denied (publickey)` in the run | `DEPLOY_SSH_KEY` is the whole private key, **without a passphrase** (`ssh-keygen -p -f basair-deploy`, then paste it again); its public half is in `~deploy/.ssh/authorized_keys` (`ssh-keygen -l -f` on both sides shows the same fingerprint); `DEPLOY_USER` is `deploy` |
