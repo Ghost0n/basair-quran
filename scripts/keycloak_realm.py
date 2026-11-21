@@ -25,6 +25,12 @@ Settings come from the environment (or the flags):
 
 ``--dev`` adds a local admin, moderator and member (password ``Basair-dev-1``)
 for development only.
+
+Keycloak imports the realm on its first start only. ``--sync web-client`` and
+``--sync provider`` re-apply what a later settings change must reach in an
+existing realm (the web client's addresses, a provider's ``prompt``): Keycloak's
+JSON in on stdin, the update out on stdout, nothing when it already matches.
+deploy/server/deploy.sh runs them on every deploy.
 """
 
 from __future__ import annotations
@@ -48,6 +54,11 @@ LOCALES = [
     "ar", "en", "fr", "es", "de", "pt", "it", "nl", "ru", "tr", "az", "uz", "bs", "sq",
     "fa", "ur", "id", "ms", "bn", "hi", "zh-CN", "ja", "ko", "sw",
 ]
+# The `prompt` Keycloak sends a provider. Left empty, Keycloak forwards the web's
+# own: «New account» asks for `prompt=create`, which Google refuses
+# (Error 400: invalid_request). Re-applied to an existing realm by `--sync`.
+PROVIDER_PROMPTS = {"google": "select_account"}
+WEB_CLIENT = "qbasair-web"
 
 
 def _mappers(*, api_audience: bool) -> list[dict]:
@@ -112,7 +123,8 @@ def _identity_providers(env: dict) -> list[dict]:
     if env.get("KC_GOOGLE_CLIENT_ID") and env.get("KC_GOOGLE_CLIENT_SECRET"):
         providers.append({**common, "alias": "google", "providerId": "google", "displayName": "Google",
                           "config": {"clientId": env["KC_GOOGLE_CLIENT_ID"], "clientSecret": env["KC_GOOGLE_CLIENT_SECRET"],
-                                     "syncMode": "IMPORT", "defaultScope": "openid email profile"}})
+                                     "syncMode": "IMPORT", "defaultScope": "openid email profile",
+                                     "prompt": PROVIDER_PROMPTS["google"]}})
     if env.get("KC_FACEBOOK_CLIENT_ID") and env.get("KC_FACEBOOK_CLIENT_SECRET"):
         providers.append({**common, "alias": "facebook", "providerId": "facebook", "displayName": "Meta (Facebook)",
                           "config": {"clientId": env["KC_FACEBOOK_CLIENT_ID"], "clientSecret": env["KC_FACEBOOK_CLIENT_SECRET"],
@@ -252,6 +264,21 @@ def _dev_users() -> list[dict]:
     return [user("admin", ["admin"]), user("moderator", ["moderator"]), user("member", [])]
 
 
+def _web_addresses(public: str) -> dict:
+    """The web client's addresses, all from QBASAIR_PUBLIC_URL."""
+    return {
+        "rootUrl": public,
+        "redirectUris": [f"{public}/api/auth/oidc/callback"],
+        # The sign-in pages' way back to the app (and Keycloak's «back to application»).
+        "baseUrl": f"{public}/",
+        "webOrigins": [public],
+    }
+
+
+def _web_address_attributes(public: str) -> dict:
+    return {"post.logout.redirect.uris": f"{public}/*"}
+
+
 def build_realm(env: dict, *, dev: bool = False) -> dict:
     public = (env.get("QBASAIR_PUBLIC_URL") or "").rstrip("/")
     secret = env.get("QBASAIR_OIDC_CLIENT_SECRET") or ""
@@ -319,11 +346,8 @@ def build_realm(env: dict, *, dev: bool = False) -> dict:
                 "implicitFlowEnabled": False,
                 "directAccessGrantsEnabled": False,
                 "serviceAccountsEnabled": True,
-                "redirectUris": [f"{public}/api/auth/oidc/callback"],
-                # The sign-in pages' way back to the app (and Keycloak's «back to application»).
-                "baseUrl": f"{public}/",
-                "webOrigins": [public],
-                "attributes": {"pkce.code.challenge.method": "S256", "post.logout.redirect.uris": f"{public}/*"},
+                **_web_addresses(public),
+                "attributes": {"pkce.code.challenge.method": "S256", **_web_address_attributes(public)},
                 # The service account asks for kc-admin-api: Keycloak's admin API only
                 # accepts tokens with its own audience.
                 # Listing scopes replaces Keycloak's defaults, so the defaults are named too.
@@ -366,15 +390,72 @@ def build_realm(env: dict, *, dev: bool = False) -> dict:
     return realm
 
 
+def sync_web_client(live: dict, env: dict) -> dict | None:
+    """The web client as Keycloak holds it, with its addresses set from
+    QBASAIR_PUBLIC_URL; None when they already match.
+
+    Keycloak imports the realm on its first start only, so a public address
+    fixed later in .env.production never reaches it (sign-in then fails with
+    «Invalid parameter: redirect_uri»). The deploy re-applies the addresses:
+    every other field is left as it is, and the secret is dropped from the
+    update (Keycloak keeps the one it has)."""
+    public = (env.get("QBASAIR_PUBLIC_URL") or "").rstrip("/")
+    if not public:
+        raise ValueError("QBASAIR_PUBLIC_URL is required.")
+    addresses = _web_addresses(public)
+    attributes = _web_address_attributes(public)
+    current_attributes = live.get("attributes") or {}
+    if all(live.get(key) == value for key, value in addresses.items()) and all(
+        current_attributes.get(key) == value for key, value in attributes.items()
+    ):
+        return None
+    updated = {key: value for key, value in live.items() if key != "secret"}
+    updated.update(addresses)
+    updated["attributes"] = {**current_attributes, **attributes}
+    return updated
+
+
+def sync_identity_provider(live: dict) -> dict | None:
+    """A provider as Keycloak holds it, with the `prompt` this realm sends it
+    (PROVIDER_PROMPTS); None when it already matches or has none to set. The
+    masked client secret Keycloak returns is sent back as is: Keycloak keeps
+    the stored one."""
+    prompt = PROVIDER_PROMPTS.get(live.get("alias", ""))
+    config = live.get("config") or {}
+    if prompt is None or config.get("prompt") == prompt:
+        return None
+    return {**live, "config": {**config, "prompt": prompt}}
+
+
+def _sync(kind: str) -> int:
+    """`--sync web-client|provider`: Keycloak's JSON in on stdin, the update out
+    on stdout, nothing when there is nothing to change (deploy/server/deploy.sh)."""
+    live = json.load(sys.stdin)
+    if isinstance(live, list):  # a search answers with a list
+        live = live[0] if live else {}
+    try:
+        updated = sync_web_client(live, dict(os.environ)) if kind == "web-client" else sync_identity_provider(live)
+    except ValueError as exc:
+        print(exc, file=sys.stderr)
+        return 1
+    if updated is not None:
+        sys.stdout.write(json.dumps(updated))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--output", type=Path, default=OUTPUT)
     parser.add_argument("--dev", action="store_true", help="add local admin / moderator / member accounts")
+    parser.add_argument("--sync", choices=["web-client", "provider"],
+                        help="re-apply this realm's addresses or provider prompt to Keycloak's JSON (stdin → stdout)")
     args = parser.parse_args(argv)
     # The summary line carries «→» and «·»: a Windows console (cp1252) cannot encode them.
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(errors="replace")
+    if args.sync:
+        return _sync(args.sync)
     try:
         realm = build_realm(dict(os.environ), dev=args.dev)
     except ValueError as exc:

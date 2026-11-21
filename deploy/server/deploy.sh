@@ -81,16 +81,22 @@ env_bare() { env_value "$1" | tr -d "\"' "; }
 
 keycloak_enabled() { [[ ",$(env_bare COMPOSE_PROFILES)," == *",keycloak,"* ]]; }
 
-# Keycloak's settings, checked before anything changes.
-if keycloak_enabled; then
-  missing=""
-  for key in QBASAIR_AUTH_DOMAIN QBASAIR_PUBLIC_URL QBASAIR_OIDC_CLIENT_SECRET KC_DB_PASSWORD KC_BOOTSTRAP_ADMIN_PASSWORD; do
-    [[ -n "$(env_bare "${key}")" ]] || missing="${missing} ${key}"
-  done
-  [[ -z "${missing}" ]] || fail "COMPOSE_PROFILES has keycloak but .env.production lacks:${missing} (docs/deployment.md → Keycloak)."
-  [[ "$(env_bare QBASAIR_AUTH_PROVIDER)" == "keycloak" ]] \
-    || log "note: the keycloak profile is on but QBASAIR_AUTH_PROVIDER is not \"keycloak\": sign-in stays local."
-fi
+# The settings, checked before anything changes: the file's form (BOM, CRLF),
+# local addresses left from a test copy, Keycloak's settings.
+bash "${APP_DIR}/deploy/server/check-env.sh" "${ENV_FILE}" \
+  || fail "fix .env.production (the lines above), then deploy again — nothing was changed."
+
+# Written into .env.production once the release is live, so a plain
+# `docker compose --env-file .env.production …` by hand runs it as deploy.sh
+# does: its images, the deploy user's uid (files in data/ stay that user's) and
+# the commit /api/ready reports.
+set_env_value() {
+  if grep -qE "^$1=" "${ENV_FILE}"; then
+    sed -i "s|^$1=.*|$1=$2|" "${ENV_FILE}"
+  else
+    echo "$1=$2" >> "${ENV_FILE}"
+  fi
+}
 
 wait_ready() {
   local tag="$1" deadline=$((SECONDS + READY_TIMEOUT)) body="" domain
@@ -160,6 +166,45 @@ keycloak_console_address() {
   fi
 }
 
+# Keycloak imports the realm on its first start only, so a later change to
+# .env.production never reaches it by itself. What such a change must reach is
+# re-applied here (scripts/keycloak_realm.py --sync): the web client's
+# addresses, from QBASAIR_PUBLIC_URL (else sign-in fails with "Invalid
+# parameter: redirect_uri"), and each provider's own prompt (else Google
+# refuses the web's prompt=create). Signs in inside the container with the
+# bootstrap admin (the password stays there); never fails the deploy.
+KCADM_CONFIG=/tmp/kcadm-deploy.config
+kcadm() { compose "${TAG}" exec -T keycloak /opt/keycloak/bin/kcadm.sh "$@" --config "${KCADM_CONFIG}"; }
+realm_sync() { compose "${TAG}" run --rm --no-deps -T keycloak-realm python scripts/keycloak_realm.py --sync "$1"; }
+
+# Keycloak's JSON at $1 through `realm_sync $2`, written back when it changed.
+sync_realm_object() {
+  local path="$1" kind="$2" live update
+  live="$(kcadm get "${path}" -r qbasair)" || return 1
+  update="$(printf '%s' "${live}" | realm_sync "${kind}")" || return 1
+  [[ -n "${update}" ]] || return 0
+  printf '%s' "${update}" | kcadm update "${path}" -r qbasair -f - >/dev/null || return 1
+  log "Keycloak: ${path} updated from .env.production"
+}
+
+keycloak_sync_realm() {
+  local id alias ok=1
+  # shellcheck disable=SC2016  # expanded inside the container
+  if ! compose "${TAG}" exec -T keycloak bash -c \
+      '/opt/keycloak/bin/kcadm.sh config credentials --config "$0" --server http://127.0.0.1:8080 --realm master \
+         --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD"' "${KCADM_CONFIG}" >/dev/null 2>&1; then
+    log "WARNING: could not sign in to Keycloak as KC_BOOTSTRAP_ADMIN_USERNAME to check the realm (changed its password? write the new one in .env.production — docs/deployment.md → Keycloak)."
+    return 0
+  fi
+  id="$(kcadm get clients -r qbasair -q clientId=qbasair-web --fields id --format csv --noquotes | tr -d '\r\n')" || id=""
+  if [[ -z "${id}" ]] || ! sync_realm_object "clients/${id}" web-client; then ok=0; fi
+  for alias in $(kcadm get identity-provider/instances -r qbasair --fields alias --format csv --noquotes | tr -d '\r') ; do
+    sync_realm_object "identity-provider/instances/${alias}" provider || ok=0
+  done
+  compose "${TAG}" exec -T keycloak rm -f "${KCADM_CONFIG}" >/dev/null 2>&1 || true
+  [[ "${ok}" == "1" ]] || log "WARNING: the realm's addresses or providers could not be checked: set them in the console (docs/deployment.md → Keycloak)."
+}
+
 # 1. The new release.
 start_release "${TAG}"
 
@@ -188,16 +233,16 @@ if [[ "${CURRENT}" != "${TAG}" ]]; then
   [[ -n "${CURRENT}" ]] && echo "${CURRENT}" > "${STATE_DIR}/previous"
   echo "${TAG}" > "${STATE_DIR}/current"
 fi
-# So that a plain `docker compose --env-file .env.production ...` by hand
-# addresses the release that is live.
-if grep -qE '^QBASAIR_IMAGE_TAG=' "${ENV_FILE}"; then
-  sed -i "s/^QBASAIR_IMAGE_TAG=.*/QBASAIR_IMAGE_TAG=${TAG}/" "${ENV_FILE}"
-else
-  echo "QBASAIR_IMAGE_TAG=${TAG}" >> "${ENV_FILE}"
-fi
+set_env_value QBASAIR_IMAGE_TAG "${TAG}"
+set_env_value QBASAIR_COMMIT_SHA "${TAG}"
+set_env_value QBASAIR_RUN_UID "$(id -u)"
+set_env_value QBASAIR_RUN_GID "$(id -g)"
 echo "$(date -u +%FT%TZ) ${TAG} ${JOBS:-}" >> "${STATE_DIR}/history"
 log "${TAG} is live"
-if keycloak_enabled && wait_keycloak; then keycloak_console_address; fi
+if keycloak_enabled && wait_keycloak; then
+  keycloak_console_address
+  keycloak_sync_realm
+fi
 
 # 4. Long data jobs, in the background (detached containers; resumable).
 # Run on the deploy files themselves: the offline packs read the interface

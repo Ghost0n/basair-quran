@@ -4,8 +4,12 @@
 # (docs/deployment.md → "1. Prepare the server"). Run as root, from a checkout:
 #
 #   scp deploy/server/setup.sh root@<server>:
-#   ssh root@<server> bash setup.sh --ssh-key "ssh-ed25519 AAAA... github-deploy" \
-#       --admin-key "ssh-ed25519 AAAA... you"
+#   ssh root@<server> "bash setup.sh --ssh-key 'ssh-ed25519 AAAA... github-deploy' \
+#       --admin-key 'ssh-ed25519 AAAA... you'"
+#
+# The whole remote command is one quoted string: ssh joins its arguments with
+# spaces, so an unquoted key would reach the server cut at its first space.
+# The deploy key must have no passphrase (the release workflow can't type one).
 #
 # It is safe to run again (every step checks before it changes anything).
 #
