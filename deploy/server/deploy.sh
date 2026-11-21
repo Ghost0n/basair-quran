@@ -100,13 +100,16 @@ set_env_value() {
 
 wait_ready() {
   local tag="$1" deadline=$((SECONDS + READY_TIMEOUT)) body="" domain
-  domain="$(env_value QBASAIR_PUBLIC_DOMAIN)"
+  domain="$(env_bare QBASAIR_PUBLIC_DOMAIN)"
   while (( SECONDS < deadline )); do
-    # Through nginx, as a visitor would: HTTPS once the certificate exists
-    # (plain HTTP then only redirects), plain HTTP before.
-    if [[ -n "${domain}" && -f "letsencrypt/live/${domain}/fullchain.pem" ]]; then
+    # Through nginx, as a visitor would: HTTPS first (with a certificate, plain
+    # HTTP only redirects), plain HTTP when nginx serves no HTTPS yet. Not decided
+    # from letsencrypt/live/: certbot keeps it root-only, so this user can't see it.
+    body=""
+    if [[ -n "${domain}" ]]; then
       body="$(curl -sSk --max-time 5 --resolve "${domain}:443:127.0.0.1" "https://${domain}/api/ready" 2>/dev/null || true)"
-    else
+    fi
+    if [[ "${body}" != *'"db"'* ]]; then
       body="$(curl -sS --max-time 5 -H "Host: ${domain:-localhost}" http://127.0.0.1/api/ready 2>/dev/null || true)"
     fi
     if [[ "${body}" == *'"db":true'* && "${body}" == *"\"commit\":\"${tag}\""* ]]; then
