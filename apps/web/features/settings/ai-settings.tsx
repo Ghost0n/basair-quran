@@ -19,6 +19,7 @@ import {
 } from "@/lib/ai-connection";
 import { FOLLOW_INTERFACE, setAnswerLanguage, useAnswerLanguageChoice } from "@/lib/answer-language";
 import { APP_MODE } from "@/lib/app-mode/config";
+import { useAuthSession } from "@/lib/auth-session-context";
 import { startOpenRouterSignIn } from "@/lib/openrouter-signin";
 import { LOCALES, t } from "@/lib/i18n";
 
@@ -41,6 +42,7 @@ export function AiSettings() {
   const provider = connection.provider;
   const spec = providers.find((item) => item.id === provider) ?? null;
   const key = provider ? connection.keys[provider] : undefined;
+  const signedIn = Boolean(useAuthSession().user);
   const model = provider ? connection.models[provider] : undefined;
 
   useEffect(() => {
@@ -152,7 +154,7 @@ export function AiSettings() {
                   {t("احصل على مفتاح من {0}", { 0: spec.name })}
                 </a>
                 {" · "}
-                {t("يبقى على هذا الجهاز.")}
+                {signedIn ? t("يُحفظ مشفّرًا في حسابك، على كل أجهزتك.") : t("يبقى على هذا الجهاز.")}
               </span>
             </div>
             <div className="ctl">

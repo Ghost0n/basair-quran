@@ -1,4 +1,6 @@
 import type {
+  AiConnectionState,
+  AiConnectionUpdate,
   AiProviderItem,
   OpenRouterKeyResponse,
   AyahReaderResponse,
@@ -383,6 +385,16 @@ export function createQBasairApiClient(options: QBasairApiClientOptions) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, code_verifier: codeVerifier }),
       });
+    },
+    /** The signed-in reader's AI connection, from their account (401 for a guest). */
+    getAiConnection(options?: RequestOptions): Promise<AiConnectionState> {
+      return request<AiConnectionState>("/user/ai-connection", { cache: "no-store" }, options);
+    },
+    saveAiConnection(connection: AiConnectionUpdate, options?: RequestOptions): Promise<AiConnectionState> {
+      return request<AiConnectionState>("/user/ai-connection", { method: "PUT", body: JSON.stringify(connection) }, options);
+    },
+    deleteAiConnection(options?: RequestOptions): Promise<DeleteResult> {
+      return request<DeleteResult>("/user/ai-connection", { method: "DELETE" }, options);
     },
     getResearchAgentSettings(options?: RequestOptions): Promise<ResearchAgentSettingsResponse> {
       return request<ResearchAgentSettingsResponse>(

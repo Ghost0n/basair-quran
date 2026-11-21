@@ -19,8 +19,26 @@ them is there (`recommendedModels`; the key is tested by that list; the first re
 is preselected). **No address is ever asked**: each provider's address
 is known on the server (`src/app/services/llm_providers.py`).
 
-The key and the choice stay **on this device** (`apps/web/lib/ai-connection.ts`, local
-storage); «نسيان المفتاح» removes a key. The study page's former Ollama key is carried over once.
+Where the key and the choice are kept (`apps/web/lib/ai-connection.ts`):
+
+- **A guest**: on this device only (local storage).
+- **A signed-in reader**: on their **account** too, so a key entered on one device is there on
+  every other after sign-in (`features/shell/ai-connection-account-sync.tsx`). At sign-in the
+  account's connection replaces the browser's, except when a change made here hasn't reached
+  the account yet, or the account has none and the device has the guest's own: that one is carried
+  into the account. Each change is saved to the account (`PUT /api/user/ai-connection`). At
+  sign-out the connection **leaves the browser** (`lib/forget-account.ts`); a browser a session
+  ended on forgets it at the next visit. `qb.ai.connection.owner` records whose connection the
+  browser holds and whether a change is still on its way to the account.
+- On the server (`src/app/services/ai_key_service.py`): one row per account in the app database
+  (`ai_connections`), encrypted with Fernet (AES-128-CBC + HMAC-SHA256) under a key derived
+  (HKDF-SHA256) from `QBASAIR_AI_KEYS_SECRET`, or from `QBASAIR_SESSION_SECRET` when that is unset.
+  A row the current secret can't open reads as no connection (the reader enters the key again).
+  Only providers the server knows are accepted; keys go back to their own account only, never
+  cached (`Cache-Control: no-store`), and are deleted with the account.
+
+«نسيان المفتاح» removes a key (on the account too). The study page's former Ollama key is carried
+over once.
 
 ## In the chat
 
@@ -91,11 +109,17 @@ Without the provider header, the earlier behaviour holds (the server's model, or
 - `GET /api/ai/providers` → `AiProviderItem[]` `{id, name, key_url, signin, prefer, thinking}` — no addresses.
 - `POST /api/ai/openrouter/key` `{code, code_verifier}` → `{key}` — OpenRouter's sign-in: the
   code it sent back to `/connect/openrouter`, exchanged at OpenRouter's fixed address; the key
-  goes back to the reader's device, the server keeps nothing.
+  goes back to the reader's device, the server keeps nothing (a signed-in reader's device then
+  saves it to their account, below).
+- `GET /api/user/ai-connection` → `AiConnectionState` `{provider, keys, models, updated_at}`
+  (`updated_at` `0`: nothing saved) · `PUT` `AiConnectionUpdate` `{provider, keys, models}` →
+  the saved state (`422`: unknown provider, key over 4096 or model over 200 characters) ·
+  `DELETE` → `{deleted}`. Signed-in accounts only (`401` otherwise), `Cache-Control: no-store`.
 
 ## Next
 
-- Accounts on the platform: keys kept server-side, encrypted (AES-256-GCM), write-only
-  (`docs/production-platform-plan.md`, AI connectors), and a demo allowance.
+- Write-only keys: the server would make the provider calls itself, so a key never comes back
+  to the browser once saved (`docs/production-platform-plan.md`, AI connectors), and a demo
+  allowance.
 - OpenRouter's sign-in in the standalone app (its return needs the app's link).
 - Illustrated per-provider guides in every interface language.

@@ -382,13 +382,18 @@ html.qb-web body .qb-studio-stage > .qb-thread-latest {
   outline: none;
 }
 
-/* The notices take the readable column, like the other banners. */
+/* The notices take the readable column, like the other banners, and keep
+   their 20px sides when the pane is narrower than it (side by side with the
+   Mushaf): never against the rail or the pane's edge. */
 .qb-web .qb-studio.is-desk .qb-studio-notice {
   box-sizing: border-box;
-  width: 100%;
+  width: calc(100% - 40px);
   max-width: 760px;
   margin-inline: auto;
   align-self: center;
+  /* Clear of the top bar: it is sticky and fades out over its lower edge, so
+     6px under it read as tucked behind it. */
+  margin-block-start: 18px;
 }
 /* With the AI controls beside it, the keyboard hint needs more room. */
 @container (max-width: 820px) {

@@ -874,15 +874,16 @@ def undo_merge(user_id: int, undo_token: str) -> dict:
 def delete_user_data(user_id: int) -> int:
     """Erase all user-generated content for ``user_id`` (account deletion).
 
-    Removes notebook items, research sessions, followed roots, themes, research documents, preferences, and
-    merge-log rows. Never touches guest (``user_id = 0``) data. Returns the total
+    Removes notebook items, research sessions, followed roots, themes, research documents, preferences, the
+    AI connection (its keys) and merge-log rows. Never touches guest (``user_id = 0``) data. Returns the total
     number of rows deleted.
     """
     if user_id == DEFAULT_USER_ID:
         raise ValueError("Refusing to delete guest data via account deletion.")
-    from src.app.services import community_service
+    from src.app.services import ai_key_service, community_service
 
     community_service.delete_user_content(user_id)
+    ai_key_service.delete_connection(user_id)
     total = 0
     with _connect() as connection:
         for table in (

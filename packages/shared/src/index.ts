@@ -227,6 +227,19 @@ export interface OpenRouterKeyResponse {
   key: string;
 }
 
+/** A signed-in reader's AI connection, kept encrypted on their account (`/user/ai-connection`). */
+export interface AiConnectionUpdate {
+  /** null: the server's own model. */
+  provider: AiProviderId | null;
+  keys: Partial<Record<AiProviderId, string>>;
+  models: Partial<Record<AiProviderId, string>>;
+}
+
+export interface AiConnectionState extends AiConnectionUpdate {
+  /** Unix seconds of the last save; 0: nothing saved on the account. */
+  updated_at: number;
+}
+
 export interface ResearchProviderInfo {
   /** "ollama": the server's own (or Ollama Cloud); else the reader's provider. */
   provider: AiProviderId;
