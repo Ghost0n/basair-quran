@@ -170,6 +170,9 @@ nano .env.production
 Fill in at least the values marked `CHANGE`:
 
 - `QBASAIR_SESSION_SECRET` — `openssl rand -hex 48` (the stack refuses to start without it);
+  readers' AI keys kept on their account are encrypted with a key derived from it, unless
+  `QBASAIR_AI_KEYS_SECRET` is set (optional; changing either later means readers enter their
+  keys again);
 - `CERTBOT_EMAIL` — for Let's Encrypt's expiry notices;
 - the SMTP settings, for password-reset emails (optional);
 - `OLLAMA_API_KEY` — the server's own model for Basair's default AI and community moderation (optional);

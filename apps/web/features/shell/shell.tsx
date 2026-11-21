@@ -1,5 +1,6 @@
 "use client";
 
+import { AiConnectionAccountSync } from "./ai-connection-account-sync";
 import { LocaleAccountSync } from "./locale-account-sync";
 import { useEffect, useLayoutEffect, type ReactNode } from "react";
 
@@ -95,6 +96,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <ShellModeAttribute />
             <ShortcutsModal />
             <LocaleAccountSync />
+            <AiConnectionAccountSync />
             <MergeToast />
             <ThemeSweep />
           </SaveAyahProvider>

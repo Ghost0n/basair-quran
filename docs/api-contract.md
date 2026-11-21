@@ -100,6 +100,7 @@ This document freezes the backend contract that the future frontend migration wi
 - `GET /api/sessions` · `GET /api/sessions/{session_id}` · `POST /api/sessions` · `DELETE /api/sessions/{session_id}`
 - `GET /api/roots` · `POST /api/roots` · `DELETE /api/roots/{root_id}`
 - `GET /api/user/preferences` · `PATCH /api/user/preferences`
+- `GET /api/user/ai-connection` · `PUT /api/user/ai-connection` · `DELETE /api/user/ai-connection` (the reader's AI keys, below)
 - `GET /api/offline/{name}` — the standalone app's downloadable packs (see below)
 
 ## Standalone app notes
@@ -630,6 +631,13 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   (`thinking`: the levels it takes; empty for Mistral and DeepSeek, whose models decide).
 - `POST /api/ai/openrouter/key` `{code, code_verifier}` → `{key}` (OpenRouter's PKCE sign-in;
   `422` on a malformed verifier, `502` when OpenRouter refuses).
+- `GET /api/user/ai-connection` → `AiConnectionState` `{provider, keys, models, updated_at}`;
+  `PUT` with `AiConnectionUpdate` `{provider, keys, models}` → the saved state; `DELETE` →
+  `{deleted: true}`. A signed-in reader's provider choice, keys and models, kept encrypted on their
+  account so every device they sign in to finds them (docs/ai-connections.md). Signed-in only
+  (`401 auth_required`), `Cache-Control: no-store`; `422` for an unknown provider, a key over 4096
+  or a model name over 200 characters; `updated_at` `0` when nothing is saved; removed with the
+  account.
 - Both research endpoints accept optional per-request Ollama override headers:
   - `X-QBasair-Ollama-Key`
   - `X-QBasair-Ollama-Chat-Model`

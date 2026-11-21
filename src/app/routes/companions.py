@@ -5,7 +5,7 @@ enabled the rows are scoped to the session user; otherwise they fall back
 to the shared default user.
 """
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, Response
 
 from src.app.core import config
 from src.app.models.api import (
@@ -29,8 +29,10 @@ from src.app.models.api import (
     ThemeUpdate,
     UserPreferences,
     UserPreferencesUpdate,
+    AiConnectionState,
+    AiConnectionUpdate,
 )
-from src.app.services import app_data_service, research_document_service
+from src.app.services import ai_key_service, app_data_service, research_document_service
 
 router = APIRouter(prefix="/api", tags=["companions"])
 
@@ -269,3 +271,48 @@ def update_preferences(request: Request, payload: UserPreferencesUpdate) -> User
         patch, _resolve_user_id(request), _resolve_guest_id(request)
     )
     return UserPreferences(**preferences)
+
+
+# --- The reader's AI connection (docs/ai-connections.md) --------------------
+# Keys live on the account, encrypted (ai_key_service), and only go back to that
+# account: never cached anywhere (a shared cache would hand them to others).
+
+
+def _account_id(request: Request) -> int:
+    """Only a signed-in account has a connection here; a guest keeps it on the device."""
+    auth_user = getattr(request.state, "auth_user", None)
+    if auth_user is None or getattr(auth_user, "id", None) is None:
+        raise HTTPException(
+            status_code=401,
+            detail={"code": "auth_required", "gate": "account", "message": "Authentication required."},
+        )
+    return int(auth_user.id)
+
+
+def _private(response: Response) -> None:
+    response.headers["Cache-Control"] = "no-store"
+
+
+@router.get("/user/ai-connection", response_model=AiConnectionState)
+def get_ai_connection(request: Request, response: Response) -> AiConnectionState:
+    _private(response)
+    saved = ai_key_service.get_connection(_account_id(request))
+    return AiConnectionState(**saved) if saved else AiConnectionState()
+
+
+@router.put("/user/ai-connection", response_model=AiConnectionState)
+def save_ai_connection(request: Request, response: Response, payload: AiConnectionUpdate) -> AiConnectionState:
+    _private(response)
+    user_id = _account_id(request)
+    try:
+        saved = ai_key_service.save_connection(user_id, payload.provider, payload.keys, payload.models)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return AiConnectionState(**saved)
+
+
+@router.delete("/user/ai-connection", response_model=DeleteResult)
+def delete_ai_connection(request: Request, response: Response) -> DeleteResult:
+    _private(response)
+    ai_key_service.delete_connection(_account_id(request))
+    return DeleteResult(deleted=True)
