@@ -47,13 +47,25 @@ _DISCOVERY_TTL = 3600
 class OidcError(Exception):
     """A sign-in step failed; ``status`` is the HTTP status to answer with."""
 
-    def __init__(self, message: str, status: int = 400, *, upstream: int | None = None, reason: str | None = None):
+    def __init__(
+        self,
+        message: str,
+        status: int = 400,
+        *,
+        upstream: int | None = None,
+        reason: str | None = None,
+        restartable: bool = False,
+    ):
         super().__init__(message)
         self.status = status
         # Keycloak's own answer, when it refused: its HTTP status and `error` field
         # (e.g. 400 «invalidPasswordMinLengthMessage» for a password its policy refuses).
         self.upstream = upstream
         self.reason = reason
+        # Only our bookkeeping failed (the pending cookie expired or went missing, the
+        # code was already used): starting the sign-in again fixes it, and Keycloak,
+        # which already knows the reader, then finishes it without a page.
+        self.restartable = restartable
 
 
 @dataclass(frozen=True)
@@ -229,6 +241,7 @@ def begin_login(
     locale: str | None = None,
     link: str | None = None,
     login_hint: str | None = None,
+    retry: bool = False,
 ) -> tuple[str, dict]:
     """The Keycloak URL to send the browser to, and what to remember until it comes back.
 
@@ -237,7 +250,9 @@ def begin_login(
     session, sends the reader to the provider and comes back with ``kc_action_status``.
     """
     pending = {
-        "state": secrets.token_urlsafe(24),
+        # A restarted sign-in's state carries RETRY_MARK, which comes back from Keycloak
+        # even when the pending cookie doesn't: the callback restarts once, never twice.
+        "state": secrets.token_urlsafe(24) + (RETRY_MARK if retry else ""),
         "nonce": secrets.token_urlsafe(24),
         "verifier": secrets.token_urlsafe(48),
         "return_to": safe_return_to(return_to),
@@ -267,26 +282,39 @@ def begin_login(
 
 
 PENDING_TTL = 600
+RETRY_MARK = ".r"  # outside token_urlsafe's alphabet
+# Keycloak's own answers that a fresh sign-in fixes: its sign-in page sat open past
+# the session's life (error_description "authentication_expired").
+RESTARTABLE_ERRORS = {"temporarily_unavailable"}
+
+
+def is_retry(state: str | None) -> bool:
+    return bool(state) and state.endswith(RETRY_MARK)
 
 
 def complete_login(code: str, state: str, pending: dict | None) -> Identity:
     """Exchange the code (with the PKCE verifier) and check the ID token."""
     if not pending or not state or not secrets.compare_digest(str(pending.get("state", "")), state):
-        raise OidcError("The sign-in expired or was tampered with; start again.", status=400)
+        raise OidcError("The sign-in expired or was tampered with; start again.", status=400, restartable=True)
     if int(time.time()) - int(pending.get("at", 0)) > PENDING_TTL:
-        raise OidcError("The sign-in took too long; start again.", status=400)
-    tokens = _http_json(
-        "POST",
-        _backchannel(discovery()["token_endpoint"]),
-        form={
-            "grant_type": "authorization_code",
-            "code": code,
-            "redirect_uri": redirect_uri(),
-            "client_id": config.get_oidc_client_id(),
-            "client_secret": config.get_oidc_client_secret(),
-            "code_verifier": pending["verifier"],
-        },
-    )
+        raise OidcError("The sign-in took too long; start again.", status=400, restartable=True)
+    try:
+        tokens = _http_json(
+            "POST",
+            _backchannel(discovery()["token_endpoint"]),
+            form={
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": redirect_uri(),
+                "client_id": config.get_oidc_client_id(),
+                "client_secret": config.get_oidc_client_secret(),
+                "code_verifier": pending["verifier"],
+            },
+        )
+    except OidcError as exc:
+        # A code Keycloak no longer accepts (already used, or its session ended).
+        exc.restartable = exc.reason == "invalid_grant"
+        raise
     if not isinstance(tokens, dict) or not tokens.get("id_token"):
         raise OidcError("Keycloak returned no ID token.", status=502)
     claims = _decode(tokens["id_token"], audience=config.get_oidc_client_id())

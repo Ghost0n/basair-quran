@@ -50,6 +50,15 @@ changed its email since), the sign-in ends with `email_in_use`. Then it opens ou
 Errors come back as `/login?error=cancelled|failed|email_in_use|inactive`. «حساب جديد» is the same
 with `signup=1` (Keycloak's registration form).
 
+When only the bookkeeping failed, the callback starts the sign-in again **once** instead of showing
+`failed`: the pending cookie expired or is missing (a sign-in page left open, a first sign-in with a
+new Google account that took long), the code was already used (`invalid_grant`), or Keycloak's own
+page expired (`error=temporarily_unavailable`). It redirects to `/api/auth/oidc/login?retry=1`;
+Keycloak already knows the reader, so the restart finishes without a page. The restarted state ends
+with `.r`, so a second failure shows `failed` (no loop, even without cookies). A lost cookie also
+loses `return_to`, so that restart lands on `/`. Keycloak's `error` and `error_description` are
+logged (`oidc callback: Keycloak answered …`) for every failure but `access_denied`.
+
 **Sign-out** — `POST /api/auth/logout` ends our session and answers `logout_url` (Keycloak's
 end-session endpoint with the ID token as hint), which the client visits so Keycloak's session ends
 too, then comes back to the home page.

@@ -154,13 +154,16 @@ def test_the_callback_refuses_tampering_and_never_redirects_away(keycloak):
     started = client.get("/api/auth/oidc/login", params={"return_to": "//evil.example"}, follow_redirects=False)
     query = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(started.headers["location"]).query))
     fake.challenges["c"] = (query["nonce"], query["code_challenge"])
-    # A forged state is refused.
+    # A forged state is refused: no session, and the sign-in starts again (once) from scratch.
     bad = client.get("/api/auth/oidc/callback", params={"code": "c", "state": "forged"}, follow_redirects=False)
-    assert bad.headers["location"] == "/login?error=failed"
+    assert bad.headers["location"] == "/api/auth/oidc/login?retry=1&return_to=%2F"
     assert client.get("/api/auth/session").json()["authenticated"] is False
-    # A replayed callback (the pending cookie is gone) is refused too.
+    # A replayed callback (the pending cookie is gone) is refused too, and a restarted one fails for good.
     replay = client.get("/api/auth/oidc/callback", params={"code": "c", "state": query["state"]}, follow_redirects=False)
-    assert replay.headers["location"] == "/login?error=failed"
+    assert replay.headers["location"].startswith("/api/auth/oidc/login?retry=1")
+    again = client.get("/api/auth/oidc/callback", params={"code": "c", "state": "forged" + oidc_service.RETRY_MARK}, follow_redirects=False)
+    assert again.headers["location"] == "/login?error=failed"
+    assert client.get("/api/auth/session").json()["authenticated"] is False
     # A wrong nonce in the ID token is refused.
     fake.wrong_nonce = True
     done, _ = sign_in(client, fake, code="c2")
@@ -174,6 +177,60 @@ def test_the_callback_refuses_tampering_and_never_redirects_away(keycloak):
     assert cancelled.headers["location"] == "/login?error=cancelled"
     misconfigured = client.get("/api/auth/oidc/callback", params={"error": "invalid_scope"}, follow_redirects=False)
     assert misconfigured.headers["location"] == "/login?error=failed"
+
+
+def test_a_sign_in_whose_bookkeeping_failed_starts_again_once(keycloak, caplog):
+    """First sign-in with a new provider account: Keycloak comes back after the pending
+    cookie is gone, or its own page expired. The reader is sent through once more
+    (Keycloak knows them by then) instead of seeing "Couldn't sign in"."""
+    client, fake = keycloak
+    started = client.get("/api/auth/oidc/login", params={"return_to": "/reader"}, follow_redirects=False)
+    query = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(started.headers["location"]).query))
+    assert not oidc_service.is_retry(query["state"])
+    client.cookies.clear()  # the pending cookie expired while the reader was on Google
+    lost = client.get("/api/auth/oidc/callback", params={"code": "c", "state": query["state"]}, follow_redirects=False)
+    restart = lost.headers["location"]
+    assert restart == "/api/auth/oidc/login?retry=1&return_to=%2F"
+
+    # The restart is an ordinary sign-in whose state is marked; it completes normally.
+    again = client.get(restart, follow_redirects=False)
+    marked = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(again.headers["location"]).query))
+    assert oidc_service.is_retry(marked["state"]) and marked["client_id"] == "qbasair-web"
+    fake.challenges["c2"] = (marked["nonce"], marked["code_challenge"])
+    done = client.get("/api/auth/oidc/callback", params={"code": "c2", "state": marked["state"]}, follow_redirects=False)
+    assert done.headers["location"] == "/"
+    assert client.get("/api/auth/session").json()["authenticated"] is True
+
+    # Keycloak's own page expired: logged with its reason, then restarted once; never twice.
+    with caplog.at_level("WARNING"):
+        expired = client.get(
+            "/api/auth/oidc/callback",
+            params={"error": "temporarily_unavailable", "error_description": "authentication_expired", "state": "s"},
+            follow_redirects=False,
+        )
+    assert expired.headers["location"].startswith("/api/auth/oidc/login?retry=1")
+    assert "temporarily_unavailable (authentication_expired)" in caplog.text
+    twice = client.get(
+        "/api/auth/oidc/callback",
+        params={"error": "temporarily_unavailable", "state": "s" + oidc_service.RETRY_MARK},
+        follow_redirects=False,
+    )
+    assert twice.headers["location"] == "/login?error=failed"
+
+    # A code Keycloak no longer accepts (invalid_grant) restarts; another refusal does not.
+    real = fake.__call__
+
+    def refuse(reason):
+        def answer(method, url, **kwargs):
+            if url.endswith("/token") and kwargs.get("form", {}).get("grant_type") == "authorization_code":
+                raise oidc_service.OidcError("Keycloak answered 400", status=502, upstream=400, reason=reason)
+            return real(method, url, **kwargs)
+        return answer
+
+    for reason, expected in (("invalid_grant", "/api/auth/oidc/login?retry=1"), ("unauthorized_client", "/login?error=failed")):
+        oidc_service._http_json = refuse(reason)
+        refused, _ = sign_in(client, fake, code=f"c-{reason}")
+        assert refused.headers["location"].startswith(expected), reason
 
 
 def test_existing_accounts_are_linked_only_by_a_verified_email(keycloak):
