@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { canonicalOriginScript } from "./canonical-origin";
+import { canonicalOriginScript, scriptJson } from "./canonical-origin";
 
 /** Runs the script against a pretend `location`; returns where it moved to, if anywhere. */
 function run(siteUrl: string | undefined, pageUrl: string): string | null {
@@ -30,5 +30,19 @@ describe("one address for the local site", () => {
     expect(canonicalOriginScript("https://basairquran.com")).toBe("");
     expect(canonicalOriginScript(undefined)).toBe("");
     expect(canonicalOriginScript("not a url")).toBe("");
+  });
+
+  it("only scripts a plain local address", () => {
+    expect(canonicalOriginScript("ftp://localhost:3000")).toBe("");
+    expect(canonicalOriginScript("javascript://localhost:3000")).toBe("");
+  });
+
+  it("embeds values that cannot close the script tag or end a line", () => {
+    const json = scriptJson({ a: "</script><script>alert(1)</script>", b: "x\u2028y\u2029z" });
+    expect(json).not.toMatch(/[<>/\u2028\u2029]/);
+    expect(JSON.parse(json)).toEqual({ a: "</script><script>alert(1)</script>", b: "x\u2028y\u2029z" });
+    const script = canonicalOriginScript("http://localhost:3000");
+    expect(script).toContain("http:\\u002F\\u002Flocalhost:3000");
+    expect(script).not.toContain("</");
   });
 });
