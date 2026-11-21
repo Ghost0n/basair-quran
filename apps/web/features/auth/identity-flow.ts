@@ -3,6 +3,7 @@
 import type { AuthSessionResponse, GuestMergeResult } from "@q-basair/shared";
 import { createQBasairApiClient } from "@q-basair/api-client";
 
+import { navigateTo } from "@/lib/app-mode/navigation";
 import { API_BASE_URL } from "@/lib/config";
 import { forgetAccountOnThisDevice } from "@/lib/forget-account";
 import { uploadGuestData } from "@/lib/guest-data";
@@ -106,13 +107,13 @@ export function readAndClearMergeResult(): GuestMergeResult | null {
 export async function routeAfterAuth(session: AuthSessionResponse, nextPath: string): Promise<void> {
   const user = session.user;
   if (user && !user.onboarded) {
-    window.location.assign(`/welcome?next=${encodeURIComponent(nextPath)}`);
+    navigateTo(`/welcome?next=${encodeURIComponent(nextPath)}`);
     return;
   }
   if (user) {
     await maybeMergeGuestData();
   }
-  window.location.assign(nextPath);
+  navigateTo(nextPath);
 }
 
 /**

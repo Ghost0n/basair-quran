@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { navigateTo } from "@/lib/app-mode/navigation";
 import { AUTH_ENABLED } from "@/lib/config";
 
 import "@/features/auth/auth.css";
@@ -28,7 +29,7 @@ export function WelcomeFlow() {
 
   useEffect(() => {
     if (!AUTH_ENABLED) {
-      window.location.assign("/");
+      navigateTo("/");
       return;
     }
     let active = true;
@@ -37,21 +38,21 @@ export function WelcomeFlow() {
         const session = await identityApi.getAuthSession({ suppressAuthRedirect: true });
         if (!active) return;
         if (!session.enabled) {
-          window.location.assign("/");
+          navigateTo("/");
           return;
         }
         if (!session.authenticated || !session.user) {
-          window.location.assign(`/login?next=${encodeURIComponent("/welcome")}`);
+          navigateTo(`/login?next=${encodeURIComponent("/welcome")}`);
           return;
         }
         // Already onboarded — the welcome flow shows once per account.
         if (session.user.onboarded) {
-          window.location.assign(nextPath);
+          navigateTo(nextPath);
           return;
         }
         setReady(true);
       } catch {
-        window.location.assign(`/login?next=${encodeURIComponent("/welcome")}`);
+        navigateTo(`/login?next=${encodeURIComponent("/welcome")}`);
       }
     }
     void check();
@@ -71,7 +72,7 @@ export function WelcomeFlow() {
     } catch {
       // Even if persistence fails, don't trap the user on the welcome screen.
     }
-    window.location.assign(nextPath);
+    navigateTo(nextPath);
   }
 
   if (!ready) {

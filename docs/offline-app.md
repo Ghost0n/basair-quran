@@ -134,6 +134,7 @@ last device to sync wins, per row.
 | `apps/web/lib/app-mode/audio.ts` | recitations downloaded per surah (a prepared surah as one recording + its timings, else its verse files), played from the device |
 | `apps/web/lib/app-mode/audio-ranges.ts` | a recitation range downloaded for offline listening (the recitation sheet) |
 | `apps/web/lib/app-mode/sync.ts` | when account sync runs (the algorithm is in `packages/offline-engine/src/sync.ts`) |
+| `apps/web/lib/app-mode/navigation.ts` | moving between pages: Capacitor answers every path without an extension with `index.html` (Home), so a full load of `/login`, `/welcome`… restarts the app on Home; the app's root turns same-origin link clicks into client navigations, and `navigateTo` does the same for code |
 | `apps/web/lib/app-mode/oidc.ts` | Keycloak sign-in: PKCE, the authorization request and callback, the tokens (exchange, refresh, sign-out) |
 | `apps/web/lib/app-mode/keycloak.ts` | its device side: the sign-in sheet, native HTTP, the secure store (the `QbAuth` plugin) |
 | `apps/mobile/ios/App/App/QbAuthPlugin.swift`, `apps/mobile/android/…/QbAuthPlugin.java` | the app's own plugin: ASWebAuthenticationSession (iOS) and the Keychain / Keystore store |
