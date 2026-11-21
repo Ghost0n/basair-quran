@@ -474,6 +474,22 @@ class AiProviderItem(BaseModel):
     thinking: List[Literal["off", "low", "medium", "high"]] = Field(default_factory=list)
 
 
+class AiConnectionUpdate(BaseModel):
+    """The reader's AI connection, saved on their account (encrypted; docs/ai-connections.md)."""
+
+    # None: the server's own model.
+    provider: Optional[str] = None
+    # Per provider id: the reader's key and chosen model.
+    keys: Dict[str, str] = Field(default_factory=dict)
+    models: Dict[str, str] = Field(default_factory=dict)
+
+
+class AiConnectionState(AiConnectionUpdate):
+    """The account's AI connection; `updated_at` is 0 when none is saved."""
+
+    updated_at: int = 0
+
+
 class OpenRouterKeyRequest(BaseModel):
     code: str = Field(min_length=1, max_length=512)
     code_verifier: str = Field(min_length=43, max_length=128)

@@ -1,11 +1,13 @@
 /**
  * The reader's AI connection (Settings → «الذكاء الاصطناعي», docs/ai-connections.md):
  * which provider the study uses — the server's own when none is chosen — and,
- * per provider, the reader's key and chosen model. Kept on this device only
- * (keys never go to our server except with the study's own requests); a key
- * can be forgotten from Settings.
+ * per provider, the reader's key and chosen model. A guest's stays on this
+ * device; a signed-in reader's is kept on their account too (encrypted,
+ * `/user/ai-connection`), so it is on every device they sign in to and leaves
+ * this browser at sign-out (`syncAiConnectionWithAccount`). A key can be
+ * forgotten from Settings.
  */
-import type { AiProviderId, ThinkingLevel } from "@q-basair/shared";
+import type { AiConnectionState, AiConnectionUpdate, AiProviderId, ThinkingLevel } from "@q-basair/shared";
 
 export type AiConnection = {
   /** null: the server's own model. */
@@ -17,6 +19,8 @@ export type AiConnection = {
 };
 
 export const AI_CONNECTION_KEY = "qb.ai.connection";
+/** Whose connection this browser holds (an account id, or null: the guest's own) and whether a change awaits the account. */
+export const AI_CONNECTION_OWNER_KEY = "qb.ai.connection.owner";
 // The study page's former settings (an Ollama key and model, this tab only).
 const LEGACY_KEY = "qbasair.research.ollama";
 
@@ -52,7 +56,7 @@ export function aiConnection(): AiConnection {
   return cached;
 }
 
-export function saveAiConnection(next: AiConnection): void {
+function store(next: AiConnection): void {
   cached = next;
   try {
     window.localStorage.setItem(AI_CONNECTION_KEY, JSON.stringify(next));
@@ -60,6 +64,135 @@ export function saveAiConnection(next: AiConnection): void {
   } catch {
     /* storage unavailable: the choice lasts this session only */
   }
+  listeners.forEach((listener) => listener());
+}
+
+/** The reader's change (Settings, the chat's picker, OpenRouter's sign-in): kept here, and on their account when signed in. */
+export function saveAiConnection(next: AiConnection): void {
+  store(next);
+  writeOwner({ ...readOwner(), pending: true });
+  if (account) schedulePush();
+}
+
+// ---- The signed-in reader's account copy -------------------------------------
+
+type Owner = { owner: number | null; pending: boolean };
+
+/** What the account sync needs of the API (the shell passes its client; tests a fake). */
+export type AiConnectionAccountApi = {
+  get(): Promise<AiConnectionState>;
+  save(connection: AiConnectionUpdate): Promise<AiConnectionState>;
+};
+
+let account: { id: number; api: AiConnectionAccountApi } | null = null;
+let pushTimer: ReturnType<typeof setTimeout> | null = null;
+const PUSH_DELAY_MS = 400;
+
+function readOwner(): Owner {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(AI_CONNECTION_OWNER_KEY) ?? "null") as Partial<Owner> | null;
+    return { owner: typeof parsed?.owner === "number" ? parsed.owner : null, pending: parsed?.pending === true };
+  } catch {
+    return { owner: null, pending: false };
+  }
+}
+
+function writeOwner(owner: Owner): void {
+  try {
+    window.localStorage.setItem(AI_CONNECTION_OWNER_KEY, JSON.stringify(owner));
+  } catch {
+    /* storage unavailable */
+  }
+}
+
+function hasContent(connection: AiConnection): boolean {
+  return Boolean(connection.provider) || Object.keys(connection.keys).length > 0 || Object.keys(connection.models).length > 0;
+}
+
+function toUpdate(connection: AiConnection): AiConnectionUpdate {
+  return { provider: connection.provider, keys: connection.keys, models: connection.models };
+}
+
+function adopt(saved: AiConnectionState, owner: number): void {
+  // The former thinking levels stay a device matter: kept as they were.
+  store({ provider: saved.provider ?? null, keys: saved.keys ?? {}, models: saved.models ?? {}, thinking: aiConnection().thinking });
+  writeOwner({ owner, pending: false });
+}
+
+function schedulePush(): void {
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    pushTimer = null;
+    void pushNow();
+  }, PUSH_DELAY_MS);
+}
+
+async function pushNow(): Promise<void> {
+  const target = account;
+  if (!target) return;
+  const sent = aiConnection();
+  try {
+    await target.api.save(toUpdate(sent));
+    // Done, unless it changed again meanwhile (that change has its own push).
+    if (account === target && aiConnection() === sent) writeOwner({ owner: target.id, pending: false });
+  } catch {
+    /* kept pending: sent again at the next change or sign-in */
+  }
+}
+
+/**
+ * Who is signed in, once the shell knows (null: a guest). For a reader: the
+ * account's connection replaces this browser's — unless a change made here
+ * hasn't reached it yet, or the account has none and this device has its own
+ * (a guest's key, carried into the account the first time). For a guest: a
+ * connection an account left here (signed out elsewhere, session ended) is
+ * forgotten; the guest's own stays.
+ */
+export async function syncAiConnectionWithAccount(userId: number | null, api: AiConnectionAccountApi): Promise<void> {
+  if (userId === null) {
+    account = null;
+    if (pushTimer) clearTimeout(pushTimer);
+    pushTimer = null;
+    if (readOwner().owner !== null) forgetAiConnectionOnThisDevice();
+    return;
+  }
+  account = { id: userId, api };
+  const local = aiConnection();
+  const { owner, pending } = readOwner();
+  let saved: AiConnectionState;
+  try {
+    saved = await api.get();
+  } catch {
+    return; /* offline or refused: this browser's copy, as it is */
+  }
+  if (account?.id !== userId) return;
+  const accountHasOne = saved.updated_at > 0;
+  const mine = owner === userId;
+  if ((mine && pending) || (owner === null && !accountHasOne && hasContent(local))) {
+    writeOwner({ owner: userId, pending: true });
+    await pushNow();
+    return;
+  }
+  if (accountHasOne || owner !== null) {
+    adopt(saved, userId);
+    return;
+  }
+  writeOwner({ owner: userId, pending: false });
+}
+
+/** Sign-out: the account's connection leaves this browser (lib/forget-account.ts). */
+export function forgetAiConnectionOnThisDevice(): void {
+  account = null;
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = null;
+  try {
+    window.localStorage.removeItem(AI_CONNECTION_KEY);
+    window.localStorage.removeItem(AI_CONNECTION_OWNER_KEY);
+    window.sessionStorage.removeItem(LEGACY_KEY);
+  } catch {
+    /* storage unavailable */
+  }
+  cached = null;
   listeners.forEach((listener) => listener());
 }
 
@@ -142,5 +275,8 @@ export function preferredModel(prefer: readonly string[], names: readonly string
 
 export function resetAiConnectionForTests(): void {
   cached = null;
+  account = null;
+  if (pushTimer) clearTimeout(pushTimer);
+  pushTimer = null;
   listeners.clear();
 }

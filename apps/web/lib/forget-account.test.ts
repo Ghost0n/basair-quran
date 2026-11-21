@@ -15,6 +15,7 @@ describe("forgetAccountOnThisDevice", () => {
       "qb.recents": "[]",
       "qb.reading.progress": "{}",
       "qb.ai.connection": '{"provider":"openrouter","keys":{"openrouter":"sk-x"}}',
+      "qb.ai.connection.owner": '{"owner":7,"pending":false}',
       "qb.lastBoard": "1",
       "qb.lastNotebook": "saved",
       "qb.locale": "en",
@@ -31,8 +32,8 @@ describe("forgetAccountOnThisDevice", () => {
 
     forgetAccountOnThisDevice();
 
-    // The provider keys are the device's: signing out and in again keeps them.
-    expect(Object.keys({ ...window.localStorage }).sort()).toEqual(["qb.ai.connection", "qb.locale", "theme"]);
+    // The provider keys are the account's (kept there, found again at sign-in): they leave too.
+    expect(Object.keys({ ...window.localStorage }).sort()).toEqual(["qb.locale", "theme"]);
     expect(window.sessionStorage.length).toBe(0);
   });
 });

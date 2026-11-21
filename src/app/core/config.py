@@ -214,6 +214,12 @@ def is_default_session_secret() -> bool:
     return get_session_secret() == DEV_SESSION_SECRET
 
 
+def get_ai_keys_secret() -> str:
+    """Encrypts the readers' AI keys kept on their accounts (ai_key_service).
+    Unset: the session secret (changing either makes saved keys unreadable)."""
+    return os.environ.get("QBASAIR_AI_KEYS_SECRET", "").strip() or get_session_secret()
+
+
 def get_session_cookie_name() -> str:
     raw_value = os.environ.get("QBASAIR_SESSION_COOKIE_NAME", "qbasair_session").strip()
     return raw_value or "qbasair_session"
