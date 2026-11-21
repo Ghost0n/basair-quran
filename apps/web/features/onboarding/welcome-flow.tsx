@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
+import { navigateTo } from "@/lib/app-mode/navigation";
 import { AUTH_ENABLED } from "@/lib/config";
 
 import { finishOnboarding, identityApi, sanitizeNextPath } from "@/features/auth/identity-flow";
@@ -21,7 +22,7 @@ export function WelcomeFlow() {
 
   useEffect(() => {
     if (!AUTH_ENABLED) {
-      window.location.assign("/");
+      navigateTo("/");
       return;
     }
     let active = true;
@@ -30,18 +31,18 @@ export function WelcomeFlow() {
         const session = await identityApi.getAuthSession({ suppressAuthRedirect: true });
         if (!active) return;
         if (!session.enabled) {
-          window.location.assign("/");
+          navigateTo("/");
           return;
         }
         if (!session.authenticated || !session.user) {
-          window.location.assign(`/login?next=${encodeURIComponent("/welcome")}`);
+          navigateTo(`/login?next=${encodeURIComponent("/welcome")}`);
           return;
         }
         if (!session.user.onboarded) await finishOnboarding();
       } catch {
         // Never trap the reader here.
       }
-      if (active) window.location.assign(nextPath);
+      if (active) navigateTo(nextPath);
     }
     void finish();
     return () => {
