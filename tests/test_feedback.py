@@ -99,3 +99,52 @@ def test_a_guest_leaves_a_real_email_to_be_answered(tmp_path, monkeypatch):
     finally:
         member.close()
         finalize()
+
+
+def test_a_contact_message_is_forwarded_to_the_contact_address(tmp_path, monkeypatch):
+    """The landing's contact form reaches contact@basairquran.com (or QBASAIR_CONTACT_EMAIL), replying to the sender."""
+    from src.app.services import mail_service
+
+    monkeypatch.setenv("QBASAIR_SMTP_HOST", "smtp.example.org")
+    monkeypatch.setenv("QBASAIR_SMTP_USER", "mailer@example.org")
+    monkeypatch.delenv("QBASAIR_CONTACT_EMAIL", raising=False)
+    sent = []
+    monkeypatch.setattr(mail_service, "transport", lambda settings, message: sent.append(message))
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        answer = client.post(
+            "/api/feedback",
+            json={"kind": "contact", "message": "سؤال عن التطبيق", "email": "guest@basair-mail.org", "language": "fr", "url": "/about"},
+        )
+        assert answer.status_code == 200
+        assert len(sent) == 1
+        mail = sent[0]
+        assert mail["To"] == "contact@basairquran.com"
+        assert mail["Reply-To"] == "guest@basair-mail.org"
+        assert "سؤال عن التطبيق" in mail.get_content()
+        assert f"#{answer.json()['id']}" in mail["Subject"]
+
+        # Other kinds stay in the feedback centre only.
+        client.post("/api/feedback", json={"kind": "bug", "message": "خطأ", "email": "guest@basair-mail.org"})
+        assert len(sent) == 1
+
+        monkeypatch.setenv("QBASAIR_CONTACT_EMAIL", "team@example.org")
+        client.post("/api/feedback", json={"kind": "contact", "message": "مرحباً", "email": "guest@basair-mail.org"})
+        assert sent[-1]["To"] == "team@example.org"
+    finally:
+        finalize()
+
+
+def test_a_contact_message_is_kept_when_mail_is_not_configured(tmp_path, monkeypatch):
+    from src.app.services import mail_service
+
+    monkeypatch.delenv("QBASAIR_SMTP_HOST", raising=False)
+    sent = []
+    monkeypatch.setattr(mail_service, "transport", lambda settings, message: sent.append(message))
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        answer = client.post("/api/feedback", json={"kind": "contact", "message": "مرحباً", "email": "guest@basair-mail.org"})
+        assert answer.status_code == 200
+        assert sent == []
+    finally:
+        finalize()

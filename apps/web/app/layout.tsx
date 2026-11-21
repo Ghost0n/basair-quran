@@ -9,6 +9,7 @@ import "./web-design.css";
 
 import { AppModeRoot } from "@/features/app-mode/app-mode-root";
 import { APP_MODE } from "@/lib/app-mode/config";
+import { canonicalOriginScript } from "@/lib/canonical-origin";
 import { LOCALE_INIT_SCRIPT } from "@/lib/i18n/init-script";
 import { I18nProvider } from "@/lib/i18n/provider";
 import { SITE_URL } from "@/lib/site";
@@ -74,7 +75,10 @@ const IOS_FOCUS_ZOOM_SCRIPT = `(function(){try{var n=navigator;if(!(/iPad|iPhone
 // never see a flash of the dark default (FOUC). Mirrors the classes the
 // workspace hook applies at runtime (`light` + `light-mode`). It also drops the
 // former per-device «مُعتِمة» choice: the app is always glass now.
-const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.body.classList.add('light','light-mode');}localStorage.removeItem('qb.transparency');}catch(e){}})();`;
+// The configured site address only (no default): a public site gets no script (lib/canonical-origin.ts).
+const CANONICAL_ORIGIN_SCRIPT = APP_MODE ? "" : canonicalOriginScript(process.env.NEXT_PUBLIC_SITE_URL);
+
+const THEME_INIT_SCRIPT =`(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.body.classList.add('light','light-mode');}localStorage.removeItem('qb.transparency');}catch(e){}})();`;
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -91,6 +95,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <link rel="preload" href="/fonts/ui/cairo-300-800-arabic.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="preload" href="/fonts/ui/amiri-400-arabic.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <meta name="theme-color" content="#131210" />
+        {/* Locally, one address (localhost or 127.0.0.1), so storage survives sign-in. */}
+        {CANONICAL_ORIGIN_SCRIPT ? <script dangerouslySetInnerHTML={{ __html: CANONICAL_ORIGIN_SCRIPT }} /> : null}
         <script dangerouslySetInnerHTML={{ __html: LOCALE_INIT_SCRIPT }} />
         {/* The web design (desktop web only): <html class="qb-web"> before first paint. */}
         <script dangerouslySetInnerHTML={{ __html: WEB_DESIGN_INIT_SCRIPT }} />

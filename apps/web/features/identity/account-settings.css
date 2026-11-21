@@ -45,33 +45,63 @@
   background: var(--gold-a08);
 }
 
-.qb-account-motifs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--sp-2);
+/* The medallion's pattern and colour (lib/avatar.ts): two rows of the
+   reader's own letter, one choice changed at a time. */
+.qb-account-look {
+  display: grid;
+  gap: var(--sp-3);
   margin-top: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--gold-a04);
   animation: qbFade var(--motion-dur-base) both;
 }
 
-.qb-account-motifs .tile {
-  width: 46px;
-  height: 46px;
-  border-radius: var(--r-md);
-  border: 1px solid var(--border);
-  background: transparent;
+.qb-account-look .row {
+  display: grid;
+  gap: 6px;
+}
+
+.qb-account-look .lbl {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--fg-3);
+}
+
+.qb-account-look .tiles {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.qb-account-look .tile {
+  display: grid;
+  place-items: center;
+  width: 50px;
+  height: 50px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
   cursor: pointer;
-  transition: border-color var(--motion-dur-fast) var(--motion-ease-settle),
-    background var(--motion-dur-fast) var(--motion-ease-settle);
+  transition:
+    border-color var(--motion-dur-fast) var(--motion-ease-settle),
+    transform var(--motion-dur-fast) var(--motion-ease-settle);
 }
 
-.qb-account-motifs .tile.selected {
+.qb-account-look .tile:hover {
+  transform: translateY(-1px);
+}
+
+.qb-account-look .tile.selected {
   border: 2px solid var(--gold-a55);
-  background: var(--gold-a12);
 }
 
+.qb-account-look .tile:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 2px;
+}
 /* ---------- Guest sign-in / sign-up ---------- */
 
 .qb-account-guest {
@@ -387,4 +417,130 @@
 .qb-device-eject.all:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* ---------- Linked accounts (linked-accounts.tsx) ---------- */
+
+.qb-linked-item + .qb-linked-item .qb-device-row {
+  border-top: 1px solid var(--divider);
+  border-image: var(--divider-fade) 1;
+}
+
+.qb-linked-item .qb-device-row {
+  border-bottom: none;
+}
+
+.qb-linked-mark {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+}
+
+.qb-linked-mark.on {
+  border-color: transparent;
+  background: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
+}
+
+.qb-linked-link {
+  flex: none;
+  padding: 5px 14px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border-focus);
+  color: var(--gold-text);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: var(--font-arabic-ui);
+  text-decoration: none;
+  transition: background var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-linked-link:hover {
+  background: rgba(212, 175, 55, 0.1);
+}
+
+.qb-linked-notice {
+  margin-top: var(--sp-2);
+  padding: 8px 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border-focus);
+  background: rgba(212, 175, 55, 0.08);
+  color: var(--gold-text);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-arabic-ui);
+}
+
+.qb-linked-password {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 var(--sp-2);
+  padding: 12px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.light .qb-linked-password {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.qb-linked-password p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fg-1);
+  line-height: 1.7;
+}
+
+.qb-linked-password label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--fg-2);
+}
+
+.qb-linked-password input {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  color: var(--fg-1);
+  font-size: 13px;
+}
+
+.light .qb-linked-password input {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.qb-linked-password input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+
+.qb-linked-password .hint {
+  font-size: 11px;
+  color: var(--fg-3);
+}
+
+.qb-linked-password .hint.error {
+  color: var(--danger-fg);
+  font-weight: 700;
+}
+
+.qb-linked-password .qb-account-delete-actions {
+  margin-top: 2px;
+}
+
+.qb-account-delete-actions button.primary {
+  border: none;
+  background: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
+  color: #140f00;
+  font-weight: 800;
 }

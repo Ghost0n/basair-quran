@@ -1,21 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type {
   ResearchAgentMessage,
   ResearchAgentResponse,
   ResearchFocusAyah,
+  ResearchSessionSummary,
   StoredMessage,
 } from "@q-basair/shared";
 
 import { API_BASE_URL } from "@/lib/config";
 import { isTechnicalMessage, reportError } from "@/lib/error-report";
 import { aiHeaders } from "@/lib/ai-connection";
+import { answerLanguageName } from "@/lib/answer-language";
 
 import { t } from "@/lib/i18n";
 
+import {
+  onResearchOutcome,
+  researchingSessions,
+  runResearch,
+  subscribeResearching,
+  takePendingResearchError,
+  type ResearchOutcome,
+} from "./research-runner";
 import { dropExtraBlanks, NEW_SESSION_PREFIX, placeNewSession, putSession } from "./session-reuse";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
@@ -63,6 +73,32 @@ function loadPersistedSessions(): PersistedStudioState | null {
   }
 }
 
+/** An outcome as a change to its session. */
+function outcomePatch(outcome: ResearchOutcome): Partial<StudioSession> {
+  return outcome.ok
+    ? { messages: outcome.messages as StudioMessage[] }
+    : { messages: outcome.messages as StudioMessage[], title: outcome.title };
+}
+
+/** A change to one session in the tab's kept sessions (the panel may be closed). */
+function writeAwaySession(id: string, patch: Partial<StudioSession>): void {
+  const persisted = loadPersistedSessions();
+  if (!persisted || !persisted.sessions.some((session) => session.id === id)) return;
+  try {
+    window.sessionStorage.setItem(
+      SESSIONS_STORAGE_KEY,
+      JSON.stringify({
+        ...persisted,
+        sessions: persisted.sessions.map((session) => (session.id === id ? { ...session, ...patch } : session)),
+      }),
+    );
+  } catch {
+    /* sessionStorage unavailable/full — the answer is still saved to the account */
+  }
+}
+
+const NONE: ReadonlySet<string> = new Set();
+
 let sessionCounter = 0;
 function createSession(defaults?: {
   focus?: ResearchFocusAyah | null;
@@ -100,9 +136,18 @@ export function useStudioSessions() {
     createSession(),
   ]);
   const [activeId, setActiveId] = useState<string>(() => sessions[0]?.id ?? "");
-  const [isResearching, setIsResearching] = useState(false);
+  // A question keeps running when the panel closes (research-runner.ts).
+  const isResearching = useSyncExternalStore(subscribeResearching, researchingSessions, () => NONE).size > 0;
   const [error, setError] = useState<string | null>(null);
   const hydratedRef = useRef(false);
+  // The sessions saved to the account (a guest's: in this browser), listed
+  // beside the open ones (session-history.ts): signing out empties the tab's
+  // open sessions, never the saved ones.
+  const [saved, setSaved] = useState<ResearchSessionSummary[]>([]);
+  const refreshSaved = useCallback(() => {
+    api.getSessions().then((list) => setSaved(Array.isArray(list) ? list : []), () => undefined);
+  }, []);
+  useEffect(() => refreshSaved(), [refreshSaved]);
 
   // Restore the open tabs once, after mount (keeps SSR output deterministic).
   useEffect(() => {
@@ -115,8 +160,23 @@ export function useStudioSessions() {
       setActiveId(validActive ? persisted.activeId : restored[0]?.id ?? "");
     }
     hydratedRef.current = true;
+    // A question that failed while the panel was closed says so now.
+    const awayError = takePendingResearchError();
+    if (awayError) setError(awayError);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // While open, the panel takes each answer as it comes.
+  useEffect(
+    () =>
+      onResearchOutcome((outcome) => {
+        setSessions((current) =>
+          current.map((session) => (session.id === outcome.sessionId ? { ...session, ...outcomePatch(outcome) } : session)),
+        );
+        if (!outcome.ok) setError(outcome.error);
+      }),
+    [],
+  );
 
   // Persist on change — but not before the restore pass has run, so the
   // initial default session can't clobber stored tabs.
@@ -174,85 +234,92 @@ export function useStudioSessions() {
   );
 
   const submitInto = useCallback(
-    async (target: StudioSession, content: string, mushaf: number) => {
+    /** Resolves `true` once answered; `false` when nothing was asked or the ask failed. */
+    async (target: StudioSession, content: string, mushaf: number): Promise<boolean> => {
       const trimmed = content.trim();
-      if (!trimmed || isResearching) return;
+      if (!trimmed || researchingSessions().size > 0) return false;
 
       const priorMessages = target.messages;
       const userMessage: StudioMessage = { role: "user", content: trimmed };
       const titleFromFirst = priorMessages.length === 0 ? trimmed.slice(0, 48) : target.title;
+      const asked = [...priorMessages, userMessage];
 
-      patchSession(target.id, {
-        messages: [...priorMessages, userMessage],
-        title: titleFromFirst,
-      });
+      patchSession(target.id, { messages: asked, title: titleFromFirst });
       setError(null);
-      setIsResearching(true);
+      // The tab's open sessions hold the question at once: if the reader
+      // leaves the study page now, the answer finds its place on return.
+      writeAwaySession(target.id, { messages: asked, title: titleFromFirst });
 
-      const apiMessages: ResearchAgentMessage[] = [...priorMessages, userMessage].map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-
-      try {
-        const response = await api.researchAgent(
-          {
-            messages: apiMessages,
-            mushaf: Number.isFinite(mushaf) && mushaf > 0 ? Math.trunc(mushaf) : 1,
-            max_results: 8,
-            answer_language: "auto",
-            // Every turn is answered from the Quran alone, in a saved
-            // explanatory-reading session too.
-            response_mode: "strict",
-            focus: target.focus ?? undefined,
-          },
-          // The AI chosen in Settings (lib/ai-connection.ts); none: the server's own.
-          { headers: aiHeaders() },
-        );
-        const nextMessages: StudioMessage[] = [
-          ...priorMessages,
-          userMessage,
-          { role: "assistant", content: assistantText(response), response },
-        ];
-        setSessions((current) =>
-          current.map((session) =>
-            session.id === target.id ? { ...session, messages: nextMessages } : session,
-          ),
-        );
-        // Persist the session to the user-data store (Phase 5 — Companions);
-        // a guest's on the web stays in their browser (lib/guest-data.ts).
-        try {
-          await api.saveSession({
-            id: target.id,
-            title: titleFromFirst,
-            mode: target.mode,
-            // Persist the assistant's research response too, so restoring a saved
-            // session rebuilds its evidence cards (bounded by the server's
-            // per-session storage caps).
-            messages: nextMessages.map((m): StoredMessage => ({
-              v: 1,
-              role: m.role,
-              content: m.content,
-              response: m.role === "assistant" ? m.response : undefined,
-            })),
-          });
-        } catch {
-          // A failed save must not break the chat — the session stays in memory.
-        }
-      } catch (err) {
-        reportError("studio:submit", err);
-        const raw = err instanceof Error ? err.message : "";
-        setError(isTechnicalMessage(raw) ? t("تعذّر الاتصال بخدمة الباحث الذكي.") : raw);
-      } finally {
-        setIsResearching(false);
-      }
+      // The request runs outside the panel (research-runner.ts): leaving the
+      // page doesn't stop it.
+      const outcome = await runResearch(
+        target.id,
+        async (): Promise<ResearchOutcome> => {
+          const apiMessages: ResearchAgentMessage[] = asked.map((m) => ({ role: m.role, content: m.content }));
+          try {
+            const response = await api.researchAgent(
+              {
+                messages: apiMessages,
+                mushaf: Number.isFinite(mushaf) && mushaf > 0 ? Math.trunc(mushaf) : 1,
+                max_results: 8,
+                // Settings → «لغة الجواب» (the interface language by default),
+                // whatever language the question is written in.
+                answer_language: answerLanguageName(),
+                // Every turn is answered from the Quran alone, in a saved
+                // explanatory-reading session too.
+                response_mode: "strict",
+                focus: target.focus ?? undefined,
+              },
+              // The AI chosen in Settings (lib/ai-connection.ts); none: the server's own.
+              { headers: aiHeaders() },
+            );
+            const nextMessages: StudioMessage[] = [...asked, { role: "assistant", content: assistantText(response), response }];
+            // Persist the session to the user-data store (Phase 5 — Companions);
+            // a guest's on the web stays in their browser (lib/guest-data.ts).
+            try {
+              await api.saveSession({
+                id: target.id,
+                title: titleFromFirst,
+                mode: target.mode,
+                // Persist the assistant's research response too, so restoring a saved
+                // session rebuilds its evidence cards (bounded by the server's
+                // per-session storage caps).
+                messages: nextMessages.map((m): StoredMessage => ({
+                  v: 1,
+                  role: m.role,
+                  content: m.content,
+                  response: m.role === "assistant" ? m.response : undefined,
+                })),
+              });
+              refreshSaved();
+            } catch {
+              // A failed save must not break the chat — the session stays in memory.
+            }
+            return { sessionId: target.id, ok: true, messages: nextMessages };
+          } catch (err) {
+            reportError("studio:submit", err);
+            const raw = err instanceof Error ? err.message : "";
+            // The question got no answer: it leaves the thread (the panel puts it
+            // back in the field), so asking it again doesn't show it twice.
+            return {
+              sessionId: target.id,
+              ok: false,
+              messages: priorMessages,
+              title: target.title,
+              error: isTechnicalMessage(raw) ? t("تعذّر الاتصال بخدمة الباحث الذكي.") : raw,
+            };
+          }
+        },
+        (outcome) => writeAwaySession(outcome.sessionId, outcomePatch(outcome)),
+      );
+      return outcome.ok;
     },
-    [isResearching, patchSession],
+    [patchSession, refreshSaved],
   );
 
   const submit = useCallback(
     (content: string, mushaf: number) => {
-      if (!active) return Promise.resolve();
+      if (!active) return Promise.resolve(false);
       return submitInto(active, content, mushaf);
     },
     [active, submitInto],
@@ -331,5 +398,6 @@ export function useStudioSessions() {
     submit,
     askInNewSession,
     openSavedSession,
+    saved,
   };
 }

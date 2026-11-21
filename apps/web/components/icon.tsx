@@ -25,6 +25,8 @@ export const ICON_PATHS = {
   expand: "M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5",
   shrink: "M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5",
   textSize: "M3 19l5-13 5 13M5 14h6M14 19l3.5-8 3.5 8M15.2 16.5h4.6",
+  /** Leads out to another page (drawn for right-to-left: up and away towards the reading direction). */
+  arrowUpLeft: "M17 17L7 7M7 16V7h9",
   chevLeft: "M15 6l-6 6 6 6",
   chevRight: "M9 6l6 6-6 6",
   chevDown: "M6 9l6 6 6-6",
@@ -96,7 +98,7 @@ export const ICON_PATHS = {
 export type IconName = keyof typeof ICON_PATHS;
 
 /** Arrows that point "forward/back": mirrored in left-to-right interface languages. */
-const DIRECTIONAL = new Set<IconName>(["chevLeft", "chevRight", "arrowLeft", "arrowRight", "arrowDownLeft"]);
+const DIRECTIONAL = new Set<IconName>(["chevLeft", "chevRight", "arrowLeft", "arrowRight", "arrowDownLeft", "arrowUpLeft"]);
 
 type IconProps = {
   name: IconName;

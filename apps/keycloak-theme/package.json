@@ -1,0 +1,29 @@
+{
+  "name": "@q-basair/keycloak-theme",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "The Keycloak login theme «qbasair» (Keycloakify): Arabic first, every interface language of the web (docs/keycloak.md).",
+  "scripts": {
+    "messages": "node scripts/web-messages.mjs && node scripts/email-messages.mjs",
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build": "node scripts/web-messages.mjs && node scripts/email-messages.mjs && tsc --noEmit && vite build",
+    "build:jar": "pnpm build && keycloakify build"
+  },
+  "dependencies": {
+    "keycloakify": "11.16.4",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "4.7.0",
+    "typescript": "5.8.3",
+    "vite": "6.4.5",
+    "vitest": "2.1.9"
+  }
+}

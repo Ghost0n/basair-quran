@@ -65,3 +65,6 @@ apps/web/out/
 # instructions live only in the root AGENTS.md.
 /apps/web/AGENTS.md
 /apps/web/.next-docs/
+
+# Keycloak email-code extension build output (mvn package)
+apps/keycloak-email-code/target/

@@ -2151,14 +2151,42 @@
   text-decoration: underline;
 }
 
-.qb-ayah-translations details summary {
+/* The footnotes' toggle (ayah-reader.tsx): a small arrow beside the source
+   that keeps its place, turned up while the notes show on the line below. */
+.qb-ayah-translations .notes-toggle {
+  align-self: center;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
   color: var(--gold-text);
   cursor: pointer;
-  font-weight: 700;
 }
 
-.qb-ayah-translations details p {
-  margin: 4px 0 0;
+.qb-ayah-translations .notes-toggle:hover {
+  background: var(--gold-soft, rgba(212, 175, 55, 0.1));
+}
+
+.qb-ayah-translations .notes-toggle:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 1px;
+}
+
+.qb-ayah-translations .notes-toggle .qb-icon {
+  transition: transform 160ms var(--ease-out, ease-out);
+}
+
+.qb-ayah-translations .notes-toggle.open .qb-icon {
+  transform: rotate(180deg);
+}
+
+.qb-ayah-translations .src .notes {
+  flex-basis: 100%;
+  margin: 2px 0 0;
   font-size: 13px;
   line-height: 1.8;
   color: var(--fg-3);

@@ -501,7 +501,7 @@ export const MODELS: Record<string, ModelSpec> = {
     {"name": "mushaf_edition", "type": {"kind": "literal", "values": ["madani-hafs"]}, "default": "madani-hafs"},
     {"name": "riwayah", "type": {"kind": "int"}, "default": 2},
     {"name": "mushaf_font", "type": {"kind": "str"}, "default": "amiri-quran"},
-    {"name": "numerals", "type": {"kind": "literal", "values": ["arabic-indic", "latin", "persian"]}, "default": "arabic-indic"},
+    {"name": "numerals", "type": {"kind": "literal", "values": ["auto", "arabic-indic", "latin", "persian"]}, "default": "auto"},
     {"name": "ui_language", "type": {"kind": "str"}, "default": "ar"},
     {"name": "theme", "type": {"kind": "literal", "values": ["dark", "light", "system"]}, "default": "dark"},
     {"name": "font_size", "type": {"kind": "int", "ge": 18, "le": 48}, "default": 28},
@@ -521,7 +521,7 @@ export const MODELS: Record<string, ModelSpec> = {
     {"name": "mushaf_edition", "type": {"kind": "optional", "of": {"kind": "literal", "values": ["madani-hafs"]}}, "default": null},
     {"name": "riwayah", "type": {"kind": "optional", "of": {"kind": "int"}}, "default": null},
     {"name": "mushaf_font", "type": {"kind": "optional", "of": {"kind": "str"}}, "default": null},
-    {"name": "numerals", "type": {"kind": "optional", "of": {"kind": "literal", "values": ["arabic-indic", "latin", "persian"]}}, "default": null},
+    {"name": "numerals", "type": {"kind": "optional", "of": {"kind": "literal", "values": ["auto", "arabic-indic", "latin", "persian"]}}, "default": null},
     {"name": "ui_language", "type": {"kind": "optional", "of": {"kind": "str"}}, "default": null},
     {"name": "theme", "type": {"kind": "optional", "of": {"kind": "literal", "values": ["dark", "light", "system"]}}, "default": null},
     {"name": "font_size", "type": {"kind": "optional", "of": {"kind": "int"}, "ge": 18, "le": 48}, "default": null},
@@ -562,5 +562,5 @@ export const MAX_DOCUMENTS_PER_USER = 300;
 export const RESEARCH_DOCUMENT_VERSION = 1;
 export const MUSHAF_EDITION_IDS = ["madani-hafs"];
 export const DEFAULT_MUSHAF_EDITION = "madani-hafs";
-export const DEFAULT_PREFERENCES = {"mushaf_edition": "madani-hafs", "riwayah": 2, "mushaf_font": "amiri-quran", "numerals": "arabic-indic", "ui_language": "ar", "theme": "dark", "font_size": 28, "reciter": "", "mushaf_render": "authentic", "reader_layout": "auto", "research": {"default_mode": "strict", "depth": "balanced"}, "last_position": null, "saved_pages": [], "translations": [], "home_hidden": [], "recent_pages": [], "recent_searches": [], "reading_progress": {"series": [], "reset_at": null}};
+export const DEFAULT_PREFERENCES = {"mushaf_edition": "madani-hafs", "riwayah": 2, "mushaf_font": "amiri-quran", "numerals": "auto", "ui_language": "ar", "theme": "dark", "font_size": 28, "reciter": "", "mushaf_render": "authentic", "reader_layout": "auto", "research": {"default_mode": "strict", "depth": "balanced"}, "last_position": null, "saved_pages": [], "translations": [], "home_hidden": [], "recent_pages": [], "recent_searches": [], "reading_progress": {"series": [], "reset_at": null}};
 export const DEFAULT_USER_ID = 0;

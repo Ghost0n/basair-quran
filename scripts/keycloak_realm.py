@@ -11,9 +11,15 @@ Settings come from the environment (or the flags):
     QBASAIR_PUBLIC_URL            https://basair.example (the web's origin)
     QBASAIR_OIDC_CLIENT_SECRET    the web client's secret (also its service account)
     QBASAIR_APP_REDIRECT_URI      the app's redirect (default qbasair://auth/callback)
-    KC_SMTP_HOST / _PORT / _USER / _PASSWORD / _FROM   mail (Scaleway TEM); off when unset
+    KC_SMTP_HOST / _PORT / _USER / _PASSWORD / _FROM   mail (Infomaniak, mail.infomaniak.com:587); off when unset
+    KC_SMTP_STARTTLS              default true (required); false only for scripts/dev_mail.py
     KC_GOOGLE_CLIENT_ID / _SECRET, KC_FACEBOOK_CLIENT_ID / _SECRET,
     KC_APPLE_CLIENT_ID / _TEAM_ID / _KEY_ID / _P8_KEY   a provider is added when its keys are set
+                                  (the .p8 key on one line, its line breaks written 
+)
+    KC_THEME                      the sign-in pages' and mails' theme (default qbasair,
+                                  apps/keycloak-theme; its JAR goes in Keycloak's providers/);
+                                  empty = Keycloak's own
 
     python scripts/keycloak_realm.py --output infra/keycloak/build/qbasair-realm.json [--dev]
 
@@ -34,6 +40,8 @@ OUTPUT = ROOT / "infra" / "keycloak" / "build" / "qbasair-realm.json"
 REALM = "qbasair"
 API_AUDIENCE = "qbasair-api"
 DEV_PASSWORD = "Basair-dev-1"
+# The sign-in pages' and mails' theme (apps/keycloak-theme, Keycloakify): the web's design, every interface language.
+THEME = "qbasair"
 DEFAULT_SCOPES = ["web-origins", "acr", "profile", "roles", "basic", "email"]
 # The interface languages (apps/web/lib/i18n/locales.ts), as Keycloak names them.
 LOCALES = [
@@ -100,7 +108,7 @@ def _user_profile() -> dict:
 
 def _identity_providers(env: dict) -> list[dict]:
     providers = []
-    common = {"enabled": True, "trustEmail": True, "firstBrokerLoginFlowAlias": "first broker login", "storeToken": False}
+    common = {"enabled": True, "trustEmail": True, "firstBrokerLoginFlowAlias": FIRST_BROKER_FLOW, "storeToken": False}
     if env.get("KC_GOOGLE_CLIENT_ID") and env.get("KC_GOOGLE_CLIENT_SECRET"):
         providers.append({**common, "alias": "google", "providerId": "google", "displayName": "Google",
                           "config": {"clientId": env["KC_GOOGLE_CLIENT_ID"], "clientSecret": env["KC_GOOGLE_CLIENT_SECRET"],
@@ -113,7 +121,7 @@ def _identity_providers(env: dict) -> list[dict]:
         # Needs the pinned community Apple provider extension in Keycloak's providers/ (docs/keycloak.md).
         providers.append({**common, "alias": "apple", "providerId": "apple", "displayName": "Apple",
                           "config": {"clientId": env["KC_APPLE_CLIENT_ID"], "teamId": env["KC_APPLE_TEAM_ID"],
-                                     "keyId": env["KC_APPLE_KEY_ID"], "p8Content": env["KC_APPLE_P8_KEY"],
+                                     "keyId": env["KC_APPLE_KEY_ID"], "p8Content": env["KC_APPLE_P8_KEY"].replace("\\n", "\n"),
                                      "syncMode": "IMPORT", "defaultScope": "openid email name"}})
     return providers
 
@@ -125,12 +133,108 @@ def _smtp(env: dict) -> dict:
         "host": env["KC_SMTP_HOST"],
         "port": env.get("KC_SMTP_PORT", "587"),
         "from": env.get("KC_SMTP_FROM", "no-reply@localhost"),
-        "fromDisplayName": "بصائر",
-        "starttls": "true",
+        "fromDisplayName": "بصائر القرآن",
+        # Keycloak requires STARTTLS when it is on; only a local catcher (scripts/dev_mail.py) turns it off.
+        "starttls": "false" if env.get("KC_SMTP_STARTTLS", "true").strip().lower() in {"0", "false", "no"} else "true",
         "auth": "true" if env.get("KC_SMTP_USER") else "false",
         "user": env.get("KC_SMTP_USER", ""),
         "password": env.get("KC_SMTP_PASSWORD", ""),
     }
+
+
+# Keycloak's default required actions (26.8), as a fresh realm gets them: listing
+# any replaces the defaults, so all are named. Keycloak's email link is off; the
+# email code takes its place, right after it (docs/keycloak.md «Email code»).
+EMAIL_CODE_ACTION = "qb-verify-email-code"
+_DEFAULT_REQUIRED_ACTIONS = [
+    ("TERMS_AND_CONDITIONS", "Terms and Conditions", False, 20),
+    ("UPDATE_PROFILE", "Update Profile", True, 40),
+    ("VERIFY_EMAIL", "Verify Email", False, 50),
+    (EMAIL_CODE_ACTION, "Verify email with a code", True, 51),
+    ("CONFIGURE_TOTP", "Configure OTP", True, 54),
+    ("UPDATE_PASSWORD", "Update Password", True, 57),
+    ("delete_account", "Delete Account", False, 60),
+    ("UPDATE_EMAIL", "Update Email", False, 70),
+    ("webauthn-register", "Webauthn Register", True, 80),
+    ("webauthn-register-passwordless", "Webauthn Register Passwordless", True, 90),
+    ("VERIFY_PROFILE", "Verify Profile", True, 100),
+    ("delete_credential", "Delete Credential", True, 110),
+    ("idp_link", "Linking Identity Provider", True, 120),
+    ("CONFIGURE_RECOVERY_AUTHN_CODES", "Recovery Authentication Codes", True, 130),
+    ("update_user_locale", "Update User Locale", True, 1000),
+]
+
+
+def _required_actions() -> list[dict]:
+    return [
+        {"alias": alias, "name": name, "providerId": alias, "enabled": enabled,
+         "defaultAction": False, "priority": priority, "config": {}}
+        for alias, name, enabled, priority in _DEFAULT_REQUIRED_ACTIONS
+    ]
+
+
+# Signing in with a provider (Google, Apple, Meta) is implicit: a new email creates
+# the account, a known one links to it and signs in (docs/keycloak.md «Sign-in
+# providers»). Keycloak's own «first broker login», with one step added between
+# «create if unique» and «confirm the link»: qb-idp-auto-link
+# (apps/keycloak-email-code, VerifiedOwnerAutoLink). When it declines (the email
+# was edited, or the provider does not vouch for it), Keycloak's confirm-the-link
+# path (by email or by password) still runs.
+FIRST_BROKER_FLOW = "qb first broker login"
+AUTO_LINK_AUTHENTICATOR = "qb-idp-auto-link"
+_REVIEW_PROFILE_CONFIG = "qb review profile"
+
+
+def _authentication_flows() -> list[dict]:
+    def step(authenticator: str, requirement: str, config: str | None = None) -> dict:
+        found = {"authenticator": authenticator, "requirement": requirement, "authenticatorFlow": False}
+        return {**found, "authenticatorConfig": config} if config else found
+
+    def subflow(alias: str, requirement: str) -> dict:
+        return {"flowAlias": alias, "requirement": requirement, "authenticatorFlow": True}
+
+    def flow(alias: str, description: str, executions: list[dict], *, top: bool = False) -> dict:
+        return {
+            "alias": alias, "description": description, "providerId": "basic-flow",
+            "topLevel": top, "builtIn": False,
+            "authenticationExecutions": [
+                {**execution, "priority": 10 * (index + 1), "userSetupAllowed": False}
+                for index, execution in enumerate(executions)
+            ],
+        }
+
+    return [
+        flow(FIRST_BROKER_FLOW, "A provider's first sign-in: create the account, or link the one with that email.", [
+            step("idp-review-profile", "REQUIRED", _REVIEW_PROFILE_CONFIG),
+            subflow("qb user creation or linking", "REQUIRED"),
+        ], top=True),
+        flow("qb user creation or linking", "Create the account, or link the existing one.", [
+            step("idp-create-user-if-unique", "ALTERNATIVE"),
+            step(AUTO_LINK_AUTHENTICATOR, "ALTERNATIVE"),
+            subflow("qb handle existing account", "ALTERNATIVE"),
+        ]),
+        flow("qb handle existing account", "Confirm the link, then prove the account is yours.", [
+            step("idp-confirm-link", "REQUIRED"),
+            subflow("qb account verification options", "REQUIRED"),
+        ]),
+        flow("qb account verification options", "By email, or by the account's password.", [
+            step("idp-email-verification", "ALTERNATIVE"),
+            subflow("qb verify existing account by re-authentication", "ALTERNATIVE"),
+        ]),
+        flow("qb verify existing account by re-authentication", "The account's password, then its 2FA if set.", [
+            step("idp-username-password-form", "REQUIRED"),
+            subflow("qb first broker login conditional 2fa", "CONDITIONAL"),
+        ]),
+        flow("qb first broker login conditional 2fa", "The account's one-time code, when it has one.", [
+            step("conditional-user-configured", "REQUIRED"),
+            step("auth-otp-form", "ALTERNATIVE"),
+        ]),
+    ]
+
+
+def _authenticator_config() -> list[dict]:
+    # The review page shows only when the provider left something out (Apple may hide the name).
+    return [{"alias": _REVIEW_PROFILE_CONFIG, "config": {"update.profile.on.first.login": "missing"}}]
 
 
 def _dev_users() -> list[dict]:
@@ -154,17 +258,21 @@ def build_realm(env: dict, *, dev: bool = False) -> dict:
     if not public or not secret:
         raise ValueError("QBASAIR_PUBLIC_URL and QBASAIR_OIDC_CLIENT_SECRET are required.")
     app_redirect = env.get("QBASAIR_APP_REDIRECT_URI") or "qbasair://auth/callback"
+    theme = env.get("KC_THEME", THEME).strip()
     realm = {
         "realm": REALM,
         "enabled": True,
-        "displayName": "بصائر",
+        "displayName": "بصائر القرآن",
         "sslRequired": "none" if dev else "external",
-        # Accounts: email is the username, verified before first use.
+        # Accounts: email is the username, verified before first use — by a 6-digit
+        # code (the qb-verify-email-code required action, apps/keycloak-email-code),
+        # so Keycloak's own link is off.
         "registrationAllowed": True,
         "registrationEmailAsUsername": True,
         "loginWithEmailAllowed": True,
         "duplicateEmailsAllowed": False,
-        "verifyEmail": True,
+        "verifyEmail": False,
+        "requiredActions": _required_actions(),
         "resetPasswordAllowed": True,
         "rememberMe": True,
         "editUsernameAllowed": False,
@@ -183,6 +291,8 @@ def build_realm(env: dict, *, dev: bool = False) -> dict:
         "ssoSessionIdleTimeout": 7 * 86400,
         "ssoSessionMaxLifespan": 30 * 86400,
         "offlineSessionIdleTimeout": 30 * 86400,
+        # Sign-in pages and mails in the app's design (docs/keycloak.md «Theme»).
+        **({"loginTheme": theme, "emailTheme": theme} if theme else {}),
         "internationalizationEnabled": True,
         "supportedLocales": LOCALES,
         "defaultLocale": "ar",
@@ -210,6 +320,8 @@ def build_realm(env: dict, *, dev: bool = False) -> dict:
                 "directAccessGrantsEnabled": False,
                 "serviceAccountsEnabled": True,
                 "redirectUris": [f"{public}/api/auth/oidc/callback"],
+                # The sign-in pages' way back to the app (and Keycloak's «back to application»).
+                "baseUrl": f"{public}/",
                 "webOrigins": [public],
                 "attributes": {"pkce.code.challenge.method": "S256", "post.logout.redirect.uris": f"{public}/*"},
                 # The service account asks for kc-admin-api: Keycloak's admin API only
@@ -239,12 +351,16 @@ def build_realm(env: dict, *, dev: bool = False) -> dict:
                 "username": "service-account-qbasair-web",
                 "enabled": True,
                 "serviceAccountClientId": "qbasair-web",
-                "clientRoles": {"realm-management": ["manage-users", "view-users", "view-realm"]},
+                # view-identity-providers: settings lists the realm's providers to link.
+                "clientRoles": {"realm-management": ["manage-users", "view-users", "view-realm", "view-identity-providers"]},
             },
             *(_dev_users() if dev else []),
         ],
         "components": _user_profile(),
         "identityProviders": _identity_providers(env),
+        "authenticationFlows": _authentication_flows(),
+        "firstBrokerLoginFlow": FIRST_BROKER_FLOW,
+        "authenticatorConfig": _authenticator_config(),
         "smtpServer": _smtp(env),
     }
     return realm
@@ -255,6 +371,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output", type=Path, default=OUTPUT)
     parser.add_argument("--dev", action="store_true", help="add local admin / moderator / member accounts")
     args = parser.parse_args(argv)
+    # The summary line carries «→» and «·»: a Windows console (cp1252) cannot encode them.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
     try:
         realm = build_realm(dict(os.environ), dev=args.dev)
     except ValueError as exc:
@@ -263,7 +383,8 @@ def main(argv: list[str] | None = None) -> int:
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(realm, ensure_ascii=False, indent=2), encoding="utf-8")
     providers = ", ".join(provider["alias"] for provider in realm["identityProviders"]) or "none (email only)"
-    print(f"realm {REALM} → {args.output} · providers: {providers} · mail: {'on' if realm['smtpServer'] else 'off'}")
+    theme = realm.get("loginTheme", "keycloak (stock)")
+    print(f"realm {REALM} → {args.output} · providers: {providers} · mail: {'on' if realm['smtpServer'] else 'off'} · theme: {theme}")
     return 0
 
 

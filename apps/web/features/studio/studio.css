@@ -199,6 +199,121 @@
   white-space: pre-wrap;
 }
 
+/* «آيات أخرى»: more ayahs from the answer's own searches, set apart. */
+.qb-msg.bot .ev-more-label {
+  margin: 10px 0 2px;
+  color: var(--fg-3);
+  font-size: 11.5px;
+}
+
+.qb-msg.bot .ev-more {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  margin-top: 4px;
+  padding: 0 12px;
+  border: 1px dashed var(--border-accent);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--gold-text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-msg.bot .ev-more:hover:not(:disabled) {
+  background: var(--gold-a08);
+}
+
+.qb-msg.bot .ev-more:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+/* An answer's Markdown (chat-markdown-view.tsx). */
+.qb-msg.bot .qb-md > :last-child {
+  margin-bottom: 10px;
+}
+
+.qb-msg.bot .qb-md :is(h4, h5, h6) {
+  margin: 12px 0 6px;
+  color: var(--fg-1);
+  font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.qb-msg.bot .qb-md h4 {
+  font-size: 16px;
+}
+
+.qb-msg.bot .qb-md :is(ul, ol) {
+  margin: 0 0 10px;
+  padding-inline-start: 22px;
+  color: var(--fg-1);
+  font-size: 13.5px;
+  line-height: 1.75;
+}
+
+.qb-msg.bot .qb-md li + li {
+  margin-top: 3px;
+}
+
+.qb-msg.bot .qb-md blockquote {
+  margin: 0 0 10px;
+  padding-inline-start: 12px;
+  border-inline-start: 3px solid var(--border-accent);
+  color: var(--fg-2, var(--fg-1));
+}
+
+.qb-msg.bot .qb-md code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--surface-soft);
+  font-size: 0.92em;
+}
+
+.qb-msg.bot .qb-md hr {
+  margin: 12px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Under each message: copy it (the question, or the answer with its ayahs). */
+.qb-msg-tools {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.qb-msg-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-3);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.qb-msg-copy:hover,
+.qb-msg-copy:focus-visible {
+  color: var(--fg-1);
+  border-color: var(--border);
+}
+
+.qb-msg-copy.is-done {
+  color: var(--gold-text);
+}
+
 .qb-msg.bot .section {
   padding: 8px 0;
   border-top: 1px dashed rgba(201, 138, 91, 0.22);
@@ -667,4 +782,228 @@
   html:root .qb-thread {
     padding-inline: 16px;
   }
+}
+
+/* ---------- Notices above the thread (studio-notices.tsx) ---------- */
+.qb-studio-notice {
+  flex-shrink: 0;
+  position: relative;
+  margin: 6px 20px 4px;
+  padding-block: 12px;
+  padding-inline: 14px 40px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  column-gap: 10px;
+  row-gap: 10px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border-accent);
+  background: var(--gold-a08);
+  animation: qbFade var(--motion-dur-fast) var(--motion-ease-settle) both;
+}
+
+.qb-studio-notice > .qb-icon {
+  margin-top: 3px;
+  color: var(--gold-text, var(--gold-500));
+}
+
+.qb-studio-notice p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--fg-1);
+}
+
+.qb-studio-notice .actions {
+  grid-column: 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.qb-studio-notice .ok,
+.qb-studio-notice .cancel {
+  min-height: 36px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.qb-studio-notice .ok {
+  border: 0;
+  background: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
+  color: #140f00;
+}
+
+.qb-studio-notice .cancel {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg-1);
+}
+
+.qb-studio-notice .x {
+  position: absolute;
+  top: 8px;
+  inset-inline-end: 8px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg-3);
+  cursor: pointer;
+}
+
+.qb-studio-notice .x:hover {
+  background: var(--surface-soft);
+  color: var(--fg-1);
+}
+
+.qb-studio-notice.is-warn {
+  border-color: color-mix(in srgb, var(--danger-fg) 40%, transparent);
+  background: color-mix(in srgb, var(--danger-fg) 7%, transparent);
+}
+
+.qb-studio-notice.is-warn > .qb-icon {
+  color: var(--danger-fg);
+}
+
+/* The risks of AI answers (risk-consent.tsx): a card in the middle of the
+   empty study, in place of the thread, until it is accepted. */
+.qb-risk-card {
+  box-sizing: border-box;
+  width: min(520px, calc(100% - 32px));
+  margin: auto;
+  padding: 30px 28px 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+  border-radius: var(--r-2xl, 20px);
+  border: 1px solid var(--border-accent);
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(212, 175, 55, 0.12), transparent 70%),
+    var(--bg-elev-1);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  animation: qbPopIn var(--dur, 220ms) var(--ease-out, ease-out);
+}
+
+.qb-risk-card .seal {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--gold-line, var(--border-accent));
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--gold-text, var(--gold-500));
+}
+
+.qb-risk-card h2 {
+  margin: 0;
+  font-family: var(--font-arabic-heading);
+  font-size: 22px;
+  line-height: var(--lh-heading, 1.4);
+  color: var(--fg-1);
+}
+
+.qb-risk-card p {
+  margin: 0;
+  max-width: 40em;
+  font-size: 15px;
+  line-height: 1.9;
+  color: var(--fg-2);
+}
+
+.qb-risk-card .ok {
+  margin-top: 6px;
+  min-height: 44px;
+  padding: 0 28px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--gold-gel);
+  box-shadow: var(--gold-gel-shadow);
+  color: #140f00;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qb-risk-card .ok:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qb-risk-card {
+    animation: none;
+  }
+}
+
+.qb-studio-notice :focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 2px;
+}
+
+/* ---------- The AI controls in the composer (ai-picker.tsx) ---------- */
+.qb-ai-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.qb-ai-chip,
+.qb-ai-select .qb-select-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  max-width: 190px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--fg-2);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background var(--motion-dur-fast) var(--motion-ease-settle),
+    color var(--motion-dur-fast) var(--motion-ease-settle);
+}
+
+.qb-ai-select.is-model .qb-select-btn {
+  direction: ltr;
+}
+
+.qb-ai-chip:hover,
+.qb-ai-select .qb-select-btn:hover,
+.qb-ai-select .qb-select-btn[aria-expanded="true"] {
+  background: var(--surface-soft);
+  color: var(--fg-1);
+}
+
+.qb-ai-chip:focus-visible,
+.qb-ai-select .qb-select-btn:focus-visible {
+  outline: 2px solid var(--gold-400);
+  outline-offset: 1px;
+}
+
+.qb-ai-chip span,
+.qb-ai-select .qb-select-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

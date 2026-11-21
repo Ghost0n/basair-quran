@@ -5,15 +5,14 @@ import { useState } from "react";
 import { SelectMenu } from "@/components/select-menu";
 import { APP_MODE } from "@/lib/app-mode/config";
 import { LOCALES, t } from "@/lib/i18n";
-import { numeralsForLanguage } from "@/lib/i18n/first-language";
 import { useI18n } from "@/lib/i18n/provider";
 import { usePreferences } from "@/lib/preferences-context";
 
 /**
  * The interface language picker (native names). Choosing a language switches
  * this device and saves it on the account (so it follows the reader to other
- * devices). A language brings its usual digits (`numeralsForLanguage`); the
- * digits menu («الأرقام») stays to set others afterwards. In the standalone app
+ * devices). A language brings its own digits (the digits go back to "auto");
+ * the digits menu («الأرقام») stays to set others afterwards. In the standalone app
  * it first downloads the language (interface + translation of meanings).
  */
 export function LanguageSelect({ className = "" }: { className?: string }) {
@@ -36,8 +35,7 @@ export function LanguageSelect({ className = "" }: { className?: string }) {
               .catch(() => setFailed(true));
             return;
           }
-          const numerals = numeralsForLanguage(code, account.numerals);
-          void updateAccount({ ui_language: code, ...(numerals ? { numerals } : {}) }).catch(() => {});
+          void updateAccount({ ui_language: code, ...(account.numerals === "auto" ? {} : { numerals: "auto" as const }) }).catch(() => {});
           void setLocale(code);
         }}
       />

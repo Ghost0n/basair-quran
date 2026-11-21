@@ -81,6 +81,23 @@
    (next ‹ on the left, previous › on the right), like the turning wings. */
 html.qb-web:not([dir="rtl"]) .qb-reader-bar .pager { flex-direction: row-reverse; }
 
+/* «العرض» opens as a compact panel under the bar's tools (the end its button
+   sits at), not a strip across the whole reader. */
+.qb-web .qb-display-strip {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+  width: min(640px, 100%);
+  /* Everything on one line: the size slider gives up room, the buttons keep theirs. */
+  flex-wrap: nowrap;
+}
+.qb-web .qb-display-strip .size {
+  flex: 1 1 120px;
+}
+.qb-web .qb-display-strip .modes,
+.qb-web .qb-display-strip .toggle {
+  flex-shrink: 0;
+}
+
 /* The text-size slider in «العرض»: a fine track filled in gold up to the
    value, and a round gold handle — no native grey bar or square thumb.
    (Each engine's pseudo-elements stay in rules of their own: one unknown

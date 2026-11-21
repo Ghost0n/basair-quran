@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-mark";
 import { AUTH_ENABLED } from "@/lib/config";
 
 import "@/features/auth/auth.css";
@@ -13,23 +12,18 @@ import { identityApi, maybeMergeGuestData, sanitizeNextPath } from "@/features/a
 import { t } from "@/lib/i18n";
 import { useNumerals } from "@/lib/preferences-context";
 
-type Step = "avatar" | "onboard";
-
-const MOTIFS = Object.keys(AVATAR_MOTIFS) as AvatarMotif[];
-
-function isMotif(value: string | null | undefined): value is AvatarMotif {
-  return !!value && (MOTIFS as string[]).includes(value);
-}
-
+/**
+ * The first visit of a new account: three things to know, then the reader is
+ * where they were headed. Nothing to choose — the medallion is the initial of
+ * their name on a pattern given with the account (lib/avatar.ts), which they
+ * can change in Settings.
+ */
 export function WelcomeFlow() {
   const formatNumber = useNumerals();
   const searchParams = useSearchParams();
   const nextPath = useMemo(() => sanitizeNextPath(searchParams.get("next")), [searchParams]);
 
   const [ready, setReady] = useState(false);
-  const [step, setStep] = useState<Step>("avatar");
-  const [motif, setMotif] = useState<AvatarMotif>("ba");
-  const [displayName, setDisplayName] = useState(t("أبو محمد"));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -55,8 +49,6 @@ export function WelcomeFlow() {
           window.location.assign(nextPath);
           return;
         }
-        if (session.user.name) setDisplayName(session.user.name);
-        if (isMotif(session.user.avatar)) setMotif(session.user.avatar);
         setReady(true);
       } catch {
         window.location.assign(`/login?next=${encodeURIComponent("/welcome")}`);
@@ -72,7 +64,7 @@ export function WelcomeFlow() {
     setSaving(true);
     try {
       await identityApi.updateProfile(
-        { avatar: motif, onboarded: true },
+        { onboarded: true },
         { suppressAuthRedirect: true },
       );
       await maybeMergeGuestData();
@@ -84,58 +76,6 @@ export function WelcomeFlow() {
 
   if (!ready) {
     return <div className="qb-welcome" />;
-  }
-
-  if (step === "avatar") {
-    return (
-      <div className="qb-welcome">
-        <div className="qb-welcome-step">
-          {t("الخطوة")} <strong>{formatNumber(2)}</strong> {formatNumber(t("من ٣ — اختر مداليتك"))}
-        </div>
-
-        <div className="qb-avatar-preview">
-          <UserAvatar motif={motif} size={88} />
-          <div className="qb-avatar-preview-copy">
-            <div className="name">{displayName}</div>
-            <div className="hint">
-              {t("مداليتك في الشريط والقوائم وبطاقات الجلسات — حرفٌ من اسمك أو زخرفة.")}
-            </div>
-          </div>
-        </div>
-
-        <div className="qb-avatar-tiles">
-          {MOTIFS.map((key) => {
-            const spec = AVATAR_MOTIFS[key];
-            const selected = key === motif;
-            return (
-              <button
-                key={key}
-                type="button"
-                className={`qb-avatar-tile ${selected ? "selected" : ""}`}
-                onClick={() => setMotif(key)}
-                aria-pressed={selected}
-                aria-label={spec.label}
-                title={spec.label}
-              >
-                <UserAvatar motif={key} size={40} ring={false} />
-              </button>
-            );
-          })}
-        </div>
-
-        <button type="button" className="qb-welcome-cta step-avatar" onClick={() => setStep("onboard")}>
-          {t("متابعة ←")}
-        </button>
-        <button
-          type="button"
-          className="qb-welcome-skip"
-          onClick={finish}
-          disabled={saving}
-        >
-          {t("تخطّي والبدء مباشرةً")}
-        </button>
-      </div>
-    );
   }
 
   return (
