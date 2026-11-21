@@ -250,8 +250,10 @@ fi
 # 4. Long data jobs, in the background (detached containers; resumable).
 # Run on the deploy files themselves: the offline packs read the interface
 # dictionaries under apps/web/lib/i18n, which the API image doesn't carry.
+# The release doesn't copy src/, so the app's code (the reciters, the parity
+# check) comes from the image's /app, built from the same commit.
 run_detached_on_files() {
-  compose "${TAG}" run -d --rm -v "${APP_DIR}:/repo" -w /repo -e PYTHONPATH=/repo api sh -c "$1" >/dev/null
+  compose "${TAG}" run -d --rm -v "${APP_DIR}:/repo" -w /repo -e PYTHONPATH=/repo:/app api sh -c "$1" >/dev/null
 }
 packs="python scripts/build_offline_packs.py --output data/offline"
 if has_job rebuild-translations || [[ ! -f data/translations.db ]]; then
