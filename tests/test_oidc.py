@@ -419,6 +419,58 @@ def test_provider_sign_in_links_or_creates_without_a_question():
     assert configs[review["authenticatorConfig"]] == {"update.profile.on.first.login": "missing"}
 
 
+def test_google_gets_its_own_prompt_never_the_webs_create():
+    """«New account» asks Keycloak for prompt=create; Keycloak forwards the web's
+    prompt to a provider that has none, and Google refuses «create»."""
+    env = {"QBASAIR_PUBLIC_URL": "https://basair.example", "QBASAIR_OIDC_CLIENT_SECRET": "s3cret",
+           "KC_GOOGLE_CLIENT_ID": "g", "KC_GOOGLE_CLIENT_SECRET": "gs"}
+    google = keycloak_realm.build_realm(env)["identityProviders"][0]
+    assert google["config"]["prompt"] == "select_account"
+
+
+def test_sync_re_applies_the_public_address_to_an_existing_web_client():
+    """The realm is imported once: an address fixed later in .env.production is
+    re-applied by the deploy, the rest of the client left as Keycloak has it."""
+    env = {"QBASAIR_PUBLIC_URL": "https://basair.example/"}
+    stale = {
+        "id": "c1", "clientId": "qbasair-web", "secret": "**********", "rootUrl": "",
+        "baseUrl": "http://127.0.0.2/", "redirectUris": ["http://127.0.0.2/api/auth/oidc/callback"],
+        "webOrigins": ["http://127.0.0.2"], "serviceAccountsEnabled": True,
+        "attributes": {"pkce.code.challenge.method": "S256", "post.logout.redirect.uris": "http://127.0.0.2/*"},
+    }
+    updated = keycloak_realm.sync_web_client(stale, env)
+    assert updated["redirectUris"] == ["https://basair.example/api/auth/oidc/callback"]
+    assert updated["rootUrl"] == "https://basair.example" and updated["baseUrl"] == "https://basair.example/"
+    assert updated["webOrigins"] == ["https://basair.example"]
+    assert updated["attributes"] == {"pkce.code.challenge.method": "S256", "post.logout.redirect.uris": "https://basair.example/*"}
+    # Untouched: the rest of the client, and the secret is never sent back.
+    assert updated["id"] == "c1" and updated["serviceAccountsEnabled"] is True and "secret" not in updated
+    assert keycloak_realm.sync_web_client(updated, env) is None
+    with pytest.raises(ValueError):
+        keycloak_realm.sync_web_client(stale, {})
+
+
+def test_sync_sets_the_provider_prompt_and_keeps_the_masked_secret():
+    live = {"alias": "google", "providerId": "google", "config": {"clientId": "g", "clientSecret": "**********", "prompt": ""}}
+    updated = keycloak_realm.sync_identity_provider(live)
+    assert updated["config"] == {"clientId": "g", "clientSecret": "**********", "prompt": "select_account"}
+    assert keycloak_realm.sync_identity_provider(updated) is None
+    # Providers without a prompt of their own are left alone.
+    assert keycloak_realm.sync_identity_provider({"alias": "facebook", "config": {}}) is None
+
+
+def test_the_sync_command_reads_keycloak_json_and_prints_only_a_change(monkeypatch, capsys):
+    monkeypatch.setenv("QBASAIR_PUBLIC_URL", "https://basair.example")
+    client = {"clientId": "qbasair-web", "redirectUris": ["http://localhost/api/auth/oidc/callback"]}
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps([client])))  # kcadm's search answers a list
+    assert keycloak_realm.main(["--sync", "web-client"]) == 0
+    assert json.loads(capsys.readouterr().out)["redirectUris"] == ["https://basair.example/api/auth/oidc/callback"]
+    google = {"alias": "google", "config": {"prompt": "select_account"}}
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(google)))
+    assert keycloak_realm.main(["--sync", "provider"]) == 0
+    assert capsys.readouterr().out == ""
+
+
 def test_the_realm_script_runs_on_a_windows_console(tmp_path, monkeypatch):
     """The summary line («→», «·») must not crash a cp1252 console."""
     stdout = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")

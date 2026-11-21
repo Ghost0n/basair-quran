@@ -276,8 +276,15 @@ redirect address is `<Keycloak>/realms/qbasair/broker/<google|facebook|apple>/en
 and PKCE, forged state, replay, wrong nonce, open redirects, cancellation, linking only by a
 verified email, closed password routes, sign-out, the app's Bearer tokens (wrong audience,
 expired, foreign key), account deletion, the moderator role with 2FA, linked providers (listing,
-linking and its outcomes, unlinking with the password step), and the realm rendering (the provider
-flow included). `apps/keycloak-email-code` tests `VerifiedOwnerAutoLink`'s decision.
+linking and its outcomes, unlinking with the password step), the realm rendering (the provider
+flow and Google's prompt included) and the deploy's sync of an existing realm.
+`apps/keycloak-email-code` tests `VerifiedOwnerAutoLink`'s decision.
+`tests/test_deploy_env_check.py` runs `deploy/server/check-env.sh` on the settings files the
+first release tripped on (BOM, CRLF, a local copy, a stray line).
+
+The sync was also run against Keycloak 26.8.2 with a realm holding the first release's stale
+values: the client's addresses and Google's prompt were rewritten, a second run changed nothing,
+and an export showed the client and provider secrets unchanged.
 
 Checked by hand against Keycloak 26.8.2 with a stand-in OpenID provider (a second realm): a new email
 creates the account; a confirmed one is linked and keeps its password; an unconfirmed one is linked and
@@ -297,15 +304,21 @@ The server steps (DNS, settings, certificate, admin console, first administrator
 | Addresses | public `https://<QBASAIR_AUTH_DOMAIN>` (`KC_HOSTNAME`, `KC_PROXY_HEADERS=xforwarded` behind nginx); the API's back channel `QBASAIR_OIDC_INTERNAL_URL=http://keycloak:8080`; the admin console on the server's loopback `127.0.0.1:8180` (`KC_HOSTNAME_ADMIN=http://localhost:8180`), reached through an SSH tunnel |
 | nginx | `deploy/nginx/keycloak-{http,tls}.conf.template`, rendered by `start-nginx.sh` when `QBASAIR_AUTH_DOMAIN` is set: its own rate limits, larger proxy buffers (Keycloak's cookies), `/admin` and `/realms/master` answered 404. Keycloak is resolved at request time, so nginx starts while it is down |
 | Realm | each deploy renders `keycloak/import/qbasair-realm.json` (mode 600) with the release's `scripts/keycloak_realm.py` (service `keycloak-realm`, profile `keycloak-jobs`, no network); Keycloak imports it on its first start only |
+| Realm sync | every deploy, once Keycloak is healthy, `deploy.sh` re-applies to the existing realm what a settings change must reach: the `qbasair-web` client's addresses from `QBASAIR_PUBLIC_URL` and each provider's own `prompt` (`keycloak_realm.py --sync web-client\|provider`, Keycloak's JSON through `kcadm.sh` as the bootstrap admin, inside the container). Everything else in the client and the providers is kept, secrets included; a failure only warns |
 | Admin console address | once, after the first healthy start, `deploy.sh` sets the `master` realm's `frontendUrl` to `KC_HOSTNAME_ADMIN` with `kcadm.sh` (marker `.deploy/keycloak-console`): the console's checks otherwise call the public host, where `/realms/master` is closed |
 | Certificate | `tls.sh issue` / `renew` add a separate certificate for the auth domain |
 | Backups | `backup.sh` adds `pg_dump --format=custom` of the database (`keycloak.dump`) |
-| Checks | `deploy.sh` refuses to start when the profile is on and `QBASAIR_AUTH_DOMAIN`, `QBASAIR_PUBLIC_URL`, `QBASAIR_OIDC_CLIENT_SECRET`, `KC_DB_PASSWORD` or `KC_BOOTSTRAP_ADMIN_PASSWORD` is empty; CI builds and scans the image, tests the nginx configurations with the auth domain, and validates the profiles |
+| Checks | `deploy/server/check-env.sh`, run first by `deploy.sh`: with the profile on, it refuses an empty `QBASAIR_AUTH_DOMAIN`, `QBASAIR_OIDC_CLIENT_SECRET`, `KC_DB_PASSWORD` or `KC_BOOTSTRAP_ADMIN_PASSWORD`, a local auth domain or public URL, and an issuer other than `https://<auth domain>/realms/qbasair`; CI builds and scans the image, tests the nginx configurations with the auth domain, and validates the profiles |
 
-**Realm changes after the first start.** `--import-realm` skips a realm that exists, so a change to
-`keycloak_realm.py` or to the `KC_*` values reaches production only through the admin console
-(or by deleting the realm, which deletes its accounts). Applying the file on every deploy
-(keycloak-config-cli) is a follow-up.
+**Realm changes after the first start.** `--import-realm` skips a realm that exists. Apart from
+the two synced items above, a change to `keycloak_realm.py` or to the `KC_*` values reaches
+production only through the admin console (or by deleting the realm, which deletes its accounts).
+Applying the whole file on every deploy (keycloak-config-cli) is a follow-up.
+
+**Providers' prompt.** The «New account» button asks Keycloak for `prompt=create`. Keycloak passes
+the client's prompt on to a provider that has none of its own, and Google refuses `create`
+(«Error 400: invalid_request»), so the realm gives Google `prompt=select_account`
+(`PROVIDER_PROMPTS`).
 
 **Not in the image yet**: Sign in with Apple (its community provider extension).
 
