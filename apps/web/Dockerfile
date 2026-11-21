@@ -43,6 +43,10 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
+# The server runs with `node` alone: drop the base image's npm, npx and
+# corepack (package tools whose bundled dependencies carry known vulnerabilities).
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack       /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+
 # Not root: the image's `node` user (the server writes its cache under .next).
 COPY --from=builder --chown=node:node /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=node:node /app/apps/web/.next/static ./.next/static

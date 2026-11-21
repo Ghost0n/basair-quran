@@ -14,6 +14,14 @@ RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:go-offline
 COPY apps/keycloak-email-code/src ./src
 RUN --mount=type=cache,target=/root/.m2 mvn -B -q package
 
+# Keycloak 26.8.2 ships Guava 33.6.0 (CVE-2026-102554, HIGH, fixed in 33.7.2);
+# the build stage swaps in the fixed release from Maven Central. Drop this
+# (and GUAVA_JAR below) once a Keycloak release ships a fixed Guava.
+ARG GUAVA_VERSION=33.7.2-jre
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:copy \
+    -Dartifact=com.google.guava:guava:${GUAVA_VERSION} -DoutputDirectory=/guava \
+ && mv /guava/guava-${GUAVA_VERSION}.jar /guava/guava.jar
+
 # The theme: Keycloakify needs Node (the workspace's pnpm) and Maven together.
 FROM node:22-bookworm-slim AS node
 FROM maven:3.9-eclipse-temurin-21 AS theme
@@ -43,6 +51,11 @@ RUN --mount=type=cache,target=/root/.m2 pnpm --filter @q-basair/keycloak-theme b
 FROM quay.io/keycloak/keycloak:${KEYCLOAK_VERSION} AS build
 COPY --from=email-code /src/target/qbasair-keycloak-email-code.jar /opt/keycloak/providers/
 COPY --from=theme /app/apps/keycloak-theme/dist_keycloak/qbasair-keycloak-theme.jar /opt/keycloak/providers/
+# The fixed Guava, under the file name Keycloak's class path lists (the build
+# fails here when a new Keycloak no longer ships that jar: remove the swap).
+ARG GUAVA_JAR=/opt/keycloak/lib/lib/main/com.google.guava.guava-33.6.0-jre.jar
+RUN test -f "${GUAVA_JAR}" || { echo "Keycloak no longer ships ${GUAVA_JAR}: remove the Guava swap" >&2; exit 1; }
+COPY --from=email-code --chown=1000:0 /guava/guava.jar ${GUAVA_JAR}
 # Build-time options (fixed in the optimized server): PostgreSQL, the health
 # endpoints on the management port (9000, never published) for the healthcheck.
 ENV KC_DB=postgres \
