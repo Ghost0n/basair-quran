@@ -28,9 +28,13 @@ type QbAuthPlugin = {
   secureRemove(options: { key: string }): Promise<void>;
 };
 
-let pluginRef: Promise<QbAuthPlugin> | null = null;
+// Wrapped in an object: the plugin is a Proxy that answers every property —
+// `then` too — with a native method, so a Promise resolved with the plugin
+// itself calls `QbAuth.then(…)` and never settles (every Keychain read hung).
+// (An async function returning it would hang the same way: callers unwrap `.plugin`.)
+let pluginRef: Promise<{ plugin: QbAuthPlugin }> | null = null;
 const qbAuth = () =>
-  (pluginRef ??= import("@capacitor/core").then(({ registerPlugin }) => registerPlugin<QbAuthPlugin>("QbAuth")));
+  (pluginRef ??= import("@capacitor/core").then(({ registerPlugin }) => ({ plugin: registerPlugin<QbAuthPlugin>("QbAuth") })));
 
 async function platformName(): Promise<"ios" | "android" | "web"> {
   const { Capacitor } = await import("@capacitor/core");
@@ -78,15 +82,15 @@ async function fetchAnswer(pending: Promise<Response>): Promise<HttpAnswer> {
 const secrets: SecretStore = {
   async get(key) {
     if ((await platformName()) === "web") return (await appRuntime()).platform.kv.get(key);
-    return (await (await qbAuth()).secureGet({ key })).value ?? null;
+    return (await (await qbAuth()).plugin.secureGet({ key })).value ?? null;
   },
   async set(key, value) {
     if ((await platformName()) === "web") return (await appRuntime()).platform.kv.set(key, value);
-    await (await qbAuth()).secureSet({ key, value });
+    await (await qbAuth()).plugin.secureSet({ key, value });
   },
   async remove(key) {
     if ((await platformName()) === "web") return (await appRuntime()).platform.kv.remove(key);
-    await (await qbAuth()).secureRemove({ key });
+    await (await qbAuth()).plugin.secureRemove({ key });
   },
 };
 
@@ -108,7 +112,7 @@ async function openAuthSheet(url: string): Promise<string> {
   const platform = await platformName();
   if (platform === "ios") {
     try {
-      return (await (await qbAuth()).authenticate({ url, callbackScheme: new URL(APP_REDIRECT_URI).protocol.replace(":", "") })).url;
+      return (await (await qbAuth()).plugin.authenticate({ url, callbackScheme: new URL(APP_REDIRECT_URI).protocol.replace(":", "") })).url;
     } catch (error) {
       throw isCancel(error) ? new OidcError("cancelled") : new OidcError("failed", String(error));
     }
