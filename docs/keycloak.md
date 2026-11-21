@@ -1,9 +1,9 @@
 # Sign-in with Keycloak
 
-Status: implemented behind `QBASAIR_AUTH_PROVIDER=keycloak` (Q-Basair-60); the default stays
-`local` (accounts in `auth.db`) until the production platform's cut-over
-(`docs/production-platform-plan.md`, build order steps 3–4). Verified end to end against a real
-Keycloak 26.8.2 (`scripts/keycloak_dev.sh`).
+Status: implemented behind `QBASAIR_AUTH_PROVIDER=keycloak` (Q-Basair-60), and production's
+sign-in from the first release (Q-Basair-123, [Production](#production)). Without it the API keeps
+local accounts in `auth.db`. Verified end to end against a real Keycloak 26.8.2, in development
+(`scripts/keycloak_dev.sh`) and in the production stack (PostgreSQL, nginx).
 
 ## What Keycloak owns
 
@@ -31,8 +31,9 @@ Keycloak at every sign-in.
 | Mail | `KC_SMTP_*` (the domain's Infomaniak mail on the platform, see [Email code](#email-code)); off when unset — and then new accounts cannot verify their email. STARTTLS is required (`KC_SMTP_STARTTLS=false` only for the local catcher, see Development) |
 | Theme | `qbasair` for the sign-in pages and the mails (`apps/keycloak-theme`, see [Theme](#theme)); `KC_THEME` names another, empty = Keycloak's own. `qbasair-web`'s `baseUrl` (`PUBLIC_URL/`) is the theme's «تصفّح كضيف ←» link back to the app |
 
-The output (`infra/keycloak/build/`, git-ignored: it carries secrets) is imported with
-`--import-realm` in development and by keycloak-config-cli on the platform.
+The output (`infra/keycloak/build/` in development, `keycloak/import/` on the server; never
+committed: it carries secrets) is imported with `--import-realm` when the realm doesn't exist yet.
+An existing realm is left as it is (see [Production](#production)).
 
 ## Flows
 
@@ -284,12 +285,35 @@ loses its password; linking from settings (confirmed or cancelled), a provider a
 another account (Keycloak's error page, nothing changes), and unlinking with and without a password
 (a short one refused by the policy, the new one then signs in).
 
+## Production
+
+The server steps (DNS, settings, certificate, admin console, first administrator, backups) are in
+`docs/deployment.md` → "Keycloak". What the stack does:
+
+| Piece | Where |
+|---|---|
+| Image | `Dockerfile.keycloak` → `ghcr.io/ghost0n/basair-quran-keycloak:<commit>`, built and Trivy-scanned with the API and web images. Keycloak 26.8.2 with both JARs in `providers/` (`apps/keycloak-theme` built with Keycloakify, `apps/keycloak-email-code` with Maven), `kc.sh build` for PostgreSQL with health checks; runs as uid 1000, `start --optimized --import-realm`. Keycloak 26.8.2's Guava 33.6.0 (CVE-2026-102554) is replaced by 33.7.2 from Maven Central under the same file name; the build fails once a Keycloak release no longer ships that jar, the cue to drop the swap |
+| Services | Compose profile `keycloak` (`COMPOSE_PROFILES=keycloak` in `.env.production`): `keycloak` and `keycloak-db` (PostgreSQL 17, volume `keycloak-db`, network `auth`). Healthy once `/health/ready` on the management port (9000) answers 200 |
+| Addresses | public `https://<QBASAIR_AUTH_DOMAIN>` (`KC_HOSTNAME`, `KC_PROXY_HEADERS=xforwarded` behind nginx); the API's back channel `QBASAIR_OIDC_INTERNAL_URL=http://keycloak:8080`; the admin console on the server's loopback `127.0.0.1:8180` (`KC_HOSTNAME_ADMIN=http://localhost:8180`), reached through an SSH tunnel |
+| nginx | `deploy/nginx/keycloak-{http,tls}.conf.template`, rendered by `start-nginx.sh` when `QBASAIR_AUTH_DOMAIN` is set: its own rate limits, larger proxy buffers (Keycloak's cookies), `/admin` and `/realms/master` answered 404. Keycloak is resolved at request time, so nginx starts while it is down |
+| Realm | each deploy renders `keycloak/import/qbasair-realm.json` (mode 600) with the release's `scripts/keycloak_realm.py` (service `keycloak-realm`, profile `keycloak-jobs`, no network); Keycloak imports it on its first start only |
+| Admin console address | once, after the first healthy start, `deploy.sh` sets the `master` realm's `frontendUrl` to `KC_HOSTNAME_ADMIN` with `kcadm.sh` (marker `.deploy/keycloak-console`): the console's checks otherwise call the public host, where `/realms/master` is closed |
+| Certificate | `tls.sh issue` / `renew` add a separate certificate for the auth domain |
+| Backups | `backup.sh` adds `pg_dump --format=custom` of the database (`keycloak.dump`) |
+| Checks | `deploy.sh` refuses to start when the profile is on and `QBASAIR_AUTH_DOMAIN`, `QBASAIR_PUBLIC_URL`, `QBASAIR_OIDC_CLIENT_SECRET`, `KC_DB_PASSWORD` or `KC_BOOTSTRAP_ADMIN_PASSWORD` is empty; CI builds and scans the image, tests the nginx configurations with the auth domain, and validates the profiles |
+
+**Realm changes after the first start.** `--import-realm` skips a realm that exists, so a change to
+`keycloak_realm.py` or to the `KC_*` values reaches production only through the admin console
+(or by deleting the realm, which deletes its accounts). Applying the file on every deploy
+(keycloak-config-cli) is a follow-up.
+
+**Not in the image yet**: Sign in with Apple (its community provider extension).
+
 ## Next (platform)
 
-- Keycloak and its PostgreSQL database in the Compose stack, `auth.<domain>`, keycloak-config-cli
-  in the deploy (steps 1–3).
-- The theme and the email-code extension in the platform's Keycloak image (both JARs in `providers/`); native review of the 11
-  drafted sign-in languages, and mail texts for the 8 that fall back to English; `auth.basairquran.com`
-  (an A record in the Infomaniak DNS zone) and the Infomaniak mailbox's `KC_SMTP_*` in the server's env.
+- keycloak-config-cli in the deploy, so realm changes apply on every release.
+- Sign in with Apple: the pinned community provider extension in the image.
+- Native review of the 11 drafted sign-in languages, and mail texts for the 8 that fall back to
+  English.
 - The app: native provider buttons + token exchange, the email page in a system sheet (step 5).
 - After the cut-over: remove the local password routes and `auth_service`'s password code.

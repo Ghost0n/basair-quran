@@ -1,7 +1,7 @@
 name: Release
 
-# Production release (docs/deployment.md): on every push to `main` the API and
-# web images are built on GitHub's runners, scanned with Trivy, pushed to
+# Production release (docs/deployment.md): on every push to `main` the API,
+# web and Keycloak images are built on GitHub's runners, scanned with Trivy, pushed to
 # GitHub Container Registry, then deployed to the Contabo server over SSH by
 # deploy/server/deploy.sh. Run it by hand ("Run workflow") to redeploy, or to
 # roll back to an earlier release's images with `image_tag`.
@@ -45,7 +45,8 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        image: [api, web]
+        # keycloak: Keycloak with the theme and the email-code provider (Dockerfile.keycloak).
+        image: [api, web, keycloak]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -67,7 +68,7 @@ jobs:
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          file: ${{ matrix.image == 'api' && 'Dockerfile.api' || 'apps/web/Dockerfile' }}
+          file: ${{ matrix.image == 'api' && 'Dockerfile.api' || matrix.image == 'web' && 'apps/web/Dockerfile' || 'Dockerfile.keycloak' }}
           load: true
           tags: qbasair-${{ matrix.image }}:candidate
           labels: |

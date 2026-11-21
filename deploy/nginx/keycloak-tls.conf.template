@@ -1,0 +1,69 @@
+# Keycloak at ${QBASAIR_AUTH_DOMAIN} over HTTPS, rendered by start-nginx.sh
+# once its certificate exists (deploy/server/tls.sh issue writes
+# letsencrypt/live/${QBASAIR_AUTH_DOMAIN}/). Same rules as
+# keycloak-http.conf.template.
+
+limit_req_zone $binary_remote_addr zone=auth_general:10m rate=10r/s;
+limit_conn_zone $binary_remote_addr zone=auth_conn:10m;
+
+server {
+    listen 80;
+    server_name ${QBASAIR_AUTH_DOMAIN};
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type "text/plain";
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name ${QBASAIR_AUTH_DOMAIN};
+
+    client_max_body_size 1m;
+
+    ssl_certificate /etc/letsencrypt/live/${QBASAIR_AUTH_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${QBASAIR_AUTH_DOMAIN}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers off;
+
+    # Keycloak sends its own Content-Security-Policy and framing headers.
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    # Docker's DNS, asked at request time: nginx starts (and the site serves)
+    # even while the keycloak container is down or restarting.
+    resolver 127.0.0.11 valid=30s ipv6=off;
+    set $qbasair_keycloak http://keycloak:8080;
+
+    # Not public: the admin console and its master realm (an SSH tunnel to
+    # 127.0.0.1:8180, docs/keycloak.md → "Production"). Our API reaches the
+    # admin API inside the stack (QBASAIR_OIDC_INTERNAL_URL).
+    location ^~ /admin { return 404; }
+    location ^~ /realms/master { return 404; }
+
+    location / {
+        limit_conn auth_conn 30;
+        limit_req zone=auth_general burst=40 nodelay;
+
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port $server_port;
+        # Keycloak's responses carry large cookies and headers.
+        proxy_buffer_size 128k;
+        proxy_buffers 4 256k;
+        proxy_busy_buffers_size 256k;
+        proxy_read_timeout 60s;
+        proxy_connect_timeout 15s;
+        proxy_pass $qbasair_keycloak;
+    }
+}

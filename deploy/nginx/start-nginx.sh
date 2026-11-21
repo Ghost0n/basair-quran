@@ -19,6 +19,24 @@ fi
 
 envsubst '${QBASAIR_SERVER_NAME} ${QBASAIR_PUBLIC_DOMAIN}' < "${CONFIG_TEMPLATE}" > /etc/nginx/conf.d/default.conf
 
+# Keycloak (docs/keycloak.md → "Production"): its own server block for
+# QBASAIR_AUTH_DOMAIN, HTTPS once that name's certificate exists. "keycloak.conf"
+# loads after "default.conf", so the site stays the default server.
+KEYCLOAK_CONF="/etc/nginx/conf.d/keycloak.conf"
+rm -f "${KEYCLOAK_CONF}"
+if [ -n "${QBASAIR_AUTH_DOMAIN:-}" ]; then
+    AUTH_TEMPLATE="/opt/qbasair/keycloak-http.conf.template"
+    AUTH_CERT_DIR="/etc/letsencrypt/live/${QBASAIR_AUTH_DOMAIN}"
+    if [ "${QBASAIR_ENABLE_TLS:-0}" = "1" ] && [ -f "${AUTH_CERT_DIR}/fullchain.pem" ] && [ -f "${AUTH_CERT_DIR}/privkey.pem" ]; then
+        AUTH_TEMPLATE="/opt/qbasair/keycloak-tls.conf.template"
+        echo "Q-Basair nginx: Keycloak at https://${QBASAIR_AUTH_DOMAIN}."
+    else
+        echo "Q-Basair nginx: Keycloak at http://${QBASAIR_AUTH_DOMAIN} until its certificate exists."
+    fi
+    export QBASAIR_AUTH_DOMAIN
+    envsubst '${QBASAIR_AUTH_DOMAIN}' < "${AUTH_TEMPLATE}" > "${KEYCLOAK_CONF}"
+fi
+
 # Behind a CDN (docs/caching.md → "Putting a CDN in front"): every request
 # reaches nginx from the CDN's addresses, so the per-IP rate limits and logs
 # would treat all readers as one. When the CDN's address ranges are given, the

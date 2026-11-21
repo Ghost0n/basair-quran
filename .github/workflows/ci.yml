@@ -46,6 +46,8 @@ jobs:
         # `nginx -t` instead of starting nginx: the rendered site config and the
         # generated CDN real-IP config are both checked. A broken config would
         # otherwise only show up as a down site on deploy.
+        # The Keycloak server block (auth.example.test) is checked over HTTP and,
+        # with its own certificate, over HTTPS.
         run: |
           check() {
             echo "::group::$1"
@@ -53,23 +55,30 @@ jobs:
               --add-host api:127.0.0.1 --add-host web:127.0.0.1 \
               -e QBASAIR_PUBLIC_DOMAIN=example.test -e QBASAIR_ENABLE_TLS="$2" \
               -e QBASAIR_CDN_TRUSTED_RANGES="$3" -e QBASAIR_CDN_REAL_IP_HEADER="$4" \
+              -e QBASAIR_AUTH_DOMAIN="$5" \
               -v "$PWD/deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro" \
               -v "$PWD/deploy/nginx/http.conf.template:/opt/qbasair/http.conf.template:ro" \
               -v "$PWD/deploy/nginx/tls.conf.template:/opt/qbasair/tls.conf.template:ro" \
+              -v "$PWD/deploy/nginx/keycloak-http.conf.template:/opt/qbasair/keycloak-http.conf.template:ro" \
+              -v "$PWD/deploy/nginx/keycloak-tls.conf.template:/opt/qbasair/keycloak-tls.conf.template:ro" \
               -v "$PWD/deploy/nginx/start-nginx.sh:/opt/qbasair/start-nginx.sh:ro" \
               nginx:1.27-alpine sh -ec '
                 apk add --no-cache openssl >/dev/null
-                mkdir -p /etc/letsencrypt/live/example.test
-                openssl req -x509 -nodes -newkey rsa:2048 -days 1 -subj /CN=example.test \
-                  -keyout /etc/letsencrypt/live/example.test/privkey.pem \
-                  -out /etc/letsencrypt/live/example.test/fullchain.pem 2>/dev/null
+                for name in example.test auth.example.test; do
+                  mkdir -p /etc/letsencrypt/live/$name
+                  openssl req -x509 -nodes -newkey rsa:2048 -days 1 -subj /CN=$name \
+                    -keyout /etc/letsencrypt/live/$name/privkey.pem \
+                    -out /etc/letsencrypt/live/$name/fullchain.pem 2>/dev/null
+                done
                 sed "s/^exec nginx .*/nginx -t/" /opt/qbasair/start-nginx.sh | sh
               '
             echo "::endgroup::"
           }
-          check "HTTP" 0 "" ""
-          check "TLS" 1 "" ""
-          check "TLS behind a CDN" 1 "173.245.48.0/20,2400:cb00::/32" "CF-Connecting-IP"
+          check "HTTP" 0 "" "" ""
+          check "TLS" 1 "" "" ""
+          check "TLS behind a CDN" 1 "173.245.48.0/20,2400:cb00::/32" "CF-Connecting-IP" ""
+          check "HTTP with Keycloak" 0 "" "" auth.example.test
+          check "TLS with Keycloak" 1 "" "" auth.example.test
       - name: Check the server scripts (bash -n, shellcheck)
         run: |
           for script in deploy/server/*.sh deploy/nginx/start-nginx.sh; do bash -n "$script"; done
@@ -80,6 +89,7 @@ jobs:
           sed -i 's/^QBASAIR_SESSION_SECRET=.*/QBASAIR_SESSION_SECRET=ci-only-not-a-secret/' .env.ci
           docker compose --env-file .env.ci config --quiet
           docker compose --env-file .env.ci --profile tls config --quiet
+          docker compose --env-file .env.ci --profile keycloak --profile keycloak-jobs config --quiet
 
   frontend:
     name: Frontend (build)
@@ -166,7 +176,9 @@ jobs:
   # a Dockerfile that misses a workspace package (Q-Basair-119) fails here, on
   # the pull request, instead of in the release after the merge to main. The
   # mushaf fonts the release fetches first only add files to the web image,
-  # so they are left out. Reads the release's layer cache, keeps its own.
+  # so they are left out. Reads the release's layer cache, keeps its own. Each
+  # image is scanned with the release's own rule, so a finding that would stop
+  # the release shows here, before the merge.
   images:
     name: Docker image (${{ matrix.image }})
     runs-on: ubuntu-latest
@@ -175,7 +187,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        image: [api, web]
+        image: [api, web, keycloak]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
@@ -183,8 +195,9 @@ jobs:
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          file: ${{ matrix.image == 'api' && 'Dockerfile.api' || 'apps/web/Dockerfile' }}
+          file: ${{ matrix.image == 'api' && 'Dockerfile.api' || matrix.image == 'web' && 'apps/web/Dockerfile' || 'Dockerfile.keycloak' }}
           push: false
+          load: true
           tags: qbasair-${{ matrix.image }}:ci
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=/api
@@ -195,6 +208,16 @@ jobs:
             type=gha,scope=${{ matrix.image }}
             type=gha,scope=ci-${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=ci-${{ matrix.image }}
+      - name: Scan the image (Trivy, as the release does)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: qbasair-${{ matrix.image }}:ci
+          scanners: vuln,secret
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+          exit-code: "1"
+          format: table
 
   security:
     name: Security scan (Trivy)
