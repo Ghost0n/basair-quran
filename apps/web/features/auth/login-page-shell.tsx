@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import type { AuthSessionResponse } from "@q-basair/shared";
 
 import { BrandMark } from "@/components/brand-mark";
+import { APP_MODE } from "@/lib/app-mode/config";
 import { AUTH_ENABLED } from "@/lib/config";
 
 import "./auth.css";
@@ -18,7 +20,7 @@ import { useI18n } from "@/lib/i18n/provider";
 
 type AuthTab = "in" | "up";
 /** Keycloak holds the credentials (docs/keycloak.md): sign in and up on its page. */
-type IdentityProvider = { loginUrl: string };
+type IdentityProvider = { loginUrl: string; accountUrl: string | null };
 
 /** Why Keycloak sent the reader back (`/login?error=…`, routes/auth.py). */
 function keycloakError(code: string | null): string {
@@ -63,7 +65,27 @@ export function LoginPageShell() {
   const [resetToken, setResetToken] = useState(linkToken);
   const [notice, setNotice] = useState("");
   const [identityProvider, setIdentityProvider] = useState<IdentityProvider | null>(null);
+  // The standalone app: Keycloak's page opens in the system sheet (lib/app-mode/keycloak.ts).
+  const [appError, setAppError] = useState<string | null>(null);
+  const appSheetOpened = useRef(false);
   const { locale } = useI18n();
+
+  async function signInInApp(signup: boolean, accountUrl: string | null) {
+    setLoading(true);
+    setAppError(null);
+    try {
+      const { signInWithKeycloak } = await import("@/lib/app-mode/fetch-router");
+      const session = await signInWithKeycloak({ signup, locale, accountUrl });
+      if (session?.authenticated) {
+        await routeAfterAuth(session as AuthSessionResponse, nextPath);
+        return;
+      }
+      setAppError("failed");
+    } catch (err) {
+      setAppError((err as { code?: string } | null)?.code === "cancelled" ? "cancelled" : "failed");
+    }
+    setLoading(false);
+  }
 
   const isSignup = tab === "up";
 
@@ -85,6 +107,16 @@ export function LoginPageShell() {
           await routeAfterAuth(session, nextPath);
           return;
         }
+        if (APP_MODE && session.provider === "keycloak" && session.login_url) {
+          // The app: Keycloak's page in the system sheet (once per visit; then «دخول» opens it again).
+          setIdentityProvider({ loginUrl: session.login_url, accountUrl: session.account_url ?? null });
+          setCheckingSession(false);
+          if (!appSheetOpened.current) {
+            appSheetOpened.current = true;
+            void signInInApp(searchParams.get("tab") === "signup", session.account_url ?? null);
+          }
+          return;
+        }
         if (session.provider === "keycloak" && session.login_url && session.signup_url) {
           // One account page on Keycloak (its «دخول | حساب جديد» tabs and the providers): go
           // straight there, unless it just sent the reader back (an error to read, or a
@@ -94,7 +126,7 @@ export function LoginPageShell() {
             window.location.replace(providerUrl(target, nextPath, locale));
             return;
           }
-          setIdentityProvider({ loginUrl: session.login_url });
+          setIdentityProvider({ loginUrl: session.login_url, accountUrl: session.account_url ?? null });
         }
       } catch {
         // Keep the form visible when the session probe fails.
@@ -215,15 +247,27 @@ export function LoginPageShell() {
           <p className="qb-auth-provider-note">
             {t("الدخول بالبريد أو بحساب Apple أو Google أو Meta، على صفحة دخول بصائر الآمنة.")}
           </p>
-          {keycloakError(searchParams.get("error")) ? (
+          {keycloakError(appError ?? searchParams.get("error")) ? (
             <div className="qb-auth-error" role="alert">
-              {keycloakError(searchParams.get("error"))}
+              {keycloakError(appError ?? searchParams.get("error"))}
             </div>
           ) : null}
           {/* Keycloak's account page holds both tabs: one way back to it. */}
-          <a className="qb-auth-cta" href={providerUrl(identityProvider.loginUrl, nextPath, locale)}>
-            {t("دخول")}
-          </a>
+          {APP_MODE ? (
+            <button
+              type="button"
+              className="qb-auth-cta"
+              disabled={loading}
+              onClick={() => void signInInApp(false, identityProvider.accountUrl)}
+            >
+              {loading ? <span className="qb-auth-spinner" aria-hidden /> : null}
+              {loading ? t("لحظة…") : t("دخول")}
+            </button>
+          ) : (
+            <a className="qb-auth-cta" href={providerUrl(identityProvider.loginUrl, nextPath, locale)}>
+              {t("دخول")}
+            </a>
+          )}
         </div>
       ) : view === "forgot" ? (
         <div className="qb-auth-card" style={{ animation: "qbRise 500ms var(--motion-ease-settle) 160ms both" }}>

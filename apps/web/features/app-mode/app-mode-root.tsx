@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 
 import { APP_MODE } from "@/lib/app-mode/config";
 import { installFetchRouter } from "@/lib/app-mode/fetch-router";
+import { inAppPath, setAppNavigator } from "@/lib/app-mode/navigation";
 import { bootApp } from "@/lib/app-mode/boot";
 import { startAccountSync } from "@/lib/app-mode/sync";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
@@ -47,6 +49,31 @@ function AppModeGate({ children }: { children: ReactNode }) {
     splashDone = true;
     setSplash(false);
   }, []);
+  const router = useRouter();
+
+  // A full page load of any page but Home lands on Home (lib/app-mode/navigation.ts):
+  // same-origin links open with client navigation instead. Bubble phase, after
+  // React's own handlers: a <Link> (or any handler) that already took the click is left alone.
+  useEffect(() => {
+    setAppNavigator((href) => router.push(href));
+    const onClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const anchor = (event.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!anchor) return;
+      const path = inAppPath(anchor.getAttribute("href") ?? "", window.location, {
+        target: anchor.getAttribute("target"),
+        download: anchor.hasAttribute("download"),
+      });
+      if (!path) return;
+      event.preventDefault();
+      router.push(path);
+    };
+    document.addEventListener("click", onClick);
+    return () => {
+      document.removeEventListener("click", onClick);
+      setAppNavigator(null);
+    };
+  }, [router]);
 
   useEffect(() => {
     if (launched) return;
