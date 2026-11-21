@@ -41,6 +41,7 @@ import { CopyButton } from "./copy-button";
 import { answerAsText } from "./message-text";
 import { hasMoreAyahs, loadMoreAyahsPool, MORE_AYAHS_STEP } from "./more-ayahs";
 import { RiskConsent, useStudyRisksAccepted } from "./risk-consent";
+import { sessionHistory, type HistoryItem } from "./session-history";
 import { StudioNotices } from "./studio-notices";
 import { TafssirDisclaimer } from "./tafssir-disclaimer";
 import { useStudioSessions } from "./use-studio-sessions";
@@ -130,9 +131,11 @@ export function StudioPanel() {
   // explanatory reading existed still shows its answers, under its disclaimer.
   const hasLegacyTafssir = Boolean(active?.messages.some((message) => message.response?.mode === "tafssir"));
   const hasMessages = Boolean(active && active.messages.length > 0);
-  // The history: the sessions that hold a conversation, newest first. An
-  // empty session is not history; with none, there is no pane to open.
-  const history = [...studio.sessions].reverse().filter((session) => session.messages.length > 0);
+  // The history: the open sessions that hold a conversation, newest first,
+  // then the ones saved to the account that are not open (session-history.ts).
+  // An empty session is not history; with none, there is no pane to open.
+  const history = sessionHistory(studio.sessions, studio.saved);
+  const savedOnly = history.filter((item) => !item.open);
   const paneOpen = sideOpen && history.length > 0;
 
   // A click (or tap) outside the open sessions pane folds it away, as the
@@ -280,14 +283,17 @@ export function StudioPanel() {
               type="button"
               className="open"
               aria-current={session.id === studio.activeId ? "true" : undefined}
-              onClick={() => studio.setActiveId(session.id)}
+              onClick={() => (session.open ? studio.setActiveId(session.id) : void studio.openSavedSession(session.id))}
             >
               <span className="name">{session.title}</span>
-              <span className="count">{tn("{0} رسالة", session.messages.length, { 0: formatNumber(session.messages.length) })}</span>
+              <span className="count">{tn("{0} رسالة", session.count, { 0: formatNumber(session.count) })}</span>
             </button>
-            <button type="button" className="x" aria-label={t("إغلاق الجلسة")} title={t("إغلاق الجلسة")} onClick={() => studio.closeSession(session.id)}>
-              <Icon name="close" size={13} />
-            </button>
+            {/* Closing only leaves this tab: a saved session stays on the account. */}
+            {session.open ? (
+              <button type="button" className="x" aria-label={t("إغلاق الجلسة")} title={t("إغلاق الجلسة")} onClick={() => studio.closeSession(session.id)}>
+                <Icon name="close" size={13} />
+              </button>
+            ) : null}
           </li>
         ))}
       </ul>
@@ -569,9 +575,14 @@ export function StudioPanel() {
       {sessionsOpen ? (
         <SessionsSheet
           sessions={studio.sessions}
+          saved={savedOnly}
           activeId={studio.activeId}
           onPick={(id) => {
             studio.setActiveId(id);
+            setSessionsOpen(false);
+          }}
+          onOpenSaved={(id) => {
+            void studio.openSavedSession(id);
             setSessionsOpen(false);
           }}
           onCloseSession={studio.closeSession}
@@ -595,18 +606,22 @@ function titleOf(session: { title: string; messages: unknown[] } | null | undefi
   return session && session.messages.length > 0 ? session.title : t("جلسة جديدة");
 }
 
-/** The open sessions, as a bottom sheet: pick one, close one, or start one. */
+/** The sessions, as a bottom sheet: pick an open or saved one, close one, or start one. */
 function SessionsSheet({
   sessions,
+  saved,
   activeId,
   onPick,
+  onOpenSaved,
   onCloseSession,
   onNew,
   onClose,
 }: {
   sessions: { id: string; title: string; messages: unknown[] }[];
+  saved: HistoryItem[];
   activeId: string;
   onPick: (id: string) => void;
+  onOpenSaved: (id: string) => void;
   onCloseSession: (id: string) => void;
   onNew: () => void;
   onClose: () => void;
@@ -640,6 +655,19 @@ function SessionsSheet({
               </button>
               <button type="button" className="x" aria-label={t("إغلاق الجلسة")} onClick={() => onCloseSession(session.id)}>
                 <Icon name="close" size={16} />
+              </button>
+            </div>
+          ))}
+          {saved.map((session) => (
+            <div key={session.id} className="qb-studio-session">
+              <button type="button" className="menu-item" onClick={() => onOpenSaved(session.id)}>
+                <span className="ico">
+                  <Icon name="sparkles" size={18} />
+                </span>
+                <span className="txt">
+                  {session.title}
+                  <small>{tn("{0} رسالة", session.count, { 0: formatNumber(session.count) })}</small>
+                </span>
               </button>
             </div>
           ))}

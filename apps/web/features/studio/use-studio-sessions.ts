@@ -7,6 +7,7 @@ import type {
   ResearchAgentMessage,
   ResearchAgentResponse,
   ResearchFocusAyah,
+  ResearchSessionSummary,
   StoredMessage,
 } from "@q-basair/shared";
 
@@ -139,6 +140,14 @@ export function useStudioSessions() {
   const isResearching = useSyncExternalStore(subscribeResearching, researchingSessions, () => NONE).size > 0;
   const [error, setError] = useState<string | null>(null);
   const hydratedRef = useRef(false);
+  // The sessions saved to the account (a guest's: in this browser), listed
+  // beside the open ones (session-history.ts): signing out empties the tab's
+  // open sessions, never the saved ones.
+  const [saved, setSaved] = useState<ResearchSessionSummary[]>([]);
+  const refreshSaved = useCallback(() => {
+    api.getSessions().then((list) => setSaved(Array.isArray(list) ? list : []), () => undefined);
+  }, []);
+  useEffect(() => refreshSaved(), [refreshSaved]);
 
   // Restore the open tabs once, after mount (keeps SSR output deterministic).
   useEffect(() => {
@@ -282,6 +291,7 @@ export function useStudioSessions() {
                   response: m.role === "assistant" ? m.response : undefined,
                 })),
               });
+              refreshSaved();
             } catch {
               // A failed save must not break the chat — the session stays in memory.
             }
@@ -304,7 +314,7 @@ export function useStudioSessions() {
       );
       return outcome.ok;
     },
-    [patchSession],
+    [patchSession, refreshSaved],
   );
 
   const submit = useCallback(
@@ -388,5 +398,6 @@ export function useStudioSessions() {
     submit,
     askInNewSession,
     openSavedSession,
+    saved,
   };
 }

@@ -33,6 +33,41 @@ describe("useStudioSessions (the hook's wiring)", () => {
     host.remove();
   });
 
+  it("lists the sessions saved to the account, and refreshes them once an answer is saved", async () => {
+    // Signing out empties the tab's open sessions: the saved ones come from the account.
+    const saved = [{ id: "studio-old", title: "الصبر", mode: "strict", message_count: 2, created_at: 1, updated_at: 2 }];
+    let lists = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.endsWith("/sessions") && (init?.method ?? "GET") === "GET") {
+          lists += 1;
+          return new Response(JSON.stringify(saved), { status: 200, headers: { "Content-Type": "application/json" } });
+        }
+        if (url.includes("/research-agent")) {
+          return new Response(JSON.stringify({ status: "answered", mode: "strict", answer: "ok", related_terms: [], searches: [], ayahs: [] }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        return new Response("{}", { status: 200, headers: { "Content-Type": "application/json" } });
+      }),
+    );
+    try {
+      await mount();
+      expect(studio.sessions.every((session) => session.messages.length === 0)).toBe(true);
+      expect(studio.saved.map((session) => session.id)).toEqual(["studio-old"]);
+      const before = lists;
+      await act(async () => {
+        await studio.submit("ما الصبر؟", 1);
+      });
+      expect(lists).toBeGreaterThan(before);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
   it("opens one new session after a question, and no second blank one on a double tap", async () => {
     window.sessionStorage.setItem("qbasair.studio.sessions", JSON.stringify({ sessions: [asked("studio-a")], activeId: "studio-a" }));
     await mount();
