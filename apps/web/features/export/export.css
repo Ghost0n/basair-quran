@@ -103,37 +103,10 @@
   font-weight: 600;
 }
 
-.qb-export-format:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
 .qb-export-format.active {
   border-color: var(--border-accent);
   background: rgba(212, 175, 55, 0.10);
   color: var(--gold-text);
-}
-
-.qb-export-format .soon {
-  margin-inline-start: auto;
-  font-size: 10px;
-  color: var(--fg-mute);
-}
-
-.qb-export-toggles {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 18px;
-}
-
-.qb-export-toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--fg-2);
-  cursor: pointer;
 }
 
 .qb-export-preview {
@@ -151,6 +124,54 @@
   overflow-y: auto;
   direction: ltr;
   text-align: start;
+}
+
+/* The Markdown export, shown rendered (chat-markdown-view.tsx). */
+.qb-export-preview.is-rendered {
+  white-space: normal;
+  max-height: 320px;
+  font-size: 13px;
+  color: var(--fg-1);
+}
+
+/* Read in the session's own direction (the raw preview stays left to right). */
+.qb-export-preview.is-rendered[dir="rtl"] {
+  direction: rtl;
+}
+
+.qb-export-preview.is-rendered :is(h4, h5, h6) {
+  margin: 12px 0 6px;
+  font-family: var(--font-arabic-heading);
+  font-size: 15px;
+  color: var(--fg-1);
+}
+
+.qb-export-preview.is-rendered h4 {
+  margin-top: 0;
+  font-size: 18px;
+}
+
+.qb-export-preview.is-rendered p {
+  margin: 0 0 8px;
+  white-space: pre-wrap;
+}
+
+.qb-export-preview.is-rendered blockquote {
+  margin: 0 0 8px;
+  padding-inline-start: 10px;
+  border-inline-start: 3px solid var(--border-accent);
+  color: var(--fg-2);
+}
+
+.qb-export-preview.is-rendered :is(ul, ol) {
+  margin: 0 0 8px;
+  padding-inline-start: 20px;
+}
+
+.qb-export-preview.is-rendered hr {
+  margin: 10px 0;
+  border: 0;
+  border-top: 1px solid var(--border);
 }
 
 .light .qb-export-preview {

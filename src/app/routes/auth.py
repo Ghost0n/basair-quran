@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query, Request, Response
+import urllib.parse
+
+from fastapi import APIRouter, HTTPException, Path, Query, Request, Response
 from fastapi.responses import RedirectResponse
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 
@@ -18,7 +20,10 @@ from src.app.models.api import (
     GuestMergeRequest,
     GuestMergeResult,
     GuestMergeUndoRequest,
+    LinkedAccountsResponse,
+    LinkedProvider,
     ResetPasswordRequest,
+    UnlinkProviderRequest,
 )
 import logging
 
@@ -141,6 +146,10 @@ def auth_oidc_login(
         url, pending = oidc_service.begin_login(return_to, signup=signup, locale=locale)
     except oidc_service.OidcError as exc:
         raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
+    return _to_keycloak(url, pending)
+
+
+def _to_keycloak(url: str, pending: dict) -> RedirectResponse:
     # Remembered until the callback in a short-lived signed cookie of its own
     # (not the session cookie, which carries the sign-in token).
     response = RedirectResponse(url, status_code=302)
@@ -156,12 +165,47 @@ def auth_oidc_login(
     return response
 
 
+_PROVIDER_ALIAS = r"^[a-z0-9][a-z0-9_-]{0,39}$"
+
+
+def _with_query(path: str, **params: str) -> str:
+    """`path` (already a safe local path) with `params` added to its query."""
+    parts = urllib.parse.urlsplit(path)
+    query = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+    query = [(key, value) for key, value in query if key not in params] + list(params.items())
+    return urllib.parse.urlunsplit(("", "", parts.path, urllib.parse.urlencode(query), parts.fragment))
+
+
+@router.get("/oidc/link/{alias}", include_in_schema=True)
+def auth_oidc_link(
+    request: Request,
+    alias: str = Path(..., pattern=_PROVIDER_ALIAS),
+    return_to: str | None = Query(None, max_length=500),
+    locale: str | None = Query(None, max_length=12),
+) -> RedirectResponse:
+    """Link a sign-in provider to the signed-in account (settings): Keycloak sends the
+    reader to the provider, then back to the callback, which returns to `return_to`
+    with `linked=<alias>` or `link_error=cancelled|in_use|other_account|failed`."""
+    if not config.is_keycloak_auth():
+        raise HTTPException(status_code=404, detail="Not found.")
+    resolved = auth_service.resolve_session(_extract_token(request))
+    if resolved is None:
+        return RedirectResponse(_with_query("/login", next=oidc_service.safe_return_to(return_to)), status_code=302)
+    try:
+        url, pending = oidc_service.begin_login(return_to, locale=locale, link=alias, login_hint=resolved.user.email)
+    except oidc_service.OidcError as exc:
+        raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
+    pending["user_id"] = resolved.user.id
+    return _to_keycloak(url, pending)
+
+
 @router.get("/oidc/callback", include_in_schema=True)
 def auth_oidc_callback(
     request: Request,
     code: str | None = Query(None, max_length=4096),
     state: str | None = Query(None, max_length=200),
     error: str | None = Query(None, max_length=200),
+    kc_action_status: str | None = Query(None, max_length=40),
 ) -> RedirectResponse:
     """Keycloak's answer: check it, open our session (cookie) and go back where the reader was."""
     if not config.is_keycloak_auth():
@@ -178,6 +222,9 @@ def auth_oidc_callback(
         response.delete_cookie(_PENDING_COOKIE, path="/api/auth/oidc")
         return response
 
+    if pending and pending.get("link"):
+        return finish(_finish_link(request, pending, return_to, code, state, error, kc_action_status))
+
     # The reader backed out on Keycloak's page (access_denied); anything else is a failure.
     failed = finish(RedirectResponse(f"/login?error={'cancelled' if error == 'access_denied' else 'failed'}", status_code=302))
     if error or not code:
@@ -190,6 +237,8 @@ def auth_oidc_callback(
             email_verified=identity.email_verified,
             name=identity.name,
             roles=identity.roles,
+            # An account tied to a Keycloak identity that no longer exists moves to this one.
+            subject_is_gone=oidc_service.admin_user_is_gone,
         )
     except oidc_service.OidcError as exc:
         logger.warning("oidc callback refused: %s", exc)
@@ -203,6 +252,105 @@ def auth_oidc_callback(
     response = finish(RedirectResponse(return_to, status_code=302))
     _set_session_cookie(response, raw_token)
     return response
+
+
+def _finish_link(
+    request: Request,
+    pending: dict,
+    return_to: str,
+    code: str | None,
+    state: str | None,
+    error: str | None,
+    action_status: str | None,
+) -> RedirectResponse:
+    """Keycloak's answer to «link this provider»: our session stays as it was."""
+    alias = str(pending["link"])
+
+    def back(**params: str) -> RedirectResponse:
+        return RedirectResponse(_with_query(return_to, **params), status_code=302)
+
+    resolved = auth_service.resolve_session(_extract_token(request))
+    if resolved is None or resolved.user.id != pending.get("user_id"):
+        return RedirectResponse(_with_query("/login", next=return_to), status_code=302)
+    if error:
+        return back(link_error="cancelled" if error == "access_denied" else "failed")
+    if not code:
+        return back(link_error="failed")
+    try:
+        identity = oidc_service.complete_login(code, state or "", pending)
+    except oidc_service.OidcError as exc:
+        logger.warning("oidc link refused: %s", exc)
+        return back(link_error="failed")
+    # Keycloak linked the account it is signed in to: it must be this one.
+    if identity.subject != auth_service.get_external_id(resolved.user.id):
+        return back(link_error="other_account")
+    if action_status == "success":
+        return back(linked=alias)
+    if action_status == "cancelled":
+        return back(link_error="cancelled")
+    # «error»: most often the provider's account is already linked to another account.
+    try:
+        linked = oidc_service.admin_linked_accounts(identity.subject)
+        if any(provider["alias"] == alias and provider["linked"] for provider in linked.providers):
+            return back(linked=alias)
+    except oidc_service.OidcError:
+        pass
+    return back(link_error="in_use" if action_status == "error" else "failed")
+
+
+def _keycloak_subject(request: Request) -> str:
+    """The signed-in account's Keycloak `sub` (Keycloak mode only)."""
+    if not config.is_keycloak_auth():
+        raise HTTPException(status_code=404, detail="Not found.")
+    resolved = _require_user(request)
+    subject = auth_service.get_external_id(resolved.user.id)
+    if not subject:
+        raise HTTPException(status_code=409, detail="This account is not a Keycloak account.")
+    return subject
+
+
+def _linked_response(linked: oidc_service.LinkedAccounts) -> LinkedAccountsResponse:
+    return LinkedAccountsResponse(
+        providers=[LinkedProvider(**provider) for provider in linked.providers], has_password=linked.has_password
+    )
+
+
+@router.get("/linked-accounts", response_model=LinkedAccountsResponse)
+def auth_linked_accounts(request: Request) -> LinkedAccountsResponse:
+    """The realm's sign-in providers (Apple, Google, Meta) and which are linked."""
+    subject = _keycloak_subject(request)
+    try:
+        return _linked_response(oidc_service.admin_linked_accounts(subject))
+    except oidc_service.OidcError as exc:
+        logger.warning("linked accounts unavailable: %s", exc)
+        raise HTTPException(status_code=503, detail="تعذّر الوصول إلى الحسابات المرتبطة الآن.") from exc
+
+
+@router.post("/linked-accounts/{alias}/unlink", response_model=LinkedAccountsResponse)
+def auth_unlink_provider(
+    request: Request,
+    req: UnlinkProviderRequest,
+    alias: str = Path(..., pattern=_PROVIDER_ALIAS),
+) -> LinkedAccountsResponse:
+    """Unlink a provider. Without a password the account must set one here first
+    (`password`), so it can still sign in: 422 `password_required` when missing,
+    422 `password_rejected` when Keycloak's policy refuses it (nothing is unlinked)."""
+    subject = _keycloak_subject(request)
+    try:
+        oidc_service.admin_unlink(subject, alias, req.password)
+        return _linked_response(oidc_service.admin_linked_accounts(subject))
+    except oidc_service.OidcError as exc:
+        if exc.reason == "password_required":
+            raise HTTPException(status_code=422, detail={"code": "password_required", "message": str(exc)}) from exc
+        if exc.upstream == 400:
+            raise HTTPException(
+                status_code=422,
+                detail={"code": "password_rejected", "message": "Keycloak's password policy refused it.", "reason": exc.reason},
+            ) from exc
+        if exc.status == 404:
+            raise HTTPException(status_code=404, detail="This provider is not linked.") from exc
+        logger.warning("unlink failed: %s", exc)
+        raise HTTPException(status_code=503, detail="تعذّر فصل الحساب الآن. حاول بعد قليل.") from exc
 
 
 def _device_fields(req, request: Request) -> dict:

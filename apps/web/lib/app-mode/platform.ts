@@ -9,7 +9,7 @@ export interface DeviceDatabase extends SqlDriver {
   /** A statement that changes data (INSERT/UPDATE/DELETE/DDL). */
   run(sql: string, params?: SqlValue[]): Promise<void>;
   /** Copy every row of every data table of a downloaded pack database into this one, in one transaction. */
-  importPack(bytes: Uint8Array, id: string): Promise<Record<string, number>>;
+  importPack(bytes: Uint8Array<ArrayBuffer>, id: string): Promise<Record<string, number>>;
   /** Remove an installed pack's rows (its delete statements, in one transaction). */
   removePack(id: string, statements: { sql: string; params?: SqlValue[] }[]): Promise<void>;
   /** Several statements in one transaction. */
@@ -23,7 +23,7 @@ export interface KeyValue {
 }
 
 export interface FileStore {
-  write(path: string, bytes: Uint8Array): Promise<void>;
+  write(path: string, bytes: Uint8Array<ArrayBuffer>): Promise<void>;
   /** A URL the webview can load (an <audio> src), or null when the file is absent. */
   url(path: string): Promise<string | null>;
   remove(prefix: string): Promise<void>;

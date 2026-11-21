@@ -75,6 +75,27 @@ export interface DeviceInfo {
   is_current: boolean;
 }
 
+/** A sign-in provider of the realm (Keycloak mode), linked to the account or not. */
+export interface LinkedProvider {
+  /** Keycloak's alias: "apple", "google", "facebook". */
+  alias: string;
+  name: string;
+  linked: boolean;
+  /** The provider's own account name (often the email), when linked. */
+  username?: string | null;
+}
+
+export interface LinkedAccountsResponse {
+  providers: LinkedProvider[];
+  /** False: the account signs in only through providers; unlinking one first sets a password. */
+  has_password: boolean;
+}
+
+export interface UnlinkProviderRequest {
+  /** Required when the account has no password: it becomes the account's password. */
+  password?: string | null;
+}
+
 export interface GuestMergeRequest {
   notebook_ids?: number[];
   session_ids?: string[];
@@ -195,7 +216,12 @@ export interface AiProviderItem {
   signin: boolean;
   /** Model names to preselect, in order (substring match). */
   prefer: string[];
+  /** The thinking levels it can be asked for (`X-QBasair-LLM-Thinking`); empty: the model decides. */
+  thinking: ThinkingLevel[];
 }
+
+/** How long the model thinks before answering (the chat's selector). */
+export type ThinkingLevel = "off" | "low" | "medium" | "high";
 
 export interface OpenRouterKeyResponse {
   key: string;
@@ -953,6 +979,9 @@ export interface MorphologyResponse {
 
 export type NumeralScript = "arabic-indic" | "latin" | "persian";
 
+/** The digits setting: "auto" = the interface language's own digits, else a script. */
+export type NumeralsSetting = "auto" | NumeralScript;
+
 /** How pages/ayahs are arranged in the reader (orthogonal to mushaf_render). */
 export type ReaderLayout = "auto" | "single" | "spread" | "scroll" | "ayah";
 
@@ -1048,7 +1077,7 @@ export interface UserPreferences {
   /** @deprecated since `mushaf_edition`; kept for API compatibility. */
   riwayah: number;
   mushaf_font: string;
-  numerals: NumeralScript;
+  numerals: NumeralsSetting;
   ui_language: string;
   theme: "dark" | "light" | "system";
   font_size: number;
@@ -1127,7 +1156,7 @@ export interface UserPreferencesUpdate {
   mushaf_edition?: MushafEditionId;
   riwayah?: number;
   mushaf_font?: string;
-  numerals?: NumeralScript;
+  numerals?: NumeralsSetting;
   ui_language?: string;
   theme?: "dark" | "light" | "system";
   font_size?: number;

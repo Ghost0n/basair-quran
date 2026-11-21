@@ -124,6 +124,10 @@ last device to sync wins, per row.
 The app build is selected by `NEXT_PUBLIC_APP_MODE=1`: `next.config.ts`
 switches to `output: "export"` and gives `.app.tsx` route files precedence,
 and the i18n loader bundles only English (other dictionaries are packs).
+That precedence needs Webpack: the app is built with `next build --webpack`
+(`scripts/build-app.mjs`, CI), while the website uses Turbopack, the default
+since Next.js 16 (which ignores the `pageExtensions` order and would pick the
+website's force-dynamic `layout.tsx`, failing the export).
 Everything app-only is behind the build-time `APP_MODE` constant, so the web
 build does not change.
 
@@ -215,15 +219,17 @@ same code (`apps/web/lib/app-mode/platform-capacitor.ts`).
 
 ### Building
 
-CI: `.github/workflows/mobile.yml` runs on changes to the app on `develop` /
-`main`, on `mobile-v*` tags and on demand. One job builds the Quran data
+CI: `.github/workflows/mobile.yml` runs on changes to the app on `main`, on
+`mobile-v*` tags and on demand. On `develop` (or any branch) it is optional:
+Actions → Mobile → "Run workflow", pick the branch, and tick "Also build iOS"
+to add the macOS job. One job builds the Quran data
 (fonts, `quran.db`, the Madani layout), the offline core and packs
 (verified) and the app bundle; then, from that same bundle:
 
 - **Android** (Linux): `assembleDebug`, `assembleRelease`, `bundleRelease` →
   the APKs and the AAB.
-- **iOS** (macOS, Xcode; only on `mobile-v*` tags and when started by hand,
-  since a macOS runner costs ten times a Linux one): a simulator build (`Basair-simulator.zip`: unzip and
+- **iOS** (macOS, Xcode; only on `mobile-v*` tags and when started by hand
+  with "Also build iOS", since a macOS runner costs ten times a Linux one): a simulator build (`Basair-simulator.zip`: unzip and
   drag `App.app` onto a running iOS Simulator), and a device build — a signed
   `.ipa` when the Apple secrets exist, otherwise `Basair-unsigned.ipa` (to be
   re-signed before it installs). On a `mobile-v*` tag the signed build is

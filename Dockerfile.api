@@ -13,7 +13,10 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# setuptools (and the wheel it vendors) only installs packages; the base
+# image's copy carries known vulnerabilities and nothing imports it at run time.
+RUN pip install --no-cache-dir -r requirements.txt \
+    && pip uninstall -y setuptools wheel
 
 COPY src ./src
 COPY scripts ./scripts

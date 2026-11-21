@@ -18,7 +18,9 @@ import { useTopBarSlots } from "@/features/shell/top-bar-slots";
 import { useWorkspace } from "@/features/shell/workspace-context";
 import { setShowHighlights, useShowHighlights } from "@/features/themes/ayah-marks";
 import { hapticsAvailable, hapticsEnabled, setHapticsEnabled, subscribeHaptics } from "@/lib/haptics";
+import { useI18n } from "@/lib/i18n/provider";
 import { MUSHAF_EDITIONS, resolveEdition } from "@/lib/mushaf-defaults";
+import { digitsSetting, resolveNumerals } from "@/lib/numerals";
 import { usePreferences } from "@/lib/preferences-context";
 
 import { AiSettings } from "./ai-settings";
@@ -125,6 +127,7 @@ function Switch({ label, on, onChange }: { label: string; on: boolean; onChange:
  */
 export function SettingsWeb() {
   const { preferences, updateAccount } = usePreferences();
+  const { info } = useI18n();
   const { state, actions } = useWorkspace();
   const recitation = useRecitation();
   const showHighlights = useShowHighlights();
@@ -339,9 +342,10 @@ export function SettingsWeb() {
             <Row label={t("الأرقام")}>
               <Segments
                 label={t("الأرقام")}
-                value={preferences.numerals}
+                // The language's own digits are shown chosen until others are picked.
+                value={resolveNumerals(preferences.numerals, info.numerals)}
                 options={NUMERALS.map((option) => ({ value: option.value, label: option.label() }))}
-                onChange={(numerals) => void updateAccount({ numerals })}
+                onChange={(script) => void updateAccount({ numerals: digitsSetting(script, info.numerals) })}
               />
             </Row>
             {haptics.available ? (

@@ -67,7 +67,10 @@ export function emailProblemOf(error: unknown): EmailProblem | null {
  * a bug, a request for help or a feature idea. Guests may leave an email to be
  * answered; signed-in readers see what they sent and where it stands.
  */
-/** The website's guide: the page itself on the web, the public site from the app (null when its address isn't known). */
+/**
+ * The website's guide, in a new tab so Settings stays open: the page itself on
+ * the web, the public site from the app (null when its address isn't known).
+ */
 function guideUrl(): string | null {
   if (!APP_MODE) return "/guide";
   const origin = publicOrigin();
@@ -121,7 +124,7 @@ export function FeedbackCard() {
       <h3>{t("الدعم والملاحظات")}</h3>
       <p className="card-sub">{t("راسل الفريق: سؤال، أو خلل وجدته، أو اقتراح ميزة. يقرأ كلَّ رسالة شخصٌ من الفريق.")}</p>
       {guide ? (
-        <a className="qb-feedback-guide" href={guide} target={APP_MODE ? "_blank" : undefined} rel="noopener">
+        <a className="qb-feedback-guide" href={guide} target="_blank" rel="noopener">
           <Icon name="book" size={18} />
           <span>
             <strong>{t("دليل الاستخدام")}</strong>

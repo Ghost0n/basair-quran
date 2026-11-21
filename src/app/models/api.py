@@ -103,6 +103,27 @@ class DeviceInfo(BaseModel):
     is_current: bool = False
 
 
+class LinkedProvider(BaseModel):
+    # Keycloak's provider alias ("google", "apple", "facebook") and display name.
+    alias: str
+    name: str
+    linked: bool = False
+    # The provider's own account name (often the email), when linked.
+    username: Optional[str] = None
+
+
+class LinkedAccountsResponse(BaseModel):
+    providers: List[LinkedProvider] = Field(default_factory=list)
+    # False: the account signs in only through its providers, so unlinking one
+    # first sets a password (UnlinkProviderRequest.password).
+    has_password: bool = False
+
+
+class UnlinkProviderRequest(BaseModel):
+    # Required when the account has no password: it becomes the account's password.
+    password: Optional[str] = Field(None, min_length=1, max_length=128)
+
+
 class GuestMergeRequest(BaseModel):
     notebook_ids: List[int] = Field(default_factory=list)
     session_ids: List[str] = Field(default_factory=list)
@@ -448,6 +469,9 @@ class AiProviderItem(BaseModel):
     signin: bool = False
     # Model names to preselect, in order (substring match).
     prefer: List[str] = Field(default_factory=list)
+    # The thinking levels the study can ask of it (`X-QBasair-LLM-Thinking`);
+    # empty: the model decides (its own default).
+    thinking: List[Literal["off", "low", "medium", "high"]] = Field(default_factory=list)
 
 
 class OpenRouterKeyRequest(BaseModel):
@@ -1212,7 +1236,8 @@ class UserPreferences(BaseModel):
     # the web client (the edition decides the riwāyah and the renderer).
     riwayah: int = 2  # Ḥafṣ (mushaf id 2)
     mushaf_font: str = "amiri-quran"
-    numerals: Literal["arabic-indic", "latin", "persian"] = "arabic-indic"
+    # "auto" = the interface language's own digits; the others are a choice.
+    numerals: Literal["auto", "arabic-indic", "latin", "persian"] = "auto"
     ui_language: str = "ar"
     theme: Literal["dark", "light", "system"] = "dark"
     font_size: int = Field(28, ge=18, le=48)
@@ -1248,7 +1273,7 @@ class UserPreferencesUpdate(BaseModel):
     mushaf_edition: Optional[MushafEditionId] = None
     riwayah: Optional[int] = None
     mushaf_font: Optional[str] = None
-    numerals: Optional[Literal["arabic-indic", "latin", "persian"]] = None
+    numerals: Optional[Literal["auto", "arabic-indic", "latin", "persian"]] = None
     ui_language: Optional[str] = None
     theme: Optional[Literal["dark", "light", "system"]] = None
     font_size: Optional[int] = Field(None, ge=18, le=48)

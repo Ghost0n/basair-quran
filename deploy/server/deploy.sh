@@ -22,6 +22,11 @@
 #                         QBASAIR_PREPARE_RECITERS in .env.production)
 # Missing generated data is built without asking: translations.db, the
 # offline packs and the duration cache.
+#
+# With COMPOSE_PROFILES=keycloak in .env.production (docs/keycloak.md →
+# "Production"), the release's Keycloak image runs too: the realm «qbasair» is
+# rendered from .env.production into keycloak/import/ before it starts, and
+# imported on Keycloak's first start (an existing realm is left as it is).
 
 set -euo pipefail
 
@@ -71,6 +76,22 @@ has_job() { [[ ",${JOBS}," == *",$1,"* ]]; }
 
 env_value() { grep -E "^$1=" "${ENV_FILE}" | tail -1 | cut -d= -f2- || true; }
 
+# A value without its quotes or spaces.
+env_bare() { env_value "$1" | tr -d "\"' "; }
+
+keycloak_enabled() { [[ ",$(env_bare COMPOSE_PROFILES)," == *",keycloak,"* ]]; }
+
+# Keycloak's settings, checked before anything changes.
+if keycloak_enabled; then
+  missing=""
+  for key in QBASAIR_AUTH_DOMAIN QBASAIR_PUBLIC_URL QBASAIR_OIDC_CLIENT_SECRET KC_DB_PASSWORD KC_BOOTSTRAP_ADMIN_PASSWORD; do
+    [[ -n "$(env_bare "${key}")" ]] || missing="${missing} ${key}"
+  done
+  [[ -z "${missing}" ]] || fail "COMPOSE_PROFILES has keycloak but .env.production lacks:${missing} (docs/deployment.md → Keycloak)."
+  [[ "$(env_bare QBASAIR_AUTH_PROVIDER)" == "keycloak" ]] \
+    || log "note: the keycloak profile is on but QBASAIR_AUTH_PROVIDER is not \"keycloak\": sign-in stays local."
+fi
+
 wait_ready() {
   local tag="$1" deadline=$((SECONDS + READY_TIMEOUT)) body="" domain
   domain="$(env_value QBASAIR_PUBLIC_DOMAIN)"
@@ -94,9 +115,49 @@ wait_ready() {
 start_release() {
   local tag="$1"
   log "pulling the images of ${tag}"
-  compose "${tag}" pull api worker web nginx
+  # Every service of the active profiles (Keycloak and its database with the
+  # keycloak profile); certbot's `tls` profile stays out.
+  compose "${tag}" pull
+  if keycloak_enabled; then
+    log "rendering the Keycloak realm from .env.production"
+    install -d -m 700 keycloak keycloak/import
+    compose "${tag}" run --rm --no-deps keycloak-realm >/dev/null
+    chmod 600 keycloak/import/qbasair-realm.json
+  fi
   log "starting ${tag}"
   compose "${tag}" up -d --no-build --remove-orphans
+}
+
+# Keycloak doesn't gate the release (the site serves without it), but a
+# sign-in that can't work is worth a loud line in the run.
+wait_keycloak() {
+  local deadline=$((SECONDS + 240)) state=""
+  while (( SECONDS < deadline )); do
+    state="$(docker inspect -f '{{.State.Health.Status}}' "$(compose "${TAG}" ps -q keycloak)" 2>/dev/null || true)"
+    [[ "${state}" == "healthy" ]] && { log "Keycloak is healthy"; return 0; }
+    sleep 5
+  done
+  log "WARNING: Keycloak is not healthy (${state:-not running}): sign-in won't work — docker compose --env-file .env.production logs keycloak"
+  return 1
+}
+
+# Once: the admin console lives behind the SSH tunnel (KC_HOSTNAME_ADMIN), and
+# nginx hides the master realm, so the master realm's own address is set to the
+# tunnel's — otherwise the console waits forever for the public address. Runs
+# inside the container with its bootstrap admin (the password stays there).
+keycloak_console_address() {
+  [[ -f "${STATE_DIR}/keycloak-console" ]] && return 0
+  if compose "${TAG}" exec -T keycloak bash -c '
+      cfg=/tmp/kcadm.config; kc=/opt/keycloak/bin/kcadm.sh
+      trap "rm -f $cfg" EXIT
+      $kc config credentials --config "$cfg" --server http://127.0.0.1:8080 --realm master \
+        --user "$KC_BOOTSTRAP_ADMIN_USERNAME" --password "$KC_BOOTSTRAP_ADMIN_PASSWORD" >/dev/null 2>&1
+      $kc update realms/master --config "$cfg" -s "attributes.frontendUrl=$KC_HOSTNAME_ADMIN"'; then
+    touch "${STATE_DIR}/keycloak-console"
+    log "Keycloak's admin console set to the SSH tunnel's address"
+  else
+    log "WARNING: could not set the admin console's address (docs/deployment.md → Keycloak)."
+  fi
 }
 
 # 1. The new release.
@@ -136,6 +197,7 @@ else
 fi
 echo "$(date -u +%FT%TZ) ${TAG} ${JOBS:-}" >> "${STATE_DIR}/history"
 log "${TAG} is live"
+if keycloak_enabled && wait_keycloak; then keycloak_console_address; fi
 
 # 4. Long data jobs, in the background (detached containers; resumable).
 # Run on the deploy files themselves: the offline packs read the interface
@@ -167,7 +229,7 @@ prefix="$(env_value QBASAIR_IMAGE_PREFIX)"
 prefix="${prefix:-ghcr.io/ghost0n/basair-quran}"
 keep_previous="$(cat "${STATE_DIR}/previous" 2>/dev/null || true)"
 docker image ls --format '{{.Repository}}:{{.Tag}}' \
-  | grep -E "^${prefix}-(api|web):" \
+  | grep -E "^${prefix}-(api|web|keycloak):" \
   | grep -vE ":(${TAG}|${keep_previous:-none}|latest)$" \
   | xargs -r docker image rm >/dev/null 2>&1 || true
 docker image prune -f >/dev/null 2>&1 || true

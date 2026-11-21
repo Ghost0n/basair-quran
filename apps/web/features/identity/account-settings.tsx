@@ -5,24 +5,48 @@ import { useEffect, useState } from "react";
 import { createQBasairApiClient } from "@q-basair/api-client";
 import type { DeviceInfo } from "@q-basair/shared";
 
-import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-mark";
+import { AvatarMedallion, UserAvatar } from "@/components/user-avatar";
 import { Icon } from "@/components/icon";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
 import { useAuthSession } from "@/lib/auth-session-context";
 import { clearGuestChoice, signOutEverywhere } from "@/features/auth/identity-flow";
 import { useNumerals } from "@/lib/preferences-context";
+import {
+  AVATAR_PATTERNS,
+  AVATAR_TONES,
+  type AvatarLook,
+  type AvatarPattern,
+  type AvatarTone,
+  avatarInitial,
+  avatarLook,
+  formatAvatar,
+} from "@/lib/avatar";
 
 import "./account-settings.css";
+
+import { LinkedAccounts } from "./linked-accounts";
 
 import { relativeAge } from "@/features/companions/use-companions";
 import { t } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
-const MOTIFS = Object.keys(AVATAR_MOTIFS) as AvatarMotif[];
+const PATTERN_LABELS: Record<AvatarPattern, () => string> = {
+  khatam: () => t("نجمة ثُمانيّة"),
+  triangles: () => t("مثلّثات"),
+  lattice: () => t("معيّنات"),
+  circles: () => t("دوائر متداخلة"),
+  shamsa: () => t("شمسة"),
+  plain: () => t("سادة"),
+};
 
-function toMotif(value?: string | null): AvatarMotif {
-  return value && (MOTIFS as string[]).includes(value) ? (value as AvatarMotif) : "ba";
-}
+const TONE_LABELS: Record<AvatarTone, () => string> = {
+  gold: () => t("ذهبي"),
+  lapis: () => t("لازوردي"),
+  malachite: () => t("زمرّدي"),
+  cinnabar: () => t("قرمزي"),
+  ink: () => t("حبري"),
+  vellum: () => t("رقّي"),
+};
 
 function deviceIcon(platform?: string | null) {
   return platform === "ios" || platform === "android" ? "smartphone" : "monitor";
@@ -41,7 +65,8 @@ const DEVICES_COLLAPSED = 3;
  * AccountSettings — the account & session home inside the Settings screen. It's
  * the canonical place to manage the session:
  *  • Guest → sign-in / create-account card (guest data merges on sign-up).
- *  • Signed in → account card (medallion + name + email + change medallion),
+ *  • Signed in → account card (medallion + name + email; its pattern and colour,
+ *    lib/avatar.ts),
  *    the active-devices registry (this-device badge + per-device eject), and
  *    sign out.
  * Only present when auth is enabled (NEXT_PUBLIC_AUTH_ENABLED=1); with auth off
@@ -117,13 +142,15 @@ export function AccountSettings() {
     );
   }
 
-  const motif = toMotif(user.avatar);
+  const look = avatarLook(user.avatar, user.id);
+  const letter = avatarInitial(user.name, user.email);
 
-  async function chooseMotif(next: AvatarMotif) {
-    setPicking(false);
-    patchUser({ avatar: next });
+  // The medallion: the initial stays; the pattern and the colour are chosen.
+  async function chooseLook(next: AvatarLook) {
+    const avatar = formatAvatar(next);
+    patchUser({ avatar });
     try {
-      await api.updateProfile({ avatar: next }, { suppressAuthRedirect: true });
+      await api.updateProfile({ avatar }, { suppressAuthRedirect: true });
     } catch {
       /* optimistic — a failed save just reverts on next load */
     }
@@ -209,32 +236,55 @@ export function AccountSettings() {
         <h3>{t("الحساب")}</h3>
         <p className="card-sub">{t("مداليتك واسمك المعروض.")}</p>
         <div className="qb-account-card">
-          <UserAvatar motif={motif} size={56} />
+          <UserAvatar user={user} size={56} />
           <div className="who">
             <div className="name">{user.name || t("مستخدم")}</div>
             <div className="email">{user.email}</div>
           </div>
-          <button type="button" className="qb-account-change" onClick={() => setPicking((v) => !v)}>
+          <button type="button" className="qb-account-change" aria-expanded={picking} onClick={() => setPicking((v) => !v)}>
             {t("غيّر المدالية")}
           </button>
         </div>
         {picking ? (
-          <div className="qb-account-motifs">
-            {MOTIFS.map((key) => (
-              <button
-                key={key}
-                type="button"
-                className={`tile${key === motif ? " selected" : ""}`}
-                onClick={() => chooseMotif(key)}
-                aria-label={AVATAR_MOTIFS[key].label}
-                title={AVATAR_MOTIFS[key].label}
-              >
-                <UserAvatar motif={key} size={34} ring={false} />
-              </button>
-            ))}
+          <div className="qb-account-look">
+            <div className="row" role="group" aria-label={t("النقش")}>
+              <span className="lbl">{t("النقش")}</span>
+              <div className="tiles">
+                {AVATAR_PATTERNS.map((pattern) => (
+                  <button
+                    key={pattern}
+                    type="button"
+                    className={`tile${pattern === look.pattern ? " selected" : ""}`}
+                    aria-pressed={pattern === look.pattern}
+                    aria-label={PATTERN_LABELS[pattern]()}
+                    title={PATTERN_LABELS[pattern]()}
+                    onClick={() => void chooseLook({ ...look, pattern })}
+                  >
+                    <AvatarMedallion letter={letter} look={{ ...look, pattern }} size={40} ring={false} />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="row" role="group" aria-label={t("اللون")}>
+              <span className="lbl">{t("اللون")}</span>
+              <div className="tiles">
+                {AVATAR_TONES.map((tone) => (
+                  <button
+                    key={tone}
+                    type="button"
+                    className={`tile${tone === look.tone ? " selected" : ""}`}
+                    aria-pressed={tone === look.tone}
+                    aria-label={TONE_LABELS[tone]()}
+                    title={TONE_LABELS[tone]()}
+                    onClick={() => void chooseLook({ ...look, tone })}
+                  >
+                    <AvatarMedallion letter={letter} look={{ ...look, tone }} size={40} ring={false} />
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         ) : null}
-
         <div className="qb-account-field">
           <label htmlFor="qb-account-name">{t("الاسم المعروض")}</label>
           <div className="qb-account-name-edit">
@@ -292,6 +342,8 @@ export function AccountSettings() {
           </div>
         )}
       </section>
+
+      <LinkedAccounts email={user.email} />
 
       <section className="qb-setting-card">
         <h3>{t("الأجهزة النشطة")}{devices.length ? ` (${formatNumber(devices.length)})` : ""}</h3>

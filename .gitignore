@@ -59,3 +59,12 @@ apps/web/out/
 /certbot-webroot/
 /backups/
 /.deploy/
+
+# Written by `next dev` (Next.js 16+) when it detects an AI coding agent: a
+# pointer to the docs bundled in node_modules/next. The project's agent
+# instructions live only in the root AGENTS.md.
+/apps/web/AGENTS.md
+/apps/web/.next-docs/
+
+# Keycloak email-code extension build output (mvn package)
+apps/keycloak-email-code/target/

@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import { createQBasairApiClient } from "@q-basair/api-client";
-import type { GuestMergeResult } from "@q-basair/shared";
+import type { AuthUserInfo, GuestMergeResult } from "@q-basair/shared";
 
-import { AVATAR_MOTIFS, type AvatarMotif, UserAvatar } from "@/components/brand-mark";
+import { UserAvatar } from "@/components/user-avatar";
 import { API_BASE_URL, AUTH_ENABLED } from "@/lib/config";
 import { readAndClearMergeResult } from "@/features/auth/identity-flow";
 import { useNumerals } from "@/lib/preferences-context";
@@ -15,12 +15,7 @@ import "./merge-toast.css";
 import { t, tn } from "@/lib/i18n";
 
 const api = createQBasairApiClient({ baseUrl: API_BASE_URL });
-const MOTIFS = Object.keys(AVATAR_MOTIFS) as AvatarMotif[];
 const COUNTDOWN = 30;
-
-function toMotif(value?: string | null): AvatarMotif {
-  return value && (MOTIFS as string[]).includes(value) ? (value as AvatarMotif) : "ba";
-}
 
 /**
  * MergeToast — the guest→account merge moment. After a guest signs up, their
@@ -33,7 +28,7 @@ export function MergeToast() {
   const [result, setResult] = useState<GuestMergeResult | null>(null);
   const [secs, setSecs] = useState(COUNTDOWN);
   const [undone, setUndone] = useState(false);
-  const [motif, setMotif] = useState<AvatarMotif>("ba");
+  const [user, setUser] = useState<AuthUserInfo | null>(null);
   const timer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -44,10 +39,10 @@ export function MergeToast() {
     api
       .getAuthSession({ suppressAuthRedirect: true })
       .then((session) => {
-        if (session.user?.avatar) setMotif(toMotif(session.user.avatar));
+        if (session.user) setUser(session.user);
       })
       .catch(() => {
-        /* keep the default medallion */
+        /* no medallion */
       });
   }, []);
 
@@ -106,7 +101,7 @@ export function MergeToast() {
 
   return (
     <div className="qb-merge-toast" role="status">
-      <UserAvatar motif={motif} size={38} />
+      {user ? <UserAvatar user={user} size={38} /> : null}
       <div className="qb-merge-copy">
         <div className="title">{t("ضممنا محفوظاتِ الضيف إلى حسابك")}</div>
         <div className="sub">{summary || t("موضع القراءة")} {t("— أصبحت تُزامَن")}</div>

@@ -7,6 +7,9 @@
 #   - app_data.db   notebook, themes, study sessions, followed roots, research
 #                   documents, preferences, community, feedback
 #   - .env.production (the server's settings and secrets)
+#   - keycloak.dump  Keycloak's database (accounts, passwords, linked providers,
+#                   2FA), with the keycloak profile: pg_dump's custom format,
+#                   restored with pg_restore (docs/deployment.md → "Backups")
 # quran.db, translations.db, the offline packs and the recitations are not
 # backed up: the deploy regenerates them.
 #
@@ -38,10 +41,6 @@ chmod 700 "${BACKUP_DIR}" "${dest}"
 
 DATABASES="auth.db app_data.db"
 
-timestamp="$(date +%Y%m%d-%H%M%S)"
-dest="${BACKUP_DIR}/${timestamp}"
-mkdir -p "${dest}"
-
 backup_one() {
   local name="$1"
   local src="${DATA_DIR}/${name}"
@@ -69,6 +68,21 @@ if [[ -f "${ENV_FILE}" ]]; then
   echo "backed up: .env.production"
 fi
 
+# Keycloak's database, while it runs (a consistent snapshot: pg_dump reads one
+# transaction). A failure is loud but keeps the rest of the backup.
+profiles="$(env_value COMPOSE_PROFILES | tr -d "\"' ")"
+if [[ ",${profiles}," == *",keycloak,"* ]]; then
+  compose_cmd=(docker compose --project-directory "${APP_DIR}" --env-file "${ENV_FILE}")
+  if "${compose_cmd[@]}" exec -T keycloak-db pg_dump -U keycloak -d keycloak --format=custom > "${dest}/keycloak.dump"; then
+    chmod 600 "${dest}/keycloak.dump"
+    echo "backed up: keycloak.dump"
+  else
+    rm -f "${dest}/keycloak.dump"
+    echo "ERROR: the Keycloak database could not be dumped (is keycloak-db running?)" >&2
+    status=1
+  fi
+fi
+
 # Compress the snapshot dir to save space. Archiving is best-effort — a failure
 # must never discard the good uncompressed copies already written above.
 if command -v tar >/dev/null 2>&1; then
@@ -93,3 +107,4 @@ if [[ -n "${RCLONE_REMOTE}" && -f "${dest}.tar.gz" ]]; then
 fi
 
 echo "backup complete: ${timestamp}"
+exit "${status:-0}"

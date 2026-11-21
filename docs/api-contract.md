@@ -39,6 +39,9 @@ This document freezes the backend contract that the future frontend migration wi
 - `PATCH /api/auth/profile`
 - `GET /api/auth/devices`
 - `DELETE /api/auth/devices/{session_id}`
+- `GET /api/auth/linked-accounts` (Keycloak mode)
+- `POST /api/auth/linked-accounts/{alias}/unlink` (Keycloak mode)
+- `GET /api/auth/oidc/link/{alias}` (Keycloak mode, a browser navigation)
 - `POST /api/auth/merge-guest-data`
 - `POST /api/auth/merge-guest-data/undo`
 - `GET /api/mushafs` — each `MushafItem` now includes a normalized `riwayah` key (matches
@@ -274,6 +277,8 @@ Publishing and the community (guidelines: `docs/community-guidelines.md`; modera
 `docs/feedback-centre.md`.
 
 - `POST /api/feedback {kind: contact|bug|help|feature|error, message, email?, detail?, url?, language?}`
+  (a `contact` message is also emailed to `QBASAIR_CONTACT_EMAIL`, default `contact@basairquran.com`,
+  when SMTP is configured; `docs/feedback-centre.md`)
   → `FeedbackItem`. It is open to guests and rate-limited per IP (`QBASAIR_RATE_LIMIT_FEEDBACK_MAX`,
   default 10). Every kind needs a message except `error`. An `error` report needs its diagnostic
   `detail` (≤32 KB, `413` beyond). A guest's message (any kind but `error`) needs an `email`, which
@@ -362,6 +367,12 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   endpoints, whose query default remains `1`); the web client always sends the edition's mushaf.
   A page or verse arriving in another riwāyah (e.g. a notebook item saved under Qālūn) is
   re-opened in the edition by `surah:ayah`.
+- `numerals` is an account preference on `GET/PATCH /api/user/preferences`:
+  `"auto"` (default — the digits of the interface language on screen),
+  `"arabic-indic"`, `"latin"` or `"persian"`. Preferences stored before `"auto"`
+  existed read their `"arabic-indic"` (the old default, saved with every
+  change) as `"auto"` until they are saved again; other scripts are kept
+  (docs/i18n.md).
 - `reader_layout` is an account preference on `GET/PATCH /api/user/preferences`.
   The API keeps its five values for compatibility; the web client offers **two
   reading modes** and maps them:
@@ -501,6 +512,23 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   tokens may be Keycloak access tokens (audience `qbasair-api`); the password routes (`login`,
   `signup`, `forgot-password`, `reset-password`) answer `409 {code: "use_identity_provider"}`.
   `AuthSessionResponse.provider` is `"local"` otherwise.
+- **Linked sign-in providers** (Keycloak mode; `404` with local accounts; auth required):
+  - `GET /api/auth/linked-accounts` → `LinkedAccountsResponse { providers: LinkedProvider[], has_password }`:
+    the realm's enabled providers (Apple, Google, Meta, in that order) as `{ alias, name, linked, username }`
+    (`username`: the provider's account name, when linked), and whether the account has a password.
+    `503` when Keycloak cannot be reached.
+  - `GET /api/auth/oidc/link/{alias}?return_to=&locale=` (a page load) asks Keycloak to link that provider
+    to the signed-in account (`kc_action=idp_link:<alias>`, `login_hint` = the account's email): Keycloak
+    confirms, sends the reader to the provider, then back through `/api/auth/oidc/callback`, which leaves
+    the session as it was and returns to `return_to` with `linked=<alias>` or
+    `link_error=cancelled|in_use|other_account|failed` (`other_account`: Keycloak was signed in to another
+    account). Signed out → `/login?next=<return_to>`. A provider account already linked to another
+    account stops on Keycloak's own error page.
+  - `POST /api/auth/linked-accounts/{alias}/unlink` `UnlinkProviderRequest { password? }` →
+    `LinkedAccountsResponse`. An account **without a password** must send `password`, set as its password
+    (Keycloak's policy: 10+ characters, not the email) **before** the link goes, so it can still sign in:
+    missing → `422 {code: "password_required"}`, refused by the policy → `422 {code: "password_rejected",
+    reason}` (the link stays). Not linked → `404`.
 
 - Authentication is controlled by `QBASAIR_AUTH_ENABLED`.
 - **Open by default.** When enabled, every router is **open to guests** with *soft* auth: if a valid
@@ -535,7 +563,7 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
 - **One-time re-login on deploy.** Switching the identity source from signed-cookie sessions to the token
   table invalidates any pre-existing signed-cookie sessions — users sign in once after this ships.
 - `GET /api/auth/session` returns `{ enabled, authenticated, user }`. `user` carries `name`, `avatar`
-  (a calligraphic medallion character/index — not an image URL), and `onboarded`.
+  (the medallion's look, `p<pattern>t<tone>` — not an image URL; `null` or an older value means the look given from the account id, `apps/web/lib/avatar.ts`), and `onboarded`.
 - `POST /api/auth/login` accepts `email`, `password`, and optional `device_label` / `platform`; it mints a
   session and returns the raw `token` (native clients keep it; the web app uses the cookie).
 - `POST /api/auth/signup` accepts `email`, `password`, optional `name`, optional `invite_code`, and optional
@@ -544,18 +572,24 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   when unset, registration stays open. Login runs a constant-time hash on unknown emails to avoid an
   enumeration timing oracle.
 - `POST /api/auth/logout` revokes the current session row and clears the cookie.
+  The web then forgets what the account left in the browser (study sessions, cached
+  preferences, recents, reading progress; `apps/web/lib/forget-account.ts`),
+  keeping the device's own choices (language, theme, and the AI connection: the reader's
+  provider keys stay on this device across sign-out and sign-in).
 - `POST /api/auth/forgot-password` `{ email }` always returns `{ ok: true }` (no account enumeration).
   When the account exists it mints a single-use, 1-hour reset token and **emails** it (Arabic message with
   a link `${QBASAIR_PUBLIC_URL}/login?reset=<token>` that opens the reset step pre-filled, plus the raw
-  code) when `QBASAIR_SMTP_HOST` is configured; otherwise the token is only logged server-side for manual
-  delivery. Delivery errors are logged, never surfaced. Rate-limited (auth bucket).
+  code) when `QBASAIR_SMTP_HOST` is configured; otherwise nothing is sent and the server logs only that no
+  SMTP is configured (never the token; locally, catch the mail with `scripts/dev_mail.py`:
+  `QBASAIR_SMTP_HOST=127.0.0.1`, `QBASAIR_SMTP_PORT=1025`, `QBASAIR_SMTP_SECURITY=none`). Delivery errors are logged, never surfaced. Rate-limited (auth bucket).
 - `POST /api/auth/reset-password` `{ token, password }` consumes the token, sets the new password, and
   **revokes all sessions**. `400` on invalid/expired/used token, `422` on a weak password. Rate-limited.
 - `DELETE /api/auth/account` (auth) permanently deletes the account: all app data (notebook, sessions,
   followed roots, preferences, merge log), then the user row and **every** session (all devices), and clears
   the cookie. Returns `{ deleted }`. Irreversible; guest (`user_id=0`) data is never touched.
-- `PATCH /api/auth/profile` (auth) sets `name` / `avatar` / `onboarded` — used by the avatar picker and the
-  once-per-account onboarding.
+- `PATCH /api/auth/profile` (auth) sets `name` / `avatar` / `onboarded` — used by Settings (name, the
+  medallion's pattern and colour) and the once-per-account onboarding (`onboarded` only: a new
+  account chooses nothing there).
 - `GET /api/auth/devices` (auth) lists active sessions with an `is_current` flag;
   `DELETE /api/auth/devices/{session_id}` (auth) ejects a device (ejecting the current row == logout).
 - **Guest identity header.** Guest (`user_id=0`) rows written before guests kept their data on their device
@@ -585,7 +619,13 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   provider's address is fixed on the server (never sent); an unknown provider or a missing key
   answers `503`. `ResearchProviderInfo.provider` names it. When present, it replaces the
   `X-QBasair-Ollama-*` headers below.
-- `GET /api/ai/providers` → `AiProviderItem[]` `{id, name, key_url, signin, prefer}`.
+- `X-QBasair-LLM-Thinking` (optional, with a provider): `off` · `low` · `medium` · `high`, how much
+  the model thinks before answering. The web no longer sends it (each model's default); it is
+  kept for older clients. Only the levels the provider lists in
+  `AiProviderItem.thinking` are sent on; anything else means the model's own default. A model that
+  refuses the thinking fields is asked again without them.
+- `GET /api/ai/providers` → `AiProviderItem[]` `{id, name, key_url, signin, prefer, thinking}`
+  (`thinking`: the levels it takes; empty for Mistral and DeepSeek, whose models decide).
 - `POST /api/ai/openrouter/key` `{code, code_verifier}` → `{key}` (OpenRouter's PKCE sign-in;
   `422` on a malformed verifier, `502` when OpenRouter refuses).
 - Both research endpoints accept optional per-request Ollama override headers:
@@ -605,7 +645,17 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
   written only from the ayahs Quran search returned; its prompt (`QURAN_ONLY_ANSWER_RULES`)
   forbids tafsir, hadith, scholars' opinions, rulings and outside knowledge, asks for each
   ayah to be cited by surah and number, and for the answer to say when the ayahs do not
-  answer the question.
+  answer the question. The answer is short and points to the ayahs (they are shown beside it,
+  so it names them by reference instead of copying them out; Markdown, often a short list),
+  and ends with one follow-up question that would narrow the search when the question is
+  vague or the ayahs only touch it from afar.
+- **Answer language.** `answer_language` (`"auto"` by default: detected from the question —
+  Arabic, French, else English) names the language of the answer and of any clarifying
+  question, e.g. `"english"`, `"urdu"`; the model writes in it whatever language the question
+  is in. The web sends the reader's «لغة الجواب» (Settings → AI; the interface language
+  unless another is chosen, `apps/web/lib/answer-language.ts`). The fixed fallback texts (no
+  ayah found, a generic clarifying question) exist in Arabic, French and English; other
+  languages get the English one.
 - **Ayahs read in their passage.** Every ayah sent to the final stage carries its context
   from the Quran DB: `context.surah` (name, Meccan/Medinan type, ayah count),
   `context.position`, and `context.before` / `context.after`, the neighbouring ayahs of the

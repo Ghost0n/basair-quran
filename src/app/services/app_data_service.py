@@ -198,7 +198,8 @@ DEFAULT_PREFERENCES: dict = {
     # Deprecated since mushaf_edition (API compatibility only).
     "riwayah": 2,  # Ḥafṣ — the only riwāyah with the authentic Madani reader
     "mushaf_font": "amiri-quran",
-    "numerals": "arabic-indic",
+    # "auto": the interface language's own digits (models.api.UserPreferences).
+    "numerals": "auto",
     "ui_language": "ar",
     "theme": "dark",
     "font_size": 28,
@@ -226,6 +227,12 @@ DEFAULT_PREFERENCES: dict = {
 }
 
 
+# Stored with the preferences once the digits can be "auto". Before that, every
+# save wrote the old default «arabic-indic» whether or not the reader chose it,
+# so in older data it reads as "auto"; a script chosen otherwise is kept.
+NUMERALS_REV_KEY = "numerals_rev"
+
+
 def get_preferences(user_id: int = DEFAULT_USER_ID) -> dict:
     with _connect() as connection:
         row = connection.execute(
@@ -237,6 +244,9 @@ def get_preferences(user_id: int = DEFAULT_USER_ID) -> dict:
         stored = json.loads(row["data"])
         merged.update({key: value for key, value in stored.items() if value is not None})
         merged["research"] = {**DEFAULT_PREFERENCES["research"], **(stored.get("research") or {})}
+        merged.pop(NUMERALS_REV_KEY, None)
+        if not stored.get(NUMERALS_REV_KEY) and merged.get("numerals") == "arabic-indic":
+            merged["numerals"] = "auto"
     # An edition that is no longer offered falls back to the default one.
     if merged.get("mushaf_edition") not in MUSHAF_EDITION_IDS:
         merged["mushaf_edition"] = DEFAULT_MUSHAF_EDITION
@@ -255,7 +265,12 @@ def update_preferences(patch: dict, user_id: int = DEFAULT_USER_ID, guest_id: st
     with _connect() as connection:
         connection.execute(
             "INSERT OR REPLACE INTO user_preferences (user_id, data, updated_at, guest_id) VALUES (?, ?, ?, ?)",
-            (user_id, json.dumps(current, ensure_ascii=False), int(time.time()), _guest_stamp(user_id, guest_id)),
+            (
+                user_id,
+                json.dumps({**current, NUMERALS_REV_KEY: 1}, ensure_ascii=False),
+                int(time.time()),
+                _guest_stamp(user_id, guest_id),
+            ),
         )
         connection.commit()
     return current

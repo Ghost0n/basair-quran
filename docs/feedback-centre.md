@@ -7,7 +7,7 @@ team, triaged by staff in the supervision panel.
 
 | Kind | From | Where |
 |---|---|---|
-| `contact` | a message to the team | Settings → «الدعم والملاحظات» |
+| `contact` | a message to the team | Settings → «الدعم والملاحظات», and the public site's footer («راسلنا») |
 | `bug` | a problem they met | Settings → «الدعم والملاحظات» |
 | `help` | a request for assistance | Settings → «الدعم والملاحظات» |
 | `feature` | an idea | Settings → «الدعم والملاحظات» |
@@ -25,6 +25,11 @@ team, triaged by staff in the supervision panel.
   blocks a real sender. The form says why an address was refused.
   Signed-in people are recorded and see what they sent and its status under
   «ما أرسلته» (not their diagnostic reports).
+- A `contact` message is also forwarded by email to the team's mailbox,
+  `QBASAIR_CONTACT_EMAIL` (default `contact@basairquran.com`), with the sender's address
+  as Reply-To, once the request has answered (`mail_service.send_contact_message`). Without
+  SMTP (`QBASAIR_SMTP_HOST`) it stays in the feedback centre only; a failed delivery is
+  logged, never shown to the sender.
 - `POST /api/feedback` is rate-limited per IP (`QBASAIR_RATE_LIMIT_FEEDBACK_MAX`,
   10 per window by default). A message is at most 4,000 characters; a
   diagnostic bundle at most 32 KB.

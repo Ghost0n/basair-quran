@@ -4,7 +4,9 @@ and the realm rendered as code — against a stand-in Keycloak with real RSA key
 
 import base64
 import hashlib
+import io
 import json
+import sys
 import time
 import urllib.parse
 
@@ -28,6 +30,14 @@ class FakeKeycloak:
         self.identity = {"sub": "kc-1", "email": "amina@example.com", "email_verified": True, "name": "Amina", "roles": []}
         self.admin_calls = []
         self.wrong_nonce = False
+        # Linked accounts: the realm's providers, the user's links and credentials.
+        self.providers = [{"alias": "google", "displayName": "Google", "enabled": True},
+                          {"alias": "apple", "displayName": "Apple", "enabled": True},
+                          {"alias": "facebook", "displayName": "Meta (Facebook)", "enabled": False}]
+        self.links = {"kc-1": [{"identityProvider": "google", "userName": "amina@gmail.com"}]}
+        self.credentials = {"kc-1": []}
+        self.password_refused = False
+        self.gone = set()  # Keycloak identities that no longer exist (admin GET users/<sub> → 404)
 
     def token(self, claims: dict, audience) -> str:
         now = int(time.time())
@@ -60,7 +70,27 @@ class FakeKeycloak:
             assert form["scope"] == "kc-admin-api"
             return {"access_token": "service-token"}
         if "/admin/realms/qbasair/" in url:
-            self.admin_calls.append((method, url.split("/admin/realms/qbasair")[1], body))
+            path = url.split("/admin/realms/qbasair")[1]
+            self.admin_calls.append((method, path, body))
+            if path == "/identity-provider/instances":
+                return self.providers
+            parts = path.split("/")  # "", "users", <sub>, <what>, [alias]
+            if len(parts) >= 4 and parts[1] == "users":
+                subject, what = parts[2], parts[3]
+                if what == "federated-identity" and method == "GET":
+                    return self.links.get(subject, [])
+                if what == "federated-identity" and method == "DELETE":
+                    self.links[subject] = [link for link in self.links.get(subject, []) if link["identityProvider"] != parts[4]]
+                    return None
+                if what == "credentials":
+                    return self.credentials.get(subject, [])
+                if what == "reset-password":
+                    if self.password_refused:
+                        raise oidc_service.OidcError("Keycloak answered 400", status=502, upstream=400, reason="invalidPasswordMinLengthMessage")
+                    self.credentials.setdefault(subject, []).append({"type": "password"})
+                    return None
+            if method == "GET" and len(parts) == 3 and parts[1] == "users" and parts[2] in self.gone:
+                raise oidc_service.OidcError("Keycloak answered 404", status=502, upstream=404)
             if method == "GET" and "/roles/" in url:
                 return {"id": "role-id", "name": url.rsplit("/", 1)[1]}
             if method == "GET":
@@ -159,6 +189,30 @@ def test_existing_accounts_are_linked_only_by_a_verified_email(keycloak):
     assert auth_service.get_external_id(local.id) == "kc-1"
 
 
+def test_an_account_moves_to_a_new_identity_only_when_the_old_one_is_gone(keycloak):
+    client, fake = keycloak
+    sign_in(client, fake)
+    account = client.get("/api/auth/session").json()["user"]
+    client.post("/api/auth/logout")
+    # The same verified email under a new Keycloak identity, while the old one still exists:
+    # it may have changed its email in Keycloak since — the account stays its own.
+    fake.identity["sub"] = "kc-new"
+    done, _ = sign_in(client, fake, code="code-2")
+    assert done.headers["location"] == "/login?error=email_in_use"
+    # The old identity is gone from Keycloak (account deleted, realm rebuilt): the account moves.
+    fake.gone = {"kc-1"}
+    done, _ = sign_in(client, fake, code="code-3")
+    assert done.headers["location"] == "/?mode=community"
+    assert client.get("/api/auth/session").json()["user"]["id"] == account["id"]
+    assert auth_service.get_external_id(account["id"]) == "kc-new"
+    # Never for an unverified email.
+    client.post("/api/auth/logout")
+    fake.identity = {**fake.identity, "sub": "kc-third", "email_verified": False}
+    fake.gone = {"kc-1", "kc-new"}
+    done, _ = sign_in(client, fake, code="code-4")
+    assert done.headers["location"] == "/login?error=email_in_use"
+
+
 def test_passwords_stay_in_keycloak_and_sign_out_ends_both_sessions(keycloak):
     client, fake = keycloak
     assert client.post("/api/auth/login", json={"email": "admin@example.com", "password": "secret123"}).status_code == 409
@@ -213,10 +267,97 @@ def test_deleting_an_account_deletes_it_in_keycloak_and_roles_go_through_keycloa
     assert ("DELETE", "/users/kc-1") in [(method, path) for method, path, _ in fake.admin_calls]
 
 
+def test_settings_lists_links_and_unlinks_with_a_password_first(keycloak):
+    client, fake = keycloak
+    assert client.get("/api/auth/linked-accounts").status_code == 401
+    sign_in(client, fake)
+    listed = client.get("/api/auth/linked-accounts").json()
+    # The realm's enabled providers in the sign-in page's order, with the account's links.
+    assert listed == {
+        "providers": [
+            {"alias": "apple", "name": "Apple", "linked": False, "username": None},
+            {"alias": "google", "name": "Google", "linked": True, "username": "amina@gmail.com"},
+        ],
+        "has_password": False,
+    }
+    # No password yet: unlinking asks one, and a refused one leaves the link in place.
+    asked = client.post("/api/auth/linked-accounts/google/unlink", json={})
+    assert asked.status_code == 422 and asked.json()["detail"]["code"] == "password_required"
+    fake.password_refused = True
+    refused = client.post("/api/auth/linked-accounts/google/unlink", json={"password": "short"})
+    assert refused.status_code == 422 and refused.json()["detail"]["code"] == "password_rejected"
+    assert fake.links["kc-1"] and ("DELETE", "/users/kc-1/federated-identity/google") not in [(m, p) for m, p, _ in fake.admin_calls]
+    fake.password_refused = False
+    done = client.post("/api/auth/linked-accounts/google/unlink", json={"password": "a-long-passphrase"})
+    assert done.status_code == 200 and done.json()["has_password"] is True
+    assert [provider["linked"] for provider in done.json()["providers"]] == [False, False]
+    reset = [body for method, path, body in fake.admin_calls if path == "/users/kc-1/reset-password"][-1]
+    assert reset == {"type": "password", "value": "a-long-passphrase", "temporary": False}
+    # With a password, unlinking asks nothing; an unlinked or unknown provider is a 404.
+    fake.links["kc-1"] = [{"identityProvider": "apple", "userName": "x@privaterelay.appleid.com"}]
+    assert client.post("/api/auth/linked-accounts/apple/unlink", json={}).status_code == 200
+    assert client.post("/api/auth/linked-accounts/apple/unlink", json={}).status_code == 404
+    assert client.post("/api/auth/linked-accounts/Not%20An%20Alias/unlink", json={}).status_code == 422
+
+
+def test_linking_goes_through_keycloak_and_comes_back_to_settings(keycloak):
+    client, fake = keycloak
+    # Signed out: to sign-in first.
+    out = client.get("/api/auth/oidc/link/google", params={"return_to": "/settings"}, follow_redirects=False)
+    assert out.headers["location"] == "/login?next=%2Fsettings"
+    sign_in(client, fake)
+
+    def link(status=None, code="link-1", *, error=None, subject=None):
+        started = client.get("/api/auth/oidc/link/google", params={"return_to": "/settings?tab=account"}, follow_redirects=False)
+        query = dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(started.headers["location"]).query))
+        assert query["kc_action"] == "idp_link:google" and query["login_hint"] == "amina@example.com"
+        fake.challenges[code] = (query["nonce"], query["code_challenge"])
+        if subject:
+            fake.identity = {**fake.identity, "sub": subject}
+        params = {"state": query["state"], **({"code": code} if not error else {"error": error})}
+        if status:
+            params["kc_action_status"] = status
+        back = client.get("/api/auth/oidc/callback", params=params, follow_redirects=False)
+        fake.identity = {**fake.identity, "sub": "kc-1"}
+        return back.headers["location"]
+
+    me = client.get("/api/auth/session").json()["user"]
+    assert link("success") == "/settings?tab=account&linked=google"
+    assert link("cancelled", "link-2") == "/settings?tab=account&link_error=cancelled"
+    assert link(error="access_denied") == "/settings?tab=account&link_error=cancelled"
+    # Keycloak signed in as someone else meanwhile: nothing changes here.
+    assert link("success", "link-3", subject="kc-9") == "/settings?tab=account&link_error=other_account"
+    # «error» while the link exists anyway (already linked) reads as linked; otherwise in use.
+    assert link("error", "link-4") == "/settings?tab=account&linked=google"
+    fake.links["kc-1"] = []
+    assert link("error", "link-5") == "/settings?tab=account&link_error=in_use"
+    # Our session is the same one throughout.
+    assert client.get("/api/auth/session").json()["user"] == me
+
+
+def test_linked_accounts_stay_closed_with_local_accounts(tmp_path, monkeypatch):
+    client, finalize = build_auth_client(tmp_path, monkeypatch)
+    try:
+        assert client.get("/api/auth/linked-accounts").status_code == 404
+        assert client.get("/api/auth/oidc/link/google", follow_redirects=False).status_code == 404
+    finally:
+        finalize()
+
+
 def test_the_realm_is_rendered_as_code():
     env = {"QBASAIR_PUBLIC_URL": "https://basair.example", "QBASAIR_OIDC_CLIENT_SECRET": "s3cret"}
     realm = keycloak_realm.build_realm(env)
-    assert realm["realm"] == "qbasair" and realm["verifyEmail"] and realm["bruteForceProtected"]
+    assert realm["realm"] == "qbasair" and realm["bruteForceProtected"]
+    # Email verified by a code (apps/keycloak-email-code), not Keycloak's link; the
+    # listed actions replace Keycloak's defaults, so 2FA and password set-up stay on.
+    actions = {action["alias"]: action for action in realm["requiredActions"]}
+    assert realm["verifyEmail"] is False and actions["VERIFY_EMAIL"]["enabled"] is False
+    assert actions["qb-verify-email-code"] == {
+        "alias": "qb-verify-email-code", "name": "Verify email with a code", "providerId": "qb-verify-email-code",
+        "enabled": True, "defaultAction": False, "priority": 51, "config": {},
+    }
+    assert all(actions[alias]["enabled"] for alias in ("CONFIGURE_TOTP", "UPDATE_PASSWORD", "UPDATE_PROFILE", "update_user_locale"))
+    assert len({action["priority"] for action in realm["requiredActions"]}) == len(realm["requiredActions"])
     assert {role["name"] for role in realm["roles"]["realm"]} == {"admin", "moderator"}
     web, app = realm["clients"]
     assert web["redirectUris"] == ["https://basair.example/api/auth/oidc/callback"] and web["secret"] == "s3cret"
@@ -230,9 +371,62 @@ def test_the_realm_is_rendered_as_code():
     assert "kc-admin-api" in web["optionalClientScopes"] and {"profile", "email"} <= set(web["defaultClientScopes"])
     assert realm["identityProviders"] == [] and realm["smtpServer"] == {}
     assert not any(user.get("credentials") for user in realm["users"])  # no dev accounts in production
-    social = keycloak_realm.build_realm({**env, "KC_GOOGLE_CLIENT_ID": "g", "KC_GOOGLE_CLIENT_SECRET": "gs", "KC_SMTP_HOST": "smtp.tem.scw.cloud"})
+    social = keycloak_realm.build_realm({**env, "KC_GOOGLE_CLIENT_ID": "g", "KC_GOOGLE_CLIENT_SECRET": "gs", "KC_SMTP_HOST": "mail.infomaniak.com"})
     assert [provider["alias"] for provider in social["identityProviders"]] == ["google"]
-    assert social["smtpServer"]["host"] == "smtp.tem.scw.cloud"
+    assert social["smtpServer"]["host"] == "mail.infomaniak.com" and social["smtpServer"]["starttls"] == "true"
+    # The Apple key comes on one line (an env file), its line breaks written \n.
+    apple = keycloak_realm.build_realm({**env, "KC_APPLE_CLIENT_ID": "a", "KC_APPLE_TEAM_ID": "t", "KC_APPLE_KEY_ID": "k",
+                                        "KC_APPLE_P8_KEY": "-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----"})
+    assert apple["identityProviders"][0]["config"]["p8Content"] == "-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----"
+    local_mail = keycloak_realm.build_realm({**env, "KC_SMTP_HOST": "127.0.0.1", "KC_SMTP_PORT": "1025", "KC_SMTP_STARTTLS": "false"})
+    assert local_mail["smtpServer"]["starttls"] == "false"
     assert len(keycloak_realm.build_realm(env, dev=True)["users"]) == 4
+    # The sign-in pages and mails use the app's theme (apps/keycloak-theme) and lead back to the app.
+    assert realm["loginTheme"] == realm["emailTheme"] == "qbasair" and web["baseUrl"] == "https://basair.example/"
+    stock = keycloak_realm.build_realm({**env, "KC_THEME": ""})
+    assert "loginTheme" not in stock and "emailTheme" not in stock
     with pytest.raises(ValueError):
         keycloak_realm.build_realm({})
+
+
+def test_provider_sign_in_links_or_creates_without_a_question():
+    env = {"QBASAIR_PUBLIC_URL": "https://basair.example", "QBASAIR_OIDC_CLIENT_SECRET": "s3cret",
+           "KC_GOOGLE_CLIENT_ID": "g", "KC_GOOGLE_CLIENT_SECRET": "gs"}
+    realm = keycloak_realm.build_realm(env)
+    flow_alias = keycloak_realm.FIRST_BROKER_FLOW
+    assert realm["firstBrokerLoginFlow"] == flow_alias
+    assert all(provider["firstBrokerLoginFlowAlias"] == flow_alias and provider["trustEmail"] for provider in realm["identityProviders"])
+    flows = {flow["alias"]: flow for flow in realm["authenticationFlows"]}
+    assert flows[flow_alias]["topLevel"] is True
+
+    def steps(alias):
+        return [(e.get("authenticator") or e.get("flowAlias"), e["requirement"]) for e in flows[alias]["authenticationExecutions"]]
+
+    # Every sub-flow named exists, so Keycloak imports the flow whole.
+    for flow in flows.values():
+        for execution in flow["authenticationExecutions"]:
+            assert not execution["authenticatorFlow"] or execution["flowAlias"] in flows
+    # A new email creates the account; a known one is linked by qb-idp-auto-link before Keycloak's «confirm the link».
+    assert steps("qb user creation or linking") == [
+        ("idp-create-user-if-unique", "ALTERNATIVE"),
+        (keycloak_realm.AUTO_LINK_AUTHENTICATOR, "ALTERNATIVE"),
+        ("qb handle existing account", "ALTERNATIVE"),
+    ]
+    # The profile page shows only when the provider left something out.
+    review = flows[flow_alias]["authenticationExecutions"][0]
+    configs = {config["alias"]: config["config"] for config in realm["authenticatorConfig"]}
+    assert review["authenticator"] == "idp-review-profile"
+    assert configs[review["authenticatorConfig"]] == {"update.profile.on.first.login": "missing"}
+
+
+def test_the_realm_script_runs_on_a_windows_console(tmp_path, monkeypatch):
+    """The summary line («→», «·») must not crash a cp1252 console."""
+    stdout = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
+    monkeypatch.setattr(sys, "stdout", stdout)
+    monkeypatch.setenv("QBASAIR_PUBLIC_URL", "https://basair.example")
+    monkeypatch.setenv("QBASAIR_OIDC_CLIENT_SECRET", "s3cret")
+    output = tmp_path / "realm.json"
+    assert keycloak_realm.main(["--output", str(output)]) == 0
+    assert json.loads(output.read_text(encoding="utf-8"))["realm"] == "qbasair"
+    stdout.flush()
+    assert b"theme: qbasair" in stdout.buffer.getvalue()

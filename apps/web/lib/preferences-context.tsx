@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  Fragment,
   useCallback,
   useContext,
   useEffect,
@@ -17,7 +18,8 @@ import type { UserPreferences, UserPreferencesUpdate } from "@q-basair/shared";
 import { API_BASE_URL } from "@/lib/config";
 import { DEFAULT_EDITION, DEFAULT_MUSHAF_ID } from "@/lib/mushaf-defaults";
 import { loadUntilReady } from "./retry";
-import { formatNumber } from "@/lib/numerals";
+import { useI18n } from "@/lib/i18n/provider";
+import { formatNumber, resolveNumerals, setActiveNumerals } from "@/lib/numerals";
 // Side-effect: registers the guest-id header provider on the api-client.
 import "@/lib/guest-id";
 
@@ -27,7 +29,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   mushaf_edition: DEFAULT_EDITION.id,
   riwayah: DEFAULT_MUSHAF_ID,
   mushaf_font: "amiri-quran",
-  numerals: "arabic-indic",
+  numerals: "auto",
   ui_language: "ar",
   theme: "dark",
   font_size: 28,
@@ -147,6 +149,12 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     [account, tweaks],
   );
 
+  // The digits every `formatNumber` call uses: the reader's choice, or the
+  // interface language's own ("auto"). Installed before the children render.
+  const { info } = useI18n();
+  const digits = resolveNumerals(preferences.numerals, info.numerals);
+  setActiveNumerals(digits);
+
   // The effective ayah font size drives the Mushaf reading scale.
   useEffect(() => {
     document.documentElement.style.setProperty("--fs-ayah", `${preferences.font_size / 16}rem`);
@@ -241,15 +249,22 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
     [ready, preferences, account, tweaks, updateAccount, updateAccountDebounced, persistQuietly, setTweak, resetTweaks, promoteTweaks],
   );
 
-  return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;
+  return (
+    <PreferencesContext.Provider value={value}>
+      {/* Remount under new digits, as under a new language: every number is re-formatted. */}
+      <Fragment key={digits}>{children}</Fragment>
+    </PreferencesContext.Provider>
+  );
 }
 
 export function usePreferences(): PreferencesValue {
   return useContext(PreferencesContext);
 }
 
-/** Returns the numeral formatter for the user's active numeral script. */
+/** Returns the numeral formatter for the reader's digits (the setting, resolved). */
 export function useNumerals(): (n: number | string) => string {
   const { preferences } = useContext(PreferencesContext);
-  return useCallback((n) => formatNumber(n, preferences.numerals), [preferences.numerals]);
+  const { info } = useI18n();
+  const digits = resolveNumerals(preferences.numerals, info.numerals);
+  return useCallback((n) => formatNumber(n, digits), [digits]);
 }

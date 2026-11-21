@@ -1,0 +1,73 @@
+# Keycloak for production (docs/keycloak.md → "Production"): the pinned
+# Keycloak with Basair's two providers in providers/ — the login and mail theme
+# «qbasair» (apps/keycloak-theme, Keycloakify) and the 6-digit email code
+# (apps/keycloak-email-code) — built once ("kc.sh build") for PostgreSQL, so
+# the server starts with `start --optimized`. Built, scanned and pushed by
+# .github/workflows/release.yml as ghcr.io/ghost0n/basair-quran-keycloak.
+ARG KEYCLOAK_VERSION=26.8.2
+
+# The email-code provider (its unit tests run here too).
+FROM maven:3.9-eclipse-temurin-21 AS email-code
+WORKDIR /src
+COPY apps/keycloak-email-code/pom.xml ./
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:go-offline
+COPY apps/keycloak-email-code/src ./src
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q package
+
+# Keycloak 26.8.2 ships Guava 33.6.0 (CVE-2026-102554, HIGH, fixed in 33.7.2);
+# the build stage swaps in the fixed release from Maven Central. Drop this
+# (and GUAVA_JAR below) once a Keycloak release ships a fixed Guava.
+ARG GUAVA_VERSION=33.7.2-jre
+RUN --mount=type=cache,target=/root/.m2 mvn -B -q dependency:copy \
+    -Dartifact=com.google.guava:guava:${GUAVA_VERSION} -DoutputDirectory=/guava \
+ && mv /guava/guava-${GUAVA_VERSION}.jar /guava/guava.jar
+
+# The theme: Keycloakify needs Node (the workspace's pnpm) and Maven together.
+FROM node:22-bookworm-slim AS node
+FROM maven:3.9-eclipse-temurin-21 AS theme
+COPY --from=node /usr/local/bin/node /usr/local/bin/node
+COPY --from=node /usr/local/lib/node_modules /usr/local/lib/node_modules
+# The node image's own links (Keycloakify runs `npx vite` itself).
+RUN ln -s ../lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack \
+ && ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
+ && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+ && corepack enable
+WORKDIR /app
+# The theme reuses the web's design, strings and locale list straight from
+# apps/web (vite.config.ts aliases), so the web's sources and dependencies come too.
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY apps/web/package.json apps/web/package.json
+COPY apps/keycloak-theme/package.json apps/keycloak-theme/package.json
+COPY packages/api-client/package.json packages/api-client/package.json
+COPY packages/shared/package.json packages/shared/package.json
+COPY packages/offline-engine/package.json packages/offline-engine/package.json
+RUN --mount=type=cache,id=pnpm-store,target=/pnpm-store NODE_OPTIONS=--dns-result-order=ipv4first \
+    pnpm install --frozen-lockfile --store-dir /pnpm-store --filter @q-basair/keycloak-theme... --filter @q-basair/web...
+COPY apps/web ./apps/web
+COPY packages ./packages
+COPY apps/keycloak-theme ./apps/keycloak-theme
+RUN --mount=type=cache,target=/root/.m2 pnpm --filter @q-basair/keycloak-theme build:jar
+
+FROM quay.io/keycloak/keycloak:${KEYCLOAK_VERSION} AS build
+COPY --from=email-code /src/target/qbasair-keycloak-email-code.jar /opt/keycloak/providers/
+COPY --from=theme /app/apps/keycloak-theme/dist_keycloak/qbasair-keycloak-theme.jar /opt/keycloak/providers/
+# The fixed Guava, under the file name Keycloak's class path lists (the build
+# fails here when a new Keycloak no longer ships that jar: remove the swap).
+ARG GUAVA_JAR=/opt/keycloak/lib/lib/main/com.google.guava.guava-33.6.0-jre.jar
+RUN test -f "${GUAVA_JAR}" || { echo "Keycloak no longer ships ${GUAVA_JAR}: remove the Guava swap" >&2; exit 1; }
+COPY --from=email-code --chown=1000:0 /guava/guava.jar ${GUAVA_JAR}
+# Build-time options (fixed in the optimized server): PostgreSQL, the health
+# endpoints on the management port (9000, never published) for the healthcheck.
+ENV KC_DB=postgres \
+    KC_HEALTH_ENABLED=true
+RUN /opt/keycloak/bin/kc.sh build
+
+FROM quay.io/keycloak/keycloak:${KEYCLOAK_VERSION}
+# Keycloak's own layout: owned by 1000, group 0 (any uid in group 0 may write data/).
+COPY --from=build --chown=1000:0 /opt/keycloak/ /opt/keycloak/
+ENV KC_DB=postgres \
+    KC_HEALTH_ENABLED=true
+# Keycloak's own user (compose runs it as the deploy user's uid, group 0).
+USER 1000
+ENTRYPOINT ["/opt/keycloak/bin/kc.sh"]
+CMD ["start", "--optimized", "--import-realm"]

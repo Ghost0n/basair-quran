@@ -23,6 +23,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import json
+import logging
 import secrets
 import threading
 import time
@@ -35,6 +36,8 @@ import jwt
 
 from src.app.core import config
 
+logger = logging.getLogger(__name__)
+
 API_AUDIENCE = "qbasair-api"
 STAFF_ROLES = ("admin", "moderator")
 _TIMEOUT = 10
@@ -44,9 +47,13 @@ _DISCOVERY_TTL = 3600
 class OidcError(Exception):
     """A sign-in step failed; ``status`` is the HTTP status to answer with."""
 
-    def __init__(self, message: str, status: int = 400):
+    def __init__(self, message: str, status: int = 400, *, upstream: int | None = None, reason: str | None = None):
         super().__init__(message)
         self.status = status
+        # Keycloak's own answer, when it refused: its HTTP status and `error` field
+        # (e.g. 400 «invalidPasswordMinLengthMessage» for a password its policy refuses).
+        self.upstream = upstream
+        self.reason = reason
 
 
 @dataclass(frozen=True)
@@ -81,7 +88,16 @@ def _http_json(method: str, url: str, *, form: dict | None = None, body: dict | 
         with urllib.request.urlopen(request, timeout=_TIMEOUT) as response:
             raw = response.read()
     except urllib.error.HTTPError as exc:
-        raise OidcError(f"Keycloak answered {exc.code} for {urllib.parse.urlsplit(url).path}", status=502) from exc
+        reason = None
+        try:
+            answer = json.loads(exc.read() or b"null")
+            if isinstance(answer, dict):
+                reason = str(answer.get("error") or answer.get("errorMessage") or "")[:200] or None
+        except (ValueError, OSError):
+            pass
+        raise OidcError(
+            f"Keycloak answered {exc.code} for {urllib.parse.urlsplit(url).path}", status=502, upstream=exc.code, reason=reason
+        ) from exc
     except (urllib.error.URLError, TimeoutError, OSError) as exc:
         raise OidcError("Keycloak is unreachable.", status=503) from exc
     return json.loads(raw) if raw else None
@@ -206,8 +222,20 @@ def safe_return_to(value: str | None) -> str:
     return value[:500]
 
 
-def begin_login(return_to: str | None, *, signup: bool = False, locale: str | None = None) -> tuple[str, dict]:
-    """The Keycloak URL to send the browser to, and what to remember until it comes back."""
+def begin_login(
+    return_to: str | None,
+    *,
+    signup: bool = False,
+    locale: str | None = None,
+    link: str | None = None,
+    login_hint: str | None = None,
+) -> tuple[str, dict]:
+    """The Keycloak URL to send the browser to, and what to remember until it comes back.
+
+    ``link`` (a provider alias) asks Keycloak to link that provider to the signed-in
+    account instead (application-initiated action ``idp_link``): Keycloak checks its own
+    session, sends the reader to the provider and comes back with ``kc_action_status``.
+    """
     pending = {
         "state": secrets.token_urlsafe(24),
         "nonce": secrets.token_urlsafe(24),
@@ -215,6 +243,8 @@ def begin_login(return_to: str | None, *, signup: bool = False, locale: str | No
         "return_to": safe_return_to(return_to),
         "at": int(time.time()),
     }
+    if link:
+        pending["link"] = link
     params = {
         "client_id": config.get_oidc_client_id(),
         "response_type": "code",
@@ -229,6 +259,10 @@ def begin_login(return_to: str | None, *, signup: bool = False, locale: str | No
         params["prompt"] = "create"
     if locale:
         params["ui_locales"] = locale
+    if link:
+        params["kc_action"] = f"idp_link:{link}"
+    if login_hint:
+        params["login_hint"] = login_hint
     return f"{discovery()['authorization_endpoint']}?{urllib.parse.urlencode(params)}", pending
 
 
@@ -327,6 +361,18 @@ def _admin_token() -> str:
     return tokens["access_token"]
 
 
+def admin_user_is_gone(subject: str) -> bool:
+    """True only when Keycloak answers that this identity does not exist (404);
+    any other failure counts as «still there» (the safe answer)."""
+    try:
+        _http_json("GET", f"{_admin_base()}/users/{urllib.parse.quote(subject)}", token=_admin_token())
+    except OidcError as exc:
+        if exc.upstream == 404:
+            return True
+        logger.warning("could not check Keycloak identity %s: %s", subject, exc)
+    return False
+
+
 def admin_delete_user(subject: str) -> None:
     """Delete the Keycloak account (account deletion removes it there too)."""
     _http_json("DELETE", f"{_admin_base()}/users/{urllib.parse.quote(subject)}", token=_admin_token())
@@ -344,3 +390,71 @@ def admin_set_role(subject: str, role: str, granted: bool) -> None:
         actions = list(account.get("requiredActions") or [])
         if "CONFIGURE_TOTP" not in actions:
             _http_json("PUT", f"{base}/users/{user}", body={"requiredActions": [*actions, "CONFIGURE_TOTP"]}, token=token)
+
+
+# Linked sign-in providers (settings → «الحسابات المرتبطة»).
+
+
+@dataclass(frozen=True)
+class LinkedAccounts:
+    providers: list[dict]  # the realm's providers: {"alias", "name", "linked", "username"}
+    has_password: bool
+
+
+def _provider_order(alias: str) -> tuple[int, str]:
+    # The sign-in page's order (apps/keycloak-theme AccountChoice): Apple, Google, Meta, then the rest.
+    return ({"apple": 0, "google": 1, "facebook": 2}.get(alias, 3), alias)
+
+
+def admin_linked_accounts(subject: str) -> LinkedAccounts:
+    """The realm's sign-in providers, which of them the account is linked to, and
+    whether it has a password (without one, a provider is its only way in)."""
+    token = _admin_token()
+    base = _admin_base()
+    user = urllib.parse.quote(subject)
+    instances = _http_json("GET", f"{base}/identity-provider/instances", token=token) or []
+    links = _http_json("GET", f"{base}/users/{user}/federated-identity", token=token) or []
+    credentials = _http_json("GET", f"{base}/users/{user}/credentials", token=token) or []
+    linked = {str(link.get("identityProvider")): link for link in links if isinstance(link, dict)}
+    providers = [
+        {
+            "alias": str(instance["alias"]),
+            "name": str(instance.get("displayName") or instance["alias"]),
+            "linked": str(instance["alias"]) in linked,
+            "username": (linked.get(str(instance["alias"])) or {}).get("userName"),
+        }
+        for instance in instances
+        if isinstance(instance, dict) and instance.get("alias") and instance.get("enabled", True)
+    ]
+    # A provider removed from the realm while still linked stays listed, so it can be unlinked.
+    known = {provider["alias"] for provider in providers}
+    providers += [
+        {"alias": alias, "name": alias, "linked": True, "username": link.get("userName")}
+        for alias, link in linked.items()
+        if alias not in known
+    ]
+    providers.sort(key=lambda provider: _provider_order(provider["alias"]))
+    has_password = any(isinstance(c, dict) and c.get("type") == "password" for c in credentials)
+    return LinkedAccounts(providers=providers, has_password=has_password)
+
+
+def admin_unlink(subject: str, alias: str, password: str | None = None) -> None:
+    """Unlink a provider. An account without a password must set one first (its only
+    other way in): the password is set before the link goes, so a refused password
+    (Keycloak's policy: OidcError with ``upstream`` 400) leaves the link in place."""
+    current = admin_linked_accounts(subject)
+    if not any(provider["alias"] == alias and provider["linked"] for provider in current.providers):
+        raise OidcError("This provider is not linked.", status=404)
+    token = _admin_token()
+    base = _admin_base()
+    user = urllib.parse.quote(subject)
+    if not current.has_password:
+        if not password:
+            raise OidcError("Set a password before unlinking the last way to sign in.", status=422, reason="password_required")
+        _http_json(
+            "PUT",
+            f"{base}/users/{user}/reset-password",
+            body={"type": "password", "value": password, "temporary": False},
+            token=token,
+        )
+    _http_json("DELETE", f"{base}/users/{user}/federated-identity/{urllib.parse.quote(alias)}", token=token)

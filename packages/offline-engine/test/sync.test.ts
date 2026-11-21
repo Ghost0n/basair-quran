@@ -4,7 +4,7 @@
  */
 import { describe, expect, test } from "vitest";
 
-import { LocalStore, MemoryStorage, handleLocal } from "../src/local-store";
+import { LocalStore, MemoryStorage, handleLocal, isLocalRoute, trimTrailingSlashes } from "../src/local-store";
 import type { QuranEngine } from "../src/quran";
 import { forgetAccount, syncAccount, type Remote } from "../src/sync";
 
@@ -120,5 +120,18 @@ describe("account sync", () => {
     await syncAccount(phone, good, 3);
     expect(await api(server, "GET", "/api/roots")).toHaveLength(1);
     expect(await api(server, "GET", "/api/documents")).toHaveLength(1);
+  });
+});
+
+describe("local routes", () => {
+  test("trailing slashes are trimmed in linear time", async () => {
+    expect(trimTrailingSlashes("/api/roots///")).toBe("/api/roots");
+    expect(trimTrailingSlashes("/api/roots")).toBe("/api/roots");
+    expect(trimTrailingSlashes("///")).toBe("");
+    expect(isLocalRoute("GET", "/api/roots/")).toBe(true);
+    expect(isLocalRoute("GET", `/${"/".repeat(100_000)}x`)).toBe(false);
+    const started = Date.now();
+    trimTrailingSlashes(`${"/".repeat(200_000)}x${"/".repeat(200_000)}`);
+    expect(Date.now() - started).toBeLessThan(1000);
   });
 });

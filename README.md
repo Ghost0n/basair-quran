@@ -151,7 +151,7 @@ Q-Basair is an open-source tool for reading and researching the Quran with evide
   browser, or the installed app), uploaded to the account when they sign in.
 - Sign-in with Keycloak (email, Apple, Google, Meta; 2FA for moderators) behind `QBASAIR_AUTH_PROVIDER=keycloak`: OpenID Connect code flow with PKCE, roles mirrored from Keycloak, the realm as code (`scripts/keycloak_realm.py`), a local Keycloak with `scripts/keycloak_dev.sh` — see `docs/keycloak.md`. The default stays `local` until the production platform's cut-over.
 - The study's AI: Basair's own model, or the reader's account with OpenRouter (sign-in), OpenAI, Anthropic, Gemini, Mistral, DeepSeek, Groq, xAI or Ollama Cloud — a key or a sign-in and a model, never an address (Settings → «الذكاء الاصطناعي», `docs/ai-connections.md`).
-- A research agent that answers from the Quran alone: search terms come from the question and the Quran's own vocabulary, the answer only from the ayahs Quran search returns (each read with its neighbouring ayahs), with no tafsir, hadith, book or other outside source; it can be centred on one ayah.
+- A research agent that answers from the Quran alone: search terms come from the question and the Quran's own vocabulary, the answer only from the ayahs Quran search returns (each read with its neighbouring ayahs), with no tafsir, hadith, book or other outside source; it can be centred on one ayah. Its answers are short and point to the closest ayahs, ask a follow-up question when the question is vague, and come in the reader's chosen answer language (the interface language by default).
 - Dedicated `/research` workspace with per-session Ollama cloud key entry, model switching and request-usage observability.
 
 ## Project Layout
@@ -282,9 +282,10 @@ public entrypoint, in front of the internal `web`, `api` and moderation `worker`
 persistent `data/` storage and one API replica (the app relies on SQLite).
 
 - **CI** (`.github/workflows/ci.yml`, every pull request): backend tests, the web and app builds, the
-  offline engine's parity, the nginx and compose configs, a Trivy scan (dependencies, secrets,
-  Dockerfiles) and, once configured, a Sonar analysis.
-- **Release** (`.github/workflows/release.yml`, every push to `main`): the API and web images are built
+  offline engine's parity, the nginx and compose configs, the API, web and Keycloak Docker images (built as
+  the release builds them and scanned, not pushed), a Trivy scan (dependencies, secrets, Dockerfiles) and, once
+  configured, a Sonar analysis.
+- **Release** (`.github/workflows/release.yml`, every push to `main`): the API, web and Keycloak images are built
   on GitHub, scanned with Trivy, pushed to GitHub Container Registry and deployed over SSH by
   `deploy/server/deploy.sh`, health-gated with automatic rollback. Deploy tags in the merge commit
   (`[rebuild-db]`, `[rebuild-translations]`, `[prefill-recitation]`,

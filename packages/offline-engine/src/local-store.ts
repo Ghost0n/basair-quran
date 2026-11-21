@@ -25,6 +25,9 @@ import {
   THEME_COLORS,
 } from "./models.generated";
 import { strip } from "./py";
+
+/** Marks preferences saved since the digits can be "auto" (app_data_service.NUMERALS_REV_KEY). */
+const NUMERALS_REV_KEY = "numerals_rev";
 import type { QuranEngine } from "./quran";
 import { type Issue, dropNone, shapeList, shapeModel, validateModel } from "./shape";
 
@@ -188,6 +191,10 @@ export class LocalStore {
     if (stored) {
       for (const [key, value] of Object.entries(stored)) if (value !== null && value !== undefined) merged[key] = value;
       merged.research = { ...DEFAULT_PREFERENCES.research, ...(stored.research || {}) };
+      // As app_data_service.get_preferences: before "auto", the old default
+      // «arabic-indic» was saved whether or not the reader chose it.
+      delete merged[NUMERALS_REV_KEY];
+      if (!stored[NUMERALS_REV_KEY] && merged.numerals === "arabic-indic") merged.numerals = "auto";
     }
     if (!MUSHAF_EDITION_IDS.includes(merged.mushaf_edition)) merged.mushaf_edition = DEFAULT_MUSHAF_EDITION;
     return merged;
@@ -205,7 +212,7 @@ export class LocalStore {
       delete patch.research;
       for (const [key, value] of Object.entries(patch)) if (value !== null && value !== undefined) current[key] = value;
       if (research && Object.keys(research).length) current.research = { ...current.research, ...research };
-      state.preferences = { data: current, updated_at: this.clock(), dirty: true };
+      state.preferences = { data: { ...current, [NUMERALS_REV_KEY]: 1 }, updated_at: this.clock(), dirty: true };
       return shapeModel("UserPreferences", current);
     }, true);
   }
@@ -647,9 +654,16 @@ const ROUTES: Route[] = [
   { method: "PATCH", pattern: /^\/api\/user\/preferences$/, handle: (store, _p, body) => store.updatePreferences(body) },
 ];
 
+/** The path without its trailing slashes, in linear time (a `/\/+$/` replace backtracks on runs of slashes). */
+export function trimTrailingSlashes(pathname: string): string {
+  let end = pathname.length;
+  while (end > 0 && pathname.charCodeAt(end - 1) === 47 /* "/" */) end -= 1;
+  return pathname.slice(0, end);
+}
+
 /** Answer a companion route from the local store, or null when the path is not one. */
 export async function handleLocal(store: LocalStore, method: string, pathname: string, body: unknown): Promise<{ status: number; body: unknown } | null> {
-  const path = pathname.replace(/\/+$/, "");
+  const path = trimTrailingSlashes(pathname);
   for (const route of ROUTES) {
     if (route.method !== method) continue;
     const match = route.pattern.exec(path);
@@ -665,6 +679,6 @@ export async function handleLocal(store: LocalStore, method: string, pathname: s
 }
 
 export function isLocalRoute(method: string, pathname: string): boolean {
-  const path = pathname.replace(/\/+$/, "");
+  const path = trimTrailingSlashes(pathname);
   return ROUTES.some((route) => route.method === method && route.pattern.test(path));
 }

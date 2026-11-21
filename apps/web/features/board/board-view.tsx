@@ -111,7 +111,7 @@ function View({ snapshot, onOpenAyah }: { snapshot: PostBoardSnapshot; onOpenAya
           nodeTypes={NODE_TYPES}
           fitView
           fitViewOptions={{ padding: 0.2, maxZoom: 1 }}
-          colorMode={state.theme === "light" ? "light" : "dark"}
+          forceColorMode={state.theme === "light" ? "light" : "dark"}
           connectionMode={ConnectionMode.Loose}
           nodesDraggable={false}
           nodesConnectable={false}

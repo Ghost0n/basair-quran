@@ -4,6 +4,7 @@ import type { AuthSessionResponse, GuestMergeResult } from "@q-basair/shared";
 import { createQBasairApiClient } from "@q-basair/api-client";
 
 import { API_BASE_URL } from "@/lib/config";
+import { forgetAccountOnThisDevice } from "@/lib/forget-account";
 import { uploadGuestData } from "@/lib/guest-data";
 // Side-effect: registers the guest-id header provider on the api-client.
 import "@/lib/guest-id";
@@ -127,5 +128,7 @@ export async function signOutEverywhere(destination = "/"): Promise<void> {
   } catch {
     /* signed out locally anyway */
   }
+  // Nothing of the account stays in this browser for the next person.
+  forgetAccountOnThisDevice();
   window.location.assign(next);
 }

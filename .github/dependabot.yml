@@ -1,4 +1,10 @@
 # Weekly dependency updates, grouped, against develop (CONTRIBUTING.md).
+#
+# Runtime versions move together, on purpose, in one change: the Python and
+# Node images (Dockerfile.api, apps/web/Dockerfile), the versions CI tests on
+# (.github/workflows/*.yml) and @types/node. Dependabot therefore proposes no
+# major or minor runtime jump (CI would test the old runtime and pass), only
+# patches of the image in use.
 version: 2
 updates:
   - package-ecosystem: npm
@@ -9,6 +15,14 @@ updates:
     groups:
       npm-minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
+      # "typescript-api" is TypeScript 6 on purpose: apps/web/scripts/i18n.mjs
+      # reads the sources with TypeScript's JavaScript API, which TypeScript 7
+      # (the native compiler, used everywhere else) no longer ships.
+      - dependency-name: typescript-api
+        update-types: [version-update:semver-major]
   - package-ecosystem: pip
     directory: /
     target-branch: develop
@@ -20,7 +34,17 @@ updates:
     directory: /
     target-branch: develop
     schedule: { interval: weekly }
+    # One pull request for all the actions, so save/restore pairs and the
+    # pinned commits move together.
+    groups:
+      actions:
+        patterns: ["*"]
   - package-ecosystem: docker
     directories: [/, /apps/web]
     target-branch: develop
     schedule: { interval: weekly }
+    ignore:
+      - dependency-name: python
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: node
+        update-types: [version-update:semver-major]

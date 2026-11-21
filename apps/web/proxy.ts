@@ -6,7 +6,7 @@ const sessionCookieName = process.env.QBASAIR_SESSION_COOKIE_NAME || "qbasair_se
 
 const PUBLIC_PATH_PREFIXES = ["/_next", "/favicon.ico", "/apple-touch-icon.png"];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   if (!authEnabled) {
     return NextResponse.next();
   }

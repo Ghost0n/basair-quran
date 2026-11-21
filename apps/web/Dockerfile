@@ -23,12 +23,14 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/web/package.json apps/web/package.json
 COPY packages/api-client/package.json packages/api-client/package.json
 COPY packages/shared/package.json packages/shared/package.json
+COPY packages/offline-engine/package.json packages/offline-engine/package.json
 
 RUN pnpm install --frozen-lockfile
 
 COPY apps/web ./apps/web
 COPY packages/api-client ./packages/api-client
 COPY packages/shared ./packages/shared
+COPY packages/offline-engine ./packages/offline-engine
 
 RUN pnpm --filter @q-basair/web build
 
@@ -40,6 +42,11 @@ ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0
 
 WORKDIR /app
+
+# The server runs with `node` alone: drop the base image's npm, npx and
+# corepack (package tools whose bundled dependencies carry known vulnerabilities).
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 # Not root: the image's `node` user (the server writes its cache under .next).
 COPY --from=builder --chown=node:node /app/apps/web/.next/standalone ./

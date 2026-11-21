@@ -30,12 +30,12 @@ grow without a redesign.
 | Reference data | Quran text, morphology, mushaf layout, translations, research index stay **read-only SQLite files** shipped with each release (regenerated, never user data). |
 | Cache / limits | **Redis** (Valkey) on the VPS: shared cache, rate limits, quota counters. Not a source of truth. |
 | Backups | Continuous WAL archiving + nightly base backups to **Cloudflare R2** (point-in-time restore over 30 days), restore tested automatically every night. |
-| Email | **Scaleway Transactional Email** (SMTP relay, €0.25 per 1,000, 300 free a month). `contact@` forwarded with Cloudflare Email Routing. No self-hosted mail server. |
+| Email | The domain's **Infomaniak** mail (owner's pro mail service): sign-up codes and Keycloak's mails sent as `noreply@basairquran.com` (an alias of the contact mailbox) over SMTP (`mail.infomaniak.com:587`, STARTTLS); the main contact address **contact@basairquran.com** (shown on the landing page) is an Infomaniak mailbox. SPF allows Infomaniak only and DMARC is `p=reject`: a transactional service, if volume outgrows a mailbox's sending limit, needs its SPF/DKIM records added first. No self-hosted mail server. |
 | Guests (web) | Data kept **on the device** (browser storage, like the app's local store) and uploaded to the account at sign-up. Nothing stored server-side for anonymous visitors. |
 | Old data | **Start fresh**: no migration from the old server. |
 | AI («الدراسة») | Users connect their **own provider** (sign-in button where the provider offers one, otherwise API key with a step-by-step guide). Without a provider, signed-in users get a small **demo allowance** on our Ollama key (e.g. 2 questions per rolling 5 hours). The current "paste an Ollama key" setting is removed. |
 | Developer accounts | Apple Developer, Google Cloud, Meta for Developers, Google Play Console: created by the owner at the **last step**. |
-| Domain | To buy (Cloudflare Registrar); candidates: basair.app, basair.org, getbasair.com, basairquran.com, qbasair.com. |
+| Domain | **basairquran.com**, registered at **Infomaniak**; DNS and mail there today (`ns11`/`ns12.infomaniak.ch`). Moving the DNS to Cloudflare for the edge must carry the MX, SPF, DKIM and DMARC records over unchanged. |
 
 ## Architecture
 
@@ -53,7 +53,7 @@ grow without a redesign.
         │  valkey       ── cache, rate limits, AI quota counters     │
         │  backup       ── WAL-G → Cloudflare R2                     │
         └────────────────────────────────────────────────────────────┘
-   Outbound: Scaleway TEM (email) · AI providers (user's own / our demo Ollama)
+   Outbound: Infomaniak SMTP (email) · AI providers (user's own / our demo Ollama)
 ```
 
 Hostnames: `<domain>` (web), `auth.<domain>` (Keycloak), `staging.<domain>`,
@@ -195,16 +195,18 @@ added to the Compose stack.
 2. **Database**: PostgreSQL schema + Alembic; port `app_data_service`,
    `community_service`, `research_document_service` from SQLite; tests on
    PostgreSQL in CI.
-3. **Keycloak**: realm as code, email via Scaleway TEM, policies, 2FA, linking
+3. **Keycloak**: realm as code, email via the Infomaniak mailbox, policies, 2FA, linking
    flow; theme.
 4. **Auth integration**: web BFF flow, API token validation, removal of the
    old password auth (`auth_service.py`, `routes/auth.py`), deletion + export.
 
    Steps 3–4 are built locally behind `QBASAIR_AUTH_PROVIDER=keycloak`
    (`docs/keycloak.md`, 2026-11-07): realm as code, code flow + PKCE, Bearer
-   tokens for the app, roles mirrored, moderator 2FA, account deletion. Left
-   for the platform: Keycloak in the stack, keycloak-config-cli, Scaleway TEM,
-   the Keycloakify theme, and removing the password routes after the cut-over.
+   tokens for the app, roles mirrored, moderator 2FA, account deletion. The
+   Keycloakify theme is built too — sign-in pages and mails
+   (`apps/keycloak-theme`, Q-Basair-61, 2026-11-08). Left for the platform:
+   Keycloak in the stack (with the theme JAR), keycloak-config-cli, the Infomaniak
+   mailbox, and removing the password routes after the cut-over.
 5. **Clients**: sign-in screens, Capacitor native sign-in + token exchange,
    secure token storage; web guest storage on the device + upload at sign-up.
 6. **AI connectors**: registry, encrypted secrets, sign-in buttons, guides,

@@ -36,6 +36,41 @@ class ProviderSpec:
     signin: bool = False
     # Model names to preselect, in order (substring match on the listed models).
     prefer: tuple[str, ...] = ()
+    # The thinking levels it can be asked for (`thinking_payload`); none: the model decides.
+    thinking: tuple[str, ...] = ()
+
+
+# How long a model thinks before it answers, as the reader picks it in the chat
+# ("" or absent: the model's own default). Each provider is told its own way
+# (`thinking_payload`); a model that refuses is asked again without it.
+THINKING_LEVELS = ("off", "low", "medium", "high")
+ALL_LEVELS = THINKING_LEVELS
+# Anthropic thinks within a token budget rather than at a named effort.
+_ANTHROPIC_BUDGET = {"low": 2048, "medium": 8192, "high": 16384}
+
+
+def normalize_thinking(value: str | None) -> str:
+    level = (value or "").strip().lower()
+    return level if level in THINKING_LEVELS else ""
+
+
+def thinking_payload(provider_id: str, level: str) -> dict[str, Any]:
+    """The chat-completions fields that ask `provider_id` for a thinking level."""
+    if not level:
+        return {}
+    if provider_id == "openrouter":
+        return {"reasoning": {"enabled": False}} if level == "off" else {"reasoning": {"effort": level}}
+    if provider_id == "anthropic":
+        if level == "off":
+            return {}
+        budget = _ANTHROPIC_BUDGET[level]
+        # Thinking needs room to answer after its budget.
+        return {"thinking": {"type": "enabled", "budget_tokens": budget}, "max_tokens": budget + 4096}
+    if provider_id == "gemini":
+        return {"reasoning_effort": "none" if level == "off" else level}
+    if provider_id in {"openai", "groq", "xai"}:
+        return {} if level == "off" else {"reasoning_effort": level}
+    return {}
 
 
 PROVIDERS: dict[str, ProviderSpec] = {
@@ -44,22 +79,25 @@ PROVIDERS: dict[str, ProviderSpec] = {
         ProviderSpec(
             "openrouter", "OpenRouter", "https://openrouter.ai/api/v1", "openai", "https://openrouter.ai/keys",
             signin=True, prefer=("anthropic/claude-sonnet", "openai/gpt-4o-mini", "google/gemini-2.5-flash"),
+            thinking=ALL_LEVELS,
         ),
         ProviderSpec("openai", "OpenAI", "https://api.openai.com/v1", "openai", "https://platform.openai.com/api-keys",
-                     prefer=("gpt-4.1-mini", "gpt-4o-mini", "gpt-4o")),
+                     prefer=("gpt-4.1-mini", "gpt-4o-mini", "gpt-4o"), thinking=("low", "medium", "high")),
         ProviderSpec("anthropic", "Anthropic (Claude)", "https://api.anthropic.com/v1", "openai",
-                     "https://console.anthropic.com/settings/keys", prefer=("claude-sonnet", "claude-haiku")),
+                     "https://console.anthropic.com/settings/keys", prefer=("claude-sonnet", "claude-haiku"), thinking=ALL_LEVELS),
         ProviderSpec("gemini", "Google Gemini", "https://generativelanguage.googleapis.com/v1beta/openai", "openai",
-                     "https://aistudio.google.com/apikey", prefer=("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash")),
+                     "https://aistudio.google.com/apikey", prefer=("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"),
+                     thinking=ALL_LEVELS),
         ProviderSpec("mistral", "Mistral", "https://api.mistral.ai/v1", "openai", "https://console.mistral.ai/api-keys",
                      prefer=("mistral-large-latest", "mistral-medium", "mistral-small-latest")),
         ProviderSpec("deepseek", "DeepSeek", "https://api.deepseek.com/v1", "openai", "https://platform.deepseek.com/api_keys",
                      prefer=("deepseek-chat",)),
         ProviderSpec("groq", "Groq", "https://api.groq.com/openai/v1", "openai", "https://console.groq.com/keys",
-                     prefer=("llama-3.3-70b", "llama-3.1-70b")),
-        ProviderSpec("xai", "xAI (Grok)", "https://api.x.ai/v1", "openai", "https://console.x.ai", prefer=("grok-3-mini", "grok-3", "grok")),
+                     prefer=("llama-3.3-70b", "llama-3.1-70b"), thinking=("low", "medium", "high")),
+        ProviderSpec("xai", "xAI (Grok)", "https://api.x.ai/v1", "openai", "https://console.x.ai", prefer=("grok-3-mini", "grok-3", "grok"),
+                     thinking=("low", "high")),
         ProviderSpec("ollama", "Ollama Cloud", "https://ollama.com", "ollama", "https://ollama.com/settings/keys",
-                     prefer=("gpt-oss", "qwen3", "deepseek")),
+                     prefer=("gpt-oss", "qwen3", "deepseek"), thinking=ALL_LEVELS),
     )
 }
 
@@ -172,13 +210,26 @@ def make_openai_compatible_provider(runtime: Any) -> Any:
             if not self.chat_model:
                 raise agent.ResearchProviderUnavailable(f"Choose a {self.spec.name} model in Settings.")
             payload: dict[str, Any] = {"model": self.chat_model, "messages": messages, "temperature": temperature}
-            try:
-                response = self._request("POST", "/chat/completions", payload, stage=stage, model=self.chat_model)
-            except agent.ResearchProviderUnavailable as exc:
-                # Some reasoning models only take their default temperature.
-                if "temperature" not in str(exc).lower():
-                    raise
-                payload.pop("temperature")
+            thinking = thinking_payload(self.spec.id, self.thinking) if self.thinking in self.spec.thinking else {}
+            payload.update(thinking)
+            # Asked again without what the model refuses: some reasoning models
+            # only take their default temperature (and Claude none while it
+            # thinks); a model that can't think refuses the thinking fields.
+            for _ in range(3):
+                try:
+                    response = self._request("POST", "/chat/completions", payload, stage=stage, model=self.chat_model)
+                    break
+                except agent.ResearchProviderUnavailable as exc:
+                    detail = str(exc).lower()
+                    if "temperature" in payload and "temperature" in detail:
+                        payload.pop("temperature")
+                    elif thinking and any(word in detail for word in ("reasoning", "thinking", "budget", "max_tokens")):
+                        for field in thinking:
+                            payload.pop(field, None)
+                        thinking = {}
+                    else:
+                        raise
+            else:
                 response = self._request("POST", "/chat/completions", payload, stage=stage, model=self.chat_model)
             choices = response.get("choices") or []
             content = (choices[0].get("message") or {}).get("content") if choices and isinstance(choices[0], dict) else None

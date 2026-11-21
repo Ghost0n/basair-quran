@@ -5,20 +5,22 @@
  * (keys never go to our server except with the study's own requests); a key
  * can be forgotten from Settings.
  */
-import type { AiProviderId } from "@q-basair/shared";
+import type { AiProviderId, ThinkingLevel } from "@q-basair/shared";
 
 export type AiConnection = {
   /** null: the server's own model. */
   provider: AiProviderId | null;
   keys: Partial<Record<AiProviderId, string>>;
   models: Partial<Record<AiProviderId, string>>;
+  /** Former per-provider thinking levels: still read, no longer picked nor sent (each model's default). */
+  thinking: Partial<Record<AiProviderId, ThinkingLevel>>;
 };
 
 export const AI_CONNECTION_KEY = "qb.ai.connection";
 // The study page's former settings (an Ollama key and model, this tab only).
 const LEGACY_KEY = "qbasair.research.ollama";
 
-const EMPTY: AiConnection = { provider: null, keys: {}, models: {} };
+const EMPTY: AiConnection = { provider: null, keys: {}, models: {}, thinking: {} };
 
 let cached: AiConnection | null = null;
 const listeners = new Set<() => void>();
@@ -29,14 +31,14 @@ function read(): AiConnection {
     const raw = window.localStorage.getItem(AI_CONNECTION_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<AiConnection>;
-      return { provider: parsed.provider ?? null, keys: parsed.keys ?? {}, models: parsed.models ?? {} };
+      return { provider: parsed.provider ?? null, keys: parsed.keys ?? {}, models: parsed.models ?? {}, thinking: parsed.thinking ?? {} };
     }
     // Carried over once from the study page's former Ollama settings.
     const legacy = window.sessionStorage.getItem(LEGACY_KEY);
     if (legacy) {
       const old = JSON.parse(legacy) as { apiKey?: string; chatModel?: string };
       if (old.apiKey?.trim()) {
-        return { provider: "ollama", keys: { ollama: old.apiKey.trim() }, models: old.chatModel?.trim() ? { ollama: old.chatModel.trim() } : {} };
+        return { provider: "ollama", keys: { ollama: old.apiKey.trim() }, models: old.chatModel?.trim() ? { ollama: old.chatModel.trim() } : {}, thinking: {} };
       }
     }
   } catch {
@@ -61,7 +63,19 @@ export function saveAiConnection(next: AiConnection): void {
   listeners.forEach((listener) => listener());
 }
 
+let watchingOtherTabs = false;
+
 export function subscribeAiConnection(listener: () => void): () => void {
+  // A key saved in another window of this site (OpenRouter's sign-in window)
+  // reaches this one too.
+  if (!watchingOtherTabs && typeof window !== "undefined") {
+    watchingOtherTabs = true;
+    window.addEventListener("storage", (event) => {
+      if (event.key !== AI_CONNECTION_KEY && event.key !== null) return;
+      cached = null;
+      listeners.forEach((each) => each());
+    });
+  }
   listeners.add(listener);
   return () => listeners.delete(listener);
 }
@@ -98,7 +112,23 @@ export function aiHeaders(connection: AiConnection = aiConnection()): Record<str
   const model = connection.models[provider];
   if (key) headers["X-QBasair-LLM-Key"] = key;
   if (model) headers["X-QBasair-LLM-Model"] = model;
+  // No thinking level: each model's own default is enough for the study.
   return headers;
+}
+
+/**
+ * The models offered in the chat: only the recommended ones among those the
+ * provider lists (`AiProviderItem.prefer`, in that order), plus the one already
+ * chosen. A provider listing none of them shows its whole list.
+ */
+export function recommendedModels(prefer: readonly string[], names: readonly string[], current?: string): string[] {
+  const kept: string[] = [];
+  for (const wanted of prefer) {
+    for (const name of names) if (name.includes(wanted) && !kept.includes(name)) kept.push(name);
+  }
+  if (!kept.length) return [...names];
+  if (current && names.includes(current) && !kept.includes(current)) kept.unshift(current);
+  return kept;
 }
 
 /** The model to preselect among those a provider lists. */

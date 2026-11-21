@@ -690,3 +690,38 @@ def test_strict_mode_with_focus_keeps_quran_only_evidence(api_client):
     assert body["mode"] == "strict"
     assert [a["ayah"] for a in body["ayahs"]] == [4]
     assert [a.text for a in provider.answer_ayahs] == ["shared verse 4"]
+
+
+def test_answer_rules_keep_answers_short_in_the_chosen_language_with_a_follow_up():
+    """The study points to the closest ayahs, in the reader's answer language, and asks to narrow a vague question."""
+    rules = research_agent_service.QURAN_ONLY_ANSWER_RULES
+    assert "even when the question is written in another language" in rules
+    assert "Be brief and point to the ayahs" in rules
+    assert "do not copy out whole ayahs" in rules
+    assert "follow-up question" in rules
+    # The Quran-only boundary is unchanged.
+    assert "ONLY the ayahs" in rules and "tafsir" in rules and "hadith" in rules
+
+
+def test_planner_writes_its_clarifying_question_in_the_answer_language(api_client, monkeypatch):
+    provider = research_agent_service.OllamaResearchLlmProvider(research_agent_service.build_runtime_settings())
+    captured: list[list[dict]] = []
+
+    def fake_chat(messages, *args, **kwargs):
+        captured.append(messages)
+        return '{"status":"search","related_terms":[],"searches":[]}'
+
+    monkeypatch.setattr(provider, "_chat", fake_chat)
+    messages = [ResearchAgentMessage(role="user", content="What does the Quran say about patience?")]
+    terms = [research_agent_service.QuranTermCandidate(type="root", text="صبر", score=1.0)]
+    provider.create_search_plan(messages, terms, research_agent_service.CandidateExpansion(related_terms=[], searches=[]), "urdu")
+
+    system, user = captured[0]
+    assert "clarifying_question in answer_language" in system["content"]
+    assert research_agent_service.json.loads(user["content"])["answer_language"] == "urdu"
+
+
+def test_a_chosen_answer_language_wins_over_the_question_language():
+    assert research_agent_service.detect_answer_language("ما معنى الصبر؟", "english") == "english"
+    assert research_agent_service.detect_answer_language("What is patience?", "urdu") == "urdu"
+    assert research_agent_service.detect_answer_language("ما معنى الصبر؟", "auto") == "arabic"

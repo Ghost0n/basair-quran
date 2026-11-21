@@ -2,7 +2,8 @@
 /**
  * Build the standalone app's web bundle (docs/offline-app.md):
  *
- *   1. `next build` with NEXT_PUBLIC_APP_MODE=1 → a static export in out/;
+ *   1. `next build --webpack` with NEXT_PUBLIC_APP_MODE=1 → a static export in
+ *      out/ (Webpack, not Turbopack: see APP_BUILD_ARGS below);
  *   2. the bundled core database → out/assets/databases/coreSQLite.db
  *      (where the native SQLite plugin looks for bundled databases), with its
  *      version in core.version;
@@ -30,7 +31,13 @@ if (!existsSync(path.join(offline, "core.db"))) {
   process.exit(1);
 }
 
-const build = spawnSync(process.execPath, [path.join(web, "node_modules/next/dist/bin/next"), "build"], {
+// The app's route files (`*.app.tsx`) must take precedence over the website's
+// (`layout.app.tsx` over `layout.tsx`, which is force-dynamic for the server):
+// Webpack honours the pageExtensions order in next.config.ts, Turbopack (the
+// default since Next.js 16) does not, and the export would fail.
+const APP_BUILD_ARGS = ["build", "--webpack"];
+
+const build = spawnSync(process.execPath, [path.join(web, "node_modules/next/dist/bin/next"), ...APP_BUILD_ARGS], {
   cwd: web,
   stdio: "inherit",
   env: { ...process.env, NEXT_PUBLIC_APP_MODE: "1" },
