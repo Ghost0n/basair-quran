@@ -136,7 +136,7 @@ required reviewer if every release should wait for a click). Its secrets:
 | `DEPLOY_HOST` | the server's IP (or a DNS name that is not proxied by a CDN) |
 | `DEPLOY_USER` | `deploy` |
 | `DEPLOY_PORT` | `22` (or your SSH port) |
-| `DEPLOY_SSH_KEY` | the private key `basair-deploy` (whole file) |
+| `DEPLOY_SSH_KEY` | the private key `basair-deploy`: the whole file, `-----BEGIN…` and `-----END…` lines included. It must have no passphrase (the workflow can't type one): `ssh-keygen -p -f basair-deploy` removes one |
 | `DEPLOY_KNOWN_HOSTS` | the content of `known_hosts.txt` |
 
 **Settings → Secrets and variables → Actions → Variables** (repository):
@@ -176,12 +176,27 @@ Fill in at least the values marked `CHANGE`:
 - the Keycloak section ([Keycloak](#keycloak)): `QBASAIR_OIDC_CLIENT_SECRET`
   (`openssl rand -hex 32`), `KC_DB_PASSWORD` and `KC_BOOTSTRAP_ADMIN_PASSWORD`
   (`openssl rand -hex 24` each), and `KC_SMTP_PASSWORD` — the mailbox password,
-  without which new accounts can't confirm their email. With the `keycloak`
-  profile on, the deploy stops before changing anything when one of the first
-  three, `QBASAIR_AUTH_DOMAIN` or `QBASAIR_PUBLIC_URL` is empty.
+  without which new accounts can't confirm their email.
+
+Start from the template, not from a local settings file: a local copy brings
+`localhost` addresses and `QBASAIR_ENABLE_TLS=0`. If you edit the file on
+Windows, save it as UTF-8 without BOM and with LF line ends. Then check it:
+
+```bash
+./deploy/server/check-env.sh
+```
+
+It names the problems (setting names and line numbers, never values): a byte
+order mark, CRLF line ends, a line that isn't `NAME=value`, a local or
+non-HTTPS public address, a missing Keycloak setting, an issuer that doesn't
+match `QBASAIR_AUTH_DOMAIN`. Every deploy runs it first and stops, with
+nothing changed, on an error.
 
 The file is the only place for production secrets. It is never committed and
-is included in the nightly backup.
+is included in the nightly backup. Each deploy also writes four values into
+it (`QBASAIR_IMAGE_TAG`, `QBASAIR_COMMIT_SHA`, `QBASAIR_RUN_UID`,
+`QBASAIR_RUN_GID`), so a plain `docker compose --env-file .env.production up -d`
+by hand runs the live release as the deploy does.
 
 ## 5. First deploy
 
@@ -210,10 +225,13 @@ cd /srv/q-basair
 ./deploy/server/tls.sh issue
 ```
 
-certbot answers Let's Encrypt's HTTP-01 challenge through nginx on port 80,
-writes the certificates to `/srv/q-basair/letsencrypt/` — one for the site,
-and one for `QBASAIR_AUTH_DOMAIN` when it is set — and nginx restarts on its
-HTTPS configuration (HTTP then redirects; HSTS is on). The daily cron runs
+It checks the settings first (`check-env.sh`, and `QBASAIR_ENABLE_TLS=1`,
+without which nginx never serves HTTPS). certbot answers Let's Encrypt's
+HTTP-01 challenge through nginx on port 80, writes the certificates to
+`/srv/q-basair/letsencrypt/` — one for the site, and one for
+`QBASAIR_AUTH_DOMAIN` when it is set — then nginx is recreated on its HTTPS
+configuration (HTTP then redirects; HSTS is on) and the script checks that
+both names answer over HTTPS. The daily cron runs
 `tls.sh renew`, which renews within 30 days of expiry and reloads nginx. Check:
 `curl -I https://basairquran.com`, `curl -I https://auth.basairquran.com/realms/qbasair`
 and `tail /var/log/qbasair-tls.log`.
@@ -239,10 +257,14 @@ template's default). The profile adds two services:
 **The realm.** Each deploy renders `keycloak/import/qbasair-realm.json` (mode
 600) from `.env.production` with the release's own `scripts/keycloak_realm.py`
 (the one-off `keycloak-realm` service, no network). Keycloak imports it **on
-its first start only** — a realm that exists is left alone. Later changes
-(SMTP, a sign-in provider, the client secret) are made in the admin console,
-or by deleting the realm there and restarting Keycloak, which imports the
-current file again (this deletes every account in it).
+its first start only** — a realm that exists is left alone. Two things a
+later settings change must reach are re-applied by every deploy
+(`keycloak_realm.py --sync`): the web client's addresses, from
+`QBASAIR_PUBLIC_URL` (redirect URI, root and home URLs, web origin, logout
+redirect), and each sign-in provider's own `prompt`. Other changes (SMTP, a
+new provider, the client secret) are made in the admin console, or by
+deleting the realm there and restarting Keycloak, which imports the current
+file again (this deletes every account in it).
 
 **The admin console** is never public: nginx answers 404 for `/admin` and
 `/realms/master` on the auth domain. Keycloak listens on the server's
@@ -257,9 +279,11 @@ Sign in with `KC_BOOTSTRAP_ADMIN_USERNAME` / `KC_BOOTSTRAP_ADMIN_PASSWORD`.
 The first deploy also points the `master` realm's front-end address at the
 tunnel address (`KC_HOSTNAME_ADMIN`, default `http://localhost:8180`), which
 the console needs to load; it is done once (`.deploy/keycloak-console`).
-Change the bootstrap password in the console after the first sign-in
-(master realm → Users → admin → Credentials); `.env.production`'s value is
-only read when the master realm is created.
+To change the bootstrap password (master realm → Users → admin →
+Credentials), write the new one into `KC_BOOTSTRAP_ADMIN_PASSWORD` as well:
+Keycloak only reads that value when the master realm is created, but each
+deploy signs in with it, inside the container, to re-apply the realm's
+addresses. With a stale value the deploy only warns that it could not.
 
 **The first administrator.** Create your account on the site (sign up, then
 the 6-digit code from the email). In the console: realm `qbasair` → Users →
@@ -271,7 +295,21 @@ appointed from the site's panel (it adds the 2FA step itself).
 `https://auth.basairquran.com/realms/qbasair/broker/<google|facebook>/endpoint`
 with the provider, then add the provider in the console (realm `qbasair` →
 Identity providers), or set `KC_GOOGLE_*` / `KC_FACEBOOK_*` before
-Keycloak's first start. Sign in with Apple is not in the image yet.
+Keycloak's first start. Sign in with Apple is not in the image yet. In the
+console:
+
+- the "Redirect URI" the form shows is the tunnel's (`http://localhost:8180/…`):
+  register the public one above with the provider;
+- a browser's password manager may fill "Client ID" and "Client Secret" with
+  the console's login: clear both before pasting the provider's values;
+- set the settings the realm file gives a provider: Trust Email on, First
+  login flow override `qb first broker login`, Sync mode `Import`, and for
+  Google, Prompt `select_account` (the next deploy sets that one too). With an
+  empty prompt, Keycloak passes the site's `prompt=create` («New account») on,
+  and Google refuses it.
+
+Add `KC_GOOGLE_*` / `KC_FACEBOOK_*` to `.env.production` too, so a re-imported
+realm keeps the provider.
 
 **Resources**: Keycloak 1 GB / 1 CPU, its database 256 MB / 0.5 CPU
 (`QBASAIR_KEYCLOAK_*` in `.env.production`).
@@ -539,8 +577,12 @@ df -h /srv && du -sh data/*            # disk
 - **System updates** install automatically (unattended-upgrades); reboot when
   `/var/run/reboot-required` exists — the stack restarts on its own
   (`restart: unless-stopped`).
-- **Settings changes**: edit `.env.production`, then `dc up -d` (the release
-  tag is kept in the file by each deploy, so this restarts the same release).
+- **Settings changes**: edit `.env.production`, then
+  `./deploy/server/check-env.sh && dc up -d` (each deploy keeps the release
+  tag, the commit and the deploy user's uid in the file, so this recreates the
+  same release with the new settings). A plain `dc restart` keeps the old
+  settings. Keycloak's realm only takes the web client's addresses and the
+  providers' prompt at the next deploy ([Keycloak](#keycloak)).
 - **Resources**: the `QBASAIR_*_MEM_LIMIT` / `*_CPUS` values in
   `.env.production` cap each service; `docker stats` shows the real use.
 - **Monitoring**: point an uptime check (e.g. UptimeRobot, Better Stack) at
@@ -553,13 +595,21 @@ df -h /srv && du -sh data/*            # disk
 |---|---|
 | Release fails at "Deploy" with "did not become ready" | the run's log (the last `/api/ready` answer), then on the server `dc logs api`. The previous release was put back. |
 | Release fails at the image scan | the Trivy table in the run: upgrade the package (or base image); accept only with a reason in `.trivyignore` |
-| `Permission denied (publickey)` in the run | `DEPLOY_SSH_KEY` matches the key given to `setup.sh --ssh-key`; `DEPLOY_USER` is `deploy` |
+| `Permission denied (publickey)` in the run | `DEPLOY_SSH_KEY` is the whole private key, **without a passphrase** (`ssh-keygen -p -f basair-deploy`, then paste it again); its public half is in `~deploy/.ssh/authorized_keys` (`ssh-keygen -l -f` on both sides shows the same fingerprint); `DEPLOY_USER` is `deploy` |
+| "What to deploy" fails with `Bad job list:` (nothing after it) on a commit with no deploy tag | the release workflow from before Q-Basair-128 (its check sent an empty list to `grep`); fixed, so rerun the Release workflow from `main` |
+| The deploy stops on `ERROR:` lines from `check-env.sh`, or Compose says `unexpected character … in variable name` | the named lines of `.env.production`: a byte order mark (save as UTF-8 without BOM), CRLF (`sed -i 's/\r$//' .env.production`), a stray line, or local addresses from a test copy |
+| The API is unhealthy after a `dc up -d` by hand | a deploy older than this check didn't write the deploy user's uid into `.env.production`, so Compose ran the API as uid 1000: `QBASAIR_RUN_UID="$(id -u)" QBASAIR_RUN_GID="$(id -g)" QBASAIR_COMMIT_SHA="$(cat .deploy/current)" dc up -d` (the next deploy writes them) |
 | `Host key verification failed` | the server was reinstalled: refresh `DEPLOY_KNOWN_HOSTS` (`ssh-keyscan`) |
 | `denied` when pulling from ghcr.io | the packages `basair-quran-api` / `basair-quran-web` / `basair-quran-keycloak` must stay linked to this repository (Packages → package settings → "Manage Actions access") |
 | The site shows a 502 | `dc ps` — a service still starting (the API builds `quran.db` on first start) or unhealthy (`dc logs`) |
 | A certificate warning | `ls letsencrypt/live/basairquran.com/`; `./deploy/server/tls.sh issue`; with Cloudflare, SSL mode Full (strict) |
 | `tls.sh issue` fails | DNS not pointing here yet (`dig +short basairquran.com`, and the auth domain), or port 80 blocked |
+| Port 443 refuses (`ERR_CONNECTION_REFUSED`, `SSL_ERROR_SYSCALL`) though the certificates exist | `QBASAIR_ENABLE_TLS=1` in `.env.production`, then `./deploy/server/tls.sh issue` again (it keeps the certificates and recreates nginx); `dc logs nginx` must say "starting HTTPS config" |
 | Sign-in shows a 502 | Keycloak still starting (a minute or two) or unhealthy: `dc ps keycloak`, `dc logs keycloak` |
 | "WARNING: Keycloak is not healthy" in the deploy | `dc logs keycloak keycloak-db` — often a changed `KC_DB_PASSWORD`: PostgreSQL keeps the one it was created with |
+| Keycloak's sign-in page says "Invalid parameter: redirect_uri" | the realm still has the addresses of its first start: fix `QBASAIR_PUBLIC_URL` and deploy again (re-applied), or set them in the console (realm `qbasair` → Clients → `qbasair-web`) |
+| Google says "Error 400: invalid_request — Invalid prompt: create" | the Google provider has no prompt of its own: console → Identity providers → google → Prompt `select_account` (each deploy sets it) |
+| The console's Email tab says "configure an e-mail address for the current user ()" | the empty brackets mean the console didn't find the signed-in admin in this realm: test the SMTP settings from the `master` realm's Email tab, or with a real sign-up (the 6-digit code) |
+| The deploy warns it could not sign in to Keycloak | `KC_BOOTSTRAP_ADMIN_PASSWORD` no longer matches the console's admin password: write the current one in `.env.production` |
 | The admin console spins on "Loading" | open it at `http://localhost:8180` through the tunnel; if the deploy warned it could not set the console's address, `rm .deploy/keycloak-console` and redeploy once Keycloak is healthy |
 | The disk fills up | `du -sh data/* backups docker` — recitations (`data/recitations`), old backups, `docker system df` |

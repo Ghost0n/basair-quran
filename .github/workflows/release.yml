@@ -132,8 +132,9 @@ jobs:
               case "$COMMIT_MESSAGE" in *"[$job]"*) jobs="${jobs:+$jobs,}$job" ;; esac
             done
           fi
-          if ! printf '%s' "$tag" | grep -Eq '^[0-9a-f]{7,40}$'; then echo "Not a commit SHA: $tag" >&2; exit 1; fi
-          if ! printf '%s' "$jobs" | grep -Eq '^[a-z,-]*$'; then echo "Bad job list: $jobs" >&2; exit 1; fi
+          # bash's own match: piping an empty job list (no deploy tag) into grep gives it no line, and fails.
+          if ! [[ "$tag" =~ ^[0-9a-f]{7,40}$ ]]; then echo "Not a commit SHA: $tag" >&2; exit 1; fi
+          if ! [[ "$jobs" =~ ^[a-z,-]*$ ]]; then echo "Bad job list: $jobs" >&2; exit 1; fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "jobs=$jobs" >> "$GITHUB_OUTPUT"
           echo "Deploying $tag${jobs:+ with $jobs}" >> "$GITHUB_STEP_SUMMARY"
