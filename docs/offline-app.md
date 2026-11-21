@@ -71,11 +71,27 @@ a connection. Changing the language later in Settings works the same way.
    `OfflineApi` (`packages/offline-engine`, see `docs/offline-engine.md`),
    online or not.
 2. **On the server** — everything else, at `NEXT_PUBLIC_REMOTE_ORIGIN`, with
-   the account's bearer token (captured at sign-in, kept on the device;
-   cookies are never used).
+   the account's bearer token (cookies are never used). With Keycloak (the
+   platform) it is the account's Keycloak access token, refreshed before it
+   expires; see "Accounts" below.
 3. **Offline** — server-only routes answer `503`; Studio and Community show
    «يتطلّب هذا القسم اتصالًا بالإنترنت» instead of failing, and the account
    menu shows the last signed-in account.
+
+## Accounts
+
+With Keycloak (`docs/keycloak.md` → "App"), «دخول» opens Keycloak's own page
+in the system's sign-in sheet — ASWebAuthenticationSession on iPhone, a Custom
+Tab on Android — with the realm's public client `qbasair-app` (code flow +
+PKCE, redirect `qbasair://auth/callback`). Its Google button, email code and
+password reset all happen there; the app never sees a password. The tokens
+live in the Keychain (iOS) or under an Android Keystore key (Android), never
+in the device store's backed-up files; the access token goes to the server as
+`Authorization: Bearer` and is refreshed before it expires. Signing out
+revokes the token and ends Keycloak's session from the device (no page
+opens), then removes the account's data as below. The realm is read from the
+server's session answer (`account_url`); `NEXT_PUBLIC_OIDC_ISSUER` overrides
+it at build time.
 
 ## Account sync
 
@@ -118,6 +134,9 @@ last device to sync wins, per row.
 | `apps/web/lib/app-mode/audio.ts` | recitations downloaded per surah (a prepared surah as one recording + its timings, else its verse files), played from the device |
 | `apps/web/lib/app-mode/audio-ranges.ts` | a recitation range downloaded for offline listening (the recitation sheet) |
 | `apps/web/lib/app-mode/sync.ts` | when account sync runs (the algorithm is in `packages/offline-engine/src/sync.ts`) |
+| `apps/web/lib/app-mode/oidc.ts` | Keycloak sign-in: PKCE, the authorization request and callback, the tokens (exchange, refresh, sign-out) |
+| `apps/web/lib/app-mode/keycloak.ts` | its device side: the sign-in sheet, native HTTP, the secure store (the `QbAuth` plugin) |
+| `apps/mobile/ios/App/App/QbAuthPlugin.swift`, `apps/mobile/android/…/QbAuthPlugin.java` | the app's own plugin: ASWebAuthenticationSession (iOS) and the Keychain / Keystore store |
 | `apps/web/features/app-mode/` | onboarding, the Downloads card, the online-only notice |
 | `apps/web/app/**/*.app.tsx` | the app build's route files (the static shell layout) |
 
@@ -274,5 +293,6 @@ pnpm --filter @q-basair/mobile exec cap open ios  # Xcode (pick your team under 
   and deletions travel both ways, a quiet sync writes nothing, accounts never
   mix, a failed sync leaves no duplicates.
 - `apps/web/lib/app-mode/*.test.ts`: pack install / checksum refusal / removal
-  / language install / updates, and the fetch router (device vs server vs
-  offline, bearer token).
+  / language install / updates, the fetch router (device vs server vs
+  offline, bearer token, Keycloak refresh and sign-out), and the Keycloak
+  sign-in's token handling (`oidc.test.ts`).

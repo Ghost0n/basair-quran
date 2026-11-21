@@ -63,9 +63,40 @@ logged (`oidc callback: Keycloak answered …`) for every failure but `access_de
 end-session endpoint with the ID token as hint), which the client visits so Keycloak's session ends
 too, then comes back to the home page.
 
-**App** — the standalone app sends Keycloak access tokens as `Authorization: Bearer`; the API checks
-them against the realm's keys (issuer, `qbasair-api` audience, expiry) and maps them to the account
-like a sign-in. (The app's own sign-in screens and native Apple / Google / Meta buttons are step 5.)
+**App** (Q-Basair-129) — the standalone app signs in with the realm's public client `qbasair-app`,
+code flow + PKCE (S256), redirect `qbasair://auth/callback`, scope `openid email profile
+offline_access` (`apps/web/lib/app-mode/oidc.ts`, the device side in `keycloak.ts`):
+
+1. `/login` in the app reads the server's session answer (`provider: "keycloak"`; the realm is
+   `account_url` minus `/account`, or `NEXT_PUBLIC_OIDC_ISSUER` at build time), reads the realm's
+   discovery document and opens Keycloak's page — sign-in, or sign-up with `prompt=create` for
+   `/login?tab=signup` — in the system's sign-in sheet: **ASWebAuthenticationSession** on iOS (the
+   app's own plugin `QbAuth`, `apps/mobile/ios/App/App/QbAuthPlugin.swift`; it shares Safari's
+   cookies, so a reader signed in there is not asked again), a **Custom Tab** on Android
+   (`@capacitor/browser`; the redirect comes back as a deep link, `appUrlOpen`, through the
+   `qbasair://auth/callback` intent filter). Both register the `qbasair` scheme.
+2. The callback's `state` must match; the code is exchanged at the token endpoint with the verifier.
+   Keycloak's endpoints are called over **native HTTP** (CapacitorHttp), so the realm needs no web
+   origins for the app.
+3. The tokens (access, offline refresh, ID) go to the device's **secure store** — the Keychain
+   (`AfterFirstUnlockThisDeviceOnly`) on iOS, values sealed with an Android Keystore AES-GCM key in
+   the app's private preferences on Android (`QbAuthPlugin.java`) — never the device store's backed-up
+   files. The app then reads `GET /api/auth/session` with the access token, and account sync starts.
+4. Every server request carries `Authorization: Bearer <access token>`; the API checks it against
+   the realm's keys (issuer, `qbasair-api` audience, expiry) and maps it to the account like a
+   sign-in. The access token (5 minutes) is refreshed 30 s before it expires, once for concurrent
+   requests. Keycloak refusing the refresh (revoked, 30 days idle, account deleted) signs the app
+   out; Keycloak unreachable answers as offline (the account stays signed in).
+5. **Sign-out** forgets the tokens on the device, then revokes the offline token (revocation
+   endpoint) and ends Keycloak's session (end-session endpoint, `id_token_hint`, over native HTTP:
+   no page opens), so the next sign-in asks again. Our server keeps no session for the app.
+
+A cancelled sheet shows «أُلغي الدخول.» on `/login`, with «دخول» to open it again. Native Apple /
+Google / Meta buttons stay a later step: Keycloak's page already shows the providers.
+
+The live realm's `qbasair-app` stays out of the deploy's [realm sync](#production): its redirect and
+post-logout redirect are the fixed `qbasair://auth/callback` from the first import, not a setting (checked against production on
+2026-11-21: that redirect is accepted, another one answers 400), and it needs no web origins.
 
 **Account deletion** deletes the Keycloak account first (if that fails, nothing is deleted), then
 everything of ours.
@@ -295,6 +326,17 @@ The sync was also run against Keycloak 26.8.2 with a realm holding the first rel
 values: the client's addresses and Google's prompt were rewritten, a second run changed nothing,
 and an export showed the client and provider secrets unchanged.
 
+The app's side: `apps/web/lib/app-mode/oidc.test.ts` (PKCE against RFC 7636's example, the
+authorization request, the callback's state / errors / cancellation, discovery bound to the issuer,
+the code exchange, refresh once for concurrent callers with rotated tokens, a refused refresh signing
+out, an unreachable Keycloak keeping the tokens, sign-out's revocation and end-session) and
+`fetch-router.test.ts` (the Bearer, the refresh before a request, offline answers while Keycloak is
+unreachable, sign-out without our server). Checked end to end against Keycloak 26.8.2
+(`scripts/keycloak_dev.sh`) and the API in Keycloak mode: sign-in with PKCE gives an offline token,
+the API answers the session with the Bearer, a refresh rotates it, and after sign-out the old
+refresh token answers `invalid_grant` and the next sign-in shows Keycloak's form again. The native
+pieces (sheet, deep link, Keychain / Keystore) are checked on a phone.
+
 Checked by hand against Keycloak 26.8.2 with a stand-in OpenID provider (a second realm): a new email
 creates the account; a confirmed one is linked and keeps its password; an unconfirmed one is linked and
 loses its password; linking from settings (confirmed or cancelled), a provider account owned by
@@ -337,5 +379,6 @@ the client's prompt on to a provider that has none of its own, and Google refuse
 - Sign in with Apple: the pinned community provider extension in the image.
 - Native review of the 11 drafted sign-in languages, and mail texts for the 8 that fall back to
   English.
-- The app: native provider buttons + token exchange, the email page in a system sheet (step 5).
+- The app: native Apple / Google / Meta buttons (token exchange). Its Keycloak sign-in is done (see
+  [Flows](#flows) → App).
 - After the cut-over: remove the local password routes and `auth_service`'s password code.
