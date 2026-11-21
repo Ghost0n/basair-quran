@@ -66,8 +66,21 @@ fi
   || warn "QBASAIR_ENABLE_TLS is not 1: nginx serves plain HTTP only, even once tls.sh has issued the certificates."
 [[ "$(value QBASAIR_SESSION_SECURE)" != "0" ]] \
   || warn "QBASAIR_SESSION_SECURE is 0: the session cookie is not marked Secure."
-if [[ "$(value QBASAIR_CORS_ORIGINS)" =~ localhost|127\.0\.0\. ]]; then
-  warn "QBASAIR_CORS_ORIGINS still lists a local address."
+# The standalone app calls the API from its own origins, https://localhost
+# (Android) and capacitor://localhost (iOS): the phones', not local addresses.
+# Without them the app cannot read the session, sign in or sync
+# (docs/offline-app.md); any other localhost is a local copy's.
+app_android=0 app_ios=0 local_origin=0
+for origin in $(value QBASAIR_CORS_ORIGINS | tr ',' ' '); do
+  case "${origin%/}" in
+    https://localhost) app_android=1 ;;
+    capacitor://localhost) app_ios=1 ;;
+    *localhost*|*127.0.0.*) local_origin=1 ;;
+  esac
+done
+[[ "${local_origin}" == "0" ]] || warn "QBASAIR_CORS_ORIGINS still lists a local address."
+if [[ "${app_android}" == "0" || "${app_ios}" == "0" ]]; then
+  warn "QBASAIR_CORS_ORIGINS lacks the app's origins (https://localhost and capacitor://localhost): the Android and iOS app cannot sign in or sync."
 fi
 
 if profile_on keycloak; then

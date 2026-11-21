@@ -63,7 +63,7 @@ logged (`oidc callback: Keycloak answered …`) for every failure but `access_de
 end-session endpoint with the ID token as hint), which the client visits so Keycloak's session ends
 too, then comes back to the home page.
 
-**App** (Q-Basair-129) — the standalone app signs in with the realm's public client `qbasair-app`,
+**App** (Q-Basair-130) — the standalone app signs in with the realm's public client `qbasair-app`,
 code flow + PKCE (S256), redirect `qbasair://auth/callback`, scope `openid email profile
 offline_access` (`apps/web/lib/app-mode/oidc.ts`, the device side in `keycloak.ts`):
 
@@ -96,7 +96,12 @@ Google / Meta buttons stay a later step: Keycloak's page already shows the provi
 
 The live realm's `qbasair-app` stays out of the deploy's [realm sync](#production): its redirect and
 post-logout redirect are the fixed `qbasair://auth/callback` from the first import, not a setting (checked against production on
-2026-11-21: that redirect is accepted, another one answers 400), and it needs no web origins.
+2026-11-21: that redirect is accepted, another one answers 400), and it needs no web origins. The
+**API** does: the app reads `/api/auth/session` (and every account route) from the webview, so
+`QBASAIR_CORS_ORIGINS` must list `https://localhost` (Android) and `capacitor://localhost` (iOS).
+Without them every app build fails before Keycloak opens: the session probe is refused, `/login`
+falls back to the email form, and its submit cannot reach the server either.
+`deploy/server/check-env.sh` warns when they are missing.
 
 **Account deletion** deletes the Keycloak account first (if that fails, nothing is deleted), then
 everything of ours.
