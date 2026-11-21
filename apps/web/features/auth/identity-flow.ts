@@ -12,7 +12,7 @@ import "@/lib/guest-id";
 /**
  * Shared identity-flow plumbing: guest→account merge (run once per account),
  * a sessionStorage relay so the destination shell can raise the merge toast,
- * and the post-auth routing decision (first-run → /welcome, else resume).
+ * and the post-auth routing decision (a first sign-in is marked onboarded, then resume).
  */
 
 const MERGE_RESULT_KEY = "qb.merge-result";
@@ -99,17 +99,32 @@ export function readAndClearMergeResult(): GuestMergeResult | null {
 }
 
 /**
- * Route after a successful sign in / sign up: a fresh account (not yet
- * onboarded) goes through the avatar + onboarding welcome flow; an existing
- * account merges its guest data and resumes wherever it was headed.
+ * A new account's first sign-in: marked onboarded (no welcome screen any more,
+ * features/onboarding/welcome-flow.tsx) and given what the guest made here.
+ * Best effort: a failure never keeps the reader from going on.
+ */
+export async function finishOnboarding(): Promise<void> {
+  try {
+    await identityApi.updateProfile({ onboarded: true }, { suppressAuthRedirect: true });
+  } catch {
+    /* asked again at the next sign-in */
+  }
+  try {
+    await maybeMergeGuestData();
+  } catch {
+    /* the guest data stays in this browser for the next try */
+  }
+}
+
+/**
+ * Route after a successful sign in / sign up: wherever the reader was headed,
+ * once a fresh account is onboarded and the guest data merged.
  */
 export async function routeAfterAuth(session: AuthSessionResponse, nextPath: string): Promise<void> {
   const user = session.user;
   if (user && !user.onboarded) {
-    window.location.assign(`/welcome?next=${encodeURIComponent(nextPath)}`);
-    return;
-  }
-  if (user) {
+    await finishOnboarding();
+  } else if (user) {
     await maybeMergeGuestData();
   }
   window.location.assign(nextPath);

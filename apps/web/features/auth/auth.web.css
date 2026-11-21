@@ -15,8 +15,7 @@
   mask-image: radial-gradient(circle, #000 18%, transparent 60%);
 }
 .qb-web .qb-auth-wordmark { font-family: var(--font-arabic-display); }
-.qb-web .qb-auth-card,
-.qb-web .qb-onboard-card {
+.qb-web .qb-auth-card {
   background: var(--bg-elev-1);
   border: 1px solid var(--border-strong);
   border-radius: var(--r-panel);
@@ -25,6 +24,4 @@
 .qb-web .qb-auth-input { border-radius: var(--r-ctl); border: 1px solid var(--border-strong); background: var(--bg); box-shadow: none; }
 .qb-web .qb-auth-input:focus { border-color: var(--gold-line); }
 .qb-web .qb-auth-tabs { background: var(--bg-elev-2); border: 0; box-shadow: none; border-radius: var(--r-ctl); }
-.qb-web .qb-auth-cta,
-.qb-web .qb-welcome-cta,
-.qb-web .qb-onboard-cta { background: var(--btn-grad); color: var(--on-gold); box-shadow: none; }
+.qb-web .qb-auth-cta { background: var(--btn-grad); color: var(--on-gold); box-shadow: none; }
