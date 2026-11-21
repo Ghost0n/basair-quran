@@ -3,6 +3,7 @@
 import type { AuthSessionResponse, GuestMergeResult } from "@q-basair/shared";
 import { createQBasairApiClient } from "@q-basair/api-client";
 
+import { navigateTo } from "@/lib/app-mode/navigation";
 import { API_BASE_URL } from "@/lib/config";
 import { forgetAccountOnThisDevice } from "@/lib/forget-account";
 import { uploadGuestData } from "@/lib/guest-data";
@@ -127,7 +128,7 @@ export async function routeAfterAuth(session: AuthSessionResponse, nextPath: str
   } else if (user) {
     await maybeMergeGuestData();
   }
-  window.location.assign(nextPath);
+  navigateTo(nextPath);
 }
 
 /**
