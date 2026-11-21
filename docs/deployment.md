@@ -29,6 +29,7 @@ Contents:
 ```text
  pull request ──► CI (.github/workflows/ci.yml)
                   tests · web + app builds · offline-engine parity · nginx/compose checks
+                  api + web Docker images (built, not pushed)
                   Trivy (dependencies, secrets, Dockerfiles) · Sonar (when configured)
 
  merge to main ──► Release (.github/workflows/release.yml)

@@ -10,12 +10,19 @@ name: Mobile
 # iOS signing (optional, Xcode cloud-managed signing): secrets APPLE_TEAM_ID,
 #   APPSTORE_API_KEY_ID, APPSTORE_API_ISSUER_ID, APPSTORE_API_KEY_P8 (the .p8
 #   file's contents). A `mobile-v*` tag also uploads the build to TestFlight.
-# The iOS job (a macOS runner, the costly one) runs only on `mobile-v*` tags
-# and when started by hand; pushes to develop/main build the bundle and Android.
+# Pushes to main build the bundle and Android. On develop (or any branch) the
+# build is optional: start it by hand ("Run workflow", pick the branch). The
+# iOS job (a macOS runner, the costly one) runs only on `mobile-v*` tags and
+# when started by hand with "Also build iOS" ticked.
 on:
   workflow_dispatch:
+    inputs:
+      ios:
+        description: "Also build iOS (macOS runner, about ten times the cost of Linux)"
+        type: boolean
+        default: false
   push:
-    branches: [develop, main]
+    branches: [main]
     tags: ["mobile-v*", "android-v*"]
     paths:
       - "apps/**"
@@ -197,7 +204,7 @@ jobs:
   ios:
     name: iOS (simulator build, IPA)
     needs: bundle
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/mobile-v')
+    if: (github.event_name == 'workflow_dispatch' && inputs.ios) || startsWith(github.ref, 'refs/tags/mobile-v')
     runs-on: macos-15
     permissions:
       contents: write # the test pre-release below

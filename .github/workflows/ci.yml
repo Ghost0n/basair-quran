@@ -2,8 +2,9 @@ name: CI
 
 # The quality gate on every pull request and on pushes to the integration
 # branches: backend tests, the web build, the offline engine's parity with the
-# server, the nginx config, a Trivy scan and (when configured) a Sonar
-# analysis. Releasing to production is release.yml (main only).
+# server, the nginx config, the production Docker images (built, not pushed),
+# a Trivy scan and (when configured) a Sonar analysis. Releasing to production
+# is release.yml (main only).
 on:
   pull_request:
     branches: [develop, main]
@@ -160,6 +161,40 @@ jobs:
         run: pnpm --filter @q-basair/offline-engine exec tsc -p .
       - name: Replay them against the engine
         run: pnpm --filter @q-basair/offline-engine test
+
+  # The production images, built as release.yml builds them but not pushed:
+  # a Dockerfile that misses a workspace package (Q-Basair-119) fails here, on
+  # the pull request, instead of in the release after the merge to main. The
+  # mushaf fonts the release fetches first only add files to the web image,
+  # so they are left out. Reads the release's layer cache, keeps its own.
+  images:
+    name: Docker image (${{ matrix.image }})
+    runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[skip-expensive-ci]') }}
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        image: [api, web]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - name: Build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ${{ matrix.image == 'api' && 'Dockerfile.api' || 'apps/web/Dockerfile' }}
+          push: false
+          tags: qbasair-${{ matrix.image }}:ci
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=/api
+            NEXT_PUBLIC_AUTH_ENABLED=${{ vars.NEXT_PUBLIC_AUTH_ENABLED || '1' }}
+            NEXT_PUBLIC_SITE_URL=https://${{ vars.QBASAIR_PUBLIC_DOMAIN || 'basairquran.com' }}
+            QBASAIR_API_ORIGIN=http://api:8001
+          cache-from: |
+            type=gha,scope=${{ matrix.image }}
+            type=gha,scope=ci-${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=ci-${{ matrix.image }}
 
   security:
     name: Security scan (Trivy)
