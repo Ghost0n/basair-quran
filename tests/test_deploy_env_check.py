@@ -28,7 +28,7 @@ COMPOSE_PROJECT_NAME=qbasair
 QBASAIR_PUBLIC_DOMAIN=basair.example
 QBASAIR_PUBLIC_URL=https://basair.example
 QBASAIR_ENABLE_TLS=1
-QBASAIR_CORS_ORIGINS=https://basair.example
+QBASAIR_CORS_ORIGINS=https://basair.example,https://localhost,capacitor://localhost
 QBASAIR_SESSION_SECRET=session-secret-value
 QBASAIR_MAIL_FROM="بصائر <no-reply@basair.example>"
 
@@ -93,6 +93,19 @@ def test_a_local_copy_is_refused_before_anything_changes(tmp_path):
         assert f"ERROR: {name}" in result.stderr
     for name in ("QBASAIR_ENABLE_TLS", "QBASAIR_CORS_ORIGINS", "KC_SMTP_FROM"):
         assert f"WARNING: {name}" in result.stderr
+
+
+def test_the_apps_origins_are_expected_not_mistaken_for_local_ones(tmp_path):
+    # https://localhost and capacitor://localhost are the phones' own origins: no warning.
+    assert check(tmp_path, GOOD).stderr == ""
+    without_app = check(tmp_path, replace(GOOD, QBASAIR_CORS_ORIGINS="https://basair.example"))
+    assert without_app.returncode == 0
+    assert "WARNING: QBASAIR_CORS_ORIGINS lacks the app's origins" in without_app.stderr
+    assert "still lists a local address" not in without_app.stderr
+    only_ios = check(tmp_path, replace(GOOD, QBASAIR_CORS_ORIGINS="https://basair.example, capacitor://localhost"))
+    assert "lacks the app's origins" in only_ios.stderr
+    local = check(tmp_path, replace(GOOD, QBASAIR_CORS_ORIGINS="https://basair.example,https://localhost,capacitor://localhost,http://localhost:3000"))
+    assert "still lists a local address" in local.stderr and "lacks" not in local.stderr
 
 
 def test_tls_off_alone_only_warns(tmp_path):
