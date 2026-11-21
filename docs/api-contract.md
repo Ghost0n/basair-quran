@@ -579,8 +579,9 @@ Saving an ayah highlights it with themes — named colours that group saved ayah
 - `POST /api/auth/forgot-password` `{ email }` always returns `{ ok: true }` (no account enumeration).
   When the account exists it mints a single-use, 1-hour reset token and **emails** it (Arabic message with
   a link `${QBASAIR_PUBLIC_URL}/login?reset=<token>` that opens the reset step pre-filled, plus the raw
-  code) when `QBASAIR_SMTP_HOST` is configured; otherwise the token is only logged server-side for manual
-  delivery. Delivery errors are logged, never surfaced. Rate-limited (auth bucket).
+  code) when `QBASAIR_SMTP_HOST` is configured; otherwise nothing is sent and the server logs only that no
+  SMTP is configured (never the token; locally, catch the mail with `scripts/dev_mail.py`:
+  `QBASAIR_SMTP_HOST=127.0.0.1`, `QBASAIR_SMTP_PORT=1025`, `QBASAIR_SMTP_SECURITY=none`). Delivery errors are logged, never surfaced. Rate-limited (auth bucket).
 - `POST /api/auth/reset-password` `{ token, password }` consumes the token, sets the new password, and
   **revokes all sessions**. `400` on invalid/expired/used token, `422` on a weak password. Rate-limited.
 - `DELETE /api/auth/account` (auth) permanently deletes the account: all app data (notebook, sessions,

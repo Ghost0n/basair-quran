@@ -12,14 +12,15 @@ def _smtp_env(monkeypatch):
     monkeypatch.setenv("QBASAIR_PUBLIC_URL", "https://basair.example.org/")
 
 
-def test_without_smtp_the_token_is_only_logged(monkeypatch, caplog):
+def test_without_smtp_nothing_is_sent_and_the_token_is_never_logged(monkeypatch, caplog):
     monkeypatch.delenv("QBASAIR_SMTP_HOST", raising=False)
     sent = []
     monkeypatch.setattr(mail_service, "transport", lambda settings, message: sent.append(message))
-    with caplog.at_level("INFO", logger="q_basair.mail"):
+    with caplog.at_level("DEBUG", logger="q_basair.mail"):
         assert mail_service.send_password_reset("a@example.org", "tok123") is False
     assert sent == []
-    assert "tok123" in caplog.text
+    assert "no SMTP configured" in caplog.text
+    assert "tok123" not in caplog.text
 
 
 def test_with_smtp_an_arabic_reset_email_with_link_is_sent(monkeypatch):

@@ -654,9 +654,16 @@ const ROUTES: Route[] = [
   { method: "PATCH", pattern: /^\/api\/user\/preferences$/, handle: (store, _p, body) => store.updatePreferences(body) },
 ];
 
+/** The path without its trailing slashes, in linear time (a `/\/+$/` replace backtracks on runs of slashes). */
+export function trimTrailingSlashes(pathname: string): string {
+  let end = pathname.length;
+  while (end > 0 && pathname.charCodeAt(end - 1) === 47 /* "/" */) end -= 1;
+  return pathname.slice(0, end);
+}
+
 /** Answer a companion route from the local store, or null when the path is not one. */
 export async function handleLocal(store: LocalStore, method: string, pathname: string, body: unknown): Promise<{ status: number; body: unknown } | null> {
-  const path = pathname.replace(/\/+$/, "");
+  const path = trimTrailingSlashes(pathname);
   for (const route of ROUTES) {
     if (route.method !== method) continue;
     const match = route.pattern.exec(path);
@@ -672,6 +679,6 @@ export async function handleLocal(store: LocalStore, method: string, pathname: s
 }
 
 export function isLocalRoute(method: string, pathname: string): boolean {
-  const path = pathname.replace(/\/+$/, "");
+  const path = trimTrailingSlashes(pathname);
   return ROUTES.some((route) => route.method === method && route.pattern.test(path));
 }

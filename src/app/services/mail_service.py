@@ -132,12 +132,13 @@ transport: Callable[[SmtpSettings, EmailMessage], None] = _smtp_send
 
 
 def send_password_reset(to: str, token: str) -> bool:
-    """Send the reset email. Returns True when handed to SMTP; False when only
-    logged (no SMTP configured) or when delivery failed."""
+    """Send the reset email. Returns True when handed to SMTP; False when no
+    SMTP is configured or delivery failed. The token itself is never logged:
+    locally, catch the mail with scripts/dev_mail.py (QBASAIR_SMTP_HOST=127.0.0.1,
+    QBASAIR_SMTP_PORT=1025, QBASAIR_SMTP_SECURITY=none)."""
     settings = smtp_settings()
     if settings is None:
-        # Manual delivery fallback (development / not yet configured).
-        logger.info("Password reset for %s — no SMTP configured, token: %s", to, token)
+        logger.warning("Password reset for %s not sent — no SMTP configured (QBASAIR_SMTP_HOST)", to)
         return False
     try:
         transport(settings, build_reset_message(to, token, settings.sender))
