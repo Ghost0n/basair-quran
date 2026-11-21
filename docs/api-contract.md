@@ -114,8 +114,11 @@ This document freezes the backend contract that the future frontend migration wi
   no-cache`), `narration-<id>.db`, `translation-<slug>.db`, `interface-<code>.json`
   (`public, max-age=86400`). Other names are `404`. Open without sign-in.
 - The app calls the server from its own origin (`https://localhost` on Android,
-  `capacitor://localhost` on iOS): add both to `QBASAIR_CORS_ORIGINS`. It authenticates with `Authorization: Bearer <token>` (the `token` of
-  `AuthSessionResponse`), never cookies.
+  `capacitor://localhost` on iOS): add both to `QBASAIR_CORS_ORIGINS`. It authenticates with `Authorization: Bearer <token>`, never cookies:
+  with Keycloak, the access token of the realm's public client `qbasair-app` (audience `qbasair-api`,
+  `docs/keycloak.md` → "App"; the app finds the realm from `AuthSessionResponse.account_url`, which is
+  `<issuer>/account`); with local accounts, the `token` of `AuthSessionResponse`. A signed-in app never
+  calls `POST /api/auth/logout`: it revokes its token and ends the session at Keycloak itself.
 
 ## Text count notes (reader «تحديد» → «إحصاء»)
 
