@@ -68,7 +68,9 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: var(--shadow-3);
-  z-index: 400;
+  /* Above every floating panel a menu opens from: it was 400, under the
+     recitation range panel (1100), so the surah list opened behind it. */
+  z-index: 1200;
   animation: qbPopIn var(--dur-fast) var(--ease-out);
   transform-origin: top;
 }
