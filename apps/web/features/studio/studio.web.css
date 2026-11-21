@@ -389,6 +389,9 @@ html.qb-web body .qb-studio-stage > .qb-thread-latest {
   max-width: 760px;
   margin-inline: auto;
   align-self: center;
+  /* Clear of the top bar: it is sticky and fades out over its lower edge, so
+     6px under it read as tucked behind it. */
+  margin-block-start: 18px;
 }
 /* With the AI controls beside it, the keyboard hint needs more room. */
 @container (max-width: 820px) {
