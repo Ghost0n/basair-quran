@@ -138,12 +138,14 @@ def auth_oidc_login(
     return_to: str | None = Query(None, max_length=500),
     signup: bool = Query(False),
     locale: str | None = Query(None, max_length=12),
+    retry: bool = Query(False),
 ) -> RedirectResponse:
-    """Start signing in (or up, `signup=1`) on Keycloak's page; it comes back to the callback."""
+    """Start signing in (or up, `signup=1`) on Keycloak's page; it comes back to the callback.
+    `retry=1` is the callback's one restart (see `auth_oidc_callback`)."""
     if not config.is_keycloak_auth():
         raise HTTPException(status_code=404, detail="Not found.")
     try:
-        url, pending = oidc_service.begin_login(return_to, signup=signup, locale=locale)
+        url, pending = oidc_service.begin_login(return_to, signup=signup, locale=locale, retry=retry)
     except oidc_service.OidcError as exc:
         raise HTTPException(status_code=exc.status, detail=str(exc)) from exc
     return _to_keycloak(url, pending)
@@ -205,9 +207,16 @@ def auth_oidc_callback(
     code: str | None = Query(None, max_length=4096),
     state: str | None = Query(None, max_length=200),
     error: str | None = Query(None, max_length=200),
+    error_description: str | None = Query(None, max_length=500),
     kc_action_status: str | None = Query(None, max_length=40),
 ) -> RedirectResponse:
-    """Keycloak's answer: check it, open our session (cookie) and go back where the reader was."""
+    """Keycloak's answer: check it, open our session (cookie) and go back where the reader was.
+
+    When only our bookkeeping failed — the pending cookie expired or is missing (a sign-in
+    page left open, a first provider sign-in that took long), the code was already used,
+    or Keycloak's own sign-in page expired — the sign-in starts again once instead of
+    showing an error: Keycloak already knows the reader and finishes without a page.
+    The restarted state carries a mark, so a second failure shows the error."""
     if not config.is_keycloak_auth():
         raise HTTPException(status_code=404, detail="Not found.")
     try:
@@ -227,7 +236,21 @@ def auth_oidc_callback(
 
     # The reader backed out on Keycloak's page (access_denied); anything else is a failure.
     failed = finish(RedirectResponse(f"/login?error={'cancelled' if error == 'access_denied' else 'failed'}", status_code=302))
-    if error or not code:
+
+    def restart_once() -> RedirectResponse:
+        if oidc_service.is_retry(state):
+            return failed
+        logger.info("oidc callback: starting the sign-in again once")
+        query = urllib.parse.urlencode({"retry": "1", "return_to": return_to})
+        return finish(RedirectResponse(f"/api/auth/oidc/login?{query}", status_code=302))
+
+    if error:
+        if error != "access_denied":
+            logger.warning("oidc callback: Keycloak answered %s (%s)", error, (error_description or "-")[:200])
+        if error in oidc_service.RESTARTABLE_ERRORS:
+            return restart_once()
+        return failed
+    if not code:
         return failed
     try:
         identity = oidc_service.complete_login(code, state or "", pending)
@@ -242,7 +265,7 @@ def auth_oidc_callback(
         )
     except oidc_service.OidcError as exc:
         logger.warning("oidc callback refused: %s", exc)
-        return failed
+        return restart_once() if exc.restartable else failed
     except auth_service.EmailAlreadyExistsError:
         return finish(RedirectResponse("/login?error=email_in_use", status_code=302))
     if not user.is_active:
