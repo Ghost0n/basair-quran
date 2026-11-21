@@ -9,6 +9,14 @@ node_modules
 apps/web/.next
 apps/web/node_modules
 packages/*/node_modules
+**/node_modules
+# Keycloak: build outputs (rebuilt in Dockerfile.keycloak) and the rendered
+# realm, which carries secrets (scripts/keycloak_realm.py).
+apps/keycloak-theme/dist
+apps/keycloak-theme/dist_keycloak
+apps/keycloak-email-code/target
+infra/keycloak/build
+keycloak
 __pycache__
 *.pyc
 *.log

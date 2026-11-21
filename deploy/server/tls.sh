@@ -8,8 +8,10 @@
 #                                   less than 30 days are left, then reloads nginx
 #
 # Reads QBASAIR_PUBLIC_DOMAIN and CERTBOT_EMAIL from .env.production; with
-# QBASAIR_TLS_WWW=1 the certificate also covers www.<domain>. Certificates are
-# kept in letsencrypt/ next to this checkout (mounted read-only into nginx).
+# QBASAIR_TLS_WWW=1 the certificate also covers www.<domain>. With
+# QBASAIR_AUTH_DOMAIN set (Keycloak, e.g. auth.<domain>), that name gets its own
+# certificate too. Certificates are kept in letsencrypt/ next to this checkout
+# (mounted read-only into nginx).
 
 set -euo pipefail
 
@@ -21,6 +23,7 @@ env_value() { grep -E "^$1=" "${ENV_FILE}" | tail -1 | cut -d= -f2- | tr -d '"' 
 DOMAIN="$(env_value QBASAIR_PUBLIC_DOMAIN)"
 EMAIL="$(env_value CERTBOT_EMAIL)"
 WWW="$(env_value QBASAIR_TLS_WWW)"
+AUTH_DOMAIN="$(env_value QBASAIR_AUTH_DOMAIN)"
 [[ -n "${DOMAIN}" ]] || { echo "QBASAIR_PUBLIC_DOMAIN is not set in ${ENV_FILE}." >&2; exit 1; }
 
 compose() { docker compose --env-file "${ENV_FILE}" "$@"; }
@@ -34,9 +37,15 @@ case "${1:-}" in
     [[ "${WWW}" == "1" ]] && domains+=(-d "www.${DOMAIN}")
     certbot certonly --webroot -w /var/www/certbot "${domains[@]}" \
       --email "${EMAIL}" --agree-tos --no-eff-email --non-interactive --keep-until-expiring
+    if [[ -n "${AUTH_DOMAIN}" ]]; then
+      # Its own certificate (letsencrypt/live/<auth domain>/), so the site's
+      # stays as it was; nginx serves the HTTP-01 file for this name too.
+      certbot certonly --webroot -w /var/www/certbot -d "${AUTH_DOMAIN}" --cert-name "${AUTH_DOMAIN}" \
+        --email "${EMAIL}" --agree-tos --no-eff-email --non-interactive --keep-until-expiring
+    fi
     # nginx chooses its HTTPS config at start when the certificate exists.
     compose restart nginx
-    echo "Certificate in place; nginx restarted on HTTPS."
+    echo "Certificate(s) in place; nginx restarted on HTTPS."
     ;;
   renew)
     certbot renew --webroot -w /var/www/certbot --quiet

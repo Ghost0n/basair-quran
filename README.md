@@ -282,10 +282,10 @@ public entrypoint, in front of the internal `web`, `api` and moderation `worker`
 persistent `data/` storage and one API replica (the app relies on SQLite).
 
 - **CI** (`.github/workflows/ci.yml`, every pull request): backend tests, the web and app builds, the
-  offline engine's parity, the nginx and compose configs, the API and web Docker images (built as the
-  release builds them, not pushed), a Trivy scan (dependencies, secrets, Dockerfiles) and, once
+  offline engine's parity, the nginx and compose configs, the API, web and Keycloak Docker images (built as
+  the release builds them and scanned, not pushed), a Trivy scan (dependencies, secrets, Dockerfiles) and, once
   configured, a Sonar analysis.
-- **Release** (`.github/workflows/release.yml`, every push to `main`): the API and web images are built
+- **Release** (`.github/workflows/release.yml`, every push to `main`): the API, web and Keycloak images are built
   on GitHub, scanned with Trivy, pushed to GitHub Container Registry and deployed over SSH by
   `deploy/server/deploy.sh`, health-gated with automatic rollback. Deploy tags in the merge commit
   (`[rebuild-db]`, `[rebuild-translations]`, `[prefill-recitation]`,
