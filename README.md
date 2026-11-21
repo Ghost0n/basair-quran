@@ -39,7 +39,7 @@ flowchart LR
 - **`api`** (FastAPI) owns the Quran: normalization, search, the reader, accounts and the research agent.
 - **`web`** (Next.js) is the interface. The same code, built with `NEXT_PUBLIC_APP_MODE=1`, is the mobile app.
 - **`packages/offline-engine`** is the Quran routes ported to TypeScript, so the app answers on the device. A parity suite keeps it identical to the server.
-- **Keycloak** handles sign-in (email, Google), with the realm defined as code.
+- **Keycloak** handles sign-in (email, Google), with the realm defined as code. The mobile app signs in on its page in the system's sign-in sheet (PKCE, tokens in the Keychain / Keystore).
 
 ### How the research assistant answers
 

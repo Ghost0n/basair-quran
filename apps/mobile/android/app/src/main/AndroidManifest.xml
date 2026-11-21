@@ -24,6 +24,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Keycloak's sign-in redirect (qbasair://auth/callback) back from the
+                 Custom Tab: apps/web/lib/app-mode/keycloak.ts, docs/keycloak.md. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="qbasair" android:host="auth" android:path="/callback" />
+            </intent-filter>
+
         </activity>
 
         <provider
